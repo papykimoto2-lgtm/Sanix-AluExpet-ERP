@@ -1,0 +1,2571 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' data:; connect-src 'self' https://*.supabase.co; base-uri 'none'; frame-ancestors 'none'">
+<meta name="referrer" content="no-referrer">
+<title>AluBOM Pro — Menuiserie Aluminium v2.0 ERP</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// === CONFIG SUPABASE — à renseigner par Papi ===
+window.SANIX_CFG = {
+  SUPABASE_URL: 'https://VOTRE-PROJET.supabase.co',
+  SUPABASE_ANON_KEY: 'VOTRE_ANON_KEY',
+  APP: 'alubom_pro',
+  COMPANY_ID: 'default'
+};
+</script>
+<style>
+  body{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f4f7fb}
+  .glass{background:rgba(255,255,255,.88);backdrop-filter:blur(12px)}
+  .sidebar{background:#0f172a}
+  .active{background:#1e293b;color:#fff}
+  .card{box-shadow:0 10px 30px rgba(15,23,42,.07)}
+  input,select{outline:none}
+  input:focus,select:focus{box-shadow:0 0 0 3px rgba(37,99,235,.12);border-color:#2563eb}
+  .badge{font-size:.72rem;font-weight:700;padding:.25rem .55rem;border-radius:999px}
+  @media (max-width:767px){
+    .sidebar{position:fixed;inset:0 25% 0 0;z-index:40;transform:translateX(-100%);transition:transform .25s ease;overflow-y:auto;display:block!important}
+    .sidebar.open{transform:translateX(0)}
+    #sidebarOverlay{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:30;opacity:0;pointer-events:none;transition:opacity .2s ease}
+    #sidebarOverlay.open{opacity:1;pointer-events:auto}
+  }
+</style>
+</head>
+<body class="text-slate-800">
+
+<!-- ===== AUTH GATE ===== -->
+<div id="authGate" class="min-h-screen flex items-center justify-center bg-slate-900 px-4">
+  <div class="card bg-white rounded-2xl p-8 w-full max-w-sm">
+    <div class="text-center mb-6">
+      <div class="text-2xl font-black text-slate-900">AluBOM <span class="text-blue-600">Pro</span></div>
+      <div class="text-xs text-slate-500 mt-1">SANIX Africa • Division Technologies</div>
+    </div>
+    <form id="loginForm" autocomplete="off" onsubmit="return handleLogin(event)">
+      <label class="text-sm font-semibold block mb-3">Email
+        <input id="loginEmail" type="email" required autocomplete="username" class="mt-1 w-full border rounded-lg px-3 py-2">
+      </label>
+      <label class="text-sm font-semibold block mb-4">Mot de passe
+        <input id="loginPassword" type="password" required autocomplete="current-password" class="mt-1 w-full border rounded-lg px-3 py-2">
+      </label>
+      <button id="loginBtn" type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-bold">Se connecter</button>
+      <div id="loginError" class="text-red-600 text-sm mt-3 hidden"></div>
+      <div id="loginHint" class="text-slate-500 text-xs mt-4 hidden text-center">Mode local (Supabase non configuré)<br>admin@sanix.local / Sanix2026!</div>
+    </form>
+  </div>
+</div>
+
+<div id="appRoot" class="flex min-h-screen hidden">
+  <div id="sidebarOverlay" onclick="closeSidebar()"></div>
+  <aside id="sidebar" class="sidebar text-slate-300 w-64 p-4 hidden md:block">
+    <div class="flex items-center justify-between px-3 py-4">
+      <div class="text-white text-xl font-extrabold">AluBOM <span class="text-blue-400">Pro</span></div>
+      <button onclick="closeSidebar()" class="md:hidden text-slate-400 text-2xl leading-none px-2">×</button>
+    </div>
+    <div class="text-xs uppercase tracking-widest text-slate-500 px-3 mb-3">Menu</div>
+    <nav class="space-y-1">
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg active" data-page="dashboard">📊 Tableau de bord</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="config">🧩 Configurateur</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="bom">📋 BOM / Nomenclature</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="cut">✂️ Débit & optimisation</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="cost">💰 Chiffrage</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="proforma">🧾 Proforma</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="production">🏭 Production</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="stock">📦 Stock</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="chantier">🏗️ Circuit Chantier</button>
+    </nav>
+    <div class="mt-8 border-t border-slate-700 pt-4 text-xs text-slate-500">
+      Version prototype<br>Module BOM Menuiserie Aluminium
+    </div>
+  </aside>
+
+  <main class="flex-1 min-w-0">
+    <header class="glass sticky top-0 z-20 border-b border-slate-200 px-4 md:px-8 py-4 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <button onclick="openSidebar()" class="md:hidden text-slate-700 border rounded-lg px-3 py-2 shrink-0" aria-label="Ouvrir le menu">☰</button>
+        <div class="min-w-0">
+          <div class="text-sm text-slate-500 truncate">SanixFactory / Menuiserie</div>
+          <h1 id="pageTitle" class="text-lg md:text-xl font-bold truncate">Tableau de bord</h1>
+        </div>
+      </div>
+      <div class="flex gap-2 items-center shrink-0">
+        <button id="btnNewOuvrage" onclick="showPage('config')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 md:px-4 py-2 rounded-lg font-semibold text-sm md:text-base whitespace-nowrap">+ <span class="hidden sm:inline">Nouvel ouvrage</span></button>
+        <span id="syncBadge" class="hidden sm:inline badge bg-emerald-50 text-emerald-700">● Synchronisé</span>
+        <span id="userBadge" class="hidden sm:inline bg-slate-100 px-3 py-2 rounded-lg text-sm truncate max-w-[160px]"></span>
+        <button onclick="logout()" class="border px-3 py-2 rounded-lg text-sm font-semibold" title="Déconnexion">⏻</button>
+      </div>
+    </header>
+
+    <div class="p-4 md:p-8">
+      <section id="dashboard" class="page">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">OF en cours</div><div class="text-3xl font-black mt-2">12</div><div class="text-xs text-emerald-600 mt-2">+8% cette semaine</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Chutes aluminium</div><div class="text-3xl font-black mt-2">6,8%</div><div class="text-xs text-emerald-600 mt-2">objectif &lt; 8%</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Marge moyenne</div><div class="text-3xl font-black mt-2">31,4%</div><div class="text-xs text-emerald-600 mt-2">+2,1 pts</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Stock aluminium</div><div class="text-3xl font-black mt-2">428 ml</div><div class="text-xs text-amber-600 mt-2">3 références faibles</div></div>
+        </div>
+
+        <div class="grid lg:grid-cols-3 gap-6">
+          <div class="card bg-white rounded-2xl p-6 lg:col-span-2">
+            <div class="flex justify-between mb-4"><div><h2 class="font-bold text-lg">Performance production</h2><p class="text-sm text-slate-500">Coût prévu vs coût réel</p></div></div>
+            <canvas id="costChart" height="120"></canvas>
+          </div>
+          <div class="card bg-white rounded-2xl p-6">
+            <h2 class="font-bold text-lg mb-4">OF récents</h2>
+            <div id="recentOF" class="space-y-3"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="config" class="page hidden">
+        <div class="grid xl:grid-cols-3 gap-6">
+          <div class="xl:col-span-2 card bg-white rounded-2xl p-6">
+            <div class="flex justify-between items-start mb-6">
+              <div><h2 class="text-lg font-bold">Configurateur d'ouvrage</h2><p class="text-sm text-slate-500">Les dimensions pilotent automatiquement la BOM.</p></div>
+              <span class="badge bg-blue-50 text-blue-700">BOM paramétrique</span>
+            </div>
+            <div class="grid md:grid-cols-2 gap-4">
+              <label class="text-sm font-semibold">Type d'ouvrage
+                <select id="type" class="mt-1 w-full border rounded-lg px-3 py-2">
+                  <option>Fenêtre</option><option>Porte</option><option>Coulissant</option><option>Coulissant galandage</option><option>Baie vitrée</option><option>Façade</option><option>Garde-corps alu/verre</option><option>Bardage alu</option><option>Pergola bioclimatique</option><option>Cloison vitrée</option><option>Verrière d'intérieur</option><option>Volet roulant</option><option>Auvent / marquise</option><option>Store banne</option><option>Kiosque / abri de jardin</option><option>Garde-corps inox</option><option>Escalier métallique/inox</option><option>Fenêtre de toit</option>
+                </select>
+              </label>
+              <label class="text-sm font-semibold">Série aluminium
+                <select id="serie" class="mt-1 w-full border rounded-lg px-3 py-2">
+                  <option value="STD120">Série Standard 120</option><option value="COUL120">Série Coulissant 120</option><option value="PREM150">Série Premium 150</option>
+                </select>
+              </label>
+              <label class="text-sm font-semibold">Largeur (mm)
+                <input id="width" type="number" value="1500" class="mt-1 w-full border rounded-lg px-3 py-2">
+              </label>
+              <label class="text-sm font-semibold">Hauteur (mm)
+                <input id="height" type="number" value="1400" class="mt-1 w-full border rounded-lg px-3 py-2">
+              </label>
+              <label id="leavesField" class="text-sm font-semibold">Nombre de vantaux
+                <input id="leaves" type="number" min="1" value="2" class="mt-1 w-full border rounded-lg px-3 py-2">
+              </label>
+              <div id="facadeFields" class="hidden contents">
+                <label class="text-sm font-semibold">Trames verticales (meneaux)
+                  <input id="facCols" type="number" min="1" value="4" class="mt-1 w-full border rounded-lg px-3 py-2">
+                </label>
+                <label class="text-sm font-semibold">Trames horizontales (traverses)
+                  <input id="facRows" type="number" min="1" value="3" class="mt-1 w-full border rounded-lg px-3 py-2">
+                </label>
+              </div>
+              <div id="gcFields" class="hidden contents">
+                <label class="text-sm font-semibold">Espacement poteaux (mm)
+                  <input id="gcSpacing" type="number" min="500" value="1200" class="mt-1 w-full border rounded-lg px-3 py-2">
+                </label>
+              </div>
+              <div id="bdFields" class="hidden contents">
+                <label class="text-sm font-semibold">Largeur cassette (mm)
+                  <input id="bdLameWidth" type="number" min="100" value="300" class="mt-1 w-full border rounded-lg px-3 py-2">
+                </label>
+                <label class="text-sm font-semibold">Entraxe ossature secondaire (mm)
+                  <input id="bdRailSpacing" type="number" min="300" value="600" class="mt-1 w-full border rounded-lg px-3 py-2">
+                </label>
+              </div>
+              <div id="pgFields" class="hidden contents">
+                <label class="text-sm font-semibold">Profondeur / saillie (mm)
+                  <input id="pgDepth" type="number" min="500" value="3000" class="mt-1 w-full border rounded-lg px-3 py-2">
+                </label>
+                <label class="text-sm font-semibold">Fixation
+                  <select id="pgFixation" class="mt-1 w-full border rounded-lg px-3 py-2">
+                    <option value="autoportee">Autoportée (4 poteaux)</option>
+                    <option value="murale">Murale (2 poteaux)</option>
+                  </select>
+                </label>
+                <label class="text-sm font-semibold">Largeur lame orientable (mm)
+                  <input id="pgLameSpacing" type="number" min="60" value="120" class="mt-1 w-full border rounded-lg px-3 py-2">
+                </label>
+              </div>
+              <div id="cwFields" class="hidden contents">
+                <label class="text-sm font-semibold">Nombre de trames (montants)
+                  <input id="cwCols" type="number" min="1" value="3" class="mt-1 w-full border rounded-lg px-3 py-2">
+                </label>
+                <label class="text-sm font-semibold">Porte intégrée
+                  <select id="cwDoor" class="mt-1 w-full border rounded-lg px-3 py-2">
+                    <option value="non">Non</option>
+                    <option value="oui">Oui — 1 trame en porte</option>
+                  </select>
+                </label>
+              </div>
+              <div id="vrFields" class="hidden contents">
+                <label class="text-sm font-semibold">Trames verticales
+                  <input id="vrCols" type="number" min="1" value="3" class="mt-1 w-full border rounded-lg px-3 py-2">
+                </label>
+                <label class="text-sm font-semibold">Trames horizontales
+                  <input id="vrRows" type="number" min="1" value="4" class="mt-1 w-full border rounded-lg px-3 py-2">
+                </label>
+                <label class="text-sm font-semibold">Porte intégrée
+                  <select id="vrDoor" class="mt-1 w-full border rounded-lg px-3 py-2">
+                    <option value="non">Non</option>
+                    <option value="oui">Oui — 1 trame en porte</option>
+                  </select>
+                </label>
+              </div>
+              <div id="voFields" class="hidden contents">
+                <label class="text-sm font-semibold">Type de coffre
+                  <select id="voCoffre" class="mt-1 w-full border rounded-lg px-3 py-2">
+                    <option value="tunnel">Coffre tunnel</option>
+                    <option value="monobloc">Coffre monobloc</option>
+                    <option value="renovation">Rénovation (sur linteau)</option>
+                  </select>
+                </label>
+                <label class="text-sm font-semibold">Manœuvre
+                  <select id="voMotor" class="mt-1 w-full border rounded-lg px-3 py-2">
+                    <option value="manivelle">Manuelle (manivelle)</option>
+                    <option value="filaire">Motorisée filaire</option>
+                    <option value="radio">Motorisée radio</option>
+                  </select>
+                </label>
+              </div>
+              <div id="auFields" class="hidden contents">
+                <label class="text-sm font-semibold">Avancée / saillie (mm)
+                  <input id="auSaillie" type="number" min="300" value="1500" class="mt-1 w-full border rounded-lg px-3 py-2">
+                </label>
+                <label class="text-sm font-semibold">Couverture
+                  <select id="auCouverture" class="mt-1 w-full border rounded-lg px-3 py-2">
+                    <option value="poly">Polycarbonate</option>
+                    <option value="verre">Verre feuilleté</option>
+                    <option value="alu">Aluminium plein</option>
+                  </select>
+                </label>
+                <label class="text-sm font-semibold">Entraxe consoles (mm)
+                  <input id="auSpacing" type="number" min="500" value="1000" class="mt-1 w-full border rounded-lg px-3 py-2">
+                </label>
+              </div>
+              <div id="sbFields" class="hidden contents">
+                <label class="text-sm font-semibold">Avancée bras (mm)
+                  <input id="sbSaillie" type="number" min="1000" value="2500" class="mt-1 w-full border rounded-lg px-3 py-2">
+                </label>
+                <label class="text-sm font-semibold">Manœuvre
+                  <select id="sbMotor" class="mt-1 w-full border rounded-lg px-3 py-2">
+                    <option value="manivelle">Manuelle (manivelle)</option>
+                    <option value="filaire">Motorisée filaire</option>
+                    <option value="radio">Motorisée radio</option>
+                  </select>
+                </label>
+              </div>
+              <div id="kiFields" class="hidden contents">
+                <label class="text-sm font-semibold">Profondeur (mm)
+                  <input id="kiDepth" type="number" min="1000" value="3000" class="mt-1 w-full border rounded-lg px-3 py-2">
+                </label>
+                <label class="text-sm font-semibold">Type de toiture
+                  <select id="kiRoofType" class="mt-1 w-full border rounded-lg px-3 py-2">
+                    <option value="2pans">2 pans</option>
+                    <option value="4pans">4 pans</option>
+                    <option value="pyramidale">Pyramidale</option>
+                  </select>
+                </label>
+                <label class="text-sm font-semibold">Couverture toiture
+                  <select id="kiCouverture" class="mt-1 w-full border rounded-lg px-3 py-2">
+                    <option value="poly">Polycarbonate</option>
+                    <option value="bacalu">Bac aluminium</option>
+                    <option value="tuilealu">Tuile aluminium</option>
+                  </select>
+                </label>
+              </div>
+              <div id="giFields" class="hidden contents">
+                <label class="text-sm font-semibold">Espacement poteaux (mm)
+                  <input id="giSpacing" type="number" min="500" value="1500" class="mt-1 w-full border rounded-lg px-3 py-2">
+                </label>
+                <label class="text-sm font-semibold">Remplissage
+                  <select id="giInfill" class="mt-1 w-full border rounded-lg px-3 py-2">
+                    <option value="cable">Câble inox tendu</option>
+                    <option value="barreaudage">Barreaudage vertical inox</option>
+                    <option value="verre">Verre feuilleté</option>
+                  </select>
+                </label>
+              </div>
+              <div id="esFields" class="hidden contents">
+                <label class="text-sm font-semibold">Type d'escalier
+                  <select id="esType" class="mt-1 w-full border rounded-lg px-3 py-2">
+                    <option value="droit">Droit</option>
+                    <option value="quart">Quart tournant</option>
+                    <option value="u">En U</option>
+                  </select>
+                </label>
+                <label class="text-sm font-semibold">Hauteur de marche (mm)
+                  <input id="esMarcheH" type="number" min="150" max="200" value="175" class="mt-1 w-full border rounded-lg px-3 py-2">
+                </label>
+                <label class="text-sm font-semibold">Garde-corps intégré
+                  <select id="esGardeCorps" class="mt-1 w-full border rounded-lg px-3 py-2">
+                    <option value="oui">Oui</option>
+                    <option value="non">Non</option>
+                  </select>
+                </label>
+              </div>
+              <div id="ftFields" class="hidden contents">
+                <label class="text-sm font-semibold">Pente du toit (°)
+                  <input id="ftPente" type="number" min="5" max="60" value="30" class="mt-1 w-full border rounded-lg px-3 py-2">
+                </label>
+                <label class="text-sm font-semibold">Type d'ouvrant
+                  <select id="ftType" class="mt-1 w-full border rounded-lg px-3 py-2">
+                    <option value="fixe">Fixe</option>
+                    <option value="manuel">Ouvrant manuel</option>
+                    <option value="motorise">Ouvrant motorisé</option>
+                  </select>
+                </label>
+              </div>
+              <label class="text-sm font-semibold">Vitrage
+                <select id="glass" class="mt-1 w-full border rounded-lg px-3 py-2">
+                  <option value="6500">6 / 12 / 6</option><option value="8200">6 / 16 / 6</option><option value="9800">8 / 16 / 8</option>
+                </select>
+              </label>
+              <label class="text-sm font-semibold">Jeu périphérique (mm)
+                <input id="gap" type="number" value="5" class="mt-1 w-full border rounded-lg px-3 py-2">
+              </label>
+              <label class="text-sm font-semibold">Quantité
+                <input id="qty" type="number" min="1" value="1" class="mt-1 w-full border rounded-lg px-3 py-2">
+              </label>
+            </div>
+            
+            <div class="mt-6 border border-slate-200 rounded-2xl p-4 bg-slate-50">
+              <div class="flex items-center justify-between mb-3">
+                <div>
+                  <h3 class="font-bold">Schéma technique paramétrique</h3>
+                  <p class="text-xs text-slate-500">Le dessin se met à jour avec la largeur, la hauteur et le nombre de vantaux.</p>
+                </div>
+                <span class="badge bg-white text-slate-600 border">Vue façade</span>
+              </div>
+              <div class="bg-white rounded-xl border p-3 overflow-hidden">
+                <svg id="technicalDrawing" viewBox="0 0 760 390" class="w-full h-auto" role="img" aria-label="Schéma technique de l'ouvrage">
+                  <defs>
+                    <marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                      <path d="M0,0 L8,4 L0,8 Z" fill="#334155"></path>
+                    </marker>
+                  </defs>
+                  <rect x="145" y="55" width="470" height="260" rx="2" fill="#e2e8f0" stroke="#0f172a" stroke-width="8"/>
+                  <rect x="165" y="75" width="430" height="220" fill="#dbeafe" stroke="#64748b" stroke-width="4"/>
+                  <line x1="380" y1="75" x2="380" y2="295" stroke="#64748b" stroke-width="5"/>
+                  <line x1="380" y1="185" x2="380" y2="185" stroke="#0f172a"/>
+                  <circle cx="365" cy="185" r="4" fill="#0f172a"/>
+                  <circle cx="395" cy="185" r="4" fill="#0f172a"/>
+
+                  <line x1="145" y1="35" x2="615" y2="35" stroke="#334155" stroke-width="2"
+                        marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+                  <line x1="145" y1="42" x2="145" y2="55" stroke="#64748b"/>
+                  <line x1="615" y1="42" x2="615" y2="55" stroke="#64748b"/>
+                  <text id="dimWidth" x="380" y="27" text-anchor="middle" font-size="16" font-weight="700" fill="#0f172a">1500 mm</text>
+
+                  <line x1="120" y1="55" x2="120" y2="315" stroke="#334155" stroke-width="2"
+                        marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+                  <line x1="127" y1="55" x2="145" y2="55" stroke="#64748b"/>
+                  <line x1="127" y1="315" x2="145" y2="315" stroke="#64748b"/>
+                  <text id="dimHeight" x="98" y="190" text-anchor="middle" font-size="16" font-weight="700" fill="#0f172a"
+                        transform="rotate(-90 98 190)">1400 mm</text>
+
+                  <text id="schemaLabel" x="380" y="350" text-anchor="middle" font-size="15" fill="#475569">
+                    Fenêtre • 2 vantaux • Série Standard 120
+                  </text>
+                </svg>
+              </div>
+            </div>
+
+
+            
+            <div class="mt-6 border border-slate-200 rounded-2xl p-4 bg-slate-50">
+              <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div>
+                  <h3 class="font-bold">Schéma technique fabrication — Bureau d'études</h3>
+                  <p class="text-xs text-slate-500">Vue de fabrication paramétrique : cotes, repères profils, vitrage, coupes, débit et tolérances.</p>
+                </div>
+                <div class="flex gap-2">
+                  <span class="badge bg-white text-slate-600 border">A3 / Fabrication</span>
+                  <span class="badge bg-blue-50 text-blue-700">Paramétrique</span>
+                </div>
+              </div>
+
+              <div class="bg-white rounded-xl border overflow-auto">
+                <svg id="fabricationPlan" viewBox="0 0 1200 760" class="w-full min-w-[1050px] h-auto" aria-label="Plan technique de fabrication aluminium">
+                  <defs>
+                    <marker id="fabArrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                      <path d="M0,0 L8,4 L0,8 Z" fill="#334155"/>
+                    </marker>
+                    <pattern id="glassPattern" width="8" height="8" patternUnits="userSpaceOnUse">
+                      <path d="M0 8 L8 0" stroke="#93c5fd" stroke-width="1"/>
+                    </pattern>
+                  </defs>
+
+                  <!-- Border / title -->
+                  <rect x="15" y="15" width="1170" height="730" fill="#fff" stroke="#0f172a" stroke-width="2"/>
+                  <text id="fabTitle" x="35" y="45" font-size="20" font-weight="800" fill="#0f172a">FENÊTRE COULISSANTE ALUMINIUM — PLAN DE FABRICATION</text>
+                  <text x="1160" y="45" text-anchor="end" font-size="12" fill="#475569">B.E. MENUISERIE • V1.0</text>
+
+                  <!-- Elevation -->
+                  <text x="55" y="78" font-size="14" font-weight="800" fill="#1d4ed8">VUE DE FACE — COTES HORS TOUT</text>
+                  <rect id="fabOuter" x="70" y="105" width="500" height="390" fill="#e5e7eb" stroke="#111827" stroke-width="8"/>
+                  <rect x="87" y="122" width="466" height="356" fill="url(#glassPattern)" stroke="#334155" stroke-width="4"/>
+                  <line id="fabCenter" x1="320" y1="122" x2="320" y2="478" stroke="#475569" stroke-width="5"/>
+                  <rect x="307" y="278" width="9" height="42" rx="2" fill="#111827"/>
+                  <rect x="324" y="278" width="9" height="42" rx="2" fill="#111827"/>
+
+                  <!-- horizontal dimension -->
+                  <line x1="70" y1="88" x2="570" y2="88" stroke="#334155" stroke-width="2" marker-start="url(#fabArrow)" marker-end="url(#fabArrow)"/>
+                  <line x1="70" y1="94" x2="70" y2="105" stroke="#64748b"/>
+                  <line x1="570" y1="94" x2="570" y2="105" stroke="#64748b"/>
+                  <text id="fabWidthDim" x="320" y="82" text-anchor="middle" font-size="15" font-weight="700">1500 mm</text>
+
+                  <!-- vertical dimension -->
+                  <line x1="52" y1="105" x2="52" y2="495" stroke="#334155" stroke-width="2" marker-start="url(#fabArrow)" marker-end="url(#fabArrow)"/>
+                  <line x1="58" y1="105" x2="70" y2="105" stroke="#64748b"/>
+                  <line x1="58" y1="495" x2="70" y2="495" stroke="#64748b"/>
+                  <text id="fabHeightDim" x="35" y="300" text-anchor="middle" font-size="15" font-weight="700" transform="rotate(-90 35 300)">1400 mm</text>
+
+                  <!-- Opening arrows -->
+                  <line x1="300" y1="250" x2="190" y2="250" stroke="#2563eb" stroke-width="3" marker-end="url(#fabArrow)"/>
+                  <line x1="340" y1="350" x2="450" y2="350" stroke="#2563eb" stroke-width="3" marker-end="url(#fabArrow)"/>
+                  <text id="fabOpeningLabel" x="320" y="525" text-anchor="middle" font-size="12" fill="#475569">Sens d'ouverture — coulissant 2 vantaux</text>
+                  <line id="fabThreshold" x1="70" y1="495" x2="570" y2="495" stroke="#111827" stroke-width="6" opacity="0"/>
+                  <g id="fabHinges" opacity="0">
+                    <rect x="66" y="150" width="8" height="30" fill="#111827"/>
+                    <rect x="66" y="240" width="8" height="30" fill="#111827"/>
+                    <rect x="66" y="330" width="8" height="30" fill="#111827"/>
+                  </g>
+                  <path id="fabSwingArc" d="M 320 122 A 250 250 0 0 1 500 300" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="4 3" opacity="0"/>
+
+                  <!-- Cut A-A -->
+                  <text x="630" y="78" font-size="14" font-weight="800" fill="#1d4ed8">COUPE A-A — DORMANT / OUVRANT / VITRAGE</text>
+                  <rect x="675" y="105" width="125" height="360" fill="#d1d5db" stroke="#111827" stroke-width="5"/>
+                  <rect x="700" y="125" width="76" height="320" fill="url(#glassPattern)" stroke="#2563eb" stroke-width="4"/>
+                  <rect x="682" y="150" width="32" height="270" fill="#9ca3af" stroke="#111827" stroke-width="3"/>
+                  <rect x="746" y="150" width="32" height="270" fill="#9ca3af" stroke="#111827" stroke-width="3"/>
+                  <line x1="675" y1="95" x2="800" y2="95" stroke="#334155" stroke-width="2" marker-start="url(#fabArrow)" marker-end="url(#fabArrow)"/>
+                  <text x="737" y="88" text-anchor="middle" font-size="14" font-weight="700">120 mm</text>
+
+                  <line x1="820" y1="170" x2="920" y2="170" stroke="#64748b"/>
+                  <text x="930" y="175" font-size="13" font-weight="700">AL-DOR-001 — Dormant</text>
+                  <line x1="820" y1="245" x2="920" y2="245" stroke="#64748b"/>
+                  <text x="930" y="250" font-size="13" font-weight="700">AL-OUV-001 — Ouvrant</text>
+                  <line x1="820" y1="320" x2="920" y2="320" stroke="#64748b"/>
+                  <text x="930" y="325" font-size="13" font-weight="700">VERRE 6/12/6</text>
+                  <line x1="820" y1="395" x2="920" y2="395" stroke="#64748b"/>
+                  <text x="930" y="400" font-size="13" font-weight="700">AL-PAR-001 — Parclose</text>
+
+                  <!-- Cut B-B horizontal -->
+                  <text x="55" y="565" font-size="14" font-weight="800" fill="#1d4ed8">COUPE B-B — RAIL / OUVRANTS / VITRAGE</text>
+                  <rect x="70" y="585" width="500" height="62" fill="#d1d5db" stroke="#111827" stroke-width="4"/>
+                  <rect x="105" y="598" width="185" height="26" fill="url(#glassPattern)" stroke="#2563eb" stroke-width="3"/>
+                  <rect x="350" y="598" width="185" height="26" fill="url(#glassPattern)" stroke="#2563eb" stroke-width="3"/>
+                  <line x1="320" y1="585" x2="320" y2="647" stroke="#475569" stroke-width="4"/>
+                  <circle cx="150" cy="638" r="7" fill="#111827"/>
+                  <circle cx="500" cy="638" r="7" fill="#111827"/>
+                  <text x="160" y="675" font-size="12" fill="#475569">Roulette</text>
+                  <text x="490" y="675" font-size="12" fill="#475569">Roulette</text>
+
+                  <!-- Cut list -->
+                  <rect x="600" y="525" width="550" height="190" fill="#fff" stroke="#0f172a" stroke-width="1.5"/>
+                  <text x="615" y="548" font-size="14" font-weight="800">FICHE DE DÉBIT — EXTRAIT</text>
+                  <line x1="610" y1="558" x2="1140" y2="558" stroke="#cbd5e1"/>
+                  <text x="620" y="578" font-size="11" font-weight="700">REPÈRE</text>
+                  <text x="760" y="578" font-size="11" font-weight="700">DÉSIGNATION</text>
+                  <text x="965" y="578" font-size="11" font-weight="700">QTÉ</text>
+                  <text x="1030" y="578" font-size="11" font-weight="700">COUPE</text>
+                  <text x="1100" y="578" font-size="11" font-weight="700">MM</text>
+                  <g id="fabCutRows" font-size="11"></g>
+                  <text x="620" y="698" font-size="11" fill="#475569">Tolérance générale : ±1 mm • Trait de scie : 3 mm • Barre commerciale : 6000 mm</text>
+                </svg>
+              </div>
+
+              <div class="mt-3 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div class="bg-white border rounded-xl p-3"><div class="text-xs text-slate-500">Cote hors tout</div><b id="fabSummarySize">1500 × 1400 mm</b></div>
+                <div class="bg-white border rounded-xl p-3"><div class="text-xs text-slate-500">Ouverture vitrage</div><b id="fabSummaryGlass">—</b></div>
+                <div class="bg-white border rounded-xl p-3"><div class="text-xs text-slate-500">Tolérance</div><b>± 1 mm</b></div>
+                <div class="bg-white border rounded-xl p-3"><div class="text-xs text-slate-500">Trait de scie</div><b>3 mm</b></div>
+              </div>
+
+              <div class="mt-3 flex flex-wrap gap-2">
+                <button type="button" onclick="window.print()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Imprimer le plan</button>
+                <button type="button" onclick="showPage('cut')" class="border px-4 py-2 rounded-lg text-sm font-semibold">Voir le débit</button>
+                <button type="button" onclick="showPage('bom')" class="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-semibold">Voir la BOM</button>
+              </div>
+            </div>
+
+            <div class="mt-6 border border-slate-200 rounded-2xl p-4 bg-slate-50">
+              <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div>
+                  <h3 class="font-bold">Détail technique — Jonction d'angle</h3>
+                  <p class="text-xs text-slate-500">Coupe agrandie de l'assemblage dormant/ouvrant à 45°.</p>
+                </div>
+                <label class="text-xs font-semibold">Type de jonction
+                  <select id="jointType" class="mt-1 border rounded-lg px-2 py-1 text-sm">
+                    <option value="onglet">Onglet 45° serti + colle structurale</option>
+                    <option value="equerre">Équerre mécanique aluminium</option>
+                    <option value="about">Aboutage 90° + vis</option>
+                  </select>
+                </label>
+              </div>
+              <div class="bg-white rounded-xl border p-3 overflow-hidden">
+                <svg id="jointDetail" viewBox="0 0 500 320" class="w-full h-auto" role="img" aria-label="Détail de jonction d'angle">
+                  <rect x="10" y="10" width="480" height="300" fill="#fff" stroke="#0f172a" stroke-width="1.5"/>
+                  <g stroke="#0f172a" stroke-width="2" fill="#e2e8f0">
+                    <rect x="60" y="60" width="220" height="46" transform="skewX(0)"/>
+                    <rect x="216" y="106" width="46" height="180"/>
+                  </g>
+                  <path d="M262 60 L262 106 L280 106 Z" fill="#cbd5e1" stroke="#0f172a" stroke-width="2"/>
+                  <rect id="jointBracket" x="230" y="90" width="60" height="32" fill="#94a3b8" stroke="#111827" stroke-width="2"/>
+                  <circle id="jointScrew1" cx="242" cy="106" r="4" fill="#111827"/>
+                  <circle id="jointScrew2" cx="278" cy="106" r="4" fill="#111827"/>
+                  <line x1="216" y1="106" x2="262" y2="60" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="4 3"/>
+                  <text x="130" y="45" font-size="13" font-weight="700" fill="#0f172a">Dormant horizontal</text>
+                  <text x="330" y="200" font-size="13" font-weight="700" fill="#0f172a" transform="rotate(90 330 200)">Dormant vertical</text>
+                  <text id="jointLabel" x="250" y="300" text-anchor="middle" font-size="13" fill="#475569">Onglet 45° serti + colle structurale</text>
+                  <text id="jointProfileDepth" x="130" y="90" text-anchor="middle" font-size="11" fill="#64748b">Profil 120 mm</text>
+                  <line x1="330" y1="60" x2="330" y2="106" stroke="#334155" marker-start="url(#fabArrow)" marker-end="url(#fabArrow)"/>
+                  <text x="345" y="87" font-size="11" fill="#64748b">45°</text>
+                </svg>
+              </div>
+              <div class="mt-3 grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                <div class="bg-white border rounded-xl p-3"><div class="text-xs text-slate-500">Angle</div><b>45°</b></div>
+                <div class="bg-white border rounded-xl p-3"><div class="text-xs text-slate-500">Fixation</div><b id="jointFixation">2 vis Ø4</b></div>
+                <div class="bg-white border rounded-xl p-3"><div class="text-xs text-slate-500">Étanchéité</div><b>Silicone structural</b></div>
+                <div class="bg-white border rounded-xl p-3"><div class="text-xs text-slate-500">Tolérance angle</div><b>± 0,5°</b></div>
+              </div>
+            </div>
+<div class="mt-6 flex gap-2">
+              <button onclick="calculateBOM()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-bold">Calculer la BOM</button>
+              <button onclick="resetConfig()" class="border px-5 py-2.5 rounded-lg font-semibold">Réinitialiser</button>
+            </div>
+          </div>
+
+          <div class="card bg-slate-900 text-white rounded-2xl p-6">
+            <div class="text-slate-400 text-sm">Aperçu</div>
+            <div id="previewTitle" class="text-2xl font-black mt-2">Fenêtre 1500 × 1400</div>
+            <div class="mt-6 grid grid-cols-2 gap-3">
+              <div class="bg-white/10 rounded-xl p-4"><div class="text-slate-400 text-xs">Surface</div><div id="surface" class="text-xl font-bold mt-1">2,10 m²</div></div>
+              <div class="bg-white/10 rounded-xl p-4"><div class="text-slate-400 text-xs">Aluminium</div><div id="aluMl" class="text-xl font-bold mt-1">—</div></div>
+              <div class="bg-white/10 rounded-xl p-4"><div class="text-slate-400 text-xs">Vitrage</div><div id="glassM2" class="text-xl font-bold mt-1">—</div></div>
+              <div class="bg-white/10 rounded-xl p-4"><div class="text-slate-400 text-xs">Coût estimé</div><div id="costPreview" class="text-xl font-bold mt-1">—</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="bom" class="page hidden">
+        <div class="card bg-white rounded-2xl p-6">
+          <div class="flex flex-wrap justify-between gap-3 mb-5">
+            <div><h2 class="text-lg font-bold">BOM / Nomenclature</h2><p class="text-sm text-slate-500">Résultat du dernier calcul paramétrique.</p></div>
+            <button onclick="showPage('cut')" class="bg-slate-900 text-white px-4 py-2 rounded-lg">Optimiser le débit →</button>
+          </div>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Code</th><th class="text-left p-3">Composant</th><th class="text-right p-3">Qté</th><th class="text-right p-3">Longueur</th><th class="text-right p-3">Coût</th></tr></thead><tbody id="bomBody"></tbody></table></div>
+        </div>
+      </section>
+
+      <section id="cut" class="page hidden">
+        <div class="grid lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 card bg-white rounded-2xl p-6">
+            <div class="flex justify-between mb-5"><div><h2 class="text-lg font-bold">Optimisation des barres</h2><p class="text-sm text-slate-500">Barres commerciales de 6 000 mm avec trait de scie.</p></div><span id="cutRate" class="badge bg-emerald-50 text-emerald-700">6,8% de chute</span></div>
+            <div id="cutPlan" class="space-y-4"></div>
+          </div>
+          <div class="card bg-white rounded-2xl p-6">
+            <h2 class="font-bold">Paramètres</h2>
+            <div class="mt-4 space-y-3 text-sm">
+              <div class="flex justify-between"><span>Barre standard</span><b>6 000 mm</b></div>
+              <div class="flex justify-between"><span>Trait de scie</span><b>3 mm</b></div>
+              <div class="flex justify-between"><span>Seuil chute réutilisable</span><b>500 mm</b></div>
+              <div class="flex justify-between"><span>Mode</span><b>Économie matière</b></div>
+            </div>
+            <button onclick="optimize()" class="mt-6 w-full bg-blue-600 text-white py-2.5 rounded-lg font-bold">Relancer l'optimisation</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="cost" class="page hidden">
+        <div class="card bg-white rounded-2xl p-6">
+          <h2 class="text-lg font-bold">Chiffrage</h2>
+          <p class="text-sm text-slate-500 mb-5">Calcul du coût de revient et de la marge.</p>
+          <div class="grid md:grid-cols-4 gap-4">
+            <div class="bg-slate-50 rounded-xl p-4"><span class="text-sm text-slate-500">Matières</span><b id="cMat" class="block text-xl mt-1">0 FCFA</b></div>
+            <div class="bg-slate-50 rounded-xl p-4"><span class="text-sm text-slate-500">Main-d'œuvre</span><b id="cLab" class="block text-xl mt-1">0 FCFA</b></div>
+            <div class="bg-slate-50 rounded-xl p-4"><span class="text-sm text-slate-500">Coût revient</span><b id="cTotal" class="block text-xl mt-1">0 FCFA</b></div>
+            <div class="bg-blue-50 rounded-xl p-4"><span class="text-sm text-blue-600">Prix de vente</span><b id="cSale" class="block text-xl mt-1 text-blue-700">0 FCFA</b></div>
+          </div>
+          <div class="mt-6 flex flex-wrap justify-end gap-2">
+            <button onclick="addToProformaCart()" class="border border-blue-600 text-blue-600 px-5 py-2.5 rounded-lg font-bold">+ Ajouter au devis</button>
+            <button onclick="generateProforma()" class="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-bold">🧾 Générer la proforma</button>
+          </div>
+          <p id="cartHint" class="text-sm text-slate-500 mt-2 text-right hidden"></p>
+          <div class="mt-6 grid md:grid-cols-2 gap-4">
+            <label class="text-sm font-semibold">Marge (%)
+              <input id="margin" type="number" value="30" class="mt-1 w-full border rounded-lg px-3 py-2" oninput="updateCost()">
+            </label>
+            <label class="text-sm font-semibold">Taux main-d'œuvre horaire (FCFA)
+              <input id="labor" type="number" value="3500" class="mt-1 w-full border rounded-lg px-3 py-2" oninput="updateCost()">
+            </label>
+          </div>
+        </div>
+      </section>
+
+
+      <section id="proforma" class="page hidden">
+        <div class="grid xl:grid-cols-3 gap-6">
+          <div class="xl:col-span-2 card bg-white rounded-2xl p-6">
+            <div class="flex flex-wrap justify-between gap-3 mb-6">
+              <div>
+                <h2 class="text-lg font-bold">Facture proforma</h2>
+                <p class="text-sm text-slate-500">Génération d'une proforma à partir du calcul technique et commercial.</p>
+              </div>
+              <div class="flex gap-2">
+                <button onclick="printProforma()" class="border px-4 py-2 rounded-lg font-semibold">🖨 Imprimer</button>
+                <button onclick="showPage('cost')" class="bg-slate-900 text-white px-4 py-2 rounded-lg font-semibold">Modifier le chiffrage</button>
+              </div>
+            </div>
+
+            <div id="proformaDoc" class="border rounded-xl bg-white p-6">
+              <div class="flex justify-between gap-6 border-b pb-5">
+                <div>
+                  <div class="text-2xl font-black text-slate-900">SANIX AFRICA</div>
+                  <div class="text-sm text-slate-500">Division Technologies</div>
+                  <div class="text-xs text-slate-500 mt-2">Menuiserie Aluminium • BOM • Fabrication</div>
+                </div>
+                <div class="text-right">
+                  <div class="text-xl font-black">FACTURE PROFORMA</div>
+                  <div id="proNumber" class="text-sm font-semibold text-blue-700">PF-2026-0001</div>
+                  <div id="proDate" class="text-xs text-slate-500 mt-1"></div>
+                </div>
+              </div>
+
+              <div class="grid md:grid-cols-2 gap-5 py-5">
+                <div>
+                  <div class="text-xs uppercase tracking-wider text-slate-400 font-bold">Émetteur</div>
+                  <div class="font-semibold mt-1">SANIX AFRICA</div>
+                  <div class="text-sm text-slate-500">Division Technologies</div>
+                  <div class="text-sm text-slate-500">Côte d'Ivoire</div>
+                </div>
+                <div>
+                  <div class="text-xs uppercase tracking-wider text-slate-400 font-bold">Client</div>
+                  <input id="proClient" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm" value="Client à renseigner">
+                  <input id="proContact" class="mt-2 w-full border rounded-lg px-3 py-2 text-sm" value="Contact / Téléphone">
+                </div>
+              </div>
+
+              <div class="border rounded-lg overflow-hidden">
+                <table class="w-full text-sm">
+                  <thead class="bg-slate-100">
+                    <tr>
+                      <th class="text-left p-3">Désignation</th>
+                      <th class="text-center p-3">Qté</th>
+                      <th class="text-right p-3">PU HT</th>
+                      <th class="text-right p-3">Total HT</th>
+                      <th class="p-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody id="proLines"></tbody>
+                </table>
+              </div>
+
+              <div class="ml-auto max-w-sm mt-5 space-y-2 text-sm">
+                <div class="flex justify-between"><span>Sous-total HT</span><b id="proSubtotal">0 FCFA</b></div>
+                <div class="flex justify-between"><span>Remise</span><b id="proDiscount">0 FCFA</b></div>
+                <div class="flex justify-between"><span>TVA</span><b id="proTax">0 FCFA</b></div>
+                <div class="flex justify-between border-t pt-3 text-lg"><span class="font-bold">Total TTC</span><b id="proTotal">0 FCFA</b></div>
+              </div>
+
+              <div class="mt-7 grid md:grid-cols-2 gap-4 text-xs text-slate-500 border-t pt-5">
+                <div>
+                  <b class="text-slate-700">Conditions commerciales</b>
+                  <ul class="mt-2 space-y-1">
+                    <li>• Validité de l'offre : 15 jours</li>
+                    <li>• Délai de fabrication : selon planning atelier</li>
+                    <li>• Livraison et pose selon devis</li>
+                  </ul>
+                </div>
+                <div>
+                  <b class="text-slate-700">Observations</b>
+                  <textarea id="proNotes" class="mt-2 w-full border rounded-lg p-2" rows="4">Proforma générée depuis le configurateur BOM.</textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card bg-white rounded-2xl p-6 h-fit">
+            <h2 class="font-bold">Paramètres proforma</h2>
+            <div class="space-y-4 mt-5">
+              <label class="text-sm font-semibold block">Remise (%)
+                <input id="proDiscountRate" type="number" value="0" min="0" max="100" class="mt-1 w-full border rounded-lg px-3 py-2" oninput="updateProforma()">
+              </label>
+              <label class="text-sm font-semibold block">TVA (%)
+                <input id="proTaxRate" type="number" value="18" min="0" max="100" class="mt-1 w-full border rounded-lg px-3 py-2" oninput="updateProforma()">
+              </label>
+              <button onclick="addToProformaCart()" class="w-full border border-blue-600 text-blue-600 py-2.5 rounded-lg font-bold">+ Ajouter la config actuelle</button>
+              <button onclick="clearProformaCart()" class="w-full border border-red-300 text-red-600 py-2.5 rounded-lg font-bold">Vider le devis</button>
+              <button onclick="generateProforma()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-bold">Actualiser la proforma</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="production" class="page hidden">
+        <div class="card bg-white rounded-2xl p-6">
+          <div class="flex justify-between mb-5"><div><h2 class="text-lg font-bold">Ordres de fabrication</h2><p class="text-sm text-slate-500">Suivi du cycle atelier.</p></div><button id="btnNewOF" onclick="createOF()" class="bg-blue-600 text-white px-4 py-2 rounded-lg">+ Nouvel OF</button></div>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">OF</th><th class="text-left p-3">Ouvrage</th><th class="text-left p-3">Client</th><th class="text-left p-3">Statut</th><th class="text-right p-3">Marge</th></tr></thead><tbody id="ofBody"></tbody></table></div>
+        </div>
+        <div class="card bg-white rounded-2xl p-6 mt-6">
+          <details><summary class="font-bold cursor-pointer">Journal d'audit (dernières actions)</summary>
+            <div id="auditLog" class="mt-4 text-xs text-slate-500 space-y-1"></div>
+          </details>
+        </div>
+      </section>
+
+      <section id="stock" class="page hidden">
+        <div class="card bg-white rounded-2xl p-6">
+          <div class="flex flex-wrap justify-between gap-3 mb-2">
+            <div><h2 class="text-lg font-bold">Stock matières</h2><p class="text-sm text-slate-500">Disponibilité, réservation et chutes réutilisables.</p></div>
+          </div>
+          <form id="stockMoveForm" onsubmit="return handleStockMove(event)" class="grid sm:grid-cols-5 gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
+            <input id="mvRef" placeholder="Référence" required class="border rounded-lg px-2 py-1.5 text-sm">
+            <input id="mvLabel" placeholder="Désignation" class="border rounded-lg px-2 py-1.5 text-sm">
+            <select id="mvType" class="border rounded-lg px-2 py-1.5 text-sm"><option value="entree">Entrée</option><option value="sortie">Sortie</option></select>
+            <input id="mvQty" type="number" step="0.01" placeholder="Qté (ml)" required class="border rounded-lg px-2 py-1.5 text-sm">
+            <button type="submit" class="bg-slate-900 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">Enregistrer</button>
+          </form>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Référence</th><th class="text-left p-3">Désignation</th><th class="text-right p-3">Disponible</th><th class="text-right p-3">Réservé</th><th class="text-right p-3">Prix/ml</th><th class="text-left p-3">État</th></tr></thead><tbody id="stockBody"></tbody></table></div>
+        </div>
+      </section>
+
+      <section id="chantier" class="page hidden">
+        <div class="card bg-white rounded-2xl p-6 mb-6">
+          <div class="flex flex-wrap justify-between gap-3 mb-5">
+            <div><h2 class="text-lg font-bold">Circuit Chantier</h2><p class="text-sm text-slate-500">Devis → Paiement → Dossier → Validation DG → Achats → Fabrication → Installation.</p></div>
+            <button id="btnNewChantier" onclick="createChantierFromProforma()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold">+ Dossier depuis proforma</button>
+          </div>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Dossier</th><th class="text-left p-3">Client</th><th class="text-left p-3">Étape</th><th class="text-right p-3">Montant</th><th class="text-right p-3">Payé</th><th class="p-3"></th></tr></thead><tbody id="chantierBody"></tbody></table></div>
+        </div>
+        <div id="chantierDetail" class="hidden"></div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+/* =========================================================
+   AluBOM Pro — Couche ERP (Auth Supabase, IndexedDB offline,
+   sync REST, RBAC, audit). XHR uniquement, aucun SDK externe.
+   ========================================================= */
+const CFG = window.SANIX_CFG;
+let currentUser = null; // {id,email,role,permissions}
+let db = null;
+
+function escapeHtml(s){
+  return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------- IndexedDB ---------- */
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open('alubom_db',2);
+    req.onupgradeneeded=e=>{
+      const d=e.target.result;
+      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats'].forEach(s=>{
+        if(!d.objectStoreNames.contains(s)) d.createObjectStore(s,{keyPath:'id'});
+      });
+    };
+    req.onsuccess=e=>resolve(e.target.result);
+    req.onerror=e=>reject(e.target.error);
+  });
+}
+function idbTx(store,mode){ return db.transaction(store,mode).objectStore(store); }
+function idbPut(store,obj){ return new Promise((res,rej)=>{ const r=idbTx(store,'readwrite').put(obj); r.onsuccess=()=>res(obj); r.onerror=()=>rej(r.error); }); }
+function idbGetAll(store){ return new Promise((res,rej)=>{ const r=idbTx(store,'readonly').getAll(); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>rej(r.error); }); }
+function idbDelete(store,id){ return new Promise((res,rej)=>{ const r=idbTx(store,'readwrite').delete(id); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); }
+
+/* ---------- Compteurs séquence (locaux, offline-safe) ---------- */
+function nextSeq(kind){
+  const key='alubom_seq_'+kind, y=new Date().getFullYear();
+  const cur=JSON.parse(localStorage.getItem(key)||'{}');
+  const n=(cur.year===y?cur.n:0)+1;
+  localStorage.setItem(key,JSON.stringify({year:y,n}));
+  return {year:y,n};
+}
+
+/* ---------- REST Supabase (XHR pur) ---------- */
+function xhrJSON(method,url,body,extraHeaders){
+  return new Promise((resolve,reject)=>{
+    const x=new XMLHttpRequest();
+    x.open(method,url,true);
+    x.setRequestHeader('Content-Type','application/json');
+    x.setRequestHeader('apikey',CFG.SUPABASE_ANON_KEY);
+    const sess=getSession();
+    x.setRequestHeader('Authorization','Bearer '+(sess&&sess.access_token?sess.access_token:CFG.SUPABASE_ANON_KEY));
+    if(extraHeaders) Object.entries(extraHeaders).forEach(([k,v])=>x.setRequestHeader(k,v));
+    x.onload=()=>{
+      if(x.status>=200&&x.status<300){ try{resolve(x.responseText?JSON.parse(x.responseText):null)}catch{resolve(null)} }
+      else reject(new Error('HTTP '+x.status+' '+x.responseText));
+    };
+    x.onerror=()=>reject(new Error('Réseau indisponible'));
+    x.send(body?JSON.stringify(body):null);
+  });
+}
+function restUrl(table){ return CFG.SUPABASE_URL.replace(/\/$/,'')+'/rest/v1/'+table; }
+async function restUpsert(table,row){
+  return xhrJSON('POST',restUrl(table),{...row,company_id:CFG.COMPANY_ID},{'Prefer':'resolution=merge-duplicates,return=minimal'});
+}
+
+/* ---------- File de synchronisation offline-first ---------- */
+async function queueSync(table,data){
+  await idbPut('sync_queue',{id:'q_'+table+'_'+data.id+'_'+Date.now(),table,data,ts:Date.now()});
+  updateSyncBadge();
+  if(navigator.onLine) syncNow();
+}
+async function syncNow(){
+  if(!navigator.onLine || CFG.SUPABASE_URL.includes('VOTRE-PROJET')) return;
+  const queue=await idbGetAll('sync_queue');
+  for(const item of queue){
+    try{ await restUpsert(item.table,item.data); await idbDelete('sync_queue',item.id); }
+    catch(e){ console.warn('Sync différée:',item.table,e.message); break; }
+  }
+  updateSyncBadge();
+}
+async function updateSyncBadge(){
+  const q=await idbGetAll('sync_queue');
+  const b=document.getElementById('syncBadge');
+  if(!b) return;
+  if(q.length===0){ b.textContent='● Synchronisé'; b.className='hidden sm:inline badge bg-emerald-50 text-emerald-700'; }
+  else { b.textContent='● '+q.length+' en attente'; b.className='hidden sm:inline badge bg-amber-50 text-amber-700'; }
+}
+window.addEventListener('online',syncNow);
+
+/* ---------- Audit ---------- */
+async function audit(action,detail){
+  const rec={id:'a_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),action,detail:String(detail||''),user:currentUser?currentUser.email:'inconnu',ts:new Date().toISOString()};
+  await idbPut('audit',rec);
+  queueSync('alubom_audit_log',rec);
+  renderAuditLog();
+}
+async function renderAuditLog(){
+  const el=document.getElementById('auditLog'); if(!el) return;
+  const rows=(await idbGetAll('audit')).sort((a,b)=>b.ts.localeCompare(a.ts)).slice(0,10);
+  el.innerHTML = rows.length? rows.map(r=>`<div>${escapeHtml(new Date(r.ts).toLocaleString('fr-FR'))} — <b>${escapeHtml(r.action)}</b> ${escapeHtml(r.detail)} <span class="text-slate-400">(${escapeHtml(r.user)})</span></div>`).join('')
+    : '<div>Aucune action enregistrée.</div>';
+}
+
+/* ---------- Auth (Supabase Auth REST, pas de SDK) ---------- */
+function getSession(){ try{return JSON.parse(sessionStorage.getItem('alubom_session'))}catch{return null} }
+function setSession(s){ sessionStorage.setItem('alubom_session',JSON.stringify(s)); }
+function clearSession(){ sessionStorage.removeItem('alubom_session'); }
+
+function loginAttempts(email){
+  const all=JSON.parse(localStorage.getItem('alubom_login_attempts')||'{}');
+  return all[email]||{count:0,lockUntil:0};
+}
+function setLoginAttempts(email,data){
+  const all=JSON.parse(localStorage.getItem('alubom_login_attempts')||'{}');
+  all[email]=data;
+  localStorage.setItem('alubom_login_attempts',JSON.stringify(all));
+}
+
+/* ---------- Auth locale (mode hors-ligne, sans Supabase) ---------- */
+function isSupabaseConfigured(){ return !CFG.SUPABASE_URL.includes('VOTRE-PROJET') && !!CFG.SUPABASE_ANON_KEY && CFG.SUPABASE_ANON_KEY!=='VOTRE_ANON_KEY'; }
+
+function bufToB64(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))); }
+function b64ToBuf(b64){ return Uint8Array.from(atob(b64),c=>c.charCodeAt(0)); }
+
+async function pbkdf2Hash(password,saltB64){
+  const enc=new TextEncoder();
+  const salt = saltB64 ? b64ToBuf(saltB64) : crypto.getRandomValues(new Uint8Array(16));
+  const keyMaterial = await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:100000,hash:'SHA-256'},keyMaterial,256);
+  return {salt:bufToB64(salt),hash:bufToB64(bits)};
+}
+async function verifyPassword(password,saltB64,hashB64){
+  const r=await pbkdf2Hash(password,saltB64);
+  return r.hash===hashB64;
+}
+
+function getLocalUsers(){ try{return JSON.parse(localStorage.getItem('alubom_local_users')||'[]')}catch{return []} }
+function setLocalUsers(list){ localStorage.setItem('alubom_local_users',JSON.stringify(list)); }
+
+const DEFAULT_LOCAL_EMAIL='admin@sanix.local';
+const DEFAULT_LOCAL_PASSWORD='Sanix2026!';
+
+async function seedDefaultLocalUser(){
+  const users=getLocalUsers();
+  if(users.length) return;
+  const {salt,hash}=await pbkdf2Hash(DEFAULT_LOCAL_PASSWORD);
+  users.push({id:'local_admin',email:DEFAULT_LOCAL_EMAIL,salt,hash,role:'admin',permissions:['*']});
+  setLocalUsers(users);
+}
+
+async function handleLogin(e){
+  e.preventDefault();
+  const email=document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pass=document.getElementById('loginPassword').value;
+  const errEl=document.getElementById('loginError');
+  errEl.classList.add('hidden');
+
+  const att=loginAttempts(email);
+  if(att.lockUntil && Date.now()<att.lockUntil){
+    errEl.textContent='Trop de tentatives. Réessayez dans '+Math.ceil((att.lockUntil-Date.now())/60000)+' min.';
+    errEl.classList.remove('hidden');
+    return false;
+  }
+  const btn=document.getElementById('loginBtn'); btn.disabled=true; btn.textContent='Connexion...';
+  try{
+    if(isSupabaseConfigured()){
+      const res=await xhrJSON('POST',CFG.SUPABASE_URL.replace(/\/$/,'')+'/auth/v1/token?grant_type=password',{email,password:pass});
+      setSession({mode:'supabase',access_token:res.access_token,refresh_token:res.refresh_token,expires_at:Date.now()+(res.expires_in||3600)*1000,user:res.user});
+      currentUser={id:res.user.id,email:res.user.email,role:'operateur',permissions:[]};
+      await fetchRole();
+    } else {
+      await seedDefaultLocalUser();
+      const users=getLocalUsers();
+      const u=users.find(x=>x.email===email);
+      if(!u) throw new Error('Identifiants invalides.');
+      const ok=await verifyPassword(pass,u.salt,u.hash);
+      if(!ok) throw new Error('Identifiants invalides.');
+      currentUser={id:u.id,email:u.email,role:u.role,permissions:u.permissions};
+      setSession({mode:'local',expires_at:Date.now()+12*3600*1000,user:{id:u.id,email:u.email,role:u.role,permissions:u.permissions}});
+    }
+    setLoginAttempts(email,{count:0,lockUntil:0});
+    await audit('LOGIN',email);
+    showApp();
+  }catch(err){
+    const c=att.count+1;
+    const lock=c>=5?Date.now()+15*60000:0;
+    setLoginAttempts(email,{count:c,lockUntil:lock});
+    errEl.textContent = lock? 'Trop de tentatives. Compte verrouillé 15 min.' : 'Identifiants invalides.';
+    errEl.classList.remove('hidden');
+  }finally{
+    btn.disabled=false; btn.textContent='Se connecter';
+  }
+  return false;
+}
+
+async function fetchRole(){
+  try{
+    const rows=await xhrJSON('GET',restUrl('alubom_users_roles')+'?user_id=eq.'+currentUser.id+'&select=data');
+    const d=rows&&rows[0]?rows[0].data:null;
+    currentUser.role = d?.role || 'operateur';
+    currentUser.permissions = d?.permissions || [];
+  }catch(e){
+    console.warn('Rôle non résolu, profil opérateur par défaut.', e.message);
+    currentUser.role='operateur'; currentUser.permissions=['of:create','stock:write','chantier:create','chantier:validate','achat:create','achat:manage','installation:manage'];
+  }
+}
+function hasRole(perm){
+  if(!currentUser) return false;
+  return currentUser.role==='admin' || currentUser.permissions.includes('*') || currentUser.permissions.includes(perm);
+}
+function applyRoleGuards(){
+  const guard=(id,perm)=>{ const el=document.getElementById(id); if(!el) return;
+    if(!hasRole(perm)){ el.disabled=true; el.title='Permission requise: '+perm; el.classList.add('opacity-50','cursor-not-allowed'); }
+  };
+  guard('btnNewOuvrage','ouvrage:create');
+  guard('btnNewOF','of:create');
+  guard('btnNewChantier','chantier:create');
+}
+
+async function logout(){
+  if(currentUser) await audit('LOGOUT',currentUser.email);
+  clearSession();
+  currentUser=null;
+  document.getElementById('appRoot').classList.add('hidden');
+  document.getElementById('authGate').classList.remove('hidden');
+  document.getElementById('loginPassword').value='';
+}
+
+function showApp(){
+  document.getElementById('authGate').classList.add('hidden');
+  document.getElementById('appRoot').classList.remove('hidden');
+  const ub=document.getElementById('userBadge');
+  if(ub) ub.textContent = currentUser.email+' • '+currentUser.role;
+  initApp();
+}
+
+async function checkSession(){
+  db = await openDB();
+  await seedDefaultLocalUser();
+  const s=getSession();
+  if(s && s.expires_at>Date.now()){
+    if(s.mode==='local'){
+      currentUser={id:s.user.id,email:s.user.email,role:s.user.role,permissions:s.user.permissions};
+      showApp();
+    } else {
+      currentUser={id:s.user.id,email:s.user.email,role:'operateur',permissions:[]};
+      await fetchRole();
+      showApp();
+    }
+  } else {
+    clearSession();
+    const hint=document.getElementById('loginHint');
+    if(hint && !isSupabaseConfigured()) hint.classList.remove('hidden');
+  }
+}
+document.addEventListener('DOMContentLoaded',checkSession);
+
+/* ---------- Ordres de Fabrication (OF) ---------- */
+async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),renderChantierList()]); }
+
+async function createOF(){
+  if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
+  const client=prompt('Nom du client :','Client à renseigner');
+  if(!client) return;
+  const seq=nextSeq('of');
+  const numero='OF-'+seq.year+'-'+String(seq.n).padStart(4,'0');
+  const type=document.getElementById('type').value;
+  const w=+document.getElementById('width').value||0, h=+document.getElementById('height').value||0;
+  const margin=(+document.getElementById('margin').value||30)/100;
+  const rec={id:numero,numero,ouvrage:`${type} ${w}×${h}`,client,statut:'Découpe',marge:(margin*100).toFixed(0)+'%',cout:lastCost,date:new Date().toISOString(),_modifie:new Date().toISOString()};
+  await idbPut('of',rec);
+  queueSync('alubom_of',rec);
+  await deductStockForBOM();
+  await audit('CREATE_OF',numero+' / '+client);
+  await refreshAllTables();
+  showPage('production');
+}
+
+const OF_STATUS_COLOR={'Découpe':'blue','Assemblage':'blue','Vitrage':'amber','Terminé':'emerald','Annulé':'red'};
+
+async function renderOFTable(){
+  const el=document.getElementById('ofBody'); if(!el) return;
+  const rows=(await idbGetAll('of')).sort((a,b)=>b.date.localeCompare(a.date));
+  el.innerHTML = rows.length ? rows.map(r=>{
+    const c=OF_STATUS_COLOR[r.statut]||'slate';
+    return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.numero)}</td><td class="p-3">${escapeHtml(r.ouvrage)}</td><td class="p-3">${escapeHtml(r.client)}</td><td class="p-3"><span class="badge bg-${c}-50 text-${c}-700">${escapeHtml(r.statut)}</span></td><td class="p-3 text-right">${escapeHtml(r.marge)}</td></tr>`;
+  }).join('') : `<tr><td class="p-3 text-slate-400" colspan="5">Aucun OF. Créez-en un depuis le Chiffrage ou ici.</td></tr>`;
+}
+
+async function loadRecentOF(){
+  const el=document.getElementById('recentOF'); if(!el) return;
+  const rows=(await idbGetAll('of')).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3);
+  el.innerHTML = rows.length ? rows.map(r=>{
+    const c=OF_STATUS_COLOR[r.statut]||'slate';
+    return `<div class="flex items-center justify-between border-b pb-3"><div><b>${escapeHtml(r.numero)}</b><div class="text-xs text-slate-500">${escapeHtml(r.ouvrage)}</div></div><span class="badge bg-${c}-50 text-${c}-700">${escapeHtml(r.statut)}</span></div>`;
+  }).join('') : '<div class="text-sm text-slate-400">Aucun OF récent.</div>';
+}
+
+/* ---------- Stock ---------- */
+async function seedStockIfEmpty(){
+  const rows=await idbGetAll('stock');
+  if(rows.length) return;
+  const defaults=[
+    {id:'P-STD-001',ref:'P-STD-001',label:'Dormant série 120',dispo:128,reserve:32,prix:8500},
+    {id:'P-STD-002',ref:'P-STD-002',label:'Ouvrant série 120',dispo:74,reserve:41,prix:9200},
+    {id:'P-COUL-001',ref:'P-COUL-001',label:'Rail coulissant',dispo:21,reserve:18,prix:11500}
+  ];
+  for(const d of defaults){ d._modifie=new Date().toISOString(); await idbPut('stock',d); queueSync('alubom_stock',d); }
+}
+function stockEtat(dispo){
+  if(dispo<30) return ['Faible','red'];
+  if(dispo<80) return ['Surveillance','amber'];
+  return ['Normal','emerald'];
+}
+async function renderStockTable(){
+  const el=document.getElementById('stockBody'); if(!el) return;
+  const rows=(await idbGetAll('stock')).sort((a,b)=>a.ref.localeCompare(b.ref));
+  el.innerHTML = rows.map(r=>{
+    const [label,color]=stockEtat(r.dispo);
+    return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.ref)}</td><td class="p-3">${escapeHtml(r.label)}</td><td class="p-3 text-right">${r.dispo.toFixed(1)} ml</td><td class="p-3 text-right">${r.reserve.toFixed(1)} ml</td><td class="p-3 text-right">${money(r.prix)}</td><td class="p-3"><span class="badge bg-${color}-50 text-${color}-700">${label}</span></td></tr>`;
+  }).join('');
+}
+async function handleStockMove(e){
+  e.preventDefault();
+  if(!hasRole('stock:write')){ alert('Permission refusée.'); return false; }
+  const ref=document.getElementById('mvRef').value.trim();
+  const label=document.getElementById('mvLabel').value.trim();
+  const type=document.getElementById('mvType').value;
+  const qty=Math.abs(+document.getElementById('mvQty').value||0);
+  if(!ref||!qty) return false;
+  const rows=await idbGetAll('stock');
+  let row=rows.find(r=>r.ref===ref) || {id:ref,ref,label:label||ref,dispo:0,reserve:0,prix:0};
+  row.dispo = type==='entree' ? row.dispo+qty : Math.max(0,row.dispo-qty);
+  row._modifie=new Date().toISOString();
+  await idbPut('stock',row);
+  queueSync('alubom_stock',row);
+  const mv={id:'m_'+Date.now(),ref,type,qty,ts:new Date().toISOString()};
+  await idbPut('stock_mouvements',mv);
+  queueSync('alubom_stock_mouvements',mv);
+  await audit('MOUVEMENT_STOCK',`${type} ${qty}ml ${ref}`);
+  document.getElementById('stockMoveForm').reset();
+  await renderStockTable();
+  return false;
+}
+async function deductStockForBOM(){
+  const rowsHtml=document.getElementById('bomBody').querySelectorAll('tr');
+  const stockRows=await idbGetAll('stock');
+  for(const tr of rowsHtml){
+    const code=tr.children[0].textContent.trim();
+    const match=stockRows.find(s=>s.ref===code);
+    if(match){
+      const qty=parseFloat(tr.children[2].textContent)||0;
+      match.dispo=Math.max(0,match.dispo-qty*0.001*1); // conversion prudente mm->ml négligeable si non applicable
+      match._modifie=new Date().toISOString();
+      await idbPut('stock',match); queueSync('alubom_stock',match);
+    }
+  }
+}
+
+/* =========================================================
+   Circuit Chantier — Devis → Paiement → Dossier → Validation DG
+   → Demandes d'achats (multi-fournisseurs) → Fabrication → Installation
+   ========================================================= */
+const CHANTIER_STAGES=[
+  {key:'devis',label:'Devis client'},
+  {key:'paiement',label:'Validation devis + paiement'},
+  {key:'dossier',label:'Ouverture dossier chantier'},
+  {key:'validation',label:'Validation DG'},
+  {key:'achats',label:"Demandes d'achats"},
+  {key:'fabrication',label:'Dossier de fabrication'},
+  {key:'installation',label:'Déploiement & installation'},
+  {key:'termine',label:'Terminé'}
+];
+const CHANTIER_STAGE_COLOR={devis:'slate',paiement:'amber',dossier:'blue',validation:'blue',achats:'amber',fabrication:'blue',installation:'amber',termine:'emerald'};
+let currentChantierId=null;
+
+function parseMoney(txt){ return +String(txt||'0').replace(/[^\d]/g,'')||0; }
+
+async function createChantierFromProforma(){
+  if(!hasRole('chantier:create')){ alert('Permission refusée.'); return; }
+  const numeroDevis=document.getElementById('proNumber')?.textContent||'';
+  if(!numeroDevis){ alert("Générez d'abord une proforma (page Chiffrage → Générer la proforma)."); return; }
+  const client=document.getElementById('proClient')?.value||'Client à renseigner';
+  const contact=document.getElementById('proContact')?.value||'';
+  const montantTotal=parseMoney(document.getElementById('proTotal')?.textContent);
+  const seq=nextSeq('chantier');
+  const numero='CH-'+seq.year+'-'+String(seq.n).padStart(4,'0');
+  const rec={
+    id:numero, numero, devisNumero:numeroDevis, client, contact,
+    montantTotal, montantPaye:0, etape:'devis',
+    historique:[{etape:'devis',date:new Date().toISOString(),user:currentUser?currentUser.email:'—'}],
+    dateCreation:new Date().toISOString(), _modifie:new Date().toISOString()
+  };
+  await idbPut('chantiers',rec);
+  queueSync('alubom_chantiers',rec);
+  await audit('CREATE_CHANTIER',numero+' / '+client);
+  await renderChantierList();
+  showPage('chantier');
+  openChantierDetail(numero);
+}
+
+async function renderChantierList(){
+  const el=document.getElementById('chantierBody'); if(!el) return;
+  const rows=(await idbGetAll('chantiers')).sort((a,b)=>b.dateCreation.localeCompare(a.dateCreation));
+  el.innerHTML = rows.length ? rows.map(r=>{
+    const c=CHANTIER_STAGE_COLOR[r.etape]||'slate';
+    const label=CHANTIER_STAGES.find(s=>s.key===r.etape)?.label||r.etape;
+    return `<tr class="border-b hover:bg-slate-50 cursor-pointer" onclick="openChantierDetail('${r.id}')">
+      <td class="p-3 font-semibold">${escapeHtml(r.numero)}</td>
+      <td class="p-3">${escapeHtml(r.client)}</td>
+      <td class="p-3"><span class="badge bg-${c}-50 text-${c}-700">${escapeHtml(label)}</span></td>
+      <td class="p-3 text-right">${money(r.montantTotal)}</td>
+      <td class="p-3 text-right">${money(r.montantPaye)}</td>
+      <td class="p-3 text-right"><button onclick="event.stopPropagation();openChantierDetail('${r.id}')" class="text-blue-600 font-semibold">Ouvrir →</button></td>
+    </tr>`;
+  }).join('') : `<tr><td class="p-3 text-slate-400" colspan="6">Aucun dossier chantier. Créez-en un depuis une proforma générée.</td></tr>`;
+}
+
+async function getChantier(id){
+  const rows=await idbGetAll('chantiers');
+  return rows.find(r=>r.id===id) || null;
+}
+async function saveChantier(rec){
+  rec._modifie=new Date().toISOString();
+  await idbPut('chantiers',rec);
+  queueSync('alubom_chantiers',rec);
+}
+async function advanceChantierStage(id,stage,label){
+  const rec=await getChantier(id); if(!rec) return;
+  rec.etape=stage;
+  rec.historique=rec.historique||[];
+  rec.historique.push({etape:stage,date:new Date().toISOString(),user:currentUser?currentUser.email:'—'});
+  await saveChantier(rec);
+  await audit('CHANTIER_'+stage.toUpperCase(),rec.numero+(label?' — '+label:''));
+  await renderChantierList();
+  await openChantierDetail(id);
+}
+
+async function openChantierDetail(id){
+  currentChantierId=id;
+  const rec=await getChantier(id); if(!rec) return;
+  const wrap=document.getElementById('chantierDetail');
+  wrap.classList.remove('hidden');
+
+  const stepperHtml=CHANTIER_STAGES.map((s,i)=>{
+    const curIdx=CHANTIER_STAGES.findIndex(x=>x.key===rec.etape);
+    const state = i<curIdx?'done':i===curIdx?'current':'pending';
+    const dot = state==='done'?'bg-emerald-500':state==='current'?'bg-blue-600':'bg-slate-300';
+    return `<div class="flex-1 min-w-[110px] text-center">
+      <div class="w-4 h-4 rounded-full mx-auto ${dot}"></div>
+      <div class="text-xs mt-1 ${state==='current'?'font-bold text-blue-700':'text-slate-500'}">${escapeHtml(s.label)}</div>
+    </div>`;
+  }).join('<div class="flex-1 h-0.5 bg-slate-200 mt-2 -mx-2"></div>');
+
+  const achats=(await idbGetAll('achats')).filter(a=>a.chantierId===id);
+
+  let actionPanel='';
+  if(rec.etape==='devis'){
+    actionPanel=`
+      <p class="text-sm text-slate-600 mb-3">Devis <b>${escapeHtml(rec.devisNumero)}</b> — Montant total <b>${money(rec.montantTotal)}</b>.</p>
+      <button onclick="advanceChantierStage('${id}','paiement')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">Marquer devis envoyé au client →</button>`;
+  } else if(rec.etape==='paiement'){
+    const restant=Math.max(0,rec.montantTotal-rec.montantPaye);
+    const acompteMin=Math.round(rec.montantTotal*0.3);
+    actionPanel=`
+      <p class="text-sm text-slate-600 mb-3">Payé : <b>${money(rec.montantPaye)}</b> / ${money(rec.montantTotal)} — reste <b>${money(restant)}</b>. Acompte minimum requis pour ouvrir le dossier : ${money(acompteMin)}.</p>
+      <form onsubmit="return handlePaiement(event,'${id}')" class="flex flex-wrap gap-2 mb-3">
+        <select id="payType" class="border rounded-lg px-2 py-1.5 text-sm"><option value="acompte">Acompte</option><option value="solde">Solde</option></select>
+        <input id="payMontant" type="number" min="1" placeholder="Montant FCFA" required class="border rounded-lg px-2 py-1.5 text-sm">
+        <button type="submit" class="bg-slate-900 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">Enregistrer paiement</button>
+      </form>
+      <button ${rec.montantPaye<acompteMin?'disabled class="opacity-50 cursor-not-allowed"':''} onclick="advanceChantierStage('${id}','dossier')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">Ouvrir le dossier chantier →</button>`;
+  } else if(rec.etape==='dossier'){
+    actionPanel=`
+      <p class="text-sm text-slate-600 mb-3">Dossier chantier prêt à être soumis pour validation.</p>
+      <button onclick="advanceChantierStage('${id}','validation')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">Soumettre pour validation DG →</button>`;
+  } else if(rec.etape==='validation'){
+    actionPanel = hasRole('chantier:validate') ? `
+      <p class="text-sm text-slate-600 mb-3">En attente de validation DG.</p>
+      <button onclick="advanceChantierStage('${id}','achats')" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold">✓ Valider le chantier (DG)</button>`
+      : `<p class="text-sm text-amber-600">En attente de validation DG — permission requise.</p>`;
+  } else if(rec.etape==='achats'){
+    const allRecue=achats.length>0 && achats.every(a=>a.statut==='recue');
+    actionPanel=`
+      <div class="mb-3">
+        <p class="text-sm text-slate-600 mb-2">Demandes d'achats multi-fournisseurs pour ce chantier.</p>
+        <form onsubmit="return handleAddAchat(event,'${id}')" class="grid sm:grid-cols-5 gap-2 mb-3 bg-slate-50 border rounded-xl p-3">
+          <input id="acFournisseur" placeholder="Fournisseur" required class="border rounded-lg px-2 py-1.5 text-sm">
+          <input id="acDesignation" placeholder="Désignation article" required class="border rounded-lg px-2 py-1.5 text-sm">
+          <input id="acQte" type="number" min="1" value="1" placeholder="Qté" class="border rounded-lg px-2 py-1.5 text-sm">
+          <input id="acPrix" type="number" min="0" placeholder="Prix unitaire" required class="border rounded-lg px-2 py-1.5 text-sm">
+          <button type="submit" class="bg-slate-900 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter DA</button>
+        </form>
+        <div class="space-y-2">${achats.length?achats.map(a=>`
+          <div class="flex items-center justify-between border rounded-lg p-3 text-sm">
+            <div><b>${escapeHtml(a.numero)}</b> — ${escapeHtml(a.fournisseur)} — ${escapeHtml(a.designation)} × ${a.qte} — ${money(a.montant)}</div>
+            <div class="flex items-center gap-2">
+              <span class="badge bg-${a.statut==='recue'?'emerald':a.statut==='commandee'?'blue':a.statut==='validee'?'amber':'slate'}-50 text-${a.statut==='recue'?'emerald':a.statut==='commandee'?'blue':a.statut==='validee'?'amber':'slate'}-700">${escapeHtml(a.statut)}</span>
+              ${a.statut!=='recue'?`<button onclick="advanceAchatStatut('${a.id}','${id}')" class="text-blue-600 text-xs font-semibold">Étape suivante →</button>`:''}
+            </div>
+          </div>`).join('') : '<div class="text-sm text-slate-400">Aucune demande d\'achat.</div>'}
+        </div>
+      </div>
+      <button ${allRecue?'':'disabled class="opacity-50 cursor-not-allowed"'} onclick="advanceChantierStage('${id}','fabrication')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">Passer au dossier de fabrication →</button>`;
+  } else if(rec.etape==='fabrication'){
+    actionPanel=`
+      <p class="text-sm text-slate-600 mb-3">Compile la BOM, le plan de fabrication et la fiche de débit actuellement calculés dans le Configurateur.</p>
+      <button onclick="advanceChantierStage('${id}','installation')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">Générer dossier de fabrication →</button>`;
+  } else if(rec.etape==='installation'){
+    actionPanel=`
+      <form onsubmit="return handlePlanifierInstallation(event,'${id}')" class="flex flex-wrap gap-2 mb-3">
+        <input id="instDate" type="date" required class="border rounded-lg px-2 py-1.5 text-sm">
+        <input id="instEquipe" placeholder="Équipe / chef de chantier" class="border rounded-lg px-2 py-1.5 text-sm">
+        <button type="submit" class="bg-slate-900 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">Planifier</button>
+      </form>
+      ${rec.installationDate?`<p class="text-sm text-slate-600 mb-3">Planifié le <b>${escapeHtml(rec.installationDate)}</b> — ${escapeHtml(rec.installationEquipe||'—')}</p>`:''}
+      <button onclick="advanceChantierStage('${id}','termine')" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold">✓ Marquer installation terminée</button>`;
+  } else {
+    actionPanel=`<p class="text-sm text-emerald-700 font-semibold">✓ Dossier terminé et clôturé.</p>`;
+  }
+
+  wrap.innerHTML=`
+    <div class="card bg-white rounded-2xl p-6">
+      <div class="flex flex-wrap justify-between gap-3 mb-5">
+        <div><h2 class="text-lg font-bold">${escapeHtml(rec.numero)} — ${escapeHtml(rec.client)}</h2><p class="text-sm text-slate-500">Devis ${escapeHtml(rec.devisNumero)} • ${escapeHtml(rec.contact||'')}</p></div>
+        <button onclick="document.getElementById('chantierDetail').classList.add('hidden')" class="border px-3 py-2 rounded-lg text-sm font-semibold">Fermer</button>
+      </div>
+      <div class="flex mb-6">${stepperHtml}</div>
+      <div class="border-t pt-5">${actionPanel}</div>
+    </div>`;
+}
+
+async function handlePaiement(e,id){
+  e.preventDefault();
+  const type=document.getElementById('payType').value;
+  const montant=+document.getElementById('payMontant').value||0;
+  if(montant<=0) return false;
+  const rec=await getChantier(id); if(!rec) return false;
+  rec.montantPaye=(rec.montantPaye||0)+montant;
+  rec.modePaiement=type;
+  await saveChantier(rec);
+  await audit('PAIEMENT_CHANTIER',rec.numero+' — '+type+' '+money(montant));
+  await renderChantierList();
+  await openChantierDetail(id);
+  return false;
+}
+
+async function handleAddAchat(e,chantierId){
+  e.preventDefault();
+  if(!hasRole('achat:create')){ alert('Permission refusée.'); return false; }
+  const fournisseur=document.getElementById('acFournisseur').value.trim();
+  const designation=document.getElementById('acDesignation').value.trim();
+  const qte=+document.getElementById('acQte').value||1;
+  const prix=+document.getElementById('acPrix').value||0;
+  if(!fournisseur||!designation) return false;
+  const seq=nextSeq('achat');
+  const numero='DA-'+seq.year+'-'+String(seq.n).padStart(4,'0');
+  const rec={id:numero,numero,chantierId,fournisseur,designation,qte,montant:qte*prix,statut:'demande',dateCreation:new Date().toISOString()};
+  await idbPut('achats',rec);
+  queueSync('alubom_achats',rec);
+  await audit('CREATE_DEMANDE_ACHAT',numero+' — '+fournisseur+' — '+designation);
+  await openChantierDetail(chantierId);
+  return false;
+}
+
+const ACHAT_STATUT_NEXT={demande:'validee',validee:'commandee',commandee:'recue'};
+async function advanceAchatStatut(achatId,chantierId){
+  if(!hasRole('achat:manage')){ alert('Permission refusée.'); return; }
+  const rows=await idbGetAll('achats');
+  const rec=rows.find(a=>a.id===achatId); if(!rec) return;
+  rec.statut=ACHAT_STATUT_NEXT[rec.statut]||rec.statut;
+  await idbPut('achats',rec);
+  queueSync('alubom_achats',rec);
+  await audit('MAJ_DEMANDE_ACHAT',rec.numero+' → '+rec.statut);
+  await openChantierDetail(chantierId);
+}
+
+async function handlePlanifierInstallation(e,id){
+  e.preventDefault();
+  if(!hasRole('installation:manage')){ alert('Permission refusée.'); return false; }
+  const date=document.getElementById('instDate').value;
+  const equipe=document.getElementById('instEquipe').value.trim();
+  const rec=await getChantier(id); if(!rec) return false;
+  rec.installationDate=date;
+  rec.installationEquipe=equipe;
+  await saveChantier(rec);
+  await audit('PLANIF_INSTALLATION',rec.numero+' — '+date+' — '+equipe);
+  await openChantierDetail(id);
+  return false;
+}
+
+let lastCost = 0;
+
+function money(n){return new Intl.NumberFormat('fr-FR').format(Math.round(n))+' FCFA';}
+
+function showPage(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
+  document.getElementById(page).classList.remove('hidden');
+  document.querySelectorAll('.nav').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.nav').forEach(b=>{if(b.dataset.page===page)b.classList.add('active')});
+  const titles={dashboard:'Tableau de bord',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',stock:'Stock',chantier:'Circuit Chantier'};
+  document.getElementById('pageTitle').textContent=titles[page];
+}
+document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{showPage(b.dataset.page);closeSidebar();});
+
+function openSidebar(){
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebarOverlay').classList.add('open');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+}
+
+
+/* ---------- Panier proforma multi-ouvrages ---------- */
+let proformaCart = JSON.parse(localStorage.getItem('alubom_proforma_cart')||'[]');
+function saveProformaCartLocal(){ localStorage.setItem('alubom_proforma_cart',JSON.stringify(proformaCart)); }
+
+function addToProformaCart(){
+  const type=document.getElementById('type').value;
+  const w=+document.getElementById('width').value||0;
+  const h=+document.getElementById('height').value||0;
+  const leaves=+document.getElementById('leaves').value||1;
+  const qty=Math.max(1,+document.getElementById('qty').value||1);
+  const unit=parseMoney(document.getElementById('cSale')?.textContent);
+  if(!unit){ alert("Calculez d'abord le chiffrage (BOM non vide)."); return; }
+  const isSpecial=['Façade','Garde-corps alu/verre','Bardage alu','Pergola bioclimatique','Cloison vitrée',"Verrière d'intérieur",'Garde-corps inox'].includes(type);
+  const detail = isSpecial ? `${type} • ${w}×${h} mm` : `${type} aluminium ${w} × ${h} mm • ${leaves} vantail${leaves>1?'s':''}`;
+  proformaCart.push({id:'ln_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),type,detail,qty,unit,subtotal:unit*qty});
+  saveProformaCartLocal();
+  const hint=document.getElementById('cartHint');
+  if(hint){ hint.textContent=`${proformaCart.length} ouvrage${proformaCart.length>1?'s':''} dans le devis en cours.`; hint.classList.remove('hidden'); }
+  updateProforma();
+}
+function removeFromProformaCart(lineId){
+  proformaCart=proformaCart.filter(l=>l.id!==lineId);
+  saveProformaCartLocal();
+  updateProforma();
+}
+function clearProformaCart(){
+  if(!confirm('Vider le devis en cours ?')) return;
+  proformaCart=[];
+  saveProformaCartLocal();
+  updateProforma();
+}
+
+function updateProforma(){
+  const discountRate = Math.max(0, +document.getElementById('proDiscountRate').value || 0) / 100;
+  const taxRate = Math.max(0, +document.getElementById('proTaxRate').value || 0) / 100;
+
+  let lines = proformaCart;
+  if(!lines.length){
+    const type = document.getElementById('type').value;
+    const w = +document.getElementById('width').value || 0;
+    const h = +document.getElementById('height').value || 0;
+    const leaves = +document.getElementById('leaves').value || 1;
+    const qty = Math.max(1, +document.getElementById('qty').value || 1);
+    const unit = parseMoney(document.getElementById('cSale')?.textContent) || (lastCost||0)*1.30;
+    lines = [{id:'current',type,detail:`${type} aluminium ${w} × ${h} mm • ${leaves} vantail${leaves>1?'s':''} • configuration en cours`,qty,unit,subtotal:unit*qty}];
+  }
+
+  const subtotal = lines.reduce((s,l)=>s+l.subtotal,0);
+  const discount = subtotal * discountRate;
+  const taxable = subtotal - discount;
+  const tax = taxable * taxRate;
+  const total = taxable + tax;
+
+  document.getElementById('proLines').innerHTML = lines.map(l=>`
+    <tr>
+      <td class="p-3">
+        <div class="font-semibold">${escapeHtml(l.detail)}</div>
+        <div class="text-xs text-slate-500">BOM paramétrique • vitrage inclus${l.id==='current'?' — non ajouté au panier':''}</div>
+      </td>
+      <td class="p-3 text-center">${l.qty}</td>
+      <td class="p-3 text-right">${money(l.unit)}</td>
+      <td class="p-3 text-right">${money(l.subtotal)}</td>
+      <td class="p-3 text-right">${l.id!=='current'?`<button onclick="removeFromProformaCart('${l.id}')" class="text-red-500 text-xs font-semibold">✕</button>`:''}</td>
+    </tr>`).join('');
+  document.getElementById('proSubtotal').textContent = money(subtotal);
+  document.getElementById('proDiscount').textContent = money(discount);
+  document.getElementById('proTax').textContent = money(tax);
+  document.getElementById('proTotal').textContent = money(total);
+}
+
+function generateProforma(){
+  if(!proformaCart.length) addToProformaCart();
+  const d = new Date();
+  document.getElementById('proDate').textContent = d.toLocaleDateString('fr-FR');
+  const n = String(d.getTime()).slice(-6);
+  document.getElementById('proNumber').textContent = 'PF-2026-' + n;
+  updateProforma();
+  showPage('proforma');
+  saveProforma();
+}
+
+async function saveProforma(){
+  const rec={
+    id:'pf_'+Date.now(),
+    numero:document.getElementById('proNumber').textContent,
+    date:new Date().toISOString(),
+    client:document.getElementById('proClient').value,
+    contact:document.getElementById('proContact').value,
+    lignes:proformaCart,
+    total:document.getElementById('proTotal').textContent,
+    _modifie:new Date().toISOString()
+  };
+  await idbPut('proforma',rec);
+  queueSync('alubom_proforma',rec);
+  await audit('CREATE_PROFORMA',rec.numero);
+}
+
+function printProforma(){
+  const doc = document.getElementById('proformaDoc').innerHTML;
+  const win = window.open('', '_blank', 'width=1000,height=800');
+  if(!win) return;
+  win.document.write(`
+    <html><head><title>Facture Proforma</title>
+    <style>
+      body{font-family:Arial,sans-serif;padding:35px;color:#0f172a}
+      table{width:100%;border-collapse:collapse}
+      th,td{border:1px solid #cbd5e1;padding:10px}
+      th{background:#f1f5f9}
+      input,textarea{border:0;font:inherit;width:100%}
+    </style></head><body>${doc}</body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(()=>win.print(),300);
+}
+
+function toggleTypeFields(){
+  const type=document.getElementById('type').value;
+  const isFacade=type==='Façade';
+  const isGC=type==='Garde-corps alu/verre';
+  const isBD=type==='Bardage alu';
+  const isPG=type==='Pergola bioclimatique';
+  const isCW=type==='Cloison vitrée';
+  const isVR=type==="Verrière d'intérieur";
+  const isVO=type==='Volet roulant';
+  const isAU=type==='Auvent / marquise';
+  const isSB=type==='Store banne';
+  const isKI=type==='Kiosque / abri de jardin';
+  const isGI=type==='Garde-corps inox';
+  const isES=type==='Escalier métallique/inox';
+  const isFT=type==='Fenêtre de toit';
+  document.getElementById('facadeFields').classList.toggle('hidden',!isFacade);
+  document.getElementById('facadeFields').classList.toggle('contents',isFacade);
+  document.getElementById('gcFields').classList.toggle('hidden',!isGC);
+  document.getElementById('gcFields').classList.toggle('contents',isGC);
+  document.getElementById('bdFields').classList.toggle('hidden',!isBD);
+  document.getElementById('bdFields').classList.toggle('contents',isBD);
+  document.getElementById('pgFields').classList.toggle('hidden',!isPG);
+  document.getElementById('pgFields').classList.toggle('contents',isPG);
+  document.getElementById('cwFields').classList.toggle('hidden',!isCW);
+  document.getElementById('cwFields').classList.toggle('contents',isCW);
+  document.getElementById('vrFields').classList.toggle('hidden',!isVR);
+  document.getElementById('vrFields').classList.toggle('contents',isVR);
+  document.getElementById('voFields').classList.toggle('hidden',!isVO);
+  document.getElementById('voFields').classList.toggle('contents',isVO);
+  document.getElementById('auFields').classList.toggle('hidden',!isAU);
+  document.getElementById('auFields').classList.toggle('contents',isAU);
+  document.getElementById('sbFields').classList.toggle('hidden',!isSB);
+  document.getElementById('sbFields').classList.toggle('contents',isSB);
+  document.getElementById('kiFields').classList.toggle('hidden',!isKI);
+  document.getElementById('kiFields').classList.toggle('contents',isKI);
+  document.getElementById('giFields').classList.toggle('hidden',!isGI);
+  document.getElementById('giFields').classList.toggle('contents',isGI);
+  document.getElementById('esFields').classList.toggle('hidden',!isES);
+  document.getElementById('esFields').classList.toggle('contents',isES);
+  document.getElementById('ftFields').classList.toggle('hidden',!isFT);
+  document.getElementById('ftFields').classList.toggle('contents',isFT);
+  document.getElementById('leavesField').classList.toggle('hidden',isFacade||isGC||isBD||isPG||isCW||isVR||isVO||isAU||isSB||isKI||isGI||isES||isFT);
+  if(isKI && +document.getElementById('height').value===1400){
+    document.getElementById('height').value=2400;
+  }
+  if(isGI && +document.getElementById('height').value===1400){
+    document.getElementById('height').value=1000;
+  }
+  if(isES && +document.getElementById('height').value===1400){
+    document.getElementById('height').value=2700;
+    document.getElementById('width').value=900;
+  }
+  if(isGC && +document.getElementById('height').value===1400){
+    document.getElementById('height').value=1000;
+  }
+  if(isPG && +document.getElementById('height').value===1400){
+    document.getElementById('height').value=2500;
+  }
+}
+document.getElementById('type').addEventListener('change',toggleTypeFields);
+
+function calculateBOM(){
+  const type=document.getElementById('type').value;
+  const w=+document.getElementById('width').value||0;
+  const h=+document.getElementById('height').value||0;
+  const leaves=+document.getElementById('leaves').value||1;
+  const gap=+document.getElementById('gap').value||0;
+  const qty=+document.getElementById('qty').value||1;
+  const surface=w*h/1000000;
+  const perimeter=2*(w+h);
+
+  let rows, alu, glassArea;
+
+  if(type==='Façade'){
+    const cols=Math.max(1,+document.getElementById('facCols')?.value||4);
+    const rowsN=Math.max(1,+document.getElementById('facRows')?.value||3);
+    const panelW=w/cols, panelH=h/rowsN;
+    glassArea=(panelW*panelH/1000000)*cols*rowsN*qty;
+    alu=((cols+1)*h + (rowsN+1)*w)*qty/1000;
+    const perimPanel=2*(panelW+panelH);
+    rows=[
+      ['MEN-001','Meneau vertical VEC',(cols+1)*qty,h,(cols+1)*h*qty*10.5],
+      ['TRAV-001','Traverse horizontale VEC',(rowsN+1)*qty,w,(rowsN+1)*w*qty*9.8],
+      ['VIT-VEC-001','Vitrage extérieur collé (VEC)',cols*rowsN*qty,Math.round(panelW*panelH/1000),glassArea*7800],
+      ['SIL-VEC-001','Silicone structural bi-composant',Math.round(perimPanel*cols*rowsN*qty/1000),0,Math.round(perimPanel*cols*rowsN*qty/1000)*4200],
+      ['PAT-001','Pattes de fixation inox',4*cols*rowsN*qty,0,4*cols*rowsN*qty*1800],
+      ['CAP-001','Capot de finition aluminium',Math.max(1,Math.ceil(alu*1000/6000)),0,Math.max(1,Math.ceil(alu*1000/6000))*3200]
+    ];
+  } else if(type==='Garde-corps alu/verre'){
+    const spacing=Math.max(500,+document.getElementById('gcSpacing')?.value||1200);
+    const nPanels=Math.max(1,Math.ceil(w/spacing));
+    const nPoteaux=nPanels+1;
+    const panelW=w/nPanels;
+    glassArea=(panelW*h/1000000)*nPanels*qty;
+    alu=(nPoteaux*h + w)*qty/1000;
+    rows=[
+      ['POT-001','Poteau aluminium',nPoteaux*qty,h,nPoteaux*qty*h*13.5],
+      ['LIS-001','Lisse haute (main courante)',qty,w,qty*w*10.2],
+      ['PLA-001','Platine de fixation au sol',nPoteaux*qty,0,nPoteaux*qty*3200],
+      ['VIT-SEC-001','Verre feuilleté sécurit 44.2',nPanels*qty,Math.round(panelW*h/1000),glassArea*9500],
+      ['PIN-001','Pince de fixation verre inox',4*nPanels*qty,0,4*nPanels*qty*2400],
+      ['JNT-GC-001','Joint EPDM calage verre',2*(panelW+h)*nPanels*qty/1000,0,2*(panelW+h)*nPanels*qty/1000*650]
+    ];
+  } else if(type==='Bardage alu'){
+    const lameW=Math.max(100,+document.getElementById('bdLameWidth')?.value||300);
+    const railSpacing=Math.max(300,+document.getElementById('bdRailSpacing')?.value||600);
+    const nLames=Math.max(1,Math.ceil(w/lameW));
+    const nRails=Math.max(1,Math.ceil(h/railSpacing)+1);
+    const nPrimaire=Math.max(2,Math.ceil(w/900)+1);
+    alu=(nPrimaire*h + nRails*w + nLames*h)*qty/1000;
+    glassArea=0;
+    rows=[
+      ['OSS-P-001','Ossature primaire (pattes réglables)',nPrimaire*qty,h,nPrimaire*qty*h*9.5],
+      ['OSS-S-001','Ossature secondaire (rails horizontaux)',nRails*qty,w,nRails*qty*w*8.2],
+      ['CAS-001','Cassette bardage aluminium',nLames*qty,h,nLames*qty*h*15.8],
+      ['CLI-001','Clip de fixation cassette',nLames*nRails*qty,0,nLames*nRails*qty*450],
+      ['PRO-J-001','Profilé de jonction entre lames',Math.max(0,nLames-1)*qty,h,Math.max(0,nLames-1)*qty*h*4.2]
+    ];
+  } else if(type==='Pergola bioclimatique'){
+    const depth=Math.max(500,+document.getElementById('pgDepth')?.value||3000);
+    const fixation=document.getElementById('pgFixation')?.value||'autoportee';
+    const lameW=Math.max(60,+document.getElementById('pgLameSpacing')?.value||120);
+    const nPoteaux=fixation==='murale'?2:4;
+    const nLamesPG=Math.max(1,Math.ceil(w/lameW));
+    alu=(nPoteaux*h + 2*depth + 2*w + nLamesPG*depth)*qty/1000;
+    glassArea=0;
+    rows=[
+      ['POT-PG-001','Poteau pergola',nPoteaux*qty,h,nPoteaux*qty*h*16.5],
+      ['POU-001','Poutre maîtresse latérale',2*qty,depth,2*qty*depth*13.2],
+      ['TRAV-PG-001','Traverse avant/arrière',2*qty,w,2*qty*w*11.8],
+      ['LAM-PG-001','Lame orientable motorisée',nLamesPG*qty,depth,nLamesPG*qty*depth*9.6],
+      ['MOT-001','Kit motorisation lames + axe',qty,0,qty*185000],
+      ['GOU-001','Gouttière intégrée + descente EP',2*qty,depth,2*qty*depth*6.8],
+      ['PLA-PG-001','Platine fixation sol/mur',nPoteaux*qty,0,nPoteaux*qty*4200]
+    ];
+  } else if(type==='Cloison vitrée'){
+    const cwCols=Math.max(1,+document.getElementById('cwCols')?.value||3);
+    const withDoor=document.getElementById('cwDoor')?.value==='oui';
+    const nGlassPanels=withDoor?cwCols-1:cwCols;
+    const panelW=w/cwCols;
+    glassArea=(panelW*h/1000000)*Math.max(0,nGlassPanels)*qty;
+    alu=((cwCols+1)*h + 2*w)*qty/1000;
+    rows=[
+      ['MON-CW-001','Montant vertical',(cwCols+1)*qty,h,(cwCols+1)*qty*h*8.8],
+      ['TRAV-CW-001','Traverse haute/basse',2*qty,w,2*qty*w*8.2],
+      ['VIT-CW-001','Vitrage trempé 10mm',Math.max(0,nGlassPanels)*qty,Math.round(panelW*h/1000),glassArea*7200],
+      ['JNT-CW-001','Joint EPDM calage vitrage',2*(panelW+h)*Math.max(0,nGlassPanels)*qty/1000,0,2*(panelW+h)*Math.max(0,nGlassPanels)*qty/1000*700],
+      ...(withDoor ? [
+        ['P-CW-DOOR-001','Vantail porte vitrée intégrée',qty,h,qty*h*9.5],
+        ['QUI-CW-001','Ensemble serrure + poignée',qty,0,qty*12500],
+        ['QUI-CW-002','Paumelle',3*qty,0,3*qty*1600]
+      ] : [])
+    ];
+  } else if(type==="Verrière d'intérieur"){
+    const vrCols=Math.max(1,+document.getElementById('vrCols')?.value||3);
+    const vrRows=Math.max(1,+document.getElementById('vrRows')?.value||4);
+    const withDoor=document.getElementById('vrDoor')?.value==='oui';
+    const nPanelsTotal=vrCols*vrRows;
+    const nGlassPanels=withDoor?nPanelsTotal-vrRows:nPanelsTotal;
+    const panelW=w/vrCols, panelH=h/vrRows;
+    glassArea=(panelW*panelH/1000000)*Math.max(0,nGlassPanels)*qty;
+    alu=((vrCols+1)*h + (vrRows+1)*w)*qty/1000;
+    rows=[
+      ['MON-VR-001','Montant fin verrière',(vrCols+1)*qty,h,(vrCols+1)*qty*h*7.2],
+      ['TRAV-VR-001','Traverse fine verrière',(vrRows+1)*qty,w,(vrRows+1)*qty*w*6.8],
+      ['VIT-VR-001','Vitrage simple trempé 6mm',Math.max(0,nGlassPanels)*qty,Math.round(panelW*panelH/1000),glassArea*4800],
+      ['JNT-VR-001','Parclose fine noir mat',2*(panelW+panelH)*Math.max(0,nGlassPanels)*qty/1000,0,2*(panelW+panelH)*Math.max(0,nGlassPanels)*qty/1000*580],
+      ...(withDoor ? [
+        ['P-VR-DOOR-001','Vantail porte verrière',qty,h,qty*h*9.2],
+        ['QUI-VR-001','Ensemble serrure + poignée fine',qty,0,qty*11000],
+        ['QUI-VR-002','Paumelle invisible',3*qty,0,3*qty*2200]
+      ] : [])
+    ];
+  } else if(type==='Volet roulant'){
+    const coffreType=document.getElementById('voCoffre')?.value||'tunnel';
+    const motor=document.getElementById('voMotor')?.value||'manivelle';
+    glassArea=0;
+    alu=(w + 2*h + w)*qty/1000;
+    rows=[
+      ['COF-VO-001',{tunnel:'Coffre tunnel',monobloc:'Coffre monobloc',renovation:'Coffre rénovation sur linteau'}[coffreType],qty,w,qty*w*9.8],
+      ['TAB-VO-001','Tablier lames aluminium 8mm',Math.round(w*h/1000)*qty,0,Math.round(w*h/1000)*qty*185],
+      ['COU-VO-001','Coulisse latérale guidage',2*qty,h,2*qty*h*7.4],
+      ['AXE-VO-001','Axe enroulement octogonal',qty,w,qty*w*6.2],
+      ['LAM-F-VO-001','Lame finale renforcée',qty,w,qty*w*3800/1000],
+      ...(motor==='manivelle'
+        ? [['MAN-VO-001','Manivelle + renvoi d\'angle',qty,0,qty*8500]]
+        : [['MOT-VO-001',motor==='radio'?'Moteur tubulaire radio':'Moteur tubulaire filaire',qty,0,qty*(motor==='radio'?42000:28000)]])
+    ];
+  } else if(type==='Auvent / marquise'){
+    const saillie=Math.max(300,+document.getElementById('auSaillie')?.value||1500);
+    const couverture=document.getElementById('auCouverture')?.value||'poly';
+    const spacing=Math.max(500,+document.getElementById('auSpacing')?.value||1000);
+    const nConsoles=Math.max(2,Math.ceil(w/spacing)+1);
+    glassArea=couverture==='verre'?(w*saillie/1000000)*qty:0;
+    alu=(nConsoles*saillie + 2*w)*qty/1000;
+    const couvUnit={poly:4200,verre:9800,alu:11500}[couverture];
+    const couvLabel={poly:'Couverture polycarbonate',verre:'Couverture verre feuilleté',alu:'Couverture aluminium plein'}[couverture];
+    rows=[
+      ['CON-AU-001','Console de fixation murale',nConsoles*qty,saillie,nConsoles*qty*saillie*14.2],
+      ['CEI-AU-001','Ceinture périphérique',qty,2*(w+saillie),qty*2*(w+saillie)*8.6],
+      ['COV-AU-001',couvLabel,qty,Math.round(w*saillie/1000),qty*(w*saillie/1000000)*couvUnit],
+      ['GOU-AU-001','Gouttière avant + descente EP',qty,w,qty*w*6.8],
+      ['FIX-AU-001','Fixation chimique + platine mur',nConsoles*qty,0,nConsoles*qty*2600]
+    ];
+  } else if(type==='Store banne'){
+    const saillie=Math.max(1000,+document.getElementById('sbSaillie')?.value||2500);
+    const motor=document.getElementById('sbMotor')?.value||'manivelle';
+    const nBras=Math.max(2,Math.ceil(w/2000)+1);
+    glassArea=0;
+    alu=(w + nBras*saillie/1000)*qty/1000;
+    rows=[
+      ['COF-SB-001','Coffre intégral store banne',qty,w,qty*w*11.5],
+      ['BRA-SB-001','Bras articulé',nBras*qty,saillie,nBras*qty*saillie*8.9],
+      ['TOI-SB-001','Toile acrylique',qty,Math.round(w*saillie/1000),qty*(w*saillie/1000000)*6800],
+      ['BAR-SB-001','Barre de charge avant',qty,w,qty*w*4.2],
+      ['LAM-SB-001','Lambrequin',qty,w,qty*w*3.1],
+      ...(motor==='manivelle'
+        ? [['MAN-SB-001','Manivelle + renvoi d\'angle',qty,0,qty*8500]]
+        : [['MOT-SB-001',motor==='radio'?'Moteur tubulaire radio':'Moteur tubulaire filaire',qty,0,qty*(motor==='radio'?48000:32000)]])
+    ];
+  } else if(type==='Kiosque / abri de jardin'){
+    const depth=Math.max(1000,+document.getElementById('kiDepth')?.value||3000);
+    const roofType=document.getElementById('kiRoofType')?.value||'2pans';
+    const couverture=document.getElementById('kiCouverture')?.value||'poly';
+    const nChevrons=Math.max(2,Math.ceil(w/800)+1);
+    glassArea=0;
+    alu=(4*h + 2*w + 2*depth + nChevrons*depth)*qty/1000;
+    const couvUnit={poly:4200,bacalu:5600,tuilealu:8900}[couverture];
+    const couvLabel={poly:'Couverture polycarbonate',bacalu:'Couverture bac aluminium',tuilealu:'Couverture tuile aluminium'}[couverture];
+    rows=[
+      ['POT-KI-001','Poteau kiosque',4*qty,h,4*qty*h*15.2],
+      ['CHA-KI-001','Chaînage haut périphérique',qty,2*(w+depth),qty*2*(w+depth)*10.8],
+      ['CHE-KI-001',roofType==='pyramidale'?'Arbalétrier pyramidal':'Chevron de toiture',nChevrons*qty,depth,nChevrons*qty*depth*8.5],
+      ['COV-KI-001',couvLabel,qty,Math.round(w*depth/1000),qty*(w*depth/1000000)*couvUnit],
+      ['GOU-KI-001','Gouttière périphérique',qty,2*(w+depth),qty*2*(w+depth)*6.2],
+      ['PLA-KI-001','Platine fixation sol',4*qty,0,4*qty*4800]
+    ];
+  } else if(type==='Garde-corps inox'){
+    const spacing=Math.max(500,+document.getElementById('giSpacing')?.value||1500);
+    const infill=document.getElementById('giInfill')?.value||'cable';
+    const nPoteaux=Math.max(2,Math.ceil(w/spacing)+1);
+    const nPanels=nPoteaux-1;
+    glassArea=infill==='verre'?(w/nPanels*h/1000000)*nPanels*qty:0;
+    alu=(nPoteaux*h + w)*qty/1000;
+    rows=[
+      ['POT-GI-001','Poteau inox tube 42.4mm',nPoteaux*qty,h,nPoteaux*qty*h*22.5],
+      ['MC-GI-001','Main courante inox',qty,w,qty*w*16.8],
+      ['PLA-GI-001','Platine fixation inox',nPoteaux*qty,0,nPoteaux*qty*3800],
+      ...(infill==='cable' ? [
+        ['CAB-GI-001','Câble inox Ø6mm tendu',Math.ceil(h/110)*qty,w,Math.ceil(h/110)*qty*w*4.5/1000],
+        ['TEN-GI-001','Tendeur + terminaison sertie',2*Math.ceil(h/110)*qty,0,2*Math.ceil(h/110)*qty*1800]
+      ] : infill==='barreaudage' ? [
+        ['BAR-GI-001','Barreau vertical inox Ø12mm',Math.ceil(w/110)*qty,h,Math.ceil(w/110)*qty*h*8.2]
+      ] : [
+        ['VIT-GI-001','Verre feuilleté sécurit',nPanels*qty,Math.round(w/nPanels*h/1000),glassArea*9500],
+        ['PIN-GI-001','Pince de fixation verre inox',4*nPanels*qty,0,4*nPanels*qty*2400]
+      ])
+    ];
+  } else if(type==='Escalier métallique/inox'){
+    const marcheH=Math.min(200,Math.max(150,+document.getElementById('esMarcheH')?.value||175));
+    const esType=document.getElementById('esType')?.value||'droit';
+    const withGC=document.getElementById('esGardeCorps')?.value==='oui';
+    const giron=280;
+    const nMarches=Math.max(2,Math.round(h/marcheH));
+    const limonLen=Math.round(Math.sqrt(h*h + (nMarches*giron)*(nMarches*giron)));
+    glassArea=0;
+    alu=(2*limonLen + nMarches*w)*qty/1000;
+    rows=[
+      ['LIM-ES-001',esType==='droit'?'Limon droit':esType==='quart'?'Limon quart tournant':'Limon en U',2*qty,limonLen,2*qty*limonLen*18.5],
+      ['MAR-ES-001','Marche tôle striée/inox',nMarches*qty,w,nMarches*qty*w*7.8],
+      ['FIX-ES-001','Fixation marche/limon',2*nMarches*qty,0,2*nMarches*qty*650],
+      ['PLA-ES-001','Platine ancrage haut/bas',4*qty,0,4*qty*5200],
+      ...(withGC ? [
+        ['POT-ES-001','Poteau garde-corps escalier',Math.ceil(nMarches/2)*qty,1000,Math.ceil(nMarches/2)*qty*1000*22.5/1000],
+        ['MC-ES-001','Main courante inclinée',qty,limonLen,qty*limonLen*16.8/1000]
+      ] : [])
+    ];
+  } else if(type==='Fenêtre de toit'){
+    const pente=Math.min(60,Math.max(5,+document.getElementById('ftPente')?.value||30));
+    const ftType=document.getElementById('ftType')?.value||'fixe';
+    glassArea=(w*h/1000000)*qty;
+    alu=perimeter*qty/1000;
+    rows=[
+      ['CAD-FT-001','Cadre dormant incliné',qty,perimeter,qty*perimeter*11.5],
+      ['VIT-FT-001','Double vitrage feuilleté sécurit',qty,Math.round(w*h/1000),glassArea*8900],
+      ['SOL-FT-001','Kit solin d\'étanchéité',qty,perimeter,qty*perimeter*6.8],
+      ...(ftType!=='fixe' ? [['OUV-FT-001','Ouvrant + charnières',qty,perimeter,qty*perimeter*9.2]] : []),
+      ...(ftType==='motorise' ? [['MOT-FT-001','Kit motorisation + capteur pluie',qty,0,qty*68000]] : [])
+    ];
+  } else {
+    const ouvrantW=Math.max(0,(w-(leaves-1)*45)/leaves);
+    const glassW=Math.max(0,ouvrantW-110-gap);
+    const glassH=Math.max(0,h-110-gap);
+    glassArea=glassW*glassH/1000000*leaves*qty;
+    alu=(perimeter + leaves*(2*ouvrantW+2*h))*qty/1000;
+    const isGalandage = type==='Coulissant galandage';
+    rows=[
+      ['P-STD-001','Dormant horizontal',2*qty,w,2*w*qty*8.5],
+      ['P-STD-002','Dormant vertical',2*qty,h,2*h*qty*8.5],
+      ['P-STD-003','Ouvrant horizontal',2*leaves*qty,ouvrantW,2*leaves*ouvrantW*qty*9.2],
+      ['P-STD-004','Ouvrant vertical',2*leaves*qty,h,2*leaves*h*qty*9.2],
+      ['P-PAR-001','Parclose',4*leaves*qty,glassW,4*leaves*glassW*qty*3.2],
+      ['VIT-001','Double vitrage 6/12/6',leaves*qty,glassW*glassH/1000000,glassArea*6500],
+      ['JNT-001','Joint vitrage',2*(glassW+glassH)*leaves*qty/1000,0,2*(glassW+glassH)*leaves*qty/1000*900],
+      ['QUI-001', type==='Porte'?'Ensemble serrure + poignée':'Poignée', leaves*qty, 0, leaves*qty*(type==='Porte'?12500:4500)],
+      ['QUI-002', type==='Porte'?'Paumelle renforcée':isGalandage?'Roulette renforcée galandage':'Paumelle', (type==='Porte'?3:2)*leaves*qty, 0, (type==='Porte'?3:2)*leaves*qty*(type==='Porte'?1600:isGalandage?2100:850)],
+      ...(type==='Porte' ? [['P-SEU-001','Seuil bas renforcé',qty,w,qty*w*11.5],['QUI-003','Gâche + ferme-porte',qty,0,qty*7800]] : []),
+      ...(isGalandage ? [
+        ['CAI-001','Caisson de galandage',leaves*qty,ouvrantW,leaves*qty*ouvrantW*14.5],
+        ['RAIL-001','Rail double renforcé galandage',qty,w,qty*w*12.8],
+        ['SAN-001','Sangle de finition caisson',leaves*qty,h,leaves*qty*h*3.5],
+        ['BRO-001','Joint brosse étanchéité',2*leaves*qty,h,2*leaves*qty*h*1.1]
+      ] : []),
+      ['CON-001','Silicone',Math.max(1,Math.ceil(perimeter*qty/5000)),0,Math.max(1,Math.ceil(perimeter*qty/5000))*2800],
+      (()=>{
+        const jt=document.getElementById('jointType')?document.getElementById('jointType').value:'onglet';
+        const n=4*(1+leaves)*qty;
+        const unit={onglet:1500,equerre:1200,about:900}[jt]||1200;
+        const code={onglet:'JNT-ONG-001',equerre:'JNT-EQ-001',about:'JNT-ABT-001'}[jt];
+        const label={onglet:'Jonction onglet 45° (colle+sertissage)',equerre:'Équerre d\'angle mécanique',about:'Aboutage 90° + vis'}[jt];
+        return [code,label,n,0,n*unit];
+      })()
+    ];
+  }
+
+  document.getElementById('bomBody').innerHTML=rows.map(r=>`<tr class="border-b hover:bg-slate-50"><td class="p-3 font-semibold">${r[0]}</td><td class="p-3">${r[1]}</td><td class="p-3 text-right">${Number(r[2]).toFixed(2)}</td><td class="p-3 text-right">${r[3]?Number(r[3]).toFixed(0)+' mm':'—'}</td><td class="p-3 text-right">${money(r[4])}</td></tr>`).join('');
+  const mat=rows.reduce((s,r)=>s+r[4],0);
+  lastCost=mat;
+  document.getElementById('previewTitle').textContent=`${type} ${w} × ${h}`;
+  document.getElementById('surface').textContent=surface.toFixed(2).replace('.',',')+' m²';
+  document.getElementById('aluMl').textContent=alu.toFixed(2).replace('.',',')+' ml';
+  document.getElementById('glassM2').textContent=glassArea.toFixed(2).replace('.',',')+' m²';
+  document.getElementById('costPreview').textContent=money(mat);
+  updateCost();
+  optimize();
+  showPage('bom');
+}
+
+function updateCost(){
+  const laborRate=+document.getElementById('labor').value||3500;
+  const labor=lastCost?laborRate*1.8:0;
+  const total=lastCost+labor;
+  const margin=(+document.getElementById('margin').value||0)/100;
+  const sale=total*(1+margin);
+  document.getElementById('cMat').textContent=money(lastCost);
+  document.getElementById('cLab').textContent=money(labor);
+  document.getElementById('cTotal').textContent=money(total);
+  document.getElementById('cSale').textContent=money(sale);
+}
+
+function optimize(){
+  const w=+document.getElementById('width').value||1500, h=+document.getElementById('height').value||1400;
+  const cuts=[w,w,h,h,Math.round(w/2),Math.round(w/2),h,h];
+  let bars=[], remaining=[];
+  cuts.forEach(c=>{
+    let i=remaining.findIndex(r=>r>=c+3);
+    if(i<0){bars.push([c]);remaining.push(6000-c-3)}
+    else{bars[i].push(c);remaining[i]-=c+3}
+  });
+  const total=bars.length*6000, used=cuts.reduce((a,b)=>a+b+3,0), waste=total-used;
+  document.getElementById('cutRate').textContent=(waste/total*100).toFixed(1).replace('.',',')+'% de chute';
+  document.getElementById('cutPlan').innerHTML=bars.map((bar,i)=>`
+    <div class="border rounded-xl p-4">
+      <div class="flex justify-between mb-2"><b>Barre ${i+1} — 6 000 mm</b><span class="text-sm text-slate-500">Chute ${6000-bar.reduce((a,b)=>a+b+3,0)} mm</span></div>
+      <div class="h-8 bg-slate-100 rounded-lg flex overflow-hidden">
+        ${bar.map(c=>`<div style="width:${c/60}%"
+          class="bg-blue-600 text-white text-xs flex items-center justify-center border-r border-white">${c} mm</div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function resetConfig(){
+  document.getElementById('width').value=1500;
+  document.getElementById('height').value=1400;
+  document.getElementById('leaves').value=2;
+  document.getElementById('qty').value=1;
+  calculateBOM();
+}
+
+
+function updateFabricationPlan(){
+  const w=+document.getElementById('width').value||1500;
+  const h=+document.getElementById('height').value||1400;
+  const leaves=Math.max(1,+document.getElementById('leaves').value||2);
+  const type=document.getElementById('type').value;
+  const serie=document.getElementById('serie').selectedOptions[0].text;
+  const glassW=Math.max(0,(w-(leaves-1)*45)/leaves-110-(+document.getElementById('gap').value||5));
+  const glassH=Math.max(0,h-110-(+document.getElementById('gap').value||5));
+
+  document.getElementById('fabWidthDim').textContent=w+' mm';
+  document.getElementById('fabHeightDim').textContent=h+' mm';
+  document.getElementById('fabSummarySize').textContent=w+' × '+h+' mm';
+  document.getElementById('fabSummaryGlass').textContent=Math.round(glassW)+' × '+Math.round(glassH)+' mm';
+
+  const centerX=320, x0=87, totalW=466;
+  const centerLine=document.getElementById('fabCenter');
+  centerLine.setAttribute('x1', x0+totalW/leaves);
+  centerLine.setAttribute('x2', x0+totalW/leaves);
+
+  const old=document.querySelectorAll('.fab-dynamic');
+  old.forEach(e=>e.remove());
+
+  const svg=document.getElementById('fabricationPlan');
+  for(let i=1;i<leaves;i++){
+    const x=x0+(totalW/leaves)*i;
+    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('class','fab-dynamic');
+    line.setAttribute('x1',x); line.setAttribute('x2',x);
+    line.setAttribute('y1',122); line.setAttribute('y2',478);
+    line.setAttribute('stroke','#475569'); line.setAttribute('stroke-width','5');
+    svg.appendChild(line);
+  }
+
+  const label=document.createElementNS('http://www.w3.org/2000/svg','text');
+  label.setAttribute('class','fab-dynamic');
+  label.setAttribute('x','320'); label.setAttribute('y','108');
+  label.setAttribute('text-anchor','middle');
+  label.setAttribute('font-size','10'); label.setAttribute('fill','#64748b');
+  label.textContent=type+' • '+serie;
+  svg.appendChild(label);
+
+  const isDoor = type==='Porte';
+  const isFacade = type==='Façade';
+  const isGalandage = type==='Coulissant galandage';
+  const isGC = type==='Garde-corps alu/verre';
+  const isBD = type==='Bardage alu';
+  const isPG = type==='Pergola bioclimatique';
+  const isCW = type==='Cloison vitrée';
+  const isVR = type==="Verrière d'intérieur";
+  const isVO = type==='Volet roulant';
+  const isAU = type==='Auvent / marquise';
+  const isSB = type==='Store banne';
+  const isKI = type==='Kiosque / abri de jardin';
+  const isGI = type==='Garde-corps inox';
+  const isES = type==='Escalier métallique/inox';
+  const isFT = type==='Fenêtre de toit';
+  document.getElementById('fabTitle').textContent = isFacade
+    ? 'FAÇADE RIDEAU / VEC — PLAN DE FABRICATION'
+    : isFT ? 'FENÊTRE DE TOIT / LANTERNEAU — PLAN DE FABRICATION'
+    : isES ? 'ESCALIER MÉTALLIQUE/INOX — PLAN DE FABRICATION'
+    : isGI ? 'GARDE-CORPS INOX — PLAN DE FABRICATION'
+    : isKI ? 'KIOSQUE / ABRI DE JARDIN ALU — PLAN DE FABRICATION'
+    : isSB ? 'STORE BANNE ALUMINIUM — PLAN DE FABRICATION'
+    : isAU ? 'AUVENT / MARQUISE ALUMINIUM — PLAN DE FABRICATION'
+    : isVO ? 'VOLET ROULANT ALUMINIUM — PLAN DE FABRICATION'
+    : isVR ? "VERRIÈRE D'INTÉRIEUR — PLAN DE FABRICATION"
+    : isCW ? 'CLOISON VITRÉE DE SÉPARATION — PLAN DE FABRICATION'
+    : isPG ? 'PERGOLA BIOCLIMATIQUE ALU — PLAN DE FABRICATION'
+    : isBD ? 'BARDAGE ALUMINIUM — PLAN DE FABRICATION'
+    : isGC ? 'GARDE-CORPS ALUMINIUM/VERRE — PLAN DE FABRICATION'
+    : isGalandage ? 'COULISSANT GALANDAGE ALUMINIUM — PLAN DE FABRICATION'
+    : isDoor ? 'PORTE BATTANTE ALUMINIUM — PLAN DE FABRICATION'
+    : type.toUpperCase()+' ALUMINIUM — PLAN DE FABRICATION';
+
+  const cols=Math.max(1,+document.getElementById('facCols')?.value||4);
+  const rowsN=Math.max(1,+document.getElementById('facRows')?.value||3);
+  const gcSpacing=Math.max(500,+document.getElementById('gcSpacing')?.value||1200);
+  const gcPanels=Math.max(1,Math.ceil(w/gcSpacing));
+  const bdLameW=Math.max(100,+document.getElementById('bdLameWidth')?.value||300);
+  const bdRailSpacing=Math.max(300,+document.getElementById('bdRailSpacing')?.value||600);
+  const bdNLames=Math.max(1,Math.ceil(w/bdLameW));
+  const bdNRails=Math.max(1,Math.ceil(h/bdRailSpacing)+1);
+  const pgDepth=Math.max(500,+document.getElementById('pgDepth')?.value||3000);
+  const pgFixation=document.getElementById('pgFixation')?.value||'autoportee';
+  const pgLameW=Math.max(60,+document.getElementById('pgLameSpacing')?.value||120);
+  const pgNLames=Math.max(1,Math.ceil(w/pgLameW));
+  const cwCols=Math.max(1,+document.getElementById('cwCols')?.value||3);
+  const cwDoor=document.getElementById('cwDoor')?.value==='oui';
+  const vrCols=Math.max(1,+document.getElementById('vrCols')?.value||3);
+  const vrRows=Math.max(1,+document.getElementById('vrRows')?.value||4);
+  const vrDoor=document.getElementById('vrDoor')?.value==='oui';
+  const voCoffre=document.getElementById('voCoffre')?.value||'tunnel';
+  const voMotor=document.getElementById('voMotor')?.value||'manivelle';
+  const auSaillie=Math.max(300,+document.getElementById('auSaillie')?.value||1500);
+  const auCouverture=document.getElementById('auCouverture')?.value||'poly';
+  const auSpacing=Math.max(500,+document.getElementById('auSpacing')?.value||1000);
+  const auNConsoles=Math.max(2,Math.ceil(w/auSpacing)+1);
+  const sbSaillie=Math.max(1000,+document.getElementById('sbSaillie')?.value||2500);
+  const sbMotor=document.getElementById('sbMotor')?.value||'manivelle';
+  const sbNBras=Math.max(2,Math.ceil(w/2000)+1);
+  const kiDepth=Math.max(1000,+document.getElementById('kiDepth')?.value||3000);
+  const kiRoofType=document.getElementById('kiRoofType')?.value||'2pans';
+  const kiCouverture=document.getElementById('kiCouverture')?.value||'poly';
+  const giSpacing=Math.max(500,+document.getElementById('giSpacing')?.value||1500);
+  const giInfill=document.getElementById('giInfill')?.value||'cable';
+  const giNPoteaux=Math.max(2,Math.ceil(w/giSpacing)+1);
+  const esMarcheH=Math.min(200,Math.max(150,+document.getElementById('esMarcheH')?.value||175));
+  const esType=document.getElementById('esType')?.value||'droit';
+  const esGardeCorps=document.getElementById('esGardeCorps')?.value==='oui';
+  const esNMarches=Math.max(2,Math.round(h/esMarcheH));
+  const ftPente=Math.min(60,Math.max(5,+document.getElementById('ftPente')?.value||30));
+  const ftType=document.getElementById('ftType')?.value||'fixe';
+  document.getElementById('fabOpeningLabel').textContent = isFacade
+    ? `Façade rideau VEC — grille ${cols}×${rowsN} (meneaux/traverses)`
+    : isFT
+    ? `Fenêtre de toit — pente ${ftPente}° • ${ftType==='fixe'?'ouvrant fixe':ftType==='manuel'?'ouvrant manuel':'ouvrant motorisé'}`
+    : isES
+    ? `Escalier ${esType} — ${esNMarches} marches • hauteur marche ${esMarcheH} mm${esGardeCorps?' • garde-corps intégré':''}`
+    : isGI
+    ? `Garde-corps inox — ${giNPoteaux} poteaux • remplissage ${giInfill}`
+    : isKI
+    ? `Kiosque/abri de jardin — profondeur ${kiDepth} mm • toiture ${kiRoofType} • couverture ${kiCouverture}`
+    : isSB
+    ? `Store banne — ${sbNBras} bras articulés • saillie ${sbSaillie} mm • ${sbMotor==='manivelle'?'manœuvre manuelle':'motorisé'}`
+    : isAU
+    ? `Auvent/marquise — ${auNConsoles} consoles • saillie ${auSaillie} mm • couverture ${auCouverture}`
+    : isVO
+    ? `Volet roulant — ${voCoffre} • ${voMotor==='manivelle'?'manœuvre manuelle':'motorisé '+voMotor}`
+    : isVR
+    ? `Verrière d'intérieur — grille ${vrCols}×${vrRows}${vrDoor?' • 1 porte intégrée':''}`
+    : isCW
+    ? `Cloison vitrée — ${cwCols} trames${cwDoor?' • 1 porte intégrée':''}`
+    : isPG
+    ? `Pergola bioclimatique — ${pgNLames} lames orientables • ${pgFixation==='murale'?'murale 2 poteaux':'autoportée 4 poteaux'} • saillie ${pgDepth} mm`
+    : isBD
+    ? `Bardage alu — ${bdNLames} cassettes × ${bdNRails} rails ossature`
+    : isGC
+    ? `Garde-corps alu/verre — ${gcPanels} panneau${gcPanels>1?'x':''} • poteaux entraxe ${gcSpacing} mm`
+    : isGalandage
+    ? "Sens de coulissement — galandage "+leaves+' vantail'+(leaves>1?'s':'')+' (poche dans cloison)'
+    : isDoor
+    ? "Sens d'ouverture — porte battante "+leaves+' vantail'+(leaves>1?'s':'')
+    : "Sens d'ouverture — coulissant "+leaves+' vantaux';
+  document.getElementById('fabThreshold').setAttribute('opacity', isDoor?1:0);
+  document.getElementById('fabHinges').setAttribute('opacity', isDoor?1:0);
+  document.getElementById('fabSwingArc').setAttribute('opacity', isDoor?1:0);
+  document.querySelectorAll('#fabricationPlan text').forEach(t=>{
+    if(t.textContent.includes('Roulette')) t.textContent = isDoor?'Paumelle':isGalandage?'Roulette renforcée':'Roulette';
+  });
+
+  if(isGalandage){
+    const pocket=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    pocket.setAttribute('class','fab-dynamic');
+    pocket.setAttribute('x',570); pocket.setAttribute('y',105);
+    pocket.setAttribute('width',90); pocket.setAttribute('height',390);
+    pocket.setAttribute('fill','none'); pocket.setAttribute('stroke','#2563eb');
+    pocket.setAttribute('stroke-width','2'); pocket.setAttribute('stroke-dasharray','6 4');
+    svg.appendChild(pocket);
+    const pockLabel=document.createElementNS('http://www.w3.org/2000/svg','text');
+    pockLabel.setAttribute('class','fab-dynamic');
+    pockLabel.setAttribute('x',615); pockLabel.setAttribute('y',300);
+    pockLabel.setAttribute('text-anchor','middle'); pockLabel.setAttribute('font-size','11');
+    pockLabel.setAttribute('fill','#2563eb'); pockLabel.setAttribute('transform','rotate(90 615 300)');
+    pockLabel.textContent='CAISSON DE GALANDAGE';
+    svg.appendChild(pockLabel);
+  }
+
+  if(isFacade){
+    for(let i=1;i<cols;i++){
+      const x=x0+(totalW/cols)*i;
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('class','fab-dynamic');
+      line.setAttribute('x1',x); line.setAttribute('x2',x);
+      line.setAttribute('y1',122); line.setAttribute('y2',478);
+      line.setAttribute('stroke','#475569'); line.setAttribute('stroke-width','4');
+      svg.appendChild(line);
+    }
+    for(let i=1;i<rowsN;i++){
+      const y=122+(356/rowsN)*i;
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('class','fab-dynamic');
+      line.setAttribute('x1',x0); line.setAttribute('x2',x0+totalW);
+      line.setAttribute('y1',y); line.setAttribute('y2',y);
+      line.setAttribute('stroke','#475569'); line.setAttribute('stroke-width','4');
+      svg.appendChild(line);
+    }
+  }
+
+  const rows = isFacade ? [
+    ['MEN-001','Meneau vertical VEC',(cols+1)*qty,h,'90°'],
+    ['TRAV-001','Traverse horizontale VEC',(rowsN+1)*qty,w,'90°'],
+    ['VIT-VEC-001','Vitrage extérieur collé',cols*rowsN*qty,Math.round(w/cols),'—'],
+    ['SIL-VEC-001','Cordon silicone structural',cols*rowsN*qty,0,'—']
+  ] : isFT ? [
+    ['CAD-FT-001','Cadre dormant incliné',qty,2*(w+h),'—'],
+    ['VIT-FT-001','Vitrage feuilleté sécurit',qty,Math.round(w*h/1000),'—'],
+    ['SOL-FT-001','Solin étanchéité',qty,2*(w+h),'—']
+  ] : isES ? [
+    ['LIM-ES-001','Limon',2*qty,Math.round(Math.sqrt(h*h+(esNMarches*280)*(esNMarches*280))),'—'],
+    ['MAR-ES-001','Marche',esNMarches*qty,w,'0°'],
+    ['PLA-ES-001','Platine ancrage',4*qty,0,'—']
+  ] : isGI ? [
+    ['POT-GI-001','Poteau inox tube 42.4',giNPoteaux*qty,h,'0°'],
+    ['MC-GI-001','Main courante inox',qty,w,'0°'],
+    ['PLA-GI-001','Platine fixation inox',giNPoteaux*qty,0,'—']
+  ] : isKI ? [
+    ['POT-KI-001','Poteau kiosque',4*qty,h,'0°'],
+    ['CHA-KI-001','Chaînage haut',qty,2*(w+kiDepth),'0°'],
+    ['CHE-KI-001','Chevron de toiture',Math.max(2,Math.ceil(w/800)+1)*qty,kiDepth,'—'],
+    ['COV-KI-001','Couverture toiture',qty,Math.round(w*kiDepth/1000),'—']
+  ] : isSB ? [
+    ['COF-SB-001','Coffre store banne',qty,w,'0°'],
+    ['BRA-SB-001','Bras articulé',sbNBras*qty,sbSaillie,'0°'],
+    ['TOI-SB-001','Toile acrylique',qty,Math.round(w*sbSaillie/1000),'—'],
+    ['BAR-SB-001','Barre de charge',qty,w,'0°']
+  ] : isAU ? [
+    ['CON-AU-001','Console de fixation',auNConsoles*qty,auSaillie,'0°'],
+    ['CEI-AU-001','Ceinture périphérique',qty,2*(w+auSaillie),'0°'],
+    ['COV-AU-001','Couverture',qty,Math.round(w*auSaillie/1000),'—'],
+    ['GOU-AU-001','Gouttière avant',qty,w,'0°']
+  ] : isVO ? [
+    ['COF-VO-001','Coffre',qty,w,'0°'],
+    ['TAB-VO-001','Tablier lames',qty,w,'—'],
+    ['COU-VO-001','Coulisse latérale',2*qty,h,'0°'],
+    ['AXE-VO-001','Axe enroulement',qty,w,'0°']
+  ] : isVR ? [
+    ['MON-VR-001','Montant fin verrière',(vrCols+1)*qty,h,'0°'],
+    ['TRAV-VR-001','Traverse fine verrière',(vrRows+1)*qty,w,'0°'],
+    ['VIT-VR-001','Vitrage simple trempé 6mm',(vrDoor?vrCols*vrRows-vrRows:vrCols*vrRows)*qty,Math.round(w/vrCols),'—'],
+    ...(vrDoor?[['P-VR-DOOR-001','Vantail porte verrière',qty,h,'0°']]:[])
+  ] : isCW ? [
+    ['MON-CW-001','Montant vertical',(cwCols+1)*qty,h,'0°'],
+    ['TRAV-CW-001','Traverse haute/basse',2*qty,w,'0°'],
+    ['VIT-CW-001','Vitrage trempé 10mm',(cwDoor?cwCols-1:cwCols)*qty,Math.round(w/cwCols),'—'],
+    ...(cwDoor?[['P-CW-DOOR-001','Vantail porte vitrée',qty,h,'0°']]:[])
+  ] : isPG ? [
+    ['POT-PG-001','Poteau pergola',(pgFixation==='murale'?2:4)*qty,h,'0°'],
+    ['POU-001','Poutre maîtresse',2*qty,pgDepth,'0°'],
+    ['TRAV-PG-001','Traverse avant/arrière',2*qty,w,'0°'],
+    ['LAM-PG-001','Lame orientable',pgNLames*qty,pgDepth,'—']
+  ] : isBD ? [
+    ['OSS-P-001','Ossature primaire',Math.max(2,Math.ceil(w/900)+1)*qty,h,'0°'],
+    ['OSS-S-001','Ossature secondaire',bdNRails*qty,w,'0°'],
+    ['CAS-001','Cassette bardage',bdNLames*qty,h,'0°'],
+    ['CLI-001','Clip fixation',bdNLames*bdNRails*qty,0,'—']
+  ] : isGC ? [
+    ['POT-001','Poteau aluminium',(gcPanels+1)*qty,h,'0°'],
+    ['LIS-001','Lisse haute',qty,w,'0°'],
+    ['VIT-SEC-001','Verre feuilleté sécurit',gcPanels*qty,Math.round(w/gcPanels),'—'],
+    ['PLA-001','Platine fixation sol',(gcPanels+1)*qty,0,'—']
+  ] : isGalandage ? [
+    ['P-001','Dormant horizontal',2*qty,w,'90°'],
+    ['P-002','Dormant montant',2*qty,h,'90°'],
+    ['P-003','Ouvrant horizontal',2*leaves*qty,Math.round((w-(leaves-1)*45)/leaves),'90°'],
+    ['P-004','Ouvrant vertical',2*leaves*qty,h,'90°'],
+    ['CAI-001','Caisson de galandage',leaves*qty,Math.round((w-(leaves-1)*45)/leaves),'0°'],
+    ['RAIL-001','Rail double renforcé',qty,w,'0°']
+  ] : isDoor ? [
+    ['P-001','Dormant horizontal',2*qty,w,'90°'],
+    ['P-002','Dormant montant',2*qty,h,'90°'],
+    ['P-003','Ouvrant horizontal',2*leaves*qty,Math.round((w-(leaves-1)*45)/leaves),'90°'],
+    ['P-004','Ouvrant vertical',2*leaves*qty,h,'90°'],
+    ['P-SEU-001','Seuil bas renforcé',qty,w,'0°']
+  ] : [
+    ['P-001','Dormant horizontal',2*qty,w,'90°'],
+    ['P-002','Dormant montant',2*qty,h,'90°'],
+    ['P-003','Ouvrant horizontal',2*leaves*qty,Math.round((w-(leaves-1)*45)/leaves),'90°'],
+    ['P-004','Ouvrant vertical',2*leaves*qty,h,'90°']
+  ];
+  const g=document.getElementById('fabCutRows');
+  g.innerHTML='';
+  rows.forEach((r,i)=>{
+    const y=602+i*23;
+    const cells=[[620,r[0]],[760,r[1]],[965,r[2]],[1030,r[4]],[1100,r[3]]];
+    cells.forEach(([x,val])=>{
+      const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.setAttribute('x',x); t.setAttribute('y',y); t.textContent=val;
+      g.appendChild(t);
+    });
+  });
+}
+
+const JOINT_LABELS={
+  onglet:'Onglet 45° serti + colle structurale',
+  equerre:'Équerre mécanique aluminium',
+  about:'Aboutage 90° + vis'
+};
+const JOINT_FIXATION={onglet:'Colle + sertissage',equerre:'Équerre + 4 vis Ø4',about:'2 vis Ø5 autotaraudeuses'};
+const SERIE_DEPTH={STD120:120,COUL120:120,PREM150:150};
+
+function updateJointDetail(){
+  const t=document.getElementById('jointType').value;
+  const serie=document.getElementById('serie').value;
+  document.getElementById('jointLabel').textContent=JOINT_LABELS[t];
+  document.getElementById('jointFixation').textContent=JOINT_FIXATION[t];
+  document.getElementById('jointProfileDepth').textContent='Profil '+(SERIE_DEPTH[serie]||120)+' mm';
+  const bracket=document.getElementById('jointBracket');
+  const s1=document.getElementById('jointScrew1'), s2=document.getElementById('jointScrew2');
+  if(t==='equerre'){ bracket.setAttribute('fill','#94a3b8'); s1.setAttribute('r',4); s2.setAttribute('r',4); }
+  else if(t==='about'){ bracket.setAttribute('fill','#cbd5e1'); s1.setAttribute('r',5); s2.setAttribute('r',5); }
+  else { bracket.setAttribute('fill','#e2e8f0'); s1.setAttribute('r',2); s2.setAttribute('r',2); }
+}
+document.getElementById('jointType').addEventListener('change',()=>{updateJointDetail();calculateBOM();});
+document.getElementById('serie').addEventListener('change',updateJointDetail);
+
+function updateTechnicalDrawing(){
+  const type=document.getElementById('type').value;
+  const w=+document.getElementById('width').value||0;
+  const h=+document.getElementById('height').value||0;
+  const leaves=Math.max(1,+document.getElementById('leaves').value||1);
+  const serie=document.getElementById('serie').selectedOptions[0].text;
+
+  document.getElementById('dimWidth').textContent=w+' mm';
+  document.getElementById('dimHeight').textContent=h+' mm';
+
+  const svg=document.getElementById('technicalDrawing');
+  const oldLines=svg.querySelectorAll('.dynamic-leaf');
+  oldLines.forEach(e=>e.remove());
+
+  const x0=165, y0=75, width=430, height=220;
+
+  if(type==='Façade'){
+    const cols=Math.max(1,+document.getElementById('facCols')?.value||4);
+    const rowsN=Math.max(1,+document.getElementById('facRows')?.value||3);
+    document.getElementById('schemaLabel').textContent=`Façade rideau VEC • ${cols}×${rowsN} trames • ${serie}`;
+    for(let i=1;i<cols;i++){
+      const x=x0+(width/cols)*i;
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('class','dynamic-leaf');
+      line.setAttribute('x1',x); line.setAttribute('x2',x);
+      line.setAttribute('y1',y0); line.setAttribute('y2',y0+height);
+      line.setAttribute('stroke','#64748b'); line.setAttribute('stroke-width','3');
+      svg.appendChild(line);
+    }
+    for(let i=1;i<rowsN;i++){
+      const y=y0+(height/rowsN)*i;
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('class','dynamic-leaf');
+      line.setAttribute('x1',x0); line.setAttribute('x2',x0+width);
+      line.setAttribute('y1',y); line.setAttribute('y2',y);
+      line.setAttribute('stroke','#64748b'); line.setAttribute('stroke-width','3');
+      svg.appendChild(line);
+    }
+  } else if(type==='Bardage alu'){
+    const lameW=Math.max(100,+document.getElementById('bdLameWidth')?.value||300);
+    const railSpacing=Math.max(300,+document.getElementById('bdRailSpacing')?.value||600);
+    const nLames=Math.max(1,Math.ceil(w/lameW));
+    const nRails=Math.max(1,Math.ceil(h/railSpacing)+1);
+    document.getElementById('schemaLabel').textContent=`Bardage alu • ${nLames} cassettes × ${nRails} rails • ${serie}`;
+    for(let i=1;i<nLames;i++){
+      const x=x0+(width/nLames)*i;
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('class','dynamic-leaf');
+      line.setAttribute('x1',x); line.setAttribute('x2',x);
+      line.setAttribute('y1',y0); line.setAttribute('y2',y0+height);
+      line.setAttribute('stroke','#94a3b8'); line.setAttribute('stroke-width','2');
+      svg.appendChild(line);
+    }
+    for(let i=1;i<nRails;i++){
+      const y=y0+(height/nRails)*i;
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('class','dynamic-leaf');
+      line.setAttribute('x1',x0); line.setAttribute('x2',x0+width);
+      line.setAttribute('y1',y); line.setAttribute('y2',y);
+      line.setAttribute('stroke','#2563eb'); line.setAttribute('stroke-width','1.5');
+      line.setAttribute('stroke-dasharray','4 3');
+      svg.appendChild(line);
+    }
+  } else if(type==='Pergola bioclimatique'){
+    const lameW=Math.max(60,+document.getElementById('pgLameSpacing')?.value||120);
+    const nLamesPG=Math.max(1,Math.ceil(w/lameW));
+    document.getElementById('schemaLabel').textContent=`Pergola bioclimatique • ${nLamesPG} lames orientables • ${serie}`;
+    [x0,x0+width-6].forEach(px=>{
+      const post=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      post.setAttribute('class','dynamic-leaf');
+      post.setAttribute('x',px); post.setAttribute('y',y0);
+      post.setAttribute('width',6); post.setAttribute('height',height);
+      post.setAttribute('fill','#334155');
+      svg.appendChild(post);
+    });
+    const lamesShown=Math.min(nLamesPG,18);
+    for(let i=0;i<lamesShown;i++){
+      const y=y0+(60/lamesShown)*i;
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('class','dynamic-leaf');
+      line.setAttribute('x1',x0); line.setAttribute('x2',x0+width);
+      line.setAttribute('y1',y); line.setAttribute('y2',y);
+      line.setAttribute('stroke','#2563eb'); line.setAttribute('stroke-width','2');
+      svg.appendChild(line);
+    }
+  } else if(type==='Cloison vitrée'){
+    const cwCols=Math.max(1,+document.getElementById('cwCols')?.value||3);
+    const withDoor=document.getElementById('cwDoor')?.value==='oui';
+    document.getElementById('schemaLabel').textContent=`Cloison vitrée • ${cwCols} trames${withDoor?' • porte intégrée':''} • ${serie}`;
+    for(let i=1;i<cwCols;i++){
+      const x=x0+(width/cwCols)*i;
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('class','dynamic-leaf');
+      line.setAttribute('x1',x); line.setAttribute('x2',x);
+      line.setAttribute('y1',y0); line.setAttribute('y2',y0+height);
+      line.setAttribute('stroke','#64748b'); line.setAttribute('stroke-width','3');
+      svg.appendChild(line);
+    }
+    if(withDoor){
+      const dx=x0+width-(width/cwCols);
+      const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      rect.setAttribute('class','dynamic-leaf');
+      rect.setAttribute('x',dx+8); rect.setAttribute('y',y0+8);
+      rect.setAttribute('width',width/cwCols-16); rect.setAttribute('height',height-16);
+      rect.setAttribute('fill','none'); rect.setAttribute('stroke','#2563eb');
+      rect.setAttribute('stroke-width','2'); rect.setAttribute('stroke-dasharray','5 4');
+      svg.appendChild(rect);
+    }
+  } else if(type==="Verrière d'intérieur"){
+    const vrCols=Math.max(1,+document.getElementById('vrCols')?.value||3);
+    const vrRows=Math.max(1,+document.getElementById('vrRows')?.value||4);
+    const withDoor=document.getElementById('vrDoor')?.value==='oui';
+    document.getElementById('schemaLabel').textContent=`Verrière d'intérieur • ${vrCols}×${vrRows} trames${withDoor?' • porte':''} • ${serie}`;
+    for(let i=1;i<vrCols;i++){
+      const x=x0+(width/vrCols)*i;
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('class','dynamic-leaf');
+      line.setAttribute('x1',x); line.setAttribute('x2',x);
+      line.setAttribute('y1',y0); line.setAttribute('y2',y0+height);
+      line.setAttribute('stroke','#0f172a'); line.setAttribute('stroke-width','2');
+      svg.appendChild(line);
+    }
+    for(let i=1;i<vrRows;i++){
+      const y=y0+(height/vrRows)*i;
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('class','dynamic-leaf');
+      line.setAttribute('x1',x0); line.setAttribute('x2',x0+width);
+      line.setAttribute('y1',y); line.setAttribute('y2',y);
+      line.setAttribute('stroke','#0f172a'); line.setAttribute('stroke-width','2');
+      svg.appendChild(line);
+    }
+    if(withDoor){
+      const dx=x0+width-(width/vrCols);
+      const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      rect.setAttribute('class','dynamic-leaf');
+      rect.setAttribute('x',dx+6); rect.setAttribute('y',y0+6);
+      rect.setAttribute('width',width/vrCols-12); rect.setAttribute('height',height-12);
+      rect.setAttribute('fill','none'); rect.setAttribute('stroke','#2563eb');
+      rect.setAttribute('stroke-width','2'); rect.setAttribute('stroke-dasharray','5 4');
+      svg.appendChild(rect);
+    }
+  } else if(type==='Volet roulant'){
+    document.getElementById('schemaLabel').textContent=`Volet roulant • ${w}×${h} mm • ${serie}`;
+    const coffre=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    coffre.setAttribute('class','dynamic-leaf');
+    coffre.setAttribute('x',x0-4); coffre.setAttribute('y',y0-22);
+    coffre.setAttribute('width',width+8); coffre.setAttribute('height',18);
+    coffre.setAttribute('fill','#334155');
+    svg.appendChild(coffre);
+    const nLames=Math.min(14,Math.max(4,Math.round(height/16)));
+    for(let i=1;i<nLames;i++){
+      const y=y0+(height/nLames)*i;
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('class','dynamic-leaf');
+      line.setAttribute('x1',x0); line.setAttribute('x2',x0+width);
+      line.setAttribute('y1',y); line.setAttribute('y2',y);
+      line.setAttribute('stroke','#94a3b8'); line.setAttribute('stroke-width','1.5');
+      svg.appendChild(line);
+    }
+    [x0-3,x0+width-3].forEach(px=>{
+      const coul=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      coul.setAttribute('class','dynamic-leaf');
+      coul.setAttribute('x',px); coul.setAttribute('y',y0);
+      coul.setAttribute('width',6); coul.setAttribute('height',height);
+      coul.setAttribute('fill','#0f172a');
+      svg.appendChild(coul);
+    });
+  } else if(type==='Auvent / marquise'){
+    const spacing=Math.max(500,+document.getElementById('auSpacing')?.value||1000);
+    const nConsoles=Math.max(2,Math.ceil(w/spacing)+1);
+    document.getElementById('schemaLabel').textContent=`Auvent/marquise • ${nConsoles} consoles • ${serie}`;
+    const wallLine=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    wallLine.setAttribute('class','dynamic-leaf');
+    wallLine.setAttribute('x',x0-4); wallLine.setAttribute('y',y0);
+    wallLine.setAttribute('width',6); wallLine.setAttribute('height',height);
+    wallLine.setAttribute('fill','#334155');
+    svg.appendChild(wallLine);
+    for(let i=0;i<nConsoles;i++){
+      const x=x0+(width/(nConsoles-1||1))*i;
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('class','dynamic-leaf');
+      line.setAttribute('x1',x0); line.setAttribute('x2',x);
+      line.setAttribute('y1',y0+20); line.setAttribute('y2',y0+height-10);
+      line.setAttribute('stroke','#2563eb'); line.setAttribute('stroke-width','2');
+      svg.appendChild(line);
+    }
+    const roof=document.createElementNS('http://www.w3.org/2000/svg','line');
+    roof.setAttribute('class','dynamic-leaf');
+    roof.setAttribute('x1',x0); roof.setAttribute('x2',x0+width);
+    roof.setAttribute('y1',y0+height-10); roof.setAttribute('y2',y0+height-10);
+    roof.setAttribute('stroke','#0f172a'); roof.setAttribute('stroke-width','4');
+    svg.appendChild(roof);
+  } else if(type==='Store banne'){
+    document.getElementById('schemaLabel').textContent=`Store banne • ${w}×${h} mm • ${serie}`;
+    const coffre=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    coffre.setAttribute('class','dynamic-leaf');
+    coffre.setAttribute('x',x0-4); coffre.setAttribute('y',y0-22);
+    coffre.setAttribute('width',width+8); coffre.setAttribute('height',18);
+    coffre.setAttribute('fill','#334155');
+    svg.appendChild(coffre);
+    const nBras=Math.max(2,Math.ceil(w/2000)+1);
+    for(let i=0;i<nBras;i++){
+      const x=x0+(width/(nBras-1||1))*i;
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('class','dynamic-leaf');
+      line.setAttribute('x1',x); line.setAttribute('x2',x);
+      line.setAttribute('y1',y0); line.setAttribute('y2',y0+height*0.7);
+      line.setAttribute('stroke','#94a3b8'); line.setAttribute('stroke-width','2');
+      svg.appendChild(line);
+    }
+    const toile=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    toile.setAttribute('class','dynamic-leaf');
+    toile.setAttribute('x',x0); toile.setAttribute('y',y0);
+    toile.setAttribute('width',width); toile.setAttribute('height',height*0.7);
+    toile.setAttribute('fill','#fef3c7'); toile.setAttribute('opacity','0.5');
+    toile.setAttribute('stroke','#d97706'); toile.setAttribute('stroke-width','1.5');
+    svg.appendChild(toile);
+  } else if(type==='Kiosque / abri de jardin'){
+    const roofType=document.getElementById('kiRoofType')?.value||'2pans';
+    document.getElementById('schemaLabel').textContent=`Kiosque/abri de jardin • toiture ${roofType} • ${serie}`;
+    [x0,x0+width-6].forEach(px=>{
+      const post=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      post.setAttribute('class','dynamic-leaf');
+      post.setAttribute('x',px); post.setAttribute('y',y0+30);
+      post.setAttribute('width',6); post.setAttribute('height',height-30);
+      post.setAttribute('fill','#334155');
+      svg.appendChild(post);
+    });
+    const apex=roofType==='pyramidale'?y0-10:y0-25;
+    const roof=document.createElementNS('http://www.w3.org/2000/svg','path');
+    roof.setAttribute('class','dynamic-leaf');
+    roof.setAttribute('d',`M ${x0-15} ${y0+30} L ${x0+width/2} ${apex} L ${x0+width+15} ${y0+30} Z`);
+    roof.setAttribute('fill','#e2e8f0'); roof.setAttribute('stroke','#0f172a'); roof.setAttribute('stroke-width','2');
+    svg.appendChild(roof);
+  } else if(type==='Garde-corps inox'){
+    const spacing=Math.max(500,+document.getElementById('giSpacing')?.value||1500);
+    const infill=document.getElementById('giInfill')?.value||'cable';
+    const nPoteaux=Math.max(2,Math.ceil(w/spacing)+1);
+    document.getElementById('schemaLabel').textContent=`Garde-corps inox • ${infill} • ${nPoteaux} poteaux • ${serie}`;
+    for(let i=0;i<nPoteaux;i++){
+      const x=x0+(width/(nPoteaux-1))*i;
+      const post=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      post.setAttribute('class','dynamic-leaf');
+      post.setAttribute('x',x-3); post.setAttribute('y',y0);
+      post.setAttribute('width',6); post.setAttribute('height',height);
+      post.setAttribute('fill','#64748b');
+      svg.appendChild(post);
+    }
+    const rail=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rail.setAttribute('class','dynamic-leaf');
+    rail.setAttribute('x',x0-6); rail.setAttribute('y',y0-6);
+    rail.setAttribute('width',width+12); rail.setAttribute('height',8);
+    rail.setAttribute('fill','#334155');
+    svg.appendChild(rail);
+    if(infill==='cable'){
+      const nCables=Math.max(3,Math.round(height/22));
+      for(let i=1;i<nCables;i++){
+        const y=y0+(height/nCables)*i;
+        const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+        line.setAttribute('class','dynamic-leaf');
+        line.setAttribute('x1',x0); line.setAttribute('x2',x0+width);
+        line.setAttribute('y1',y); line.setAttribute('y2',y);
+        line.setAttribute('stroke','#94a3b8'); line.setAttribute('stroke-width','1');
+        svg.appendChild(line);
+      }
+    } else if(infill==='barreaudage'){
+      const nBar=Math.max(2,Math.round(width/22));
+      for(let i=1;i<nBar;i++){
+        const x=x0+(width/nBar)*i;
+        const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+        line.setAttribute('class','dynamic-leaf');
+        line.setAttribute('x1',x); line.setAttribute('x2',x);
+        line.setAttribute('y1',y0); line.setAttribute('y2',y0+height);
+        line.setAttribute('stroke','#94a3b8'); line.setAttribute('stroke-width','1.5');
+        svg.appendChild(line);
+      }
+    } else {
+      const glass=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      glass.setAttribute('class','dynamic-leaf');
+      glass.setAttribute('x',x0); glass.setAttribute('y',y0);
+      glass.setAttribute('width',width); glass.setAttribute('height',height);
+      glass.setAttribute('fill','#dbeafe'); glass.setAttribute('opacity','0.4');
+      svg.appendChild(glass);
+    }
+  } else if(type==='Escalier métallique/inox'){
+    const marcheH=Math.min(200,Math.max(150,+document.getElementById('esMarcheH')?.value||175));
+    const nMarches=Math.max(2,Math.round(h/marcheH));
+    document.getElementById('schemaLabel').textContent=`Escalier métallique/inox • ${nMarches} marches • vue de profil • ${serie}`;
+    const stepW=width/nMarches, stepH=height/nMarches;
+    let px=x0, py=y0+height;
+    const limon=document.createElementNS('http://www.w3.org/2000/svg','line');
+    limon.setAttribute('class','dynamic-leaf');
+    limon.setAttribute('x1',x0); limon.setAttribute('x2',x0+width);
+    limon.setAttribute('y1',y0+height); limon.setAttribute('y2',y0);
+    limon.setAttribute('stroke','#334155'); limon.setAttribute('stroke-width','5');
+    svg.appendChild(limon);
+    for(let i=0;i<nMarches;i++){
+      const nx=px+stepW, ny=py-stepH;
+      const tread=document.createElementNS('http://www.w3.org/2000/svg','line');
+      tread.setAttribute('class','dynamic-leaf');
+      tread.setAttribute('x1',px); tread.setAttribute('x2',nx);
+      tread.setAttribute('y1',ny); tread.setAttribute('y2',ny);
+      tread.setAttribute('stroke','#0f172a'); tread.setAttribute('stroke-width','3');
+      svg.appendChild(tread);
+      const riser=document.createElementNS('http://www.w3.org/2000/svg','line');
+      riser.setAttribute('class','dynamic-leaf');
+      riser.setAttribute('x1',nx); riser.setAttribute('x2',nx);
+      riser.setAttribute('y1',ny); riser.setAttribute('y2',py);
+      riser.setAttribute('stroke','#94a3b8'); riser.setAttribute('stroke-width','1.5');
+      svg.appendChild(riser);
+      px=nx; py=ny;
+    }
+  } else if(type==='Fenêtre de toit'){
+    const pente=Math.min(60,Math.max(5,+document.getElementById('ftPente')?.value||30));
+    const ftType=document.getElementById('ftType')?.value||'fixe';
+    document.getElementById('schemaLabel').textContent=`Fenêtre de toit • pente ${pente}° • ${ftType} • ${serie}`;
+    for(let i=0;i<6;i++){
+      const hx=x0-20+i*((width+40)/5);
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('class','dynamic-leaf');
+      line.setAttribute('x1',hx); line.setAttribute('x2',hx-30);
+      line.setAttribute('y1',y0-15); line.setAttribute('y2',y0+height+15);
+      line.setAttribute('stroke','#cbd5e1'); line.setAttribute('stroke-width','2');
+      svg.appendChild(line);
+    }
+    const frame=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    frame.setAttribute('class','dynamic-leaf');
+    frame.setAttribute('x',x0); frame.setAttribute('y',y0);
+    frame.setAttribute('width',width); frame.setAttribute('height',height);
+    frame.setAttribute('fill','#dbeafe'); frame.setAttribute('stroke','#0f172a'); frame.setAttribute('stroke-width','4');
+    svg.appendChild(frame);
+    if(ftType!=='fixe'){
+      const hinge=document.createElementNS('http://www.w3.org/2000/svg','line');
+      hinge.setAttribute('class','dynamic-leaf');
+      hinge.setAttribute('x1',x0); hinge.setAttribute('x2',x0+width);
+      hinge.setAttribute('y1',y0); hinge.setAttribute('y2',y0);
+      hinge.setAttribute('stroke','#2563eb'); hinge.setAttribute('stroke-width','4');
+      svg.appendChild(hinge);
+    }
+  } else if(type==='Garde-corps alu/verre'){
+    const spacing=Math.max(500,+document.getElementById('gcSpacing')?.value||1200);
+    const nPanels=Math.max(1,Math.ceil(w/spacing));
+    document.getElementById('schemaLabel').textContent=`Garde-corps alu/verre • ${nPanels} panneau${nPanels>1?'x':''} • ${serie}`;
+    for(let i=1;i<nPanels;i++){
+      const x=x0+(width/nPanels)*i;
+      const post=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      post.setAttribute('class','dynamic-leaf');
+      post.setAttribute('x',x-4); post.setAttribute('y',y0);
+      post.setAttribute('width',8); post.setAttribute('height',height);
+      post.setAttribute('fill','#334155');
+      svg.appendChild(post);
+    }
+    const rail=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rail.setAttribute('class','dynamic-leaf');
+    rail.setAttribute('x',x0-6); rail.setAttribute('y',y0-6);
+    rail.setAttribute('width',width+12); rail.setAttribute('height',10);
+    rail.setAttribute('fill','#0f172a');
+    svg.appendChild(rail);
+  } else {
+    document.getElementById('schemaLabel').textContent=`${type} • ${leaves} vantail${leaves>1?'s':''} • ${serie}`;
+    for(let i=1;i<leaves;i++){
+      const x=x0+(width/leaves)*i;
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('class','dynamic-leaf');
+      line.setAttribute('x1',x); line.setAttribute('x2',x);
+      line.setAttribute('y1',y0); line.setAttribute('y2',y0+height);
+      line.setAttribute('stroke','#64748b'); line.setAttribute('stroke-width','4');
+      svg.appendChild(line);
+    }
+    if(type==='Coulissant galandage'){
+      const pocket=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      pocket.setAttribute('class','dynamic-leaf');
+      pocket.setAttribute('x',x0+width); pocket.setAttribute('y',y0);
+      pocket.setAttribute('width',60); pocket.setAttribute('height',height);
+      pocket.setAttribute('fill','none'); pocket.setAttribute('stroke','#2563eb');
+      pocket.setAttribute('stroke-width','2'); pocket.setAttribute('stroke-dasharray','5 4');
+      svg.appendChild(pocket);
+      const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.setAttribute('class','dynamic-leaf');
+      t.setAttribute('x',x0+width+30); t.setAttribute('y',y0+height/2);
+      t.setAttribute('text-anchor','middle'); t.setAttribute('font-size','9'); t.setAttribute('fill','#2563eb');
+      t.setAttribute('transform',`rotate(90 ${x0+width+30} ${y0+height/2})`);
+      t.textContent='CAISSON';
+      svg.appendChild(t);
+    }
+  }
+}
+document.querySelectorAll('#type,#width,#height,#leaves,#serie,#facCols,#facRows,#gcSpacing,#bdLameWidth,#bdRailSpacing,#pgDepth,#pgFixation,#pgLameSpacing,#cwCols,#cwDoor,#vrCols,#vrRows,#vrDoor,#voCoffre,#voMotor,#auSaillie,#auCouverture,#auSpacing,#sbSaillie,#sbMotor,#kiDepth,#kiRoofType,#kiCouverture,#giSpacing,#giInfill,#esType,#esMarcheH,#esGardeCorps,#ftPente,#ftType').forEach(e=>e.addEventListener('input',()=>{
+  const w=+document.getElementById('width').value||0,h=+document.getElementById('height').value||0;
+  document.getElementById('previewTitle').textContent=`${document.getElementById('type').value} ${w} × ${h}`;
+  updateTechnicalDrawing();
+  updateFabricationPlan();
+}));
+document.querySelectorAll('#type,#width,#height,#leaves,#serie,#facCols,#facRows,#gcSpacing,#bdLameWidth,#bdRailSpacing,#pgDepth,#pgFixation,#pgLameSpacing,#cwCols,#cwDoor,#vrCols,#vrRows,#vrDoor,#voCoffre,#voMotor,#auSaillie,#auCouverture,#auSpacing,#sbSaillie,#sbMotor,#kiDepth,#kiRoofType,#kiCouverture,#giSpacing,#giInfill,#esType,#esMarcheH,#esGardeCorps,#ftPente,#ftType').forEach(e=>e.addEventListener('change',()=>{toggleTypeFields();updateTechnicalDrawing();updateFabricationPlan();calculateBOM();}));
+toggleTypeFields();
+
+function initApp(){
+  const ctx=document.getElementById('costChart');
+  new Chart(ctx,{type:'line',data:{labels:['Lun','Mar','Mer','Jeu','Ven','Sam'],datasets:[
+   {label:'Coût prévu',data:[420,510,460,590,620,670],tension:.35},
+   {label:'Coût réel',data:[430,500,485,610,600,690],tension:.35}
+  ]},options:{responsive:true,plugins:{legend:{position:'bottom'}},scales:{y:{beginAtZero:true}}}});
+
+  updateJointDetail();
+  calculateBOM();
+  updateTechnicalDrawing();
+  updateFabricationPlan();
+  refreshAllTables();
+  showPage('dashboard');
+  applyRoleGuards();
+  syncNow();
+}
+</script>
+</body>
+</html>
