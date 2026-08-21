@@ -8,6 +8,7 @@
 <title>Sanix AluExpert ERP — Menuiserie Aluminium</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 // === CONFIG SUPABASE — à renseigner par Papi ===
 window.SANIX_CFG = {
@@ -129,8 +130,19 @@ window.SANIX_CFG = {
           <button class="etude-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-tab="proforma" onclick="showPage('proforma')">🧾 Proforma</button>
         </div>
       <div id="config" class="etude-tab hidden">
-        <div class="grid xl:grid-cols-3 gap-6">
-          <div class="xl:col-span-2 card bg-white rounded-2xl p-6">
+        <div class="card bg-slate-900 text-white rounded-2xl p-4 mb-6 flex flex-wrap items-center gap-4">
+          <div class="pr-4 border-r border-white/10">
+            <div class="text-slate-400 text-xs">Aperçu</div>
+            <div id="previewTitle" class="text-lg font-black">Fenêtre 1500 × 1400</div>
+          </div>
+          <div class="flex flex-wrap gap-3 flex-1">
+            <div class="bg-white/10 rounded-xl px-4 py-2"><div class="text-slate-400 text-xs">Surface</div><div id="surface" class="text-base font-bold">2,10 m²</div></div>
+            <div class="bg-white/10 rounded-xl px-4 py-2"><div class="text-slate-400 text-xs">Aluminium</div><div id="aluMl" class="text-base font-bold">—</div></div>
+            <div class="bg-white/10 rounded-xl px-4 py-2"><div class="text-slate-400 text-xs">Vitrage</div><div id="glassM2" class="text-base font-bold">—</div></div>
+            <div class="bg-white/10 rounded-xl px-4 py-2"><div class="text-slate-400 text-xs">Coût estimé</div><div id="costPreview" class="text-base font-bold">—</div></div>
+          </div>
+        </div>
+        <div class="card bg-white rounded-2xl p-6">
             <div class="flex justify-between items-start mb-6">
               <div><h2 class="text-lg font-bold">Configurateur d'ouvrage</h2><p class="text-sm text-slate-500">Les dimensions pilotent automatiquement la BOM.</p></div>
               <span class="badge bg-blue-50 text-blue-700">BOM paramétrique</span>
@@ -538,18 +550,6 @@ window.SANIX_CFG = {
               <button onclick="calculateBOM()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-bold">Calculer la BOM</button>
               <button onclick="resetConfig()" class="border px-5 py-2.5 rounded-lg font-semibold">Réinitialiser</button>
             </div>
-          </div>
-
-          <div class="card bg-slate-900 text-white rounded-2xl p-6">
-            <div class="text-slate-400 text-sm">Aperçu</div>
-            <div id="previewTitle" class="text-2xl font-black mt-2">Fenêtre 1500 × 1400</div>
-            <div class="mt-6 grid grid-cols-2 gap-3">
-              <div class="bg-white/10 rounded-xl p-4"><div class="text-slate-400 text-xs">Surface</div><div id="surface" class="text-xl font-bold mt-1">2,10 m²</div></div>
-              <div class="bg-white/10 rounded-xl p-4"><div class="text-slate-400 text-xs">Aluminium</div><div id="aluMl" class="text-xl font-bold mt-1">—</div></div>
-              <div class="bg-white/10 rounded-xl p-4"><div class="text-slate-400 text-xs">Vitrage</div><div id="glassM2" class="text-xl font-bold mt-1">—</div></div>
-              <div class="bg-white/10 rounded-xl p-4"><div class="text-slate-400 text-xs">Coût estimé</div><div id="costPreview" class="text-xl font-bold mt-1">—</div></div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -610,6 +610,13 @@ window.SANIX_CFG = {
 
 
       <div id="proforma" class="etude-tab hidden">
+        <div class="card bg-white rounded-2xl p-4 mb-4">
+          <div class="flex flex-wrap justify-between gap-2 items-center mb-3">
+            <h3 class="font-bold text-sm">Proformas enregistrées</h3>
+            <button onclick="newProforma()" class="border px-3 py-1.5 rounded-lg text-xs font-semibold">+ Nouvelle proforma</button>
+          </div>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">N°</th><th class="text-left p-2">Client</th><th class="text-left p-2">Date</th><th class="text-right p-2">Total</th><th class="p-2"></th></tr></thead><tbody id="proformaListBody"></tbody></table></div>
+        </div>
         <div class="grid xl:grid-cols-3 gap-6">
           <div class="xl:col-span-2 card bg-white rounded-2xl p-6">
             <div class="flex flex-wrap justify-between gap-3 mb-6">
@@ -617,8 +624,10 @@ window.SANIX_CFG = {
                 <h2 class="text-lg font-bold">Facture proforma</h2>
                 <p class="text-sm text-slate-500">Génération d'une proforma à partir du calcul technique et commercial.</p>
               </div>
-              <div class="flex gap-2">
+              <div class="flex flex-wrap gap-2">
                 <button onclick="printProforma()" class="border px-4 py-2 rounded-lg font-semibold">🖨 Imprimer</button>
+                <button onclick="emailProforma()" class="border px-4 py-2 rounded-lg font-semibold">✉️ E-mail</button>
+                <button onclick="whatsappProforma()" class="border border-emerald-400 text-emerald-700 px-4 py-2 rounded-lg font-semibold">💬 WhatsApp</button>
                 <button onclick="showPage('cost')" class="bg-slate-900 text-white px-4 py-2 rounded-lg font-semibold">Modifier le chiffrage</button>
               </div>
             </div>
@@ -629,11 +638,17 @@ window.SANIX_CFG = {
                   <div class="text-2xl font-black text-slate-900">SANIX AFRICA</div>
                   <div class="text-sm text-slate-500">Division Technologies</div>
                   <div class="text-xs text-slate-500 mt-2">Menuiserie Aluminium • BOM • Fabrication</div>
+                  <div class="text-xs text-slate-400 mt-2 leading-relaxed">
+                    Abidjan, Côte d'Ivoire • Tél. +225 XX XX XX XX XX<br>
+                    contact@sanix-africa.com • RCCM CI-ABJ-XXXX-X-XXXX • CC XXXXXXXX X
+                  </div>
                 </div>
                 <div class="text-right">
                   <div class="text-xl font-black">FACTURE PROFORMA</div>
                   <div id="proNumber" class="text-sm font-semibold text-blue-700">PF-2026-0001</div>
                   <div id="proDate" class="text-xs text-slate-500 mt-1"></div>
+                  <div id="proQRCode" class="mt-2 flex justify-end"></div>
+                  <div class="text-[10px] text-slate-400 mt-1">Scanner pour vérifier l'authenticité</div>
                 </div>
               </div>
 
@@ -712,6 +727,10 @@ window.SANIX_CFG = {
               </label>
               <label class="text-sm font-semibold block">TVA (%)
                 <input id="proTaxRate" type="number" value="18" min="0" max="100" class="mt-1 w-full border rounded-lg px-3 py-2" oninput="updateProforma()">
+              </label>
+              <label class="flex items-center gap-2 text-sm font-semibold bg-slate-50 border rounded-lg px-3 py-2.5">
+                <input id="proIncludeDossier" type="checkbox" class="w-4 h-4">
+                Joindre le dossier technique (schémas) à l'impression
               </label>
               <button onclick="addToProformaCart()" class="w-full border border-blue-600 text-blue-600 py-2.5 rounded-lg font-bold">+ Ajouter la config actuelle</button>
               <button onclick="clearProformaCart()" class="w-full border border-red-300 text-red-600 py-2.5 rounded-lg font-bold">Vider le devis</button>
@@ -1067,7 +1086,7 @@ async function checkSession(){
 document.addEventListener('DOMContentLoaded',checkSession);
 
 /* ---------- Ordres de Fabrication (OF) ---------- */
-async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable()]); }
+async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList()]); }
 
 async function createOF(){
   if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
@@ -1521,7 +1540,9 @@ function addToProformaCart(){
   const isSpecial=['Façade','Garde-corps alu/verre','Bardage alu','Pergola bioclimatique','Cloison vitrée',"Verrière d'intérieur",'Garde-corps inox'].includes(type);
   const detail = isSpecial ? `${type} • ${w}×${h} mm` : `${type} aluminium ${w} × ${h} mm • ${leaves} vantail${leaves>1?'s':''}`;
   const bom = (window.lastBOMRows||[]).map(r=>({code:r[0],designation:r[1],qte:r[2],montant:r[4]}));
-  proformaCart.push({id:'ln_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),type,detail,qty,unit,subtotal:unit*qty,bom});
+  const schemaLabel = document.getElementById('schemaLabel')?.textContent || detail;
+  const schemaSVG = document.getElementById('technicalDrawing')?.outerHTML || '';
+  proformaCart.push({id:'ln_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),type,detail,qty,unit,subtotal:unit*qty,bom,schemaLabel,schemaSVG});
   saveProformaCartLocal();
   const hint=document.getElementById('cartHint');
   if(hint){ hint.textContent=`${proformaCart.length} ouvrage${proformaCart.length>1?'s':''} dans le devis en cours.`; hint.classList.remove('hidden'); }
@@ -1552,7 +1573,9 @@ function updateProforma(){
     const qty = Math.max(1, +document.getElementById('qty').value || 1);
     const unit = parseMoney(document.getElementById('cSale')?.textContent) || (lastCost||0)*1.30;
     const bom = (window.lastBOMRows||[]).map(r=>({code:r[0],designation:r[1],qte:r[2],montant:r[4]}));
-    lines = [{id:'current',type,detail:`${type} aluminium ${w} × ${h} mm • ${leaves} vantail${leaves>1?'s':''} • configuration en cours`,qty,unit,subtotal:unit*qty,bom}];
+    const schemaLabel = document.getElementById('schemaLabel')?.textContent || '';
+    const schemaSVG = document.getElementById('technicalDrawing')?.outerHTML || '';
+    lines = [{id:'current',type,detail:`${type} aluminium ${w} × ${h} mm • ${leaves} vantail${leaves>1?'s':''} • configuration en cours`,qty,unit,subtotal:unit*qty,bom,schemaLabel,schemaSVG}];
   }
 
   const subtotal = lines.reduce((s,l)=>s+l.subtotal,0);
@@ -1577,6 +1600,31 @@ function updateProforma(){
   document.getElementById('proTax').textContent = money(tax);
   document.getElementById('proTotal').textContent = money(total);
   renderConsolidatedNeeds(lines);
+  renderProformaQR(total);
+}
+
+/* ---------- QR code de sécurité (vérification/intégrité) ---------- */
+async function sha256Hex(str){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function renderProformaQR(total){
+  const el=document.getElementById('proQRCode'); if(!el || typeof qrcode==='undefined') return;
+  const numero=document.getElementById('proNumber')?.textContent||'';
+  const client=document.getElementById('proClient')?.value||'';
+  const date=document.getElementById('proDate')?.textContent||'';
+  const payload=`${numero}|${client}|${Math.round(total||0)}|${date}`;
+  const hash=(await sha256Hex(payload)).slice(0,10).toUpperCase();
+  const verifText=`SANIX-VERIF|${numero}|${hash}`;
+  const qr=qrcode(0,'M');
+  qr.addData(verifText);
+  qr.make();
+  const n=qr.getModuleCount(), cell=3;
+  let svg=`<svg viewBox="0 0 ${n*cell} ${n*cell}" width="88" height="88" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#fff"/>`;
+  for(let r=0;r<n;r++) for(let c=0;c<n;c++) if(qr.isDark(r,c)) svg+=`<rect x="${c*cell}" y="${r*cell}" width="${cell}" height="${cell}" fill="#0f172a"/>`;
+  svg+='</svg>';
+  el.innerHTML=svg;
+  el.dataset.hash=hash;
 }
 
 function renderConsolidatedNeeds(lines){
@@ -1599,35 +1647,135 @@ function renderConsolidatedNeeds(lines){
   if(totalEl) totalEl.textContent=money(totalMontant);
 }
 
-function generateProforma(){
+let currentProformaId = null;
+
+async function generateProforma(){
   if(!proformaCart.length) addToProformaCart();
   const d = new Date();
   document.getElementById('proDate').textContent = d.toLocaleDateString('fr-FR');
-  const n = String(d.getTime()).slice(-6);
-  document.getElementById('proNumber').textContent = 'PF-2026-' + n;
+  if(!currentProformaId){
+    const seq=nextSeq('proforma');
+    document.getElementById('proNumber').textContent = 'PF-'+seq.year+'-'+String(seq.n).padStart(4,'0');
+  }
   updateProforma();
   showPage('proforma');
-  saveProforma();
+  await renderProformaQR(parseMoney(document.getElementById('proTotal')?.textContent));
+  await saveProforma();
+}
+
+function newProforma(){
+  currentProformaId=null;
+  proformaCart=[];
+  saveProformaCartLocal();
+  document.getElementById('proClient').value='Client à renseigner';
+  document.getElementById('proContact').value='Contact / Téléphone';
+  document.getElementById('proNumber').textContent='—';
+  document.getElementById('proDate').textContent='';
+  updateProforma();
+}
+
+async function loadProforma(id){
+  const rows=await idbGetAll('proforma');
+  const rec=rows.find(r=>r.id===id); if(!rec) return;
+  currentProformaId=id;
+  proformaCart = rec.lignes || [];
+  saveProformaCartLocal();
+  document.getElementById('proClient').value = rec.client||'';
+  document.getElementById('proContact').value = rec.contact||'';
+  document.getElementById('proNumber').textContent = rec.numero;
+  document.getElementById('proDate').textContent = new Date(rec.date).toLocaleDateString('fr-FR');
+  updateProforma();
+  showPage('proforma');
+  await audit('OUVRIR_PROFORMA',rec.numero);
+}
+
+async function deleteProforma(id){
+  if(!confirm('Supprimer cette proforma ?')) return;
+  await idbDelete('proforma',id);
+  await audit('DELETE_PROFORMA',id);
+  if(currentProformaId===id) newProforma();
+  await renderProformaList();
+}
+
+async function renderProformaList(){
+  const el=document.getElementById('proformaListBody'); if(!el) return;
+  const rows=(await idbGetAll('proforma')).sort((a,b)=>b.date.localeCompare(a.date));
+  el.innerHTML = rows.length ? rows.map(r=>`
+    <tr class="border-b">
+      <td class="p-2 font-semibold">${escapeHtml(r.numero)}</td>
+      <td class="p-2">${escapeHtml(r.client||'')}</td>
+      <td class="p-2">${new Date(r.date).toLocaleDateString('fr-FR')}</td>
+      <td class="p-2 text-right">${escapeHtml(r.total||'')}</td>
+      <td class="p-2 text-right whitespace-nowrap">
+        <button onclick="loadProforma('${r.id}')" class="text-blue-600 text-xs font-semibold mr-2">Modifier</button>
+        <button onclick="deleteProforma('${r.id}')" class="text-red-500 text-xs font-semibold">Suppr.</button>
+      </td>
+    </tr>`).join('') : `<tr><td class="p-2 text-slate-400" colspan="5">Aucune proforma enregistrée.</td></tr>`;
+}
+
+function emailProforma(){
+  const numero=document.getElementById('proNumber')?.textContent||'';
+  const client=document.getElementById('proClient')?.value||'';
+  const total=document.getElementById('proTotal')?.textContent||'';
+  const lignes=proformaCart.length?proformaCart:[{detail:'Configuration en cours',qty:1,subtotal:0}];
+  const bodyLines=lignes.map(l=>`- ${l.detail} (x${l.qty}) : ${money(l.subtotal)}`).join('%0D%0A');
+  const subject=encodeURIComponent(`Proforma ${numero} — SANIX AFRICA`);
+  const body=encodeURIComponent(`Bonjour,\n\nVeuillez trouver ci-dessous le récapitulatif de la proforma ${numero} :\n\n`).replace(/\n/g,'%0D%0A')
+    + bodyLines
+    + encodeURIComponent(`\n\nTotal TTC : ${total}\n\nMerci d'imprimer/exporter le document depuis l'application et de le joindre à cet e-mail.\n\nCordialement,\nSANIX AFRICA — Division Technologies`).replace(/\n/g,'%0D%0A');
+  window.location.href = `mailto:?subject=${subject}&body=${body}`;
+}
+
+function whatsappProforma(){
+  const numero=document.getElementById('proNumber')?.textContent||'';
+  const client=document.getElementById('proClient')?.value||'';
+  const total=document.getElementById('proTotal')?.textContent||'';
+  const lignes=proformaCart.length?proformaCart:[{detail:'Configuration en cours',qty:1,subtotal:0}];
+  const lignesTxt=lignes.map(l=>`• ${l.detail} (x${l.qty}) : ${money(l.subtotal)}`).join('\n');
+  const text=`*Proforma ${numero}* — SANIX AFRICA\nClient : ${client}\n\n${lignesTxt}\n\n*Total TTC : ${total}*`;
+  const phoneRaw=(document.getElementById('proContact')?.value||'').replace(/[^\d+]/g,'');
+  const url = phoneRaw.length>=8
+    ? `https://wa.me/${phoneRaw.replace(/^\+/,'')}?text=${encodeURIComponent(text)}`
+    : `https://wa.me/?text=${encodeURIComponent(text)}`;
+  window.open(url,'_blank');
 }
 
 async function saveProforma(){
   const rec={
-    id:'pf_'+Date.now(),
+    id:currentProformaId || ('pf_'+Date.now()),
     numero:document.getElementById('proNumber').textContent,
     date:new Date().toISOString(),
     client:document.getElementById('proClient').value,
     contact:document.getElementById('proContact').value,
     lignes:proformaCart,
     total:document.getElementById('proTotal').textContent,
+    hashVerif:document.getElementById('proQRCode')?.dataset.hash||'',
     _modifie:new Date().toISOString()
   };
+  currentProformaId=rec.id;
   await idbPut('proforma',rec);
   queueSync('alubom_proforma',rec);
   await audit('CREATE_PROFORMA',rec.numero);
+  await renderProformaList();
 }
 
 function printProforma(){
   const doc = document.getElementById('proformaDoc').innerHTML;
+  const includeDossier = document.getElementById('proIncludeDossier')?.checked;
+  let dossierHtml = '';
+  if(includeDossier){
+    const lines = proformaCart.length ? proformaCart : [];
+    if(!lines.length && document.getElementById('technicalDrawing')){
+      dossierHtml += buildDossierPage(
+        document.getElementById('schemaLabel')?.textContent || 'Configuration en cours',
+        document.getElementById('technicalDrawing').outerHTML
+      );
+    } else {
+      lines.forEach(l=>{
+        if(l.schemaSVG) dossierHtml += buildDossierPage(l.schemaLabel||l.detail, l.schemaSVG);
+      });
+    }
+  }
   const win = window.open('', '_blank', 'width=1000,height=800');
   if(!win) return;
   win.document.write(`
@@ -1638,10 +1786,22 @@ function printProforma(){
       th,td{border:1px solid #cbd5e1;padding:10px}
       th{background:#f1f5f9}
       input,textarea{border:0;font:inherit;width:100%}
-    </style></head><body>${doc}</body></html>`);
+      .dossier-page{page-break-before:always;padding-top:10px}
+      .dossier-title{font-size:18px;font-weight:800;margin-bottom:4px}
+      .dossier-sub{font-size:12px;color:#64748b;margin-bottom:16px}
+      .dossier-page svg{width:100%;height:auto;max-height:600px;border:1px solid #cbd5e1;border-radius:8px}
+    </style></head><body>${doc}${dossierHtml}</body></html>`);
   win.document.close();
   win.focus();
   setTimeout(()=>win.print(),300);
+}
+
+function buildDossierPage(label,svg){
+  return `<div class="dossier-page">
+    <div class="dossier-title">Dossier technique — Fiche de schéma</div>
+    <div class="dossier-sub">${escapeHtml(label)} • SANIX AFRICA — Division Technologies</div>
+    ${svg}
+  </div>`;
 }
 
 function toggleTypeFields(){
