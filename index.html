@@ -30,6 +30,9 @@ window.SANIX_CFG = {
   .etude-tab-btn{color:#475569;background:transparent}
   .etude-tab-btn:hover{background:#f1f5f9}
   .etude-tab-btn.active{background:#2563eb;color:#fff}
+  .ref-tab-btn{color:#475569;background:transparent}
+  .ref-tab-btn:hover{background:#f1f5f9}
+  .ref-tab-btn.active{background:#2563eb;color:#fff}
   @media (max-width:767px){
     .sidebar{position:fixed;inset:0 25% 0 0;z-index:40;transform:translateX(-100%);transition:transform .25s ease;overflow-y:auto;display:block!important}
     .sidebar.open{transform:translateX(0)}
@@ -77,6 +80,7 @@ window.SANIX_CFG = {
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="chantier">🏗️ Circuit Chantier</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="clients">👤 Clients</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="fournisseurs">🏭 Fournisseurs</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="referentiel">📚 Référentiel technique</button>
     </nav>
     <div class="mt-8 border-t border-slate-700 pt-4 text-xs text-slate-500">
       Version prototype<br>Module BOM Menuiserie Aluminium
@@ -821,6 +825,67 @@ window.SANIX_CFG = {
           <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Nom</th><th class="text-left p-3">Spécialité</th><th class="text-left p-3">Téléphone</th><th class="text-left p-3">Contact</th><th class="p-3"></th></tr></thead><tbody id="fournisseursBody"></tbody></table></div>
         </div>
       </section>
+
+      <section id="referentiel" class="page hidden">
+        <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1">
+          <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold active" data-reftab="series" onclick="showRefTab('series')">🧵 Séries aluminium</button>
+          <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="profils" onclick="showRefTab('profils')">📐 Profils</button>
+        </div>
+
+        <div id="refSeries" class="ref-tab">
+          <div class="card bg-white rounded-2xl p-6">
+            <div class="flex flex-wrap justify-between gap-3 mb-5">
+              <div><h2 class="text-lg font-bold">Séries aluminium</h2><p class="text-sm text-slate-500">Référentiel des séries — alimente le sélecteur "Série" du configurateur.</p></div>
+            </div>
+            <form id="serieForm" onsubmit="return handleAddSerie(event)" class="grid sm:grid-cols-4 gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
+              <input id="seCode" placeholder="Code (ex. SER-004)" required class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="seDesignation" placeholder="Désignation" required class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
+              <input id="seFabricant" placeholder="Fabricant" class="border rounded-lg px-2 py-1.5 text-sm">
+              <select id="seType" class="border rounded-lg px-2 py-1.5 text-sm">
+                <option>Coulissant</option><option>Battante</option><option>Façade</option><option>Économique</option><option>Standard</option><option>Premium</option><option>Spéciale</option>
+              </select>
+              <input id="seEpaisseur" type="number" step="0.1" placeholder="Épaisseur (mm)" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="seLargeurDormant" type="number" placeholder="Largeur dormant (mm)" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="seLongueurBarre" type="number" value="6000" placeholder="Longueur barre (mm)" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="seCouleur" placeholder="Couleur" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="sePrixRef" type="number" placeholder="Prix référence (FCFA/ml)" class="border rounded-lg px-2 py-1.5 text-sm">
+              <select id="seStatut" class="border rounded-lg px-2 py-1.5 text-sm"><option value="actif">Actif</option><option value="inactif">Inactif</option></select>
+              <button type="submit" class="sm:col-span-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter série</button>
+            </form>
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Code</th><th class="text-left p-3">Désignation</th><th class="text-left p-3">Type</th><th class="text-right p-3">Largeur dormant</th><th class="text-right p-3">Prix réf.</th><th class="text-left p-3">Statut</th><th class="p-3"></th></tr></thead><tbody id="seriesBody"></tbody></table></div>
+          </div>
+        </div>
+
+        <div id="refProfils" class="ref-tab hidden">
+          <div class="card bg-white rounded-2xl p-6">
+            <div class="flex flex-wrap justify-between gap-3 mb-5">
+              <div><h2 class="text-lg font-bold">Profils aluminium</h2><p class="text-sm text-slate-500">Fiche technique par profil — rattachée à une série.</p></div>
+            </div>
+            <form id="profilForm" onsubmit="return handleAddProfil(event)" class="grid sm:grid-cols-4 gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
+              <input id="prCode" placeholder="Code (ex. P-DOR-001)" required class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="prDesignation" placeholder="Désignation" required class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
+              <select id="prSerie" class="border rounded-lg px-2 py-1.5 text-sm"></select>
+              <select id="prType" class="border rounded-lg px-2 py-1.5 text-sm">
+                <option>Dormant</option><option>Ouvrant</option><option>Montant</option><option>Traverse</option><option>Meneau</option><option>Parclose</option><option>Rail</option><option>Couvre-joint</option><option>Seuil</option><option>Renfort</option><option>Profil de liaison</option>
+              </select>
+              <input id="prPoidsMl" type="number" step="0.01" placeholder="Poids/ml (kg)" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="prLongueurComm" type="number" value="6000" placeholder="Longueur commerciale (mm)" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="prPrixMl" type="number" placeholder="Prix/ml (FCFA)" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="prCouleur" placeholder="Couleur" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="prAlliage" placeholder="Alliage (ex. 6060 T5)" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="prFournisseur" list="fournisseursDatalist" placeholder="Fournisseur" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="prStock" type="number" value="0" placeholder="Stock (ml)" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="prStockMin" type="number" value="0" placeholder="Stock minimum (ml)" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="prEmplacement" placeholder="Emplacement" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="prToleranceCoupe" type="number" value="1" placeholder="Tolérance coupe (mm)" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="prCoefPerte" type="number" step="0.01" value="1.02" placeholder="Coefficient perte" class="border rounded-lg px-2 py-1.5 text-sm">
+              <select id="prStatut" class="border rounded-lg px-2 py-1.5 text-sm"><option value="actif">Actif</option><option value="inactif">Inactif</option></select>
+              <button type="submit" class="sm:col-span-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter profil</button>
+            </form>
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Code</th><th class="text-left p-3">Désignation</th><th class="text-left p-3">Série</th><th class="text-left p-3">Type</th><th class="text-right p-3">Prix/ml</th><th class="text-right p-3">Stock</th><th class="text-left p-3">Statut</th><th class="p-3"></th></tr></thead><tbody id="profilsBody"></tbody></table></div>
+          </div>
+        </div>
+      </section>
     </div>
   </main>
   <datalist id="clientsDatalist"></datalist>
@@ -843,10 +908,10 @@ function escapeHtml(s){
 /* ---------- IndexedDB ---------- */
 function openDB(){
   return new Promise((resolve,reject)=>{
-    const req=indexedDB.open('alubom_db',3);
+    const req=indexedDB.open('alubom_db',4);
     req.onupgradeneeded=e=>{
       const d=e.target.result;
-      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs'].forEach(s=>{
+      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils'].forEach(s=>{
         if(!d.objectStoreNames.contains(s)) d.createObjectStore(s,{keyPath:'id'});
       });
     };
@@ -1041,7 +1106,7 @@ async function fetchRole(){
     currentUser.permissions = d?.permissions || [];
   }catch(e){
     console.warn('Rôle non résolu, profil opérateur par défaut.', e.message);
-    currentUser.role='operateur'; currentUser.permissions=['of:create','stock:write','chantier:create','chantier:validate','achat:create','achat:manage','installation:manage'];
+    currentUser.role='operateur'; currentUser.permissions=['of:create','stock:write','chantier:create','chantier:validate','achat:create','achat:manage','installation:manage','referentiel:manage'];
   }
 }
 function hasRole(perm){
@@ -1096,7 +1161,7 @@ async function checkSession(){
 document.addEventListener('DOMContentLoaded',checkSession);
 
 /* ---------- Ordres de Fabrication (OF) ---------- */
-async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList()]); }
+async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable()]); }
 
 async function createOF(){
   if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
@@ -1503,13 +1568,140 @@ async function renderFournisseursTable(){
   if(dl) dl.innerHTML = rows.map(r=>`<option value="${escapeHtml(r.nom)}">`).join('');
 }
 
+/* ---------- Référentiel technique : Séries & Profils ---------- */
+function showRefTab(tab){
+  document.querySelectorAll('.ref-tab').forEach(t=>t.classList.add('hidden'));
+  document.getElementById(tab==='series'?'refSeries':'refProfils').classList.remove('hidden');
+  document.querySelectorAll('.ref-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.reftab===tab));
+}
+
+const DEFAULT_SERIES=[
+  {id:'ser_std120',code:'STD120',designation:'Série Standard 120',fabricant:'—',type:'Standard',epaisseur:1.4,largeurDormant:120,longueurBarre:6000,couleur:'Blanc',prixRef:8500,statut:'actif'},
+  {id:'ser_coul120',code:'COUL120',designation:'Série Coulissant 120',fabricant:'—',type:'Coulissant',epaisseur:1.5,largeurDormant:120,longueurBarre:6000,couleur:'Gris',prixRef:8500,statut:'actif'},
+  {id:'ser_prem150',code:'PREM150',designation:'Série Premium 150',fabricant:'—',type:'Premium',epaisseur:1.8,largeurDormant:150,longueurBarre:6000,couleur:'Anthracite',prixRef:11500,statut:'actif'}
+];
+
+async function seedDefaultSeriesIfEmpty(){
+  const rows=await idbGetAll('series');
+  if(rows.length) return;
+  for(const s of DEFAULT_SERIES){ s._modifie=new Date().toISOString(); await idbPut('series',s); }
+}
+
+async function handleAddSerie(e){
+  e.preventDefault();
+  if(!hasRole('referentiel:manage')){ alert('Permission refusée.'); return false; }
+  const code=document.getElementById('seCode').value.trim();
+  const designation=document.getElementById('seDesignation').value.trim();
+  if(!code||!designation) return false;
+  const rec={
+    id:'ser_'+Date.now(), code, designation,
+    fabricant:document.getElementById('seFabricant').value.trim(),
+    type:document.getElementById('seType').value,
+    epaisseur:+document.getElementById('seEpaisseur').value||0,
+    largeurDormant:+document.getElementById('seLargeurDormant').value||0,
+    longueurBarre:+document.getElementById('seLongueurBarre').value||6000,
+    couleur:document.getElementById('seCouleur').value.trim(),
+    prixRef:+document.getElementById('sePrixRef').value||0,
+    statut:document.getElementById('seStatut').value,
+    _modifie:new Date().toISOString()
+  };
+  await idbPut('series',rec);
+  queueSync('alubom_series',rec);
+  await audit('CREATE_SERIE',code+' — '+designation);
+  document.getElementById('serieForm').reset();
+  document.getElementById('seLongueurBarre').value=6000;
+  await renderSeriesTable();
+  return false;
+}
+async function deleteSerie(id){
+  if(!hasRole('referentiel:manage')){ alert('Permission refusée.'); return; }
+  if(!confirm('Supprimer cette série ?')) return;
+  await idbDelete('series',id);
+  await audit('DELETE_SERIE',id);
+  await renderSeriesTable();
+}
+async function renderSeriesTable(){
+  await seedDefaultSeriesIfEmpty();
+  const rows=(await idbGetAll('series')).sort((a,b)=>(a.code||'').localeCompare(b.code||''));
+  const el=document.getElementById('seriesBody');
+  if(el){
+    el.innerHTML = rows.map(r=>`<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.code)}</td><td class="p-3">${escapeHtml(r.designation)}</td><td class="p-3">${escapeHtml(r.type)}</td><td class="p-3 text-right">${r.largeurDormant} mm</td><td class="p-3 text-right">${money(r.prixRef)}</td><td class="p-3"><span class="badge bg-${r.statut==='actif'?'emerald':'slate'}-50 text-${r.statut==='actif'?'emerald':'slate'}-700">${escapeHtml(r.statut)}</span></td><td class="p-3 text-right"><button onclick="deleteSerie('${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`).join('');
+  }
+  const select=document.getElementById('serie');
+  const prSelect=document.getElementById('prSerie');
+  const actifs=rows.filter(r=>r.statut==='actif');
+  if(select){
+    const cur=select.value;
+    select.innerHTML = actifs.map(r=>`<option value="${escapeHtml(r.code)}">${escapeHtml(r.designation)}</option>`).join('');
+    if(actifs.some(r=>r.code===cur)) select.value=cur;
+  }
+  if(prSelect){
+    const cur=prSelect.value;
+    prSelect.innerHTML = actifs.map(r=>`<option value="${escapeHtml(r.code)}">${escapeHtml(r.designation)}</option>`).join('');
+    if(actifs.some(r=>r.code===cur)) prSelect.value=cur;
+  }
+}
+
+async function handleAddProfil(e){
+  e.preventDefault();
+  if(!hasRole('referentiel:manage')){ alert('Permission refusée.'); return false; }
+  const code=document.getElementById('prCode').value.trim();
+  const designation=document.getElementById('prDesignation').value.trim();
+  if(!code||!designation) return false;
+  const rec={
+    id:'pro_'+Date.now(), code, designation,
+    serie:document.getElementById('prSerie').value,
+    type:document.getElementById('prType').value,
+    poidsMl:+document.getElementById('prPoidsMl').value||0,
+    longueurComm:+document.getElementById('prLongueurComm').value||6000,
+    prixMl:+document.getElementById('prPrixMl').value||0,
+    couleur:document.getElementById('prCouleur').value.trim(),
+    alliage:document.getElementById('prAlliage').value.trim(),
+    fournisseur:document.getElementById('prFournisseur').value.trim(),
+    stock:+document.getElementById('prStock').value||0,
+    stockMin:+document.getElementById('prStockMin').value||0,
+    emplacement:document.getElementById('prEmplacement').value.trim(),
+    toleranceCoupe:+document.getElementById('prToleranceCoupe').value||1,
+    coefPerte:+document.getElementById('prCoefPerte').value||1.02,
+    statut:document.getElementById('prStatut').value,
+    _modifie:new Date().toISOString()
+  };
+  await idbPut('profils',rec);
+  queueSync('alubom_profils',rec);
+  await audit('CREATE_PROFIL',code+' — '+designation);
+  document.getElementById('profilForm').reset();
+  document.getElementById('prLongueurComm').value=6000;
+  document.getElementById('prStock').value=0;
+  document.getElementById('prStockMin').value=0;
+  document.getElementById('prToleranceCoupe').value=1;
+  document.getElementById('prCoefPerte').value=1.02;
+  await renderProfilsTable();
+  return false;
+}
+async function deleteProfil(id){
+  if(!hasRole('referentiel:manage')){ alert('Permission refusée.'); return; }
+  if(!confirm('Supprimer ce profil ?')) return;
+  await idbDelete('profils',id);
+  await audit('DELETE_PROFIL',id);
+  await renderProfilsTable();
+}
+async function renderProfilsTable(){
+  const rows=(await idbGetAll('profils')).sort((a,b)=>(a.code||'').localeCompare(b.code||''));
+  const el=document.getElementById('profilsBody'); if(!el) return;
+  el.innerHTML = rows.length ? rows.map(r=>{
+    const low=r.stock<=r.stockMin;
+    return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.code)}</td><td class="p-3">${escapeHtml(r.designation)}</td><td class="p-3">${escapeHtml(r.serie)}</td><td class="p-3">${escapeHtml(r.type)}</td><td class="p-3 text-right">${money(r.prixMl)}</td><td class="p-3 text-right">${low?'<span class="text-red-600 font-bold">':''}${r.stock} ml${low?'</span>':''}</td><td class="p-3"><span class="badge bg-${r.statut==='actif'?'emerald':'slate'}-50 text-${r.statut==='actif'?'emerald':'slate'}-700">${escapeHtml(r.statut)}</span></td><td class="p-3 text-right"><button onclick="deleteProfil('${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`;
+  }).join('') : `<tr><td class="p-3 text-slate-400" colspan="8">Aucun profil enregistré.</td></tr>`;
+}
+
 function money(n){return new Intl.NumberFormat('fr-FR').format(Math.round(n))+' FCFA';}
+
 
 const ETUDE_TABS=['config','bom','cut','cost','proforma'];
 function showPage(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
   document.querySelectorAll('.nav').forEach(b=>b.classList.remove('active'));
-  const titles={dashboard:'Tableau de bord',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',stock:'Stock',chantier:'Circuit Chantier',clients:'Clients',fournisseurs:'Fournisseurs'};
+  const titles={dashboard:'Tableau de bord',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',stock:'Stock',chantier:'Circuit Chantier',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique'};
 
   if(ETUDE_TABS.includes(page)){
     document.getElementById('etude').classList.remove('hidden');
