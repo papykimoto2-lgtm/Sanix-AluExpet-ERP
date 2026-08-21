@@ -580,18 +580,21 @@ window.SANIX_CFG = {
       <div id="cut" class="etude-tab hidden">
         <div class="grid lg:grid-cols-3 gap-6">
           <div class="lg:col-span-2 card bg-white rounded-2xl p-6">
-            <div class="flex justify-between mb-5"><div><h2 class="text-lg font-bold">Optimisation des barres</h2><p class="text-sm text-slate-500">Barres commerciales de 6 000 mm avec trait de scie.</p></div><span id="cutRate" class="badge bg-emerald-50 text-emerald-700">6,8% de chute</span></div>
-            <div id="cutPlan" class="space-y-4"></div>
+            <div class="flex flex-wrap justify-between gap-2 mb-5"><div><h2 class="text-lg font-bold">Fiche de débit — Optimisation des barres</h2><p class="text-sm text-slate-500">Calculée à partir de la BOM réelle de l'ouvrage, par référence de profil.</p></div><span id="cutRate" class="badge bg-emerald-50 text-emerald-700">—</span></div>
+            <div id="cutPlan" class="space-y-6"></div>
           </div>
-          <div class="card bg-white rounded-2xl p-6">
+          <div class="card bg-white rounded-2xl p-6 h-fit">
             <h2 class="font-bold">Paramètres</h2>
             <div class="mt-4 space-y-3 text-sm">
-              <div class="flex justify-between"><span>Barre standard</span><b>6 000 mm</b></div>
+              <div class="flex justify-between"><span>Barre standard</span><b id="cutBarLen">6 000 mm</b></div>
               <div class="flex justify-between"><span>Trait de scie</span><b>3 mm</b></div>
               <div class="flex justify-between"><span>Seuil chute réutilisable</span><b>500 mm</b></div>
-              <div class="flex justify-between"><span>Mode</span><b>Économie matière</b></div>
+              <div class="flex justify-between"><span>Barres nécessaires</span><b id="cutTotalBars">0</b></div>
+              <div class="flex justify-between"><span>Chute réutilisable</span><b id="cutReusable">0 mm</b></div>
+              <div class="flex justify-between"><span>Déchet</span><b id="cutWaste">0 mm</b></div>
             </div>
             <button onclick="optimize()" class="mt-6 w-full bg-blue-600 text-white py-2.5 rounded-lg font-bold">Relancer l'optimisation</button>
+            <button onclick="returnChutesToStock()" class="mt-2 w-full border border-emerald-600 text-emerald-700 py-2.5 rounded-lg font-bold">Retourner les chutes en stock</button>
           </div>
         </div>
       </div>
@@ -2389,25 +2392,104 @@ function updateCost(){
   document.getElementById('cSale').textContent=money(sale);
 }
 
-function optimize(){
-  const w=+document.getElementById('width').value||1500, h=+document.getElementById('height').value||1400;
-  const cuts=[w,w,h,h,Math.round(w/2),Math.round(w/2),h,h];
+function binPackCuts(cuts,barLen,kerf){
+  const sorted=[...cuts].sort((a,b)=>b-a);
   let bars=[], remaining=[];
-  cuts.forEach(c=>{
-    let i=remaining.findIndex(r=>r>=c+3);
-    if(i<0){bars.push([c]);remaining.push(6000-c-3)}
-    else{bars[i].push(c);remaining[i]-=c+3}
+  sorted.forEach(c=>{
+    let i=remaining.findIndex(r=>r>=c+kerf);
+    if(i<0){bars.push([c]);remaining.push(barLen-c-kerf);}
+    else{bars[i].push(c);remaining[i]-=c+kerf;}
   });
-  const total=bars.length*6000, used=cuts.reduce((a,b)=>a+b+3,0), waste=total-used;
-  document.getElementById('cutRate').textContent=(waste/total*100).toFixed(1).replace('.',',')+'% de chute';
-  document.getElementById('cutPlan').innerHTML=bars.map((bar,i)=>`
-    <div class="border rounded-xl p-4">
-      <div class="flex justify-between mb-2"><b>Barre ${i+1} — 6 000 mm</b><span class="text-sm text-slate-500">Chute ${6000-bar.reduce((a,b)=>a+b+3,0)} mm</span></div>
-      <div class="h-8 bg-slate-100 rounded-lg flex overflow-hidden">
-        ${bar.map(c=>`<div style="width:${c/60}%"
-          class="bg-blue-600 text-white text-xs flex items-center justify-center border-r border-white">${c} mm</div>`).join('')}
+  return bars.map(bar=>({cuts:bar,used:bar.reduce((a,b)=>a+b+kerf,0),chute:barLen-bar.reduce((a,b)=>a+b+kerf,0)}));
+}
+
+async function getBarLengthForCode(code){
+  const profils=await idbGetAll('profils');
+  const p=profils.find(x=>x.code===code);
+  if(p && p.longueurComm) return p.longueurComm;
+  const series=await idbGetAll('series');
+  const serieCode=document.getElementById('serie')?.value;
+  const s=series.find(x=>x.code===serieCode);
+  if(s && s.longueurBarre) return s.longueurBarre;
+  return 6000;
+}
+
+async function optimize(){
+  const rows=window.lastBOMRows||[];
+  const profileCuts=rows.filter(r=>r[3] && r[3]>0);
+  if(!profileCuts.length){
+    document.getElementById('cutPlan').innerHTML='<p class="text-sm text-slate-400">Calculez d\'abord la BOM (Configurateur → Calculer la BOM) avant de lancer le débit.</p>';
+    document.getElementById('cutRate').textContent='—';
+    document.getElementById('cutTotalBars').textContent='0';
+    document.getElementById('cutReusable').textContent='0 mm';
+    document.getElementById('cutWaste').textContent='0 mm';
+    return;
+  }
+  const kerf=3, threshold=500;
+  const groups={};
+  profileCuts.forEach(r=>{
+    const code=r[0], label=r[1], qty=Math.max(1,Math.round(r[2])), len=Math.round(r[3]);
+    if(!groups[code]) groups[code]={label,cuts:[],barLen:null};
+    for(let i=0;i<qty;i++) groups[code].cuts.push(len);
+  });
+
+  let html='', totalBars=0, totalChuteReutil=0, totalDechet=0, rates=[];
+  window.lastChutes=[];
+  for(const code of Object.keys(groups)){
+    const g=groups[code];
+    g.barLen=await getBarLengthForCode(code);
+    const bars=binPackCuts(g.cuts,g.barLen,kerf);
+    totalBars+=bars.length;
+    bars.forEach(b=>{
+      if(b.chute>=threshold){ totalChuteReutil+=b.chute; window.lastChutes.push({code,label:g.label,length:b.chute}); }
+      else totalDechet+=b.chute;
+    });
+    const groupUsed=bars.reduce((s,b)=>s+b.used,0), groupTotal=bars.length*g.barLen;
+    const rate=groupTotal?(1-groupUsed/groupTotal)*100:0;
+    rates.push(rate);
+    html+=`<div>
+      <div class="flex flex-wrap justify-between items-center mb-2 gap-1">
+        <b class="text-sm">${escapeHtml(code)} — ${escapeHtml(g.label)}</b>
+        <span class="text-xs text-slate-500">${bars.length} barre${bars.length>1?'s':''} de ${g.barLen.toLocaleString('fr-FR')} mm • ${rate.toFixed(1).replace('.',',')}% chute</span>
       </div>
-    </div>`).join('');
+      <div class="space-y-2">
+      ${bars.map((b,i)=>`
+        <div class="border rounded-xl p-3">
+          <div class="flex justify-between mb-1 text-xs text-slate-500"><span>Barre ${i+1}</span><span>Chute ${b.chute} mm${b.chute>=threshold?' <span class="text-emerald-600 font-semibold">(réutilisable)</span>':''}</span></div>
+          <div class="h-7 bg-slate-100 rounded-lg flex overflow-hidden">
+            ${b.cuts.map(c=>`<div style="width:${(c/g.barLen*100).toFixed(2)}%" class="bg-blue-600 text-white text-[10px] flex items-center justify-center border-r border-white">${c}</div>`).join('')}
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }
+  document.getElementById('cutPlan').innerHTML=html;
+  const avgRate=rates.length?rates.reduce((a,b)=>a+b,0)/rates.length:0;
+  document.getElementById('cutRate').textContent=avgRate.toFixed(1).replace('.',',')+'% de chute';
+  document.getElementById('cutTotalBars').textContent=totalBars;
+  document.getElementById('cutReusable').textContent=Math.round(totalChuteReutil).toLocaleString('fr-FR')+' mm';
+  document.getElementById('cutWaste').textContent=Math.round(totalDechet).toLocaleString('fr-FR')+' mm';
+  const barLens=[...new Set(Object.values(groups).map(g=>g.barLen))];
+  document.getElementById('cutBarLen').textContent = barLens.length===1 ? barLens[0].toLocaleString('fr-FR')+' mm' : 'Variable par profil';
+}
+
+async function returnChutesToStock(){
+  if(!hasRole('stock:write')){ alert('Permission refusée.'); return; }
+  const chutes=window.lastChutes||[];
+  if(!chutes.length){ alert("Aucune chute réutilisable calculée. Lancez d'abord l'optimisation depuis l'onglet Débit."); return; }
+  const rows=await idbGetAll('stock');
+  for(const c of chutes){
+    const ref='CHUTE-'+c.code;
+    let row=rows.find(r=>r.ref===ref) || {id:ref,ref,label:'Chute réutilisable — '+c.label,dispo:0,reserve:0,prix:0};
+    row.dispo += c.length/1000;
+    row._modifie=new Date().toISOString();
+    await idbPut('stock',row);
+    queueSync('alubom_stock',row);
+    rows.push(row);
+  }
+  await audit('RETOUR_CHUTES_STOCK',chutes.length+' chute(s) retournée(s) en stock');
+  await renderStockTable();
+  alert(chutes.length+' chute(s) réutilisable(s) ajoutée(s) au stock.');
 }
 
 function resetConfig(){
