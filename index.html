@@ -502,6 +502,7 @@ window.SANIX_CFG = {
                 <button type="button" onclick="window.print()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Imprimer le plan</button>
                 <button type="button" onclick="showPage('cut')" class="border px-4 py-2 rounded-lg text-sm font-semibold">Voir le débit</button>
                 <button type="button" onclick="showPage('bom')" class="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-semibold">Voir la BOM</button>
+                <button type="button" onclick="printFicheTechnique()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">📐 Fiche technique A3 complète</button>
               </div>
             </div>
 
@@ -2182,6 +2183,144 @@ function resetConfig(){
   document.getElementById('leaves').value=2;
   document.getElementById('qty').value=1;
   calculateBOM();
+}
+
+/* =========================================================
+   Fiche Technique A3 — cartouche + vues + nomenclature +
+   débit + accessoires, générique pour les 18 types d'ouvrage
+   ========================================================= */
+const TYPE_CODE={
+  'Fenêtre':'FEN','Porte':'POR','Coulissant':'FEN-COUL','Coulissant galandage':'FEN-GAL',
+  'Baie vitrée':'BAIE','Façade':'FAC-VEC','Garde-corps alu/verre':'GC-ALU','Bardage alu':'BARD',
+  'Pergola bioclimatique':'PERGO','Cloison vitrée':'CLOI-V','Verrière d\'intérieur':'VERR',
+  'Volet roulant':'VR','Auvent / marquise':'AUV','Store banne':'STB','Kiosque / abri de jardin':'KIO',
+  'Garde-corps inox':'GC-INOX','Escalier métallique/inox':'ESC','Fenêtre de toit':'FT'
+};
+const CONSUMABLE_KEYWORDS=['vis','joint','poignée','serrure','paumelle','roulette','silicone','moteur',
+  'manivelle','tendeur','pince','clip','platine','gouttière','solin','brosse','sangle','équerre',
+  'gâche','ferme-porte','fixation','câble','capot','profilé de jonction'];
+
+function generateReference(type,w,h,leaves){
+  const code=TYPE_CODE[type]||'OUV';
+  const v = document.getElementById('leavesField') && !document.getElementById('leavesField').classList.contains('hidden') ? `-${leaves}V` : '';
+  return `${code}${v}-${w}x${h}`;
+}
+
+function printFicheTechnique(){
+  const type=document.getElementById('type').value;
+  const w=+document.getElementById('width').value||0;
+  const h=+document.getElementById('height').value||0;
+  const leaves=+document.getElementById('leaves').value||1;
+  const serie=document.getElementById('serie').selectedOptions[0].text;
+  const ref=generateReference(type,w,h,leaves);
+  const dateStr=new Date().toLocaleDateString('fr-FR');
+  const dessinePar=currentUser?currentUser.email:'Bureau d\'Études';
+  const infoLine1=document.getElementById('schemaLabel')?.textContent.trim()||'';
+  const infoLine2=document.getElementById('fabOpeningLabel')?.textContent.trim()||'';
+
+  const techSVG=document.getElementById('technicalDrawing')?.outerHTML||'';
+  const fabSVG=document.getElementById('fabricationPlan')?.outerHTML||'';
+  const jointSVG=document.getElementById('jointDetail')?.outerHTML||'';
+  const bomHTML=document.getElementById('bomBody')?.innerHTML||'';
+  const cutHTML=document.getElementById('cutPlan')?.innerHTML||'<p style="color:#94a3b8">Lancez l\'optimisation de débit (onglet Débit) avant impression.</p>';
+
+  const rows=window.lastBOMRows||[];
+  const accessoires=rows.filter(r=>CONSUMABLE_KEYWORDS.some(k=>String(r[1]).toLowerCase().includes(k)));
+  const accessoiresHTML=accessoires.length ? accessoires.map(r=>`<tr><td>${escapeHtml(r[0])}</td><td>${escapeHtml(r[1])}</td><td class="right">${Number(r[2]).toFixed(2)}</td><td class="right">${money(r[4])}</td></tr>`).join('')
+    : '<tr><td colspan="4" style="color:#94a3b8;text-align:center">Aucun accessoire spécifique détecté.</td></tr>';
+
+  const projet = (typeof currentChantierId!=='undefined' && currentChantierId) ? currentChantierId : '—';
+  const client = document.getElementById('proClient')?.value || '—';
+
+  const win=window.open('','_blank','width=1200,height=900');
+  if(!win) return;
+  win.document.write(`
+  <html><head><title>Fiche technique — ${escapeHtml(ref)}</title>
+  <style>
+    @page{size:A3 landscape;margin:12mm}
+    body{font-family:Arial,sans-serif;color:#0f172a;font-size:12px}
+    table{width:100%;border-collapse:collapse;font-size:11px}
+    th,td{border:1px solid #cbd5e1;padding:5px 8px;text-align:left}
+    th{background:#f1f5f9}
+    td.right,th.right{text-align:right}
+    svg{width:100%;height:auto;border:1px solid #cbd5e1;border-radius:4px}
+    .cartouche{display:flex;align-items:center;gap:16px;border:2px solid #0f172a;padding:10px 16px;margin-bottom:10px}
+    .cartouche .logo{font-weight:900;font-size:22px;color:#1d4ed8;letter-spacing:1px}
+    .cartouche .title{flex:1}
+    .cartouche h1{font-size:18px;margin:0;font-weight:800}
+    .cartouche h2{font-size:12px;margin:2px 0 0;font-weight:600;color:#475569}
+    .meta{font-size:10px}
+    .meta td{padding:2px 8px;border:0;border-bottom:1px solid #e2e8f0}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+    .panel{border:1px solid #cbd5e1;border-radius:6px;padding:8px}
+    .panel h3{font-size:12px;margin:0 0 6px;font-weight:800;color:#1d4ed8;text-transform:uppercase}
+    .footer-block{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border:1px solid #0f172a;margin-top:10px;font-size:10px}
+    .footer-block div{border-right:1px solid #0f172a;padding:6px 10px}
+    .footer-block div:last-child{border-right:0}
+    .footer-block b{display:block;font-size:9px;color:#64748b;text-transform:uppercase}
+  </style></head><body>
+
+  <div class="cartouche">
+    <div class="logo">SANIX<br><span style="font-size:9px;color:#64748b;letter-spacing:2px">FACTORY</span></div>
+    <div class="title">
+      <h1>${escapeHtml(type.toUpperCase())} — ${w} × ${h} mm</h1>
+      <h2>${escapeHtml(serie)} • ${escapeHtml(infoLine1)}</h2>
+    </div>
+    <table class="meta" style="width:auto">
+      <tr><td><b>Référence</b></td><td>${escapeHtml(ref)}</td></tr>
+      <tr><td><b>Date</b></td><td>${dateStr}</td></tr>
+      <tr><td><b>Dessiné par</b></td><td>${escapeHtml(dessinePar)}</td></tr>
+      <tr><td><b>Échelle</b></td><td>1:2 / 1:1</td></tr>
+      <tr><td><b>Format</b></td><td>A3</td></tr>
+      <tr><td><b>Unité</b></td><td>mm</td></tr>
+    </table>
+  </div>
+
+  <div class="grid2">
+    <div class="panel"><h3>1. Vue de face</h3>${techSVG}</div>
+    <div class="panel">
+      <h3>Nomenclature principale</h3>
+      <table><thead><tr><th>Code</th><th>Désignation</th><th class="right">Qté</th><th class="right">Longueur</th><th class="right">Coût</th></tr></thead>
+      <tbody>${bomHTML}</tbody></table>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-bottom:10px"><h3>2. Plan de fabrication / coupes</h3>${fabSVG}</div>
+
+  <div class="grid2">
+    <div class="panel"><h3>3. Détail jonction d'angle</h3>${jointSVG}</div>
+    <div class="panel">
+      <h3>Informations ouvrage</h3>
+      <table>
+        <tr><td><b>Type d'ouvrage</b></td><td>${escapeHtml(type)}</td></tr>
+        <tr><td><b>Série aluminium</b></td><td>${escapeHtml(serie)}</td></tr>
+        <tr><td><b>Dimensions (L × H)</b></td><td>${w} × ${h} mm</td></tr>
+        <tr><td><b>Paramètres</b></td><td>${escapeHtml(infoLine1)}</td></tr>
+        <tr><td><b>Fonctionnement</b></td><td>${escapeHtml(infoLine2)}</td></tr>
+        <tr><td><b>Jeu périphérique</b></td><td>5 mm</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-bottom:10px"><h3>7. Plan de débit aluminium (barre 6000 mm)</h3>${cutHTML}</div>
+
+  <div class="panel"><h3>8. Accessoires & consommables</h3>
+    <table><thead><tr><th>Code</th><th>Désignation</th><th class="right">Qté</th><th class="right">Montant</th></tr></thead>
+    <tbody>${accessoiresHTML}</tbody></table>
+  </div>
+
+  <div class="footer-block">
+    <div><b>Projet</b>${escapeHtml(projet)}</div>
+    <div><b>Client</b>${escapeHtml(client)}</div>
+    <div><b>Référence</b>${escapeHtml(ref)}</div>
+    <div><b>Vérifié par</b>&nbsp;</div>
+    <div><b>Approuvé par / Version</b>&nbsp;&nbsp;1.0</div>
+  </div>
+
+  </body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(()=>win.print(),400);
 }
 
 
