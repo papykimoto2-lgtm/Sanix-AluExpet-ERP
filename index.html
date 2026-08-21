@@ -360,11 +360,13 @@ window.SANIX_CFG = {
                     </marker>
                   </defs>
                   <rect x="145" y="55" width="470" height="260" rx="2" fill="#e2e8f0" stroke="#0f172a" stroke-width="8"/>
-                  <rect x="165" y="75" width="430" height="220" fill="#dbeafe" stroke="#64748b" stroke-width="4"/>
-                  <line x1="380" y1="75" x2="380" y2="295" stroke="#64748b" stroke-width="5"/>
-                  <line x1="380" y1="185" x2="380" y2="185" stroke="#0f172a"/>
-                  <circle cx="365" cy="185" r="4" fill="#0f172a"/>
-                  <circle cx="395" cy="185" r="4" fill="#0f172a"/>
+                  <g id="schemaGlassBase">
+                    <rect x="165" y="75" width="430" height="220" fill="#dbeafe" stroke="#64748b" stroke-width="4"/>
+                    <line x1="380" y1="75" x2="380" y2="295" stroke="#64748b" stroke-width="5"/>
+                    <line x1="380" y1="185" x2="380" y2="185" stroke="#0f172a"/>
+                    <circle cx="365" cy="185" r="4" fill="#0f172a"/>
+                    <circle cx="395" cy="185" r="4" fill="#0f172a"/>
+                  </g>
 
                   <line x1="145" y1="35" x2="615" y2="35" stroke="#334155" stroke-width="2"
                         marker-start="url(#arrow)" marker-end="url(#arrow)"/>
@@ -419,10 +421,12 @@ window.SANIX_CFG = {
                   <!-- Elevation -->
                   <text x="55" y="78" font-size="14" font-weight="800" fill="#1d4ed8">VUE DE FACE — COTES HORS TOUT</text>
                   <rect id="fabOuter" x="70" y="105" width="500" height="390" fill="#e5e7eb" stroke="#111827" stroke-width="8"/>
-                  <rect x="87" y="122" width="466" height="356" fill="url(#glassPattern)" stroke="#334155" stroke-width="4"/>
-                  <line id="fabCenter" x1="320" y1="122" x2="320" y2="478" stroke="#475569" stroke-width="5"/>
-                  <rect x="307" y="278" width="9" height="42" rx="2" fill="#111827"/>
-                  <rect x="324" y="278" width="9" height="42" rx="2" fill="#111827"/>
+                  <g id="fabElevationGlass">
+                    <rect x="87" y="122" width="466" height="356" fill="url(#glassPattern)" stroke="#334155" stroke-width="4"/>
+                    <line id="fabCenter" x1="320" y1="122" x2="320" y2="478" stroke="#475569" stroke-width="5"/>
+                    <rect x="307" y="278" width="9" height="42" rx="2" fill="#111827"/>
+                    <rect x="324" y="278" width="9" height="42" rx="2" fill="#111827"/>
+                  </g>
 
                   <!-- horizontal dimension -->
                   <line x1="70" y1="88" x2="570" y2="88" stroke="#334155" stroke-width="2" marker-start="url(#fabArrow)" marker-end="url(#fabArrow)"/>
@@ -449,6 +453,7 @@ window.SANIX_CFG = {
                   <path id="fabSwingArc" d="M 320 122 A 250 250 0 0 1 500 300" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="4 3" opacity="0"/>
 
                   <!-- Cut A-A -->
+                  <g id="fabCoupeAA">
                   <text x="630" y="78" font-size="14" font-weight="800" fill="#1d4ed8">COUPE A-A — DORMANT / OUVRANT / VITRAGE</text>
                   <rect x="675" y="105" width="125" height="360" fill="#d1d5db" stroke="#111827" stroke-width="5"/>
                   <rect x="700" y="125" width="76" height="320" fill="url(#glassPattern)" stroke="#2563eb" stroke-width="4"/>
@@ -465,8 +470,10 @@ window.SANIX_CFG = {
                   <text x="930" y="325" font-size="13" font-weight="700">VERRE 6/12/6</text>
                   <line x1="820" y1="395" x2="920" y2="395" stroke="#64748b"/>
                   <text x="930" y="400" font-size="13" font-weight="700">AL-PAR-001 — Parclose</text>
+                  </g>
 
                   <!-- Cut B-B horizontal -->
+                  <g id="fabCoupeBB">
                   <text x="55" y="565" font-size="14" font-weight="800" fill="#1d4ed8">COUPE B-B — RAIL / OUVRANTS / VITRAGE</text>
                   <rect x="70" y="585" width="500" height="62" fill="#d1d5db" stroke="#111827" stroke-width="4"/>
                   <rect x="105" y="598" width="185" height="26" fill="url(#glassPattern)" stroke="#2563eb" stroke-width="3"/>
@@ -476,6 +483,8 @@ window.SANIX_CFG = {
                   <circle cx="500" cy="638" r="7" fill="#111827"/>
                   <text x="160" y="675" font-size="12" fill="#475569">Roulette</text>
                   <text x="490" y="675" font-size="12" fill="#475569">Roulette</text>
+                  </g>
+                  <text id="fabCoupeNote" x="320" y="615" text-anchor="middle" font-size="13" fill="#94a3b8" style="display:none">Détail de coupe non applicable — voir fiche de débit et nomenclature ci-dessous.</text>
 
                   <!-- Cut list -->
                   <rect x="600" y="525" width="550" height="190" fill="#fff" stroke="#0f172a" stroke-width="1.5"/>
@@ -1777,28 +1786,60 @@ function printProforma(){
       });
     }
   }
-  const win = window.open('', '_blank', 'width=1000,height=800');
+  const win = window.open('', '_blank', 'width=1000,height=1100');
   if(!win) return;
   win.document.write(`
     <html><head><title>Facture Proforma</title>
     <style>
-      body{font-family:Arial,sans-serif;padding:35px;color:#0f172a}
+      *{box-sizing:border-box}
+      body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#e2e8f0;margin:0}
+      .toolbar{position:sticky;top:0;z-index:10;background:#0f172a;color:#fff;padding:12px 24px;display:flex;justify-content:space-between;align-items:center}
+      .toolbar b{font-size:14px}
+      .toolbar button{background:#2563eb;color:#fff;border:0;padding:9px 18px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;margin-left:8px}
+      .toolbar button.secondary{background:transparent;border:1px solid #475569}
+      .sheet{max-width:820px;margin:24px auto;background:#fff;padding:40px 44px;box-shadow:0 10px 40px rgba(15,23,42,.25);border-radius:4px}
       table{width:100%;border-collapse:collapse}
-      th,td{border:1px solid #cbd5e1;padding:10px}
-      th{background:#f1f5f9}
-      input,textarea{border:0;font:inherit;width:100%}
+      th,td{border:1px solid #cbd5e1;padding:9px 12px;font-size:12.5px}
+      th{background:#f1f5f9;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#475569}
+      tbody tr:nth-child(even){background:#f8fafc}
+      input,textarea{border:0;font:inherit;width:100%;background:transparent}
       .dossier-page{page-break-before:always;padding-top:10px}
       .dossier-title{font-size:18px;font-weight:800;margin-bottom:4px}
       .dossier-sub{font-size:12px;color:#64748b;margin-bottom:16px}
       .dossier-page svg{width:100%;height:auto;max-height:600px;border:1px solid #cbd5e1;border-radius:8px}
-    </style></head><body>${doc}${dossierHtml}</body></html>`);
+      .signature-block{display:flex;justify-content:space-between;margin-top:40px;padding-top:20px}
+      .signature-block div{width:45%;font-size:11px;color:#475569}
+      .signature-line{border-top:1px solid #94a3b8;margin-top:50px;padding-top:6px}
+      @media print{
+        body{background:#fff}
+        .toolbar{display:none}
+        .sheet{box-shadow:none;margin:0;padding:0;max-width:none}
+        .dossier-page{page-break-before:always}
+      }
+      @page{size:A4;margin:16mm}
+    </style></head><body>
+    <div class="toolbar">
+      <b>Aperçu avant impression — Facture Proforma</b>
+      <div>
+        <button class="secondary" onclick="window.close()">Fermer</button>
+        <button onclick="window.print()">🖨 Imprimer</button>
+      </div>
+    </div>
+    <div class="sheet">
+      ${doc}
+      <div class="signature-block">
+        <div><div>Bon pour accord — Signature client</div><div class="signature-line">Date et signature</div></div>
+        <div style="text-align:right"><div>SANIX AFRICA — Division Technologies</div><div class="signature-line">Cachet et signature</div></div>
+      </div>
+    </div>
+    ${dossierHtml}
+    </body></html>`);
   win.document.close();
   win.focus();
-  setTimeout(()=>win.print(),300);
 }
 
 function buildDossierPage(label,svg){
-  return `<div class="dossier-page">
+  return `<div class="sheet dossier-page">
     <div class="dossier-title">Dossier technique — Fiche de schéma</div>
     <div class="dossier-sub">${escapeHtml(label)} • SANIX AFRICA — Division Technologies</div>
     ${svg}
@@ -2347,14 +2388,24 @@ function updateFabricationPlan(){
   old.forEach(e=>e.remove());
 
   const svg=document.getElementById('fabricationPlan');
-  for(let i=1;i<leaves;i++){
-    const x=x0+(totalW/leaves)*i;
-    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
-    line.setAttribute('class','fab-dynamic');
-    line.setAttribute('x1',x); line.setAttribute('x2',x);
-    line.setAttribute('y1',122); line.setAttribute('y2',478);
-    line.setAttribute('stroke','#475569'); line.setAttribute('stroke-width','5');
-    svg.appendChild(line);
+
+  const SPECIAL_FAB_TYPES=['Façade','Garde-corps alu/verre','Bardage alu','Pergola bioclimatique','Cloison vitrée',"Verrière d'intérieur",'Volet roulant','Auvent / marquise','Store banne','Kiosque / abri de jardin','Garde-corps inox','Escalier métallique/inox','Fenêtre de toit'];
+  const isSpecialStructure=SPECIAL_FAB_TYPES.includes(type);
+  document.getElementById('fabElevationGlass').style.display = isSpecialStructure ? 'none' : '';
+  document.getElementById('fabCoupeAA').style.display = isSpecialStructure ? 'none' : '';
+  document.getElementById('fabCoupeBB').style.display = isSpecialStructure ? 'none' : '';
+  document.getElementById('fabCoupeNote').style.display = isSpecialStructure ? '' : 'none';
+
+  if(!isSpecialStructure){
+    for(let i=1;i<leaves;i++){
+      const x=x0+(totalW/leaves)*i;
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('class','fab-dynamic');
+      line.setAttribute('x1',x); line.setAttribute('x2',x);
+      line.setAttribute('y1',122); line.setAttribute('y2',478);
+      line.setAttribute('stroke','#475569'); line.setAttribute('stroke-width','5');
+      svg.appendChild(line);
+    }
   }
 
   const label=document.createElementNS('http://www.w3.org/2000/svg','text');
@@ -2644,6 +2695,9 @@ function updateTechnicalDrawing(){
   oldLines.forEach(e=>e.remove());
 
   const x0=165, y0=75, width=430, height=220;
+
+  const SPECIAL_SCHEMA_TYPES=['Façade','Garde-corps alu/verre','Bardage alu','Pergola bioclimatique','Cloison vitrée',"Verrière d'intérieur",'Volet roulant','Auvent / marquise','Store banne','Kiosque / abri de jardin','Garde-corps inox','Escalier métallique/inox','Fenêtre de toit'];
+  document.getElementById('schemaGlassBase').style.display = SPECIAL_SCHEMA_TYPES.includes(type) ? 'none' : '';
 
   if(type==='Façade'){
     const cols=Math.max(1,+document.getElementById('facCols')?.value||4);
