@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' data:; connect-src 'self' https://*.supabase.co; base-uri 'none'; frame-ancestors 'none'">
 <meta name="referrer" content="no-referrer">
-<title>AluBOM Pro — Menuiserie Aluminium v2.0 ERP</title>
+<title>Sanix AluExpert ERP — Menuiserie Aluminium</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
@@ -26,6 +26,9 @@ window.SANIX_CFG = {
   input,select{outline:none}
   input:focus,select:focus{box-shadow:0 0 0 3px rgba(37,99,235,.12);border-color:#2563eb}
   .badge{font-size:.72rem;font-weight:700;padding:.25rem .55rem;border-radius:999px}
+  .etude-tab-btn{color:#475569;background:transparent}
+  .etude-tab-btn:hover{background:#f1f5f9}
+  .etude-tab-btn.active{background:#2563eb;color:#fff}
   @media (max-width:767px){
     .sidebar{position:fixed;inset:0 25% 0 0;z-index:40;transform:translateX(-100%);transition:transform .25s ease;overflow-y:auto;display:block!important}
     .sidebar.open{transform:translateX(0)}
@@ -40,15 +43,15 @@ window.SANIX_CFG = {
 <div id="authGate" class="min-h-screen flex items-center justify-center bg-slate-900 px-4">
   <div class="card bg-white rounded-2xl p-8 w-full max-w-sm">
     <div class="text-center mb-6">
-      <div class="text-2xl font-black text-slate-900">AluBOM <span class="text-blue-600">Pro</span></div>
+      <div class="text-2xl font-black text-slate-900">Sanix <span class="text-blue-600">AluExpert</span></div>
       <div class="text-xs text-slate-500 mt-1">SANIX Africa • Division Technologies</div>
     </div>
     <form id="loginForm" autocomplete="off" onsubmit="return handleLogin(event)">
       <label class="text-sm font-semibold block mb-3">Email
-        <input id="loginEmail" type="email" required autocomplete="username" class="mt-1 w-full border rounded-lg px-3 py-2">
+        <input id="loginEmail" type="email" required autocomplete="username" value="admin@sanix.local" class="mt-1 w-full border rounded-lg px-3 py-2">
       </label>
       <label class="text-sm font-semibold block mb-4">Mot de passe
-        <input id="loginPassword" type="password" required autocomplete="current-password" class="mt-1 w-full border rounded-lg px-3 py-2">
+        <input id="loginPassword" type="password" required autocomplete="current-password" value="Sanix2026!" class="mt-1 w-full border rounded-lg px-3 py-2">
       </label>
       <button id="loginBtn" type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-bold">Se connecter</button>
       <div id="loginError" class="text-red-600 text-sm mt-3 hidden"></div>
@@ -61,20 +64,18 @@ window.SANIX_CFG = {
   <div id="sidebarOverlay" onclick="closeSidebar()"></div>
   <aside id="sidebar" class="sidebar text-slate-300 w-64 p-4 hidden md:block">
     <div class="flex items-center justify-between px-3 py-4">
-      <div class="text-white text-xl font-extrabold">AluBOM <span class="text-blue-400">Pro</span></div>
+      <div class="text-white text-xl font-extrabold">Sanix <span class="text-blue-400">AluExpert</span></div>
       <button onclick="closeSidebar()" class="md:hidden text-slate-400 text-2xl leading-none px-2">×</button>
     </div>
     <div class="text-xs uppercase tracking-widest text-slate-500 px-3 mb-3">Menu</div>
     <nav class="space-y-1">
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg active" data-page="dashboard">📊 Tableau de bord</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="config">🧩 Configurateur</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="bom">📋 BOM / Nomenclature</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="cut">✂️ Débit & optimisation</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="cost">💰 Chiffrage</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="proforma">🧾 Proforma</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="etude">🧑‍💻 Bureau d'étude</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="production">🏭 Production</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="stock">📦 Stock</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="chantier">🏗️ Circuit Chantier</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="clients">👤 Clients</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="fournisseurs">🏭 Fournisseurs</button>
     </nav>
     <div class="mt-8 border-t border-slate-700 pt-4 text-xs text-slate-500">
       Version prototype<br>Module BOM Menuiserie Aluminium
@@ -119,7 +120,15 @@ window.SANIX_CFG = {
         </div>
       </section>
 
-      <section id="config" class="page hidden">
+      <section id="etude" class="page hidden">
+        <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1">
+          <button class="etude-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-tab="config" onclick="showPage('config')">🧩 Configurateur</button>
+          <button class="etude-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-tab="bom" onclick="showPage('bom')">📋 BOM</button>
+          <button class="etude-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-tab="cut" onclick="showPage('cut')">✂️ Débit</button>
+          <button class="etude-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-tab="cost" onclick="showPage('cost')">💰 Chiffrage</button>
+          <button class="etude-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-tab="proforma" onclick="showPage('proforma')">🧾 Proforma</button>
+        </div>
+      <div id="config" class="etude-tab hidden">
         <div class="grid xl:grid-cols-3 gap-6">
           <div class="xl:col-span-2 card bg-white rounded-2xl p-6">
             <div class="flex justify-between items-start mb-6">
@@ -542,9 +551,9 @@ window.SANIX_CFG = {
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
-      <section id="bom" class="page hidden">
+      <div id="bom" class="etude-tab hidden">
         <div class="card bg-white rounded-2xl p-6">
           <div class="flex flex-wrap justify-between gap-3 mb-5">
             <div><h2 class="text-lg font-bold">BOM / Nomenclature</h2><p class="text-sm text-slate-500">Résultat du dernier calcul paramétrique.</p></div>
@@ -552,9 +561,9 @@ window.SANIX_CFG = {
           </div>
           <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Code</th><th class="text-left p-3">Composant</th><th class="text-right p-3">Qté</th><th class="text-right p-3">Longueur</th><th class="text-right p-3">Coût</th></tr></thead><tbody id="bomBody"></tbody></table></div>
         </div>
-      </section>
+      </div>
 
-      <section id="cut" class="page hidden">
+      <div id="cut" class="etude-tab hidden">
         <div class="grid lg:grid-cols-3 gap-6">
           <div class="lg:col-span-2 card bg-white rounded-2xl p-6">
             <div class="flex justify-between mb-5"><div><h2 class="text-lg font-bold">Optimisation des barres</h2><p class="text-sm text-slate-500">Barres commerciales de 6 000 mm avec trait de scie.</p></div><span id="cutRate" class="badge bg-emerald-50 text-emerald-700">6,8% de chute</span></div>
@@ -571,9 +580,9 @@ window.SANIX_CFG = {
             <button onclick="optimize()" class="mt-6 w-full bg-blue-600 text-white py-2.5 rounded-lg font-bold">Relancer l'optimisation</button>
           </div>
         </div>
-      </section>
+      </div>
 
-      <section id="cost" class="page hidden">
+      <div id="cost" class="etude-tab hidden">
         <div class="card bg-white rounded-2xl p-6">
           <h2 class="text-lg font-bold">Chiffrage</h2>
           <p class="text-sm text-slate-500 mb-5">Calcul du coût de revient et de la marge.</p>
@@ -597,10 +606,10 @@ window.SANIX_CFG = {
             </label>
           </div>
         </div>
-      </section>
+      </div>
 
 
-      <section id="proforma" class="page hidden">
+      <div id="proforma" class="etude-tab hidden">
         <div class="grid xl:grid-cols-3 gap-6">
           <div class="xl:col-span-2 card bg-white rounded-2xl p-6">
             <div class="flex flex-wrap justify-between gap-3 mb-6">
@@ -637,7 +646,7 @@ window.SANIX_CFG = {
                 </div>
                 <div>
                   <div class="text-xs uppercase tracking-wider text-slate-400 font-bold">Client</div>
-                  <input id="proClient" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm" value="Client à renseigner">
+                  <input id="proClient" list="clientsDatalist" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm" value="Client à renseigner">
                   <input id="proContact" class="mt-2 w-full border rounded-lg px-3 py-2 text-sm" value="Contact / Téléphone">
                 </div>
               </div>
@@ -664,7 +673,7 @@ window.SANIX_CFG = {
                 <div class="flex justify-between border-t pt-3 text-lg"><span class="font-bold">Total TTC</span><b id="proTotal">0 FCFA</b></div>
               </div>
 
-              <div class="mt-7 grid md:grid-cols-2 gap-4 text-xs text-slate-500 border-t pt-5">
+              <div class="mt-5 grid md:grid-cols-2 gap-4 text-xs text-slate-500 border-t pt-5">
                 <div>
                   <b class="text-slate-700">Conditions commerciales</b>
                   <ul class="mt-2 space-y-1">
@@ -678,6 +687,20 @@ window.SANIX_CFG = {
                   <textarea id="proNotes" class="mt-2 w-full border rounded-lg p-2" rows="4">Proforma générée depuis le configurateur BOM.</textarea>
                 </div>
               </div>
+            </div>
+
+            <div class="mt-6 border border-amber-200 bg-amber-50 rounded-2xl p-6">
+              <details>
+                <summary class="font-bold cursor-pointer text-amber-800">🔒 Calcul de besoin consolidé (tous ouvrages du devis) — usage interne, non imprimé</summary>
+                <p class="text-xs text-amber-700 mt-2 mb-3">Quantités matières et composants cumulées, référence par référence, pour préparer les demandes d'achats. N'apparaît jamais sur le document client.</p>
+                <div class="border rounded-lg overflow-hidden bg-white">
+                  <table class="w-full text-sm">
+                    <thead class="bg-slate-100"><tr><th class="text-left p-3">Code</th><th class="text-left p-3">Composant</th><th class="text-right p-3">Qté totale</th><th class="text-right p-3">Montant</th></tr></thead>
+                    <tbody id="consolidatedNeedsBody"></tbody>
+                  </table>
+                </div>
+                <div class="flex justify-end mt-2 text-sm"><span class="font-bold mr-2">Total besoin :</span><b id="consolidatedNeedsTotal">0 FCFA</b></div>
+              </details>
             </div>
           </div>
 
@@ -696,6 +719,7 @@ window.SANIX_CFG = {
             </div>
           </div>
         </div>
+      </div>
       </section>
 
       <section id="production" class="page hidden">
@@ -736,13 +760,47 @@ window.SANIX_CFG = {
         </div>
         <div id="chantierDetail" class="hidden"></div>
       </section>
+
+      <section id="clients" class="page hidden">
+        <div class="card bg-white rounded-2xl p-6">
+          <div class="flex flex-wrap justify-between gap-3 mb-5">
+            <div><h2 class="text-lg font-bold">Clients</h2><p class="text-sm text-slate-500">Répertoire clients — utilisé pour proforma et dossiers chantier.</p></div>
+          </div>
+          <form id="clientForm" onsubmit="return handleAddClient(event)" class="grid sm:grid-cols-5 gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
+            <input id="clNom" placeholder="Nom / Raison sociale" required class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
+            <input id="clContact" placeholder="Contact" class="border rounded-lg px-2 py-1.5 text-sm">
+            <input id="clTel" placeholder="Téléphone" class="border rounded-lg px-2 py-1.5 text-sm">
+            <input id="clAdresse" placeholder="Adresse" class="border rounded-lg px-2 py-1.5 text-sm">
+            <button type="submit" class="sm:col-span-5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter client</button>
+          </form>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Nom</th><th class="text-left p-3">Contact</th><th class="text-left p-3">Téléphone</th><th class="text-left p-3">Adresse</th><th class="p-3"></th></tr></thead><tbody id="clientsBody"></tbody></table></div>
+        </div>
+      </section>
+
+      <section id="fournisseurs" class="page hidden">
+        <div class="card bg-white rounded-2xl p-6">
+          <div class="flex flex-wrap justify-between gap-3 mb-5">
+            <div><h2 class="text-lg font-bold">Fournisseurs</h2><p class="text-sm text-slate-500">Répertoire fournisseurs — utilisé pour les demandes d'achats.</p></div>
+          </div>
+          <form id="fournisseurForm" onsubmit="return handleAddFournisseur(event)" class="grid sm:grid-cols-5 gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
+            <input id="foNom" placeholder="Nom / Raison sociale" required class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
+            <input id="foSpecialite" placeholder="Spécialité (profilés, vitrage, quincaillerie...)" class="border rounded-lg px-2 py-1.5 text-sm">
+            <input id="foTel" placeholder="Téléphone" class="border rounded-lg px-2 py-1.5 text-sm">
+            <input id="foContact" placeholder="Contact" class="border rounded-lg px-2 py-1.5 text-sm">
+            <button type="submit" class="sm:col-span-5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter fournisseur</button>
+          </form>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Nom</th><th class="text-left p-3">Spécialité</th><th class="text-left p-3">Téléphone</th><th class="text-left p-3">Contact</th><th class="p-3"></th></tr></thead><tbody id="fournisseursBody"></tbody></table></div>
+        </div>
+      </section>
     </div>
   </main>
+  <datalist id="clientsDatalist"></datalist>
+  <datalist id="fournisseursDatalist"></datalist>
 </div>
 
 <script>
 /* =========================================================
-   AluBOM Pro — Couche ERP (Auth Supabase, IndexedDB offline,
+   Sanix AluExpert ERP — Couche ERP (Auth Supabase, IndexedDB offline,
    sync REST, RBAC, audit). XHR uniquement, aucun SDK externe.
    ========================================================= */
 const CFG = window.SANIX_CFG;
@@ -756,10 +814,10 @@ function escapeHtml(s){
 /* ---------- IndexedDB ---------- */
 function openDB(){
   return new Promise((resolve,reject)=>{
-    const req=indexedDB.open('alubom_db',2);
+    const req=indexedDB.open('alubom_db',3);
     req.onupgradeneeded=e=>{
       const d=e.target.result;
-      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats'].forEach(s=>{
+      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs'].forEach(s=>{
         if(!d.objectStoreNames.contains(s)) d.createObjectStore(s,{keyPath:'id'});
       });
     };
@@ -843,9 +901,21 @@ async function renderAuditLog(){
 }
 
 /* ---------- Auth (Supabase Auth REST, pas de SDK) ---------- */
-function getSession(){ try{return JSON.parse(sessionStorage.getItem('alubom_session'))}catch{return null} }
-function setSession(s){ sessionStorage.setItem('alubom_session',JSON.stringify(s)); }
-function clearSession(){ sessionStorage.removeItem('alubom_session'); }
+function getSession(){
+  try{
+    const local=JSON.parse(localStorage.getItem('alubom_session_local'));
+    if(local) return local;
+  }catch{}
+  try{return JSON.parse(sessionStorage.getItem('alubom_session'))}catch{return null}
+}
+function setSession(s){
+  if(s.mode==='local'){ localStorage.setItem('alubom_session_local',JSON.stringify(s)); }
+  else { sessionStorage.setItem('alubom_session',JSON.stringify(s)); }
+}
+function clearSession(){
+  localStorage.removeItem('alubom_session_local');
+  sessionStorage.removeItem('alubom_session');
+}
 
 function loginAttempts(email){
   const all=JSON.parse(localStorage.getItem('alubom_login_attempts')||'{}');
@@ -917,7 +987,7 @@ async function handleLogin(e){
       const ok=await verifyPassword(pass,u.salt,u.hash);
       if(!ok) throw new Error('Identifiants invalides.');
       currentUser={id:u.id,email:u.email,role:u.role,permissions:u.permissions};
-      setSession({mode:'local',expires_at:Date.now()+12*3600*1000,user:{id:u.id,email:u.email,role:u.role,permissions:u.permissions}});
+      setSession({mode:'local',expires_at:Date.now()+90*24*3600*1000,user:{id:u.id,email:u.email,role:u.role,permissions:u.permissions}});
     }
     setLoginAttempts(email,{count:0,lockUntil:0});
     await audit('LOGIN',email);
@@ -997,7 +1067,7 @@ async function checkSession(){
 document.addEventListener('DOMContentLoaded',checkSession);
 
 /* ---------- Ordres de Fabrication (OF) ---------- */
-async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),renderChantierList()]); }
+async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable()]); }
 
 async function createOF(){
   if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
@@ -1226,7 +1296,7 @@ async function openChantierDetail(id){
       <div class="mb-3">
         <p class="text-sm text-slate-600 mb-2">Demandes d'achats multi-fournisseurs pour ce chantier.</p>
         <form onsubmit="return handleAddAchat(event,'${id}')" class="grid sm:grid-cols-5 gap-2 mb-3 bg-slate-50 border rounded-xl p-3">
-          <input id="acFournisseur" placeholder="Fournisseur" required class="border rounded-lg px-2 py-1.5 text-sm">
+          <input id="acFournisseur" list="fournisseursDatalist" placeholder="Fournisseur" required class="border rounded-lg px-2 py-1.5 text-sm">
           <input id="acDesignation" placeholder="Désignation article" required class="border rounded-lg px-2 py-1.5 text-sm">
           <input id="acQte" type="number" min="1" value="1" placeholder="Qté" class="border rounded-lg px-2 py-1.5 text-sm">
           <input id="acPrix" type="number" min="0" placeholder="Prix unitaire" required class="border rounded-lg px-2 py-1.5 text-sm">
@@ -1332,17 +1402,99 @@ async function handlePlanifierInstallation(e,id){
 
 let lastCost = 0;
 
+/* ---------- Clients ---------- */
+async function handleAddClient(e){
+  e.preventDefault();
+  const nom=document.getElementById('clNom').value.trim();
+  if(!nom) return false;
+  const rec={
+    id:'cl_'+Date.now(),
+    nom, contact:document.getElementById('clContact').value.trim(),
+    tel:document.getElementById('clTel').value.trim(),
+    adresse:document.getElementById('clAdresse').value.trim(),
+    _modifie:new Date().toISOString()
+  };
+  await idbPut('clients',rec);
+  queueSync('alubom_clients',rec);
+  await audit('CREATE_CLIENT',nom);
+  document.getElementById('clientForm').reset();
+  await renderClientsTable();
+  return false;
+}
+async function deleteClient(id){
+  if(!confirm('Supprimer ce client ?')) return;
+  await idbDelete('clients',id);
+  await audit('DELETE_CLIENT',id);
+  await renderClientsTable();
+}
+async function renderClientsTable(){
+  const el=document.getElementById('clientsBody');
+  const dl=document.getElementById('clientsDatalist');
+  const rows=(await idbGetAll('clients')).sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
+  if(el){
+    el.innerHTML = rows.length ? rows.map(r=>`<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.nom)}</td><td class="p-3">${escapeHtml(r.contact||'')}</td><td class="p-3">${escapeHtml(r.tel||'')}</td><td class="p-3">${escapeHtml(r.adresse||'')}</td><td class="p-3 text-right"><button onclick="deleteClient('${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`).join('')
+      : `<tr><td class="p-3 text-slate-400" colspan="5">Aucun client enregistré.</td></tr>`;
+  }
+  if(dl) dl.innerHTML = rows.map(r=>`<option value="${escapeHtml(r.nom)}">`).join('');
+}
+
+/* ---------- Fournisseurs ---------- */
+async function handleAddFournisseur(e){
+  e.preventDefault();
+  const nom=document.getElementById('foNom').value.trim();
+  if(!nom) return false;
+  const rec={
+    id:'fo_'+Date.now(),
+    nom, specialite:document.getElementById('foSpecialite').value.trim(),
+    tel:document.getElementById('foTel').value.trim(),
+    contact:document.getElementById('foContact').value.trim(),
+    _modifie:new Date().toISOString()
+  };
+  await idbPut('fournisseurs',rec);
+  queueSync('alubom_fournisseurs',rec);
+  await audit('CREATE_FOURNISSEUR',nom);
+  document.getElementById('fournisseurForm').reset();
+  await renderFournisseursTable();
+  return false;
+}
+async function deleteFournisseur(id){
+  if(!confirm('Supprimer ce fournisseur ?')) return;
+  await idbDelete('fournisseurs',id);
+  await audit('DELETE_FOURNISSEUR',id);
+  await renderFournisseursTable();
+}
+async function renderFournisseursTable(){
+  const el=document.getElementById('fournisseursBody');
+  const dl=document.getElementById('fournisseursDatalist');
+  const rows=(await idbGetAll('fournisseurs')).sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
+  if(el){
+    el.innerHTML = rows.length ? rows.map(r=>`<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.nom)}</td><td class="p-3">${escapeHtml(r.specialite||'')}</td><td class="p-3">${escapeHtml(r.tel||'')}</td><td class="p-3">${escapeHtml(r.contact||'')}</td><td class="p-3 text-right"><button onclick="deleteFournisseur('${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`).join('')
+      : `<tr><td class="p-3 text-slate-400" colspan="5">Aucun fournisseur enregistré.</td></tr>`;
+  }
+  if(dl) dl.innerHTML = rows.map(r=>`<option value="${escapeHtml(r.nom)}">`).join('');
+}
+
 function money(n){return new Intl.NumberFormat('fr-FR').format(Math.round(n))+' FCFA';}
 
+const ETUDE_TABS=['config','bom','cut','cost','proforma'];
 function showPage(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
-  document.getElementById(page).classList.remove('hidden');
   document.querySelectorAll('.nav').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.nav').forEach(b=>{if(b.dataset.page===page)b.classList.add('active')});
-  const titles={dashboard:'Tableau de bord',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',stock:'Stock',chantier:'Circuit Chantier'};
+  const titles={dashboard:'Tableau de bord',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',stock:'Stock',chantier:'Circuit Chantier',clients:'Clients',fournisseurs:'Fournisseurs'};
+
+  if(ETUDE_TABS.includes(page)){
+    document.getElementById('etude').classList.remove('hidden');
+    document.querySelectorAll('.etude-tab').forEach(t=>t.classList.add('hidden'));
+    document.getElementById(page).classList.remove('hidden');
+    document.querySelectorAll('.etude-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===page));
+    document.querySelectorAll('.nav').forEach(b=>{if(b.dataset.page==='etude')b.classList.add('active')});
+  } else {
+    document.getElementById(page).classList.remove('hidden');
+    document.querySelectorAll('.nav').forEach(b=>{if(b.dataset.page===page)b.classList.add('active')});
+  }
   document.getElementById('pageTitle').textContent=titles[page];
 }
-document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{showPage(b.dataset.page);closeSidebar();});
+document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{showPage(b.dataset.page==='etude'?'config':b.dataset.page);closeSidebar();});
 
 function openSidebar(){
   document.getElementById('sidebar').classList.add('open');
@@ -1368,7 +1520,8 @@ function addToProformaCart(){
   if(!unit){ alert("Calculez d'abord le chiffrage (BOM non vide)."); return; }
   const isSpecial=['Façade','Garde-corps alu/verre','Bardage alu','Pergola bioclimatique','Cloison vitrée',"Verrière d'intérieur",'Garde-corps inox'].includes(type);
   const detail = isSpecial ? `${type} • ${w}×${h} mm` : `${type} aluminium ${w} × ${h} mm • ${leaves} vantail${leaves>1?'s':''}`;
-  proformaCart.push({id:'ln_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),type,detail,qty,unit,subtotal:unit*qty});
+  const bom = (window.lastBOMRows||[]).map(r=>({code:r[0],designation:r[1],qte:r[2],montant:r[4]}));
+  proformaCart.push({id:'ln_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),type,detail,qty,unit,subtotal:unit*qty,bom});
   saveProformaCartLocal();
   const hint=document.getElementById('cartHint');
   if(hint){ hint.textContent=`${proformaCart.length} ouvrage${proformaCart.length>1?'s':''} dans le devis en cours.`; hint.classList.remove('hidden'); }
@@ -1398,7 +1551,8 @@ function updateProforma(){
     const leaves = +document.getElementById('leaves').value || 1;
     const qty = Math.max(1, +document.getElementById('qty').value || 1);
     const unit = parseMoney(document.getElementById('cSale')?.textContent) || (lastCost||0)*1.30;
-    lines = [{id:'current',type,detail:`${type} aluminium ${w} × ${h} mm • ${leaves} vantail${leaves>1?'s':''} • configuration en cours`,qty,unit,subtotal:unit*qty}];
+    const bom = (window.lastBOMRows||[]).map(r=>({code:r[0],designation:r[1],qte:r[2],montant:r[4]}));
+    lines = [{id:'current',type,detail:`${type} aluminium ${w} × ${h} mm • ${leaves} vantail${leaves>1?'s':''} • configuration en cours`,qty,unit,subtotal:unit*qty,bom}];
   }
 
   const subtotal = lines.reduce((s,l)=>s+l.subtotal,0);
@@ -1422,6 +1576,27 @@ function updateProforma(){
   document.getElementById('proDiscount').textContent = money(discount);
   document.getElementById('proTax').textContent = money(tax);
   document.getElementById('proTotal').textContent = money(total);
+  renderConsolidatedNeeds(lines);
+}
+
+function renderConsolidatedNeeds(lines){
+  const el=document.getElementById('consolidatedNeedsBody'); if(!el) return;
+  const map=new Map();
+  lines.forEach(l=>{
+    (l.bom||[]).forEach(r=>{
+      const key=r.code||r.designation;
+      const cur=map.get(key)||{code:r.code,designation:r.designation,qte:0,montant:0};
+      cur.qte += r.qte;
+      cur.montant += r.montant;
+      map.set(key,cur);
+    });
+  });
+  const rows=[...map.values()].sort((a,b)=>(a.code||'').localeCompare(b.code||''));
+  el.innerHTML = rows.length ? rows.map(r=>`<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.code||'—')}</td><td class="p-3">${escapeHtml(r.designation)}</td><td class="p-3 text-right">${r.qte.toFixed(2)}</td><td class="p-3 text-right">${money(r.montant)}</td></tr>`).join('')
+    : `<tr><td class="p-3 text-slate-400" colspan="4">Ajoutez des ouvrages au devis pour calculer le besoin consolidé.</td></tr>`;
+  const totalMontant=rows.reduce((s,r)=>s+r.montant,0);
+  const totalEl=document.getElementById('consolidatedNeedsTotal');
+  if(totalEl) totalEl.textContent=money(totalMontant);
 }
 
 function generateProforma(){
@@ -1795,6 +1970,7 @@ function calculateBOM(){
   }
 
   document.getElementById('bomBody').innerHTML=rows.map(r=>`<tr class="border-b hover:bg-slate-50"><td class="p-3 font-semibold">${r[0]}</td><td class="p-3">${r[1]}</td><td class="p-3 text-right">${Number(r[2]).toFixed(2)}</td><td class="p-3 text-right">${r[3]?Number(r[3]).toFixed(0)+' mm':'—'}</td><td class="p-3 text-right">${money(r[4])}</td></tr>`).join('');
+  window.lastBOMRows = rows;
   const mat=rows.reduce((s,r)=>s+r[4],0);
   lastCost=mat;
   document.getElementById('previewTitle').textContent=`${type} ${w} × ${h}`;
