@@ -2690,8 +2690,8 @@ async function renderChantierList(){
   const el=document.getElementById('chantierBody'); if(!el) return;
   const rows=(await idbGetAll('chantiers')).sort((a,b)=>b.dateCreation.localeCompare(a.dateCreation));
   el.innerHTML = rows.length ? rows.map(r=>{
-    const c=CHANTIER_STAGE_COLOR[r.etape]||'slate';
-    const label=CHANTIER_STAGES.find(s=>s.key===r.etape)?.label||r.etape;
+    const c=r.annule?'red':(CHANTIER_STAGE_COLOR[r.etape]||'slate');
+    const label=r.annule?'Annulé':(CHANTIER_STAGES.find(s=>s.key===r.etape)?.label||r.etape);
     return `<tr class="border-b hover:bg-slate-50 cursor-pointer" onclick="openChantierDetail('${r.id}')">
       <td class="p-3 font-semibold">${escapeHtml(r.numero)}</td>
       <td class="p-3">${r.clientId?`<button onclick="event.stopPropagation();openEntityDetail('clients','${r.clientId}')" class="text-blue-600 hover:underline">${escapeHtml(r.client)}</button>`:escapeHtml(r.client)}</td>
@@ -2716,20 +2716,26 @@ async function saveChantier(rec){
 /* ---------- Édition dossier chantier (client, contact, montant, composants) ---------- */
 let editChantierLignes=[];
 let editChantierId=null;
+let editChantierUnlocked=false;
 async function openEditChantierModal(id){
   if(!hasRole('chantier:create')){ alert('Permission refusée.'); return; }
   const rec=await getChantier(id); if(!rec) return;
   editChantierId=id;
   editChantierLignes=JSON.parse(JSON.stringify(rec.lignes||[]));
+  editChantierUnlocked=false;
   const modal=document.getElementById('editChantierModal');
   const content=document.getElementById('editChantierContent');
   const ofDejaGeneres = rec.ofGeneres && rec.ofGeneres.length;
+  const idxEtape=CHANTIER_STAGES.findIndex(s=>s.key===rec.etape);
+  const idxValidation=CHANTIER_STAGES.findIndex(s=>s.key==='validation');
+  const locked = idxEtape>=idxValidation;
   content.innerHTML=`
     <div class="flex justify-between items-start mb-4">
       <h2 class="text-lg font-bold">✏️ Modifier dossier ${escapeHtml(rec.numero)}</h2>
       <button onclick="closeEditChantierModal()" class="text-slate-400 text-xl leading-none">×</button>
     </div>
     ${ofDejaGeneres?`<p class="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-2 mb-3">⚠️ Des OF ont déjà été générés (${rec.ofGeneres.map(escapeHtml).join(', ')}). Modifier les composants ici ne modifie pas les OF déjà lancés — régénérez-les manuellement si besoin.</p>`:''}
+    ${locked?`<p id="ecLockNotice" class="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-2 mb-3">🔒 Dossier validé DG (étape "${escapeHtml(CHANTIER_STAGES[idxEtape].label)}") — composants verrouillés pour préserver la cohérence MRP/achats/OF déjà engagés. ${hasRole('chantier:validate')?`<button type="button" onclick="unlockEditChantierComposants()" class="underline font-semibold">🔓 Déverrouiller (DG)</button>`:''}</p>`:''}
     <form onsubmit="return handleEditChantier(event,'${id}')" class="space-y-3">
       <div class="grid sm:grid-cols-2 gap-3">
         <label class="text-sm font-semibold block">Client
@@ -2743,7 +2749,7 @@ async function openEditChantierModal(id){
       <div class="border-t pt-3">
         <div class="flex items-center justify-between mb-2">
           <h3 class="font-bold text-sm text-slate-700">🧩 Composants du dossier (${editChantierLignes.length})</h3>
-          <button type="button" onclick="ajouterConfigActuelleAuChantier()" class="border border-blue-600 text-blue-600 px-2 py-1 rounded-lg text-xs font-semibold">+ Ajouter la config. actuelle</button>
+          <button type="button" id="ecAddBtn" onclick="ajouterConfigActuelleAuChantier()" class="border border-blue-600 text-blue-600 px-2 py-1 rounded-lg text-xs font-semibold ${locked?'hidden':''}">+ Ajouter la config. actuelle</button>
         </div>
         <p class="text-xs text-slate-500 mb-2">Le client a changé d'avis ? Ajustez qté/prix ou retirez une ligne — le montant total se recalcule automatiquement.</p>
         <div id="ecLignesBody" class="space-y-2 max-h-64 overflow-y-auto"></div>
@@ -2766,22 +2772,41 @@ async function openEditChantierModal(id){
   modal.classList.remove('hidden');
   setModalOpen(true);
 }
+function isEditChantierLocked(){
+  const notice=document.getElementById('ecLockNotice');
+  return !!notice && !editChantierUnlocked;
+}
 function renderEcLignes(){
   const el=document.getElementById('ecLignesBody'); if(!el) return;
+  const locked=isEditChantierLocked();
   el.innerHTML = editChantierLignes.length ? editChantierLignes.map((l,i)=>`
     <div class="flex items-center gap-2 border rounded-lg p-2 text-xs">
       <div class="flex-1">
         <div class="font-semibold">${escapeHtml(l.detail||l.type||'Ouvrage')}</div>
         <div class="text-slate-400">${escapeHtml(l.atelierNom||'—')}</div>
       </div>
+      ${locked?`
+      <div class="w-14 text-right">${l.qty||1}</div>
+      <div class="w-24 text-right">${money(l.unit||0)}</div>
+      <div class="w-24 text-right font-semibold">${money(l.subtotal||0)}</div>`:`
       <label>Qté <input type="number" min="1" value="${l.qty||1}" onchange="updateEcLigne(${i},'qty',this.value)" class="w-14 border rounded px-1 py-1"></label>
       <label>P.U. <input type="number" min="0" value="${l.unit||0}" onchange="updateEcLigne(${i},'unit',this.value)" class="w-24 border rounded px-1 py-1"></label>
       <div class="w-24 text-right font-semibold">${money(l.subtotal||0)}</div>
-      <button type="button" onclick="removeEcLigne(${i})" class="text-red-500 font-bold px-1">✕</button>
+      <button type="button" onclick="removeEcLigne(${i})" class="text-red-500 font-bold px-1">✕</button>`}
     </div>`).join('') : '<p class="text-xs text-slate-400">Aucun composant — dossier vide.</p>';
   const total=editChantierLignes.reduce((s,l)=>s+(l.subtotal||0),0);
   const totalEl=document.getElementById('ecMontantTotal');
-  if(totalEl) totalEl.value=total;
+  if(totalEl && !locked) totalEl.value=total;
+}
+function unlockEditChantierComposants(){
+  if(!hasRole('chantier:validate')){ alert('Permission refusée.'); return; }
+  if(!confirm('Déverrouiller les composants d\'un dossier déjà validé DG ? Les achats/MRP déjà générés ne seront PAS resynchronisés automatiquement.')) return;
+  editChantierUnlocked=true;
+  const notice=document.getElementById('ecLockNotice');
+  if(notice) notice.remove();
+  document.getElementById('ecAddBtn')?.classList.remove('hidden');
+  document.getElementById('ecMontantTotal')?.removeAttribute('readonly');
+  renderEcLignes();
 }
 function updateEcLigne(i,field,value){
   const l=editChantierLignes[i]; if(!l) return;
@@ -2795,6 +2820,7 @@ function removeEcLigne(i){
   renderEcLignes();
 }
 function ajouterConfigActuelleAuChantier(){
+  if(isEditChantierLocked()){ alert('Composants verrouillés — déverrouillez (DG) avant d\'ajouter un ouvrage.'); return; }
   const type=document.getElementById('type')?.value;
   const unit=parseMoney(document.getElementById('cSale')?.textContent);
   if(!type || !unit){ alert("Ouvrez le Configurateur, chiffrez un ouvrage, puis revenez ici pour l'ajouter."); return; }
@@ -2817,17 +2843,22 @@ async function handleEditChantier(e,id){
   e.preventDefault();
   if(!hasRole('chantier:create')){ alert('Permission refusée.'); return false; }
   const rec=await getChantier(id); if(!rec) return false;
+  const locked=isEditChantierLocked();
   const nouveauClient=document.getElementById('ecClient').value.trim();
   const clientId=await resolveOrCreateClient(nouveauClient,document.getElementById('ecContact').value.trim());
-  const nouveauTotal=editChantierLignes.reduce((s,l)=>s+(l.subtotal||0),0);
   rec.client=nouveauClient;
   rec.clientId=clientId;
   rec.contact=document.getElementById('ecContact').value.trim();
-  rec.lignes=editChantierLignes;
-  rec.montantTotal=nouveauTotal;
+  let logSuffix='client/contact modifiés';
+  if(!locked){
+    const nouveauTotal=editChantierLignes.reduce((s,l)=>s+(l.subtotal||0),0);
+    rec.lignes=editChantierLignes;
+    rec.montantTotal=nouveauTotal;
+    logSuffix='client/composants modifiés ('+editChantierLignes.length+' ligne(s), nouveau total '+money(nouveauTotal)+')'+(editChantierUnlocked?' — déverrouillage DG':'');
+  }
   rec.montantPaye=+document.getElementById('ecMontantPaye').value||0;
   await saveChantier(rec);
-  await audit('MAJ_CHANTIER',rec.numero+' — client/composants modifiés ('+editChantierLignes.length+' ligne(s), nouveau total '+money(nouveauTotal)+')');
+  await audit('MAJ_CHANTIER',rec.numero+' — '+logSuffix);
   closeEditChantierModal();
   await renderChantierList();
   await openChantierDetail(id);
@@ -2868,12 +2899,48 @@ async function advanceChantierStage(id,stage,label){
   if(sensitiveStage && !hasRole('chantier:validate')){ alert('Permission refusée (validation DG requise).'); return; }
   if(!sensitiveStage && !hasRole('chantier:create')){ alert('Permission refusée.'); return; }
   const rec=await getChantier(id); if(!rec) return;
+  if(rec.annule){ alert('Ce dossier est annulé — aucune progression possible.'); return; }
+  const curIdx=CHANTIER_STAGES.findIndex(s=>s.key===rec.etape);
+  const targetIdx=CHANTIER_STAGES.findIndex(s=>s.key===stage);
+  if(targetIdx===-1){ alert('Étape inconnue : '+stage); return; }
+  if(targetIdx!==curIdx+1){ alert('Séquence invalide — impossible de passer directement de "'+(CHANTIER_STAGES[curIdx]?.label||rec.etape)+'" à "'+CHANTIER_STAGES[targetIdx].label+'".'); return; }
   rec.etape=stage;
   rec.historique=rec.historique||[];
   rec.historique.push({etape:stage,date:new Date().toISOString(),user:currentUser?currentUser.email:'—'});
   await saveChantier(rec);
   await audit('CHANTIER_'+stage.toUpperCase(),rec.numero+(label?' — '+label:''));
   await renderChantierList();
+  await openChantierDetail(id);
+}
+
+/* ---------- Annulation de dossier (distincte de la suppression) ---------- */
+async function annulerChantier(id){
+  if(!hasRole('chantier:validate')){ alert('Permission refusée (validation DG requise pour annuler un dossier).'); return; }
+  const rec=await getChantier(id); if(!rec) return;
+  if(rec.etape==='termine'){ alert('Dossier déjà terminé — annulation impossible.'); return; }
+  const raison=prompt('Motif d\'annulation du dossier '+rec.numero+' :');
+  if(raison===null) return;
+  if(!confirm('Confirmer l\'annulation du dossier '+rec.numero+' ? Les réservations de stock liées aux OF générés seront libérées.')) return;
+  if(rec.ofGeneres && rec.ofGeneres.length){
+    const ofRows=await idbGetAll('of');
+    for(const numero of rec.ofGeneres){
+      const ofRec=ofRows.find(o=>o.numero===numero);
+      if(ofRec && ofRec.statut!=='Terminé' && ofRec.statut!=='Annulé'){
+        await releaseReservation(ofRec.reservations||[]);
+        ofRec.statut='Annulé'; ofRec._modifie=new Date().toISOString();
+        await idbPut('of',ofRec); queueSync('alubom_of',ofRec);
+      }
+    }
+  }
+  rec.annule=true;
+  rec.raisonAnnulation=raison||'—';
+  rec.dateAnnulation=new Date().toISOString();
+  rec.historique=rec.historique||[];
+  rec.historique.push({etape:'annule',date:new Date().toISOString(),user:currentUser?currentUser.email:'—',raison});
+  await saveChantier(rec);
+  await audit('ANNULER_CHANTIER',rec.numero+' — '+raison);
+  await renderChantierList();
+  await refreshAllTables();
   await openChantierDetail(id);
 }
 
@@ -2942,7 +3009,9 @@ async function openChantierDetail(id){
     </div>`;
 
   let actionPanel='';
-  if(rec.etape==='devis'){
+  if(rec.annule){
+    actionPanel=`<p class="text-sm text-red-700 font-semibold">✕ Dossier annulé le ${new Date(rec.dateAnnulation).toLocaleDateString('fr-FR')}.</p><p class="text-sm text-slate-600 mt-1">Motif : ${escapeHtml(rec.raisonAnnulation||'—')}</p>`;
+  } else if(rec.etape==='devis'){
     actionPanel=`
       <p class="text-sm text-slate-600 mb-3">Devis <b>${escapeHtml(rec.devisNumero)}</b> — Montant total <b>${money(rec.montantTotal)}</b>.</p>
       <button onclick="advanceChantierStage('${id}','paiement')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">Marquer devis envoyé au client →</button>`;
@@ -2993,15 +3062,16 @@ async function openChantierDetail(id){
         </form>
         <div class="space-y-2">${achats.length?achats.map(a=>`
           <div class="flex items-center justify-between border rounded-lg p-3 text-sm">
-            <div><b>${escapeHtml(a.numero)}</b> — ${escapeHtml(a.fournisseur)} — ${escapeHtml(a.designation)} × ${a.qte} — ${money(a.montant)}${a.origineMRP?' <span class="badge bg-blue-50 text-blue-700">MRP auto</span>':''}</div>
+            <div><b>${escapeHtml(a.numero)}</b> — ${escapeHtml(a.fournisseur)} — ${escapeHtml(a.designation)} × ${a.qte}${a.qteRecue?` (reçu ${a.qteRecue}/${a.qte})`:''} — ${money(a.montant)}${a.origineMRP?' <span class="badge bg-blue-50 text-blue-700">MRP auto</span>':''}</div>
             <div class="flex items-center gap-2">
-              <span class="badge bg-${a.statut==='recue'?'emerald':a.statut==='commandee'?'blue':a.statut==='validee'?'amber':'slate'}-50 text-${a.statut==='recue'?'emerald':a.statut==='commandee'?'blue':a.statut==='validee'?'amber':'slate'}-700">${escapeHtml(a.statut)}</span>
+              <span class="badge bg-${a.statut==='recue'?'emerald':a.statut==='partielle'?'orange':a.statut==='commandee'?'blue':a.statut==='validee'?'amber':'slate'}-50 text-${a.statut==='recue'?'emerald':a.statut==='partielle'?'orange':a.statut==='commandee'?'blue':a.statut==='validee'?'amber':'slate'}-700">${escapeHtml(a.statut)}</span>
               ${a.statut!=='recue'?`<button onclick="advanceAchatStatut('${a.id}','${id}')" class="text-blue-600 text-xs font-semibold">Étape suivante →</button>`:''}
             </div>
           </div>`).join('') : '<div class="text-sm text-slate-400">Aucune demande d\'achat.</div>'}
         </div>
       </div>
-      <button ${allRecue?'':'disabled class="opacity-50 cursor-not-allowed"'} onclick="advanceChantierStage('${id}','fabrication')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">Passer au dossier de fabrication →</button>`;
+      <button ${(allRecue&&!manquantsMRP.length)?'':'disabled class="opacity-50 cursor-not-allowed"'} onclick="advanceChantierStage('${id}','fabrication')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">Passer au dossier de fabrication →</button>
+      ${(!allRecue||manquantsMRP.length)?`<p class="text-xs text-slate-400 mt-1">${!allRecue?'Toutes les demandes d\'achat doivent être reçues. ':''}${manquantsMRP.length?'Besoins matières non couverts ('+manquantsMRP.length+' réf.) — régénérez les DA manquantes.':''}</p>`:''}`;
   } else if(rec.etape==='fabrication'){
     const nLignes=(rec.lignes||[]).length;
     actionPanel=`
@@ -3026,6 +3096,7 @@ async function openChantierDetail(id){
       <div class="flex flex-wrap justify-between gap-3 mb-5">
         <div><h2 class="text-lg font-bold">${escapeHtml(rec.numero)} — ${escapeHtml(rec.client)}</h2><p class="text-sm text-slate-500">Devis ${escapeHtml(rec.devisNumero)} • ${escapeHtml(rec.contact||'')}</p></div>
         <div class="flex gap-2">
+          ${(!rec.annule && rec.etape!=='termine')?`<button onclick="annulerChantier('${id}')" class="border border-amber-500 text-amber-600 px-3 py-2 rounded-lg text-sm font-semibold">✕ Annuler</button>`:''}
           <button onclick="openEditChantierModal('${id}')" class="border border-blue-600 text-blue-600 px-3 py-2 rounded-lg text-sm font-semibold">✏️ Modifier</button>
           <button onclick="deleteChantier('${id}')" class="border border-red-500 text-red-500 px-3 py-2 rounded-lg text-sm font-semibold">🗑️ Supprimer</button>
           <button onclick="document.getElementById('chantierDetail').classList.add('hidden')" class="border px-3 py-2 rounded-lg text-sm font-semibold">Fermer</button>
@@ -3056,8 +3127,13 @@ async function handlePaiement(e,id){
   const montant=+document.getElementById('payMontant').value||0;
   if(montant<=0) return false;
   const rec=await getChantier(id); if(!rec) return false;
+  const restant=Math.max(0,(rec.montantTotal||0)-(rec.montantPaye||0));
+  if(montant>restant){
+    if(!confirm(`Ce versement (${money(montant)}) dépasse le solde restant dû (${money(restant)}). Enregistrer quand même comme trop-perçu ?`)) return false;
+  }
   rec.montantPaye=(rec.montantPaye||0)+montant;
   rec.modePaiement=type;
+  rec.historiquePaiements=(rec.historiquePaiements||[]).concat([{type,montant,date:new Date().toISOString(),user:currentUser?currentUser.email:'—'}]);
   await saveChantier(rec);
   await audit('PAIEMENT_CHANTIER',rec.numero+' — '+type+' '+money(montant));
   await renderChantierList();
@@ -3083,15 +3159,24 @@ async function handleAddAchat(e,chantierId){
   return false;
 }
 
-const ACHAT_STATUT_NEXT={demande:'validee',validee:'commandee',commandee:'recue'};
+const ACHAT_STATUT_NEXT={demande:'validee',validee:'commandee',commandee:'recue',partielle:'recue'};
 async function advanceAchatStatut(achatId,chantierId){
   if(!hasRole('achat:manage')){ alert('Permission refusée.'); return; }
   const rows=await idbGetAll('achats');
   const rec=rows.find(a=>a.id===achatId); if(!rec) return;
-  rec.statut=ACHAT_STATUT_NEXT[rec.statut]||rec.statut;
+  if(rec.statut==='commandee' || rec.statut==='partielle'){
+    const restant=rec.qte-(rec.qteRecue||0);
+    const saisie=prompt(`Quantité reçue pour cette livraison (sur ${restant} restant(s)) :`, restant);
+    if(saisie===null) return;
+    const qteRecueMaintenant=Math.max(0,+saisie||0);
+    rec.qteRecue=(rec.qteRecue||0)+qteRecueMaintenant;
+    rec.statut = rec.qteRecue>=rec.qte ? 'recue' : 'partielle';
+  } else {
+    rec.statut=ACHAT_STATUT_NEXT[rec.statut]||rec.statut;
+  }
   await idbPut('achats',rec);
   queueSync('alubom_achats',rec);
-  await audit('MAJ_DEMANDE_ACHAT',rec.numero+' → '+rec.statut);
+  await audit('MAJ_DEMANDE_ACHAT',rec.numero+' → '+rec.statut+(rec.qteRecue?' ('+rec.qteRecue+'/'+rec.qte+')':''));
   await openChantierDetail(chantierId);
 }
 
