@@ -5658,11 +5658,16 @@ function generateReference(type,w,h,leaves){
 }
 
 function printFicheTechnique(){
+  const win=window.open('','_blank','width=1200,height=900');
+  if(!win){ alert("Fenêtre bloquée par le navigateur. Autorisez les pop-ups pour ce site."); return; }
+  win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Fiche technique</title></head><body style="font-family:sans-serif;padding:24px;color:#64748b">Génération du document…</body></html>');
+  win.document.close();
+  try{
   const type=document.getElementById('type').value;
   const w=+document.getElementById('width').value||0;
   const h=+document.getElementById('height').value||0;
   const leaves=+document.getElementById('leaves').value||1;
-  const serie=document.getElementById('serie').selectedOptions[0].text;
+  const serie=document.getElementById('serie').selectedOptions[0]?.text||'';
   const ref=generateReference(type,w,h,leaves);
   const dateStr=new Date().toLocaleDateString('fr-FR');
   const dessinePar=currentUser?currentUser.email:'Bureau d\'Études';
@@ -5683,8 +5688,8 @@ function printFicheTechnique(){
   const projet = (typeof currentChantierId!=='undefined' && currentChantierId) ? currentChantierId : '—';
   const client = document.getElementById('proClient')?.value || '—';
 
-  const win=window.open('','_blank','width=1200,height=900');
-  if(!win) return;
+  if(win.closed) return;
+  win.document.open();
   win.document.write(`
   <html><head><title>Fiche technique — ${escapeHtml(ref)}</title>
   <style>
@@ -5772,6 +5777,11 @@ function printFicheTechnique(){
   win.document.close();
   win.focus();
   setTimeout(()=>win.print(),400);
+  }catch(err){
+    win.document.open();
+    win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="font-family:sans-serif;padding:24px;color:#dc2626">Erreur génération fiche technique : '+escapeHtml(err.message)+'<br>Assurez-vous que le configurateur et le BOM sont bien chargés avant impression.</body></html>');
+    win.document.close();
+  }
 }
 
 
