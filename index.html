@@ -1116,6 +1116,7 @@ window.SANIX_CFG = {
               <button class="cat-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-cattab="mouvements" onclick="showCatalogueTab('mouvements')">📜 Journal de mouvement</button>
               <button class="cat-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-cattab="inventaire" onclick="showCatalogueTab('inventaire')">🧮 Inventaire</button>
             </div>
+            <button onclick="openCompanyInfoModal()" class="border px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap">🏢 Entête</button>
             <button onclick="printCatalogue()" class="border px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap">🖨 Imprimer le catalogue</button>
           </div>
           <div class="relative">
@@ -1203,6 +1204,10 @@ window.SANIX_CFG = {
 
 <div id="csvImportModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
   <div class="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto" id="csvImportContent"></div>
+</div>
+
+<div id="companyInfoModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" id="companyInfoContent"></div>
 </div>
 
 <script>
@@ -2113,10 +2118,12 @@ async function printJournalMouvements(){
   const {rows,labelByRef}=await getFilteredMouvements();
   const typeLabels={entree:'Entrée',sortie:'Sortie',ajustement:'Ajustement'};
   const html=`
-    <h1>Journal de mouvement de stock — SANIX AluExpert ERP</h1>
+    ${buildPrintHeaderHtml()}
+    <h1>Journal de mouvement de stock</h1>
     <p class="sub">${rows.length} mouvement(s) — édité le ${new Date().toLocaleDateString('fr-FR')}</p>
     <table><thead><tr><th>Date</th><th>Référence</th><th>Désignation</th><th>Type</th><th>Quantité</th><th>Prix unitaire</th><th>Utilisateur</th></tr></thead>
-    <tbody>${rows.length?rows.map(m=>`<tr><td>${m.ts?new Date(m.ts).toLocaleString('fr-FR'):'—'}</td><td>${escapeHtml(m.ref)}</td><td>${escapeHtml(labelByRef[m.ref]||'—')}</td><td>${typeLabels[m.type]||m.type}</td><td>${mouvementSignedQty(m)}</td><td>${m.prixUnitaire?money(m.prixUnitaire):'—'}</td><td>${escapeHtml(m.user||'—')}</td></tr>`).join(''):`<tr><td colspan="7" style="color:#94a3b8;text-align:center">Aucun mouvement</td></tr>`}</tbody></table>`;
+    <tbody>${rows.length?rows.map(m=>`<tr><td>${m.ts?new Date(m.ts).toLocaleString('fr-FR'):'—'}</td><td>${escapeHtml(m.ref)}</td><td>${escapeHtml(labelByRef[m.ref]||'—')}</td><td>${typeLabels[m.type]||m.type}</td><td>${mouvementSignedQty(m)}</td><td>${m.prixUnitaire?money(m.prixUnitaire):'—'}</td><td>${escapeHtml(m.user||'—')}</td></tr>`).join(''):`<tr><td colspan="7" style="color:#94a3b8;text-align:center">Aucun mouvement</td></tr>`}</tbody></table>
+    ${await buildPrintFooterHtml('Journal de mouvement de stock')}`;
   const win=window.open('','_blank','width=1000,height=1100');
   if(!win) return;
   win.document.write(`<html><head><title>Journal de mouvement</title>
@@ -2127,6 +2134,7 @@ async function printJournalMouvements(){
       table{width:100%;border-collapse:collapse;margin-bottom:6px}
       th,td{border:1px solid #cbd5e1;padding:7px 10px;font-size:12px;text-align:left}
       th{background:#f1f5f9}
+      ${PRINT_ENTETE_PIED_CSS}
     </style></head><body>${html}</body></html>`);
   win.document.close();
   win.focus();
@@ -2207,10 +2215,12 @@ async function printInventaire(){
     return `<tr><td>${escapeHtml(ref)}</td><td>${escapeHtml(label)}</td><td style="text-align:right">${theo.toFixed(2)}</td><td style="text-align:right">${compte||'—'}</td><td style="text-align:right">${ecart}</td></tr>`;
   }).join('');
   const html=`
-    <h1>Fiche d'inventaire — SANIX AluExpert ERP</h1>
+    ${buildPrintHeaderHtml()}
+    <h1>Fiche d'inventaire</h1>
     <p class="sub">Comptage physique édité le ${new Date().toLocaleDateString('fr-FR')}</p>
     <table><thead><tr><th>Référence</th><th>Désignation</th><th>Théorique (ml)</th><th>Comptée (ml)</th><th>Écart (ml)</th></tr></thead>
-    <tbody>${rowsHtml||'<tr><td colspan="5" style="color:#94a3b8;text-align:center">Aucune référence en stock</td></tr>'}</tbody></table>`;
+    <tbody>${rowsHtml||'<tr><td colspan="5" style="color:#94a3b8;text-align:center">Aucune référence en stock</td></tr>'}</tbody></table>
+    ${await buildPrintFooterHtml('Fiche d\'inventaire')}`;
   const win=window.open('','_blank','width=1000,height=1100');
   if(!win) return;
   win.document.write(`<html><head><title>Fiche d'inventaire</title>
@@ -2221,6 +2231,7 @@ async function printInventaire(){
       table{width:100%;border-collapse:collapse;margin-bottom:6px}
       th,td{border:1px solid #cbd5e1;padding:7px 10px;font-size:12px;text-align:left}
       th{background:#f1f5f9}
+      ${PRINT_ENTETE_PIED_CSS}
     </style></head><body>${html}</body></html>`);
   win.document.close();
   win.focus();
@@ -3071,7 +3082,8 @@ async function printCatalogue(){
     <table><thead><tr>${cols.map(c=>`<th>${escapeHtml(c[1])}</th>`).join('')}</tr></thead>
     <tbody>${rows.length?rows.map(r=>`<tr>${cols.map(c=>`<td>${escapeHtml(c[2]==='money'?money(r[c[0]]||0):(r[c[0]]??'—'))}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${cols.length}" style="color:#94a3b8;text-align:center">Aucune donnée</td></tr>`}</tbody></table>`;
   const html=`
-    <h1>Catalogue technique — SANIX AluExpert ERP</h1>
+    ${buildPrintHeaderHtml()}
+    <h1>Catalogue technique</h1>
     <p class="sub">Produits finis, matière première et consommables — édité le ${new Date().toLocaleDateString('fr-FR')}</p>
     <h2>Produits finis — Modèles standards</h2>
     <table><thead><tr><th>Code</th><th>Type</th></tr></thead><tbody>${Object.entries(TYPE_CODE).map(([t,c])=>`<tr><td>${escapeHtml(c)}</td><td>${escapeHtml(t)}</td></tr>`).join('')}</tbody></table>
@@ -3081,6 +3093,7 @@ async function printCatalogue(){
     ${section('Consommables — Quincaillerie',quinc,[['code','Code'],['designation','Désignation'],['categorie','Catégorie'],['prixUnitaire','Prix unit.','money']])}
     ${section('Consommables — Joints',joints,[['code','Code'],['designation','Désignation'],['type','Type'],['prixMl','Prix/ml','money']])}
     ${section('Consommables — Divers',conso,[['code','Code'],['designation','Désignation'],['unite','Unité'],['prix','Prix','money']])}
+    ${await buildPrintFooterHtml('Catalogue technique')}
   `;
   const win=window.open('','_blank','width=1000,height=1100');
   if(!win) return;
@@ -3093,6 +3106,7 @@ async function printCatalogue(){
       table{width:100%;border-collapse:collapse;margin-bottom:6px}
       th,td{border:1px solid #cbd5e1;padding:7px 10px;font-size:12px;text-align:left}
       th{background:#f1f5f9}
+      ${PRINT_ENTETE_PIED_CSS}
     </style></head><body>${html}</body></html>`);
   win.document.close();
   win.focus();
@@ -3907,6 +3921,95 @@ async function sha256Hex(str){
   const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
   return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
 }
+
+/* ---------- Entête entreprise & pied de page sécurisé (impressions) ---------- */
+function getCompanyInfo(){
+  const def={nom:'SANIX AluExpert',tagline:'SANIX Africa • Division Technologies',adresse:'',tel:'',email:'',rccm:'',ncc:''};
+  try{
+    const raw=localStorage.getItem('alubom_company_info');
+    return raw ? {...def,...JSON.parse(raw)} : def;
+  }catch{ return def; }
+}
+function saveCompanyInfo(info){
+  localStorage.setItem('alubom_company_info',JSON.stringify(info));
+}
+function openCompanyInfoModal(){
+  const c=getCompanyInfo();
+  document.getElementById('companyInfoContent').innerHTML=`
+    <h3 class="font-bold text-lg mb-4">🏢 Entête entreprise (documents imprimés)</h3>
+    <form id="companyInfoForm" onsubmit="return handleSaveCompanyInfo(event)" class="grid sm:grid-cols-2 gap-2">
+      <input id="ciNom" value="${escapeHtml(c.nom)}" placeholder="Nom de l'entreprise" required class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
+      <input id="ciTagline" value="${escapeHtml(c.tagline)}" placeholder="Slogan / activité" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
+      <input id="ciAdresse" value="${escapeHtml(c.adresse)}" placeholder="Adresse" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
+      <input id="ciTel" value="${escapeHtml(c.tel)}" placeholder="Téléphone" class="border rounded-lg px-2 py-1.5 text-sm">
+      <input id="ciEmail" type="email" value="${escapeHtml(c.email)}" placeholder="Email" class="border rounded-lg px-2 py-1.5 text-sm">
+      <input id="ciRccm" value="${escapeHtml(c.rccm)}" placeholder="RCCM" class="border rounded-lg px-2 py-1.5 text-sm">
+      <input id="ciNcc" value="${escapeHtml(c.ncc)}" placeholder="NCC (compte contribuable)" class="border rounded-lg px-2 py-1.5 text-sm">
+      <div class="sm:col-span-2 flex gap-2 mt-2">
+        <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">Enregistrer</button>
+        <button type="button" onclick="document.getElementById('companyInfoModal').classList.add('hidden')" class="border px-4 py-1.5 rounded-lg text-sm font-semibold">Fermer</button>
+      </div>
+    </form>`;
+  document.getElementById('companyInfoModal').classList.remove('hidden');
+}
+function handleSaveCompanyInfo(e){
+  e.preventDefault();
+  saveCompanyInfo({
+    nom:document.getElementById('ciNom').value.trim()||'SANIX AluExpert',
+    tagline:document.getElementById('ciTagline').value.trim(),
+    adresse:document.getElementById('ciAdresse').value.trim(),
+    tel:document.getElementById('ciTel').value.trim(),
+    email:document.getElementById('ciEmail').value.trim(),
+    rccm:document.getElementById('ciRccm').value.trim(),
+    ncc:document.getElementById('ciNcc').value.trim()
+  });
+  document.getElementById('companyInfoModal').classList.add('hidden');
+  return false;
+}
+function buildPrintHeaderHtml(){
+  const c=getCompanyInfo();
+  const coord=[c.adresse,c.tel?('Tél. '+c.tel):'',c.email].filter(Boolean).join(' • ');
+  const legal=[c.rccm?('RCCM '+c.rccm):'',c.ncc?('NCC '+c.ncc):''].filter(Boolean).join(' — ');
+  return `
+    <div class="print-entete">
+      <div class="print-entete-nom">${escapeHtml(c.nom)}</div>
+      ${c.tagline?`<div class="print-entete-tagline">${escapeHtml(c.tagline)}</div>`:''}
+      ${coord?`<div class="print-entete-coord">${escapeHtml(coord)}</div>`:''}
+      ${legal?`<div class="print-entete-legal">${escapeHtml(legal)}</div>`:''}
+    </div>`;
+}
+async function buildPrintFooterHtml(docLabel){
+  const dateStr=new Date().toLocaleString('fr-FR');
+  const hash=(await sha256Hex(`${docLabel}|${dateStr}|${Math.random()}`)).slice(0,10).toUpperCase();
+  const verifText=`SANIX-VERIF|${docLabel}|${hash}`;
+  let qrSvg='';
+  if(typeof qrcode!=='undefined'){
+    const qr=qrcode(0,'M'); qr.addData(verifText); qr.make();
+    const n=qr.getModuleCount(), cell=2.6;
+    qrSvg=`<svg viewBox="0 0 ${n*cell} ${n*cell}" width="58" height="58" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#fff"/>`;
+    for(let r=0;r<n;r++) for(let c=0;c<n;c++) if(qr.isDark(r,c)) qrSvg+=`<rect x="${c*cell}" y="${r*cell}" width="${cell}" height="${cell}" fill="#0f172a"/>`;
+    qrSvg+='</svg>';
+  }
+  return `
+    <div class="print-pied">
+      <div class="print-pied-qr">${qrSvg}</div>
+      <div class="print-pied-txt">
+        <div><b>Document vérifiable</b> — code ${hash}</div>
+        <div>${escapeHtml(docLabel)} • édité le ${dateStr}</div>
+      </div>
+    </div>`;
+}
+const PRINT_ENTETE_PIED_CSS = `
+  .print-entete{border-bottom:2px solid #0f172a;padding-bottom:10px;margin-bottom:20px}
+  .print-entete-nom{font-size:19px;font-weight:800}
+  .print-entete-tagline{font-size:11px;color:#2563eb;font-weight:600;margin-top:1px}
+  .print-entete-coord,.print-entete-legal{font-size:10.5px;color:#64748b;margin-top:2px}
+  .print-pied{margin-top:28px;padding-top:10px;border-top:1px solid #cbd5e1;display:flex;align-items:center;gap:10px}
+  .print-pied-txt{font-size:9.5px;color:#64748b;line-height:1.4}
+  @media print{
+    body{padding-bottom:26mm}
+    .print-pied{position:fixed;bottom:8mm;left:35px;right:35px;background:#fff}
+  }`;
 async function renderProformaQR(total){
   const el=document.getElementById('proQRCode'); if(!el || typeof qrcode==='undefined') return;
   const numero=document.getElementById('proNumber')?.textContent||'';
