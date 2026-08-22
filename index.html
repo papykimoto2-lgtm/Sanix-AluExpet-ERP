@@ -2528,7 +2528,7 @@ async function renderChantierList(){
       <td class="p-3"><span class="badge bg-${c}-50 text-${c}-700">${escapeHtml(label)}</span></td>
       <td class="p-3 text-right">${money(r.montantTotal)}</td>
       <td class="p-3 text-right">${money(r.montantPaye)}</td>
-      <td class="p-3 text-right"><button onclick="event.stopPropagation();openChantierDetail('${r.id}')" class="text-blue-600 font-semibold">Ouvrir →</button></td>
+      <td class="p-3 text-right"><button type="button" onclick="event.stopPropagation();openChantierDetail('${r.id}')" class="text-blue-600 font-semibold hover:underline cursor-pointer">Ouvrir →</button></td>
     </tr>`;
   }).join('') : `<tr><td class="p-3 text-slate-400" colspan="6">Aucun dossier chantier. Créez-en un depuis une proforma générée.</td></tr>`;
 }
@@ -2561,6 +2561,7 @@ async function openChantierDetail(id){
   const rec=await getChantier(id); if(!rec) return;
   const wrap=document.getElementById('chantierDetail');
   wrap.classList.remove('hidden');
+  try{
 
   const stepperHtml=CHANTIER_STAGES.map((s,i)=>{
     const curIdx=CHANTIER_STAGES.findIndex(x=>x.key===rec.etape);
@@ -2710,6 +2711,17 @@ async function openChantierDetail(id){
       ${consolidationHtml}
       ${proformasHtml}
     </div>`;
+  wrap.scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(err){
+    wrap.innerHTML=`<div class="card bg-white rounded-2xl p-6">
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="text-lg font-bold text-red-600">Erreur d'affichage du dossier</h2>
+        <button onclick="document.getElementById('chantierDetail').classList.add('hidden')" class="border px-3 py-2 rounded-lg text-sm font-semibold">Fermer</button>
+      </div>
+      <p class="text-sm text-slate-600">${escapeHtml(err.message)}</p>
+    </div>`;
+    console.error('openChantierDetail',err);
+  }
 }
 
 async function handlePaiement(e,id){
