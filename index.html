@@ -712,7 +712,7 @@ window.SANIX_CFG = {
             <h3 class="font-bold text-sm">Proformas enregistrées</h3>
             <button onclick="newProforma()" class="border px-3 py-1.5 rounded-lg text-xs font-semibold">+ Nouvelle proforma</button>
           </div>
-          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">N°</th><th class="text-left p-2">Client</th><th class="text-left p-2">Date</th><th class="text-right p-2">Total</th><th class="p-2"></th></tr></thead><tbody id="proformaListBody"></tbody></table></div>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">N°</th><th class="text-left p-2">Client</th><th class="text-left p-2">Chantier</th><th class="text-left p-2">Date</th><th class="text-right p-2">Total</th><th class="p-2"></th></tr></thead><tbody id="proformaListBody"></tbody></table></div>
         </div>
         <div class="grid xl:grid-cols-3 gap-6">
           <div class="xl:col-span-2 card bg-white rounded-2xl p-6">
@@ -758,7 +758,7 @@ window.SANIX_CFG = {
                 </div>
                 <div>
                   <div class="text-xs uppercase tracking-wider text-slate-400 font-bold">Client</div>
-                  <input id="proClient" list="clientsDatalist" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm" value="Client à renseigner">
+                  <input id="proClient" list="clientsDatalist" onchange="populateProformaChantierOptions()" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm" value="Client à renseigner">
                   <input id="proContact" class="mt-2 w-full border rounded-lg px-3 py-2 text-sm" value="Contact / Téléphone">
                 </div>
               </div>
@@ -822,6 +822,12 @@ window.SANIX_CFG = {
           <div class="card bg-white rounded-2xl p-6 h-fit">
             <h2 class="font-bold">Paramètres proforma</h2>
             <div class="space-y-4 mt-5">
+              <label class="text-sm font-semibold block bg-blue-50 border border-blue-100 rounded-lg px-3 py-2.5">🏗️ Dossier chantier associé
+                <select id="proChantierId" onchange="updateProformaChantierHint()" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm font-normal">
+                  <option value="">— Aucun (nouvelle proforma) —</option>
+                </select>
+                <span id="proChantierHint" class="text-xs text-slate-500 mt-1.5 block leading-snug font-normal"></span>
+              </label>
               <label class="text-sm font-semibold block">Remise (%)
                 <input id="proDiscountRate" type="number" value="0" min="0" max="100" class="mt-1 w-full border rounded-lg px-3 py-2" oninput="updateProforma()">
               </label>
@@ -2364,7 +2370,8 @@ async function createChantierFromProforma(){
   const seq=nextSeq('chantier');
   const numero='CH-'+seq.year+'-'+String(seq.n).padStart(4,'0');
   const rec={
-    id:numero, numero, devisNumero:numeroDevis, client, clientId, contact,
+    id:numero, numero, devisNumero:numeroDevis, proformaId:currentProformaId||null,
+    proformaIds:currentProformaId?[currentProformaId]:[], client, clientId, contact,
     montantTotal, montantPaye:0, etape:'devis',
     lignes:JSON.parse(JSON.stringify(proformaCart)),
     historique:[{etape:'devis',date:new Date().toISOString(),user:currentUser?currentUser.email:'—'}],
@@ -2372,8 +2379,21 @@ async function createChantierFromProforma(){
   };
   await idbPut('chantiers',rec);
   queueSync('alubom_chantiers',rec);
+  // Lien réciproque : la proforma source pointe désormais vers ce dossier chantier
+  if(currentProformaId){
+    const proRows=await idbGetAll('proforma');
+    const proRec=proRows.find(p=>p.id===currentProformaId);
+    if(proRec){
+      proRec.chantierId=rec.id; proRec.chantierNumero=rec.numero; proRec._modifie=new Date().toISOString();
+      await idbPut('proforma',proRec);
+      queueSync('alubom_proforma',proRec);
+    }
+  }
   await audit('CREATE_CHANTIER',numero+' / '+client);
   await renderChantierList();
+  await renderProformaList();
+  const chSel=document.getElementById('proChantierId');
+  if(chSel){ await populateProformaChantierOptions(false); chSel.value=rec.id; updateProformaChantierHint(); }
   showPage('chantier');
   openChantierDetail(numero);
 }
@@ -2435,6 +2455,33 @@ async function openChantierDetail(id){
   }).join('<div class="flex-1 h-0.5 bg-slate-200 mt-2 -mx-2"></div>');
 
   const achats=(await idbGetAll('achats')).filter(a=>a.chantierId===id);
+  const proformasLiees=await getProformasForChantier(id);
+  const proformasClient=await getProformasForClientName(rec.client);
+  const proformasNonLiees=proformasClient.filter(p=>p.chantierId!==id);
+
+  const proformasHtml=`
+    <div class="border-t pt-5 mt-5">
+      <h3 class="font-bold text-sm text-slate-700 mb-2">🧾 Proformas liées (${proformasLiees.length})</h3>
+      ${proformasLiees.length?`<div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">N°</th><th class="text-left p-2">Date</th><th class="text-right p-2">Total</th><th class="p-2"></th></tr></thead><tbody>
+        ${proformasLiees.map(p=>`<tr class="border-b">
+          <td class="p-2 font-semibold">${escapeHtml(p.numero)}</td>
+          <td class="p-2">${new Date(p.date).toLocaleDateString('fr-FR')}</td>
+          <td class="p-2 text-right">${escapeHtml(p.total||'')}</td>
+          <td class="p-2 text-right whitespace-nowrap">
+            <button onclick="loadProforma('${p.id}')" class="text-blue-600 text-xs font-semibold mr-2">Ouvrir →</button>
+            <button onclick="unlinkProformaFromChantier('${p.id}','${id}')" class="text-red-500 text-xs font-semibold">Détacher</button>
+          </td>
+        </tr>`).join('')}
+      </tbody></table></div>`:'<p class="text-sm text-slate-400">Aucune proforma rattachée à ce dossier pour le moment.</p>'}
+      ${proformasNonLiees.length?`
+      <div class="mt-3 flex flex-wrap items-center gap-2 bg-slate-50 border rounded-lg p-3">
+        <span class="text-xs text-slate-500">Rattacher une proforma existante du client :</span>
+        <select id="linkProformaSelect" class="border rounded-lg px-2 py-1.5 text-sm">
+          ${proformasNonLiees.map(p=>`<option value="${p.id}">${escapeHtml(p.numero)} — ${escapeHtml(p.total||'')}</option>`).join('')}
+        </select>
+        <button onclick="linkProformaToChantier(document.getElementById('linkProformaSelect').value,'${id}')" class="border border-blue-600 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-semibold">🔗 Lier au dossier</button>
+      </div>`:''}
+    </div>`;
 
   let actionPanel='';
   if(rec.etape==='devis'){
@@ -2511,6 +2558,7 @@ async function openChantierDetail(id){
       </div>
       <div class="flex mb-6">${stepperHtml}</div>
       <div class="border-t pt-5">${actionPanel}</div>
+      ${proformasHtml}
     </div>`;
 }
 
@@ -2589,6 +2637,53 @@ function chantierBelongsToClient(chantier,client){
 async function getChantiersForClient(client){
   const all=await idbGetAll('chantiers');
   return all.filter(c=>chantierBelongsToClient(c,client)).sort((a,b)=>b.dateCreation.localeCompare(a.dateCreation));
+}
+
+/* ---------- Relation Proforma → Chantier (une proforma peut être rattachée à un dossier existant) ---------- */
+async function getProformasForChantier(chantierId){
+  const all=await idbGetAll('proforma');
+  return all.filter(p=>p.chantierId===chantierId).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+}
+async function getProformasForClientName(clientName){
+  const all=await idbGetAll('proforma');
+  return all.filter(p=>(p.client||'').trim().toLowerCase()===(clientName||'').trim().toLowerCase());
+}
+async function linkProformaToChantier(proformaId,chantierId){
+  if(!proformaId||!chantierId) return;
+  if(!hasRole('chantier:create')){ alert('Permission refusée.'); return; }
+  const rows=await idbGetAll('proforma');
+  const proRec=rows.find(p=>p.id===proformaId); if(!proRec) return;
+  const ch=await getChantier(chantierId); if(!ch) return;
+  proRec.chantierId=ch.id; proRec.chantierNumero=ch.numero; proRec._modifie=new Date().toISOString();
+  await idbPut('proforma',proRec);
+  queueSync('alubom_proforma',proRec);
+  ch.proformaIds=Array.from(new Set([...(ch.proformaIds||[]),proRec.id]));
+  await saveChantier(ch);
+  await audit('LIER_PROFORMA_CHANTIER',proRec.numero+' → '+ch.numero);
+  await renderProformaList();
+  if(currentProformaId===proformaId){
+    const sel=document.getElementById('proChantierId');
+    if(sel){ await populateProformaChantierOptions(false); sel.value=ch.id; updateProformaChantierHint(); }
+  }
+  await openChantierDetail(chantierId);
+}
+async function unlinkProformaFromChantier(proformaId,chantierId){
+  if(!hasRole('chantier:create')){ alert('Permission refusée.'); return; }
+  if(!confirm('Détacher cette proforma de ce dossier chantier ?')) return;
+  const rows=await idbGetAll('proforma');
+  const proRec=rows.find(p=>p.id===proformaId); if(!proRec) return;
+  proRec.chantierId=null; proRec.chantierNumero=null; proRec._modifie=new Date().toISOString();
+  await idbPut('proforma',proRec);
+  queueSync('alubom_proforma',proRec);
+  const ch=await getChantier(chantierId);
+  if(ch){ ch.proformaIds=(ch.proformaIds||[]).filter(x=>x!==proformaId); await saveChantier(ch); }
+  await audit('DELIER_PROFORMA_CHANTIER',proRec.numero+' ⇥ '+(ch?ch.numero:chantierId));
+  await renderProformaList();
+  if(currentProformaId===proformaId){
+    const sel=document.getElementById('proChantierId');
+    if(sel){ sel.value=''; updateProformaChantierHint(); }
+  }
+  await openChantierDetail(chantierId);
 }
 async function resolveOrCreateClient(nom,contact){
   nom=(nom||'').trim();
@@ -3866,6 +3961,7 @@ function showPage(page){
     document.getElementById(page).classList.remove('hidden');
     document.querySelectorAll('.etude-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===page));
     document.querySelectorAll('.nav').forEach(b=>{if(b.dataset.page==='etude')b.classList.add('active')});
+    if(page==='proforma') populateProformaChantierOptions();
   } else {
     document.getElementById(page).classList.remove('hidden');
     document.querySelectorAll('.nav').forEach(b=>{if(b.dataset.page===page)b.classList.add('active')});
@@ -4212,6 +4308,9 @@ function newProforma(){
   document.getElementById('proNumber').textContent='—';
   document.getElementById('proDate').textContent='';
   updateProforma();
+  const chSel=document.getElementById('proChantierId');
+  if(chSel){ chSel.innerHTML='<option value="">— Aucun (nouvelle proforma) —</option>'; chSel.value=''; }
+  updateProformaChantierHint();
 }
 
 async function loadProforma(id){
@@ -4226,16 +4325,27 @@ async function loadProforma(id){
   document.getElementById('proDate').textContent = new Date(rec.date).toLocaleDateString('fr-FR');
   updateProforma();
   showPage('proforma');
+  await populateProformaChantierOptions(false);
+  const chSel=document.getElementById('proChantierId');
+  if(chSel){ chSel.value = rec.chantierId||''; }
+  updateProformaChantierHint();
   await audit('OUVRIR_PROFORMA',rec.numero);
 }
 
 async function deleteProforma(id){
   if(!hasRole('chantier:create')){ alert('Permission refusée.'); return; }
   if(!confirm('Supprimer cette proforma ?')) return;
+  const rows=await idbGetAll('proforma');
+  const rec=rows.find(p=>p.id===id);
+  if(rec && rec.chantierId){
+    const ch=await getChantier(rec.chantierId);
+    if(ch){ ch.proformaIds=(ch.proformaIds||[]).filter(x=>x!==id); await saveChantier(ch); }
+  }
   await idbDelete('proforma',id);
   await audit('DELETE_PROFORMA',id);
   if(currentProformaId===id) newProforma();
   await renderProformaList();
+  if(currentChantierId) await openChantierDetail(currentChantierId);
 }
 
 async function renderProformaList(){
@@ -4245,13 +4355,44 @@ async function renderProformaList(){
     <tr class="border-b">
       <td class="p-2 font-semibold">${escapeHtml(r.numero)}</td>
       <td class="p-2">${escapeHtml(r.client||'')}</td>
+      <td class="p-2">${r.chantierId?`<button onclick="showPage('chantier');openChantierDetail('${r.chantierId}')" class="text-blue-600 hover:underline text-xs font-semibold">🏗️ ${escapeHtml(r.chantierNumero||'Voir')}</button>`:'<span class="text-slate-300 text-xs">—</span>'}</td>
       <td class="p-2">${new Date(r.date).toLocaleDateString('fr-FR')}</td>
       <td class="p-2 text-right">${escapeHtml(r.total||'')}</td>
       <td class="p-2 text-right whitespace-nowrap">
         <button onclick="loadProforma('${r.id}')" class="text-blue-600 text-xs font-semibold mr-2">Modifier</button>
         <button onclick="deleteProforma('${r.id}')" class="text-red-500 text-xs font-semibold">Suppr.</button>
       </td>
-    </tr>`).join('') : `<tr><td class="p-2 text-slate-400" colspan="5">Aucune proforma enregistrée.</td></tr>`;
+    </tr>`).join('') : `<tr><td class="p-2 text-slate-400" colspan="6">Aucune proforma enregistrée.</td></tr>`;
+}
+
+/* ---------- Rattachement Proforma ↔ Dossier chantier d'un client ---------- */
+async function populateProformaChantierOptions(preserveSelection){
+  const sel=document.getElementById('proChantierId'); if(!sel) return;
+  const prevVal = preserveSelection!==false ? sel.value : '';
+  const clientName=(document.getElementById('proClient')?.value||'').trim();
+  let chantiers=[];
+  if(clientName && clientName!=='Client à renseigner'){
+    const allClients=await idbGetAll('clients');
+    const client=allClients.find(c=>(c.nom||'').trim().toLowerCase()===clientName.toLowerCase());
+    if(client) chantiers=await getChantiersForClient(client);
+  }
+  sel.innerHTML = '<option value="">— Aucun (nouvelle proforma) —</option>' + chantiers.map(c=>{
+    const label=CHANTIER_STAGES.find(s=>s.key===c.etape)?.label||c.etape;
+    return `<option value="${c.id}">${escapeHtml(c.numero)} — ${escapeHtml(label)}</option>`;
+  }).join('');
+  sel.value = (prevVal && chantiers.some(c=>c.id===prevVal)) ? prevVal : '';
+  updateProformaChantierHint();
+}
+
+function updateProformaChantierHint(){
+  const sel=document.getElementById('proChantierId');
+  const hint=document.getElementById('proChantierHint');
+  if(!sel||!hint) return;
+  if(sel.value){
+    hint.innerHTML = `Cette proforma sera rattachée au dossier. <button type="button" onclick="showPage('chantier');openChantierDetail('${sel.value}')" class="text-blue-600 hover:underline font-semibold">Ouvrir le dossier →</button>`;
+  } else {
+    hint.textContent = "Sélectionnez un dossier chantier existant du client pour y rattacher cette proforma (avenant / révision), ou laissez vide pour un nouveau dossier.";
+  }
 }
 
 /* ---------- Ouvrages composés (ensembles multi-éléments réutilisables) ---------- */
@@ -4338,6 +4479,9 @@ function whatsappProforma(){
 }
 
 async function saveProforma(){
+  const chantierId=document.getElementById('proChantierId')?.value || null;
+  let chantierNumero=null;
+  if(chantierId){ const ch=await getChantier(chantierId); chantierNumero=ch?ch.numero:null; }
   const rec={
     id:currentProformaId || ('pf_'+Date.now()),
     numero:document.getElementById('proNumber').textContent,
@@ -4347,11 +4491,19 @@ async function saveProforma(){
     lignes:proformaCart,
     total:document.getElementById('proTotal').textContent,
     hashVerif:document.getElementById('proQRCode')?.dataset.hash||'',
+    chantierId, chantierNumero,
     _modifie:new Date().toISOString()
   };
   currentProformaId=rec.id;
   await idbPut('proforma',rec);
   queueSync('alubom_proforma',rec);
+  if(chantierId){
+    const ch=await getChantier(chantierId);
+    if(ch){
+      ch.proformaIds=Array.from(new Set([...(ch.proformaIds||[]),rec.id]));
+      await saveChantier(ch);
+    }
+  }
   await audit('CREATE_PROFORMA',rec.numero);
   await renderProformaList();
 }
