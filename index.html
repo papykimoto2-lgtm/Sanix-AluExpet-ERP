@@ -1280,7 +1280,7 @@ function escapeHtml(s){
 /* ---------- IndexedDB ---------- */
 function openDB(){
   return new Promise((resolve,reject)=>{
-    const req=indexedDB.open('alubom_db',10);
+    const req=indexedDB.open('alubom_db',11);
     req.onupgradeneeded=e=>{
       const d=e.target.result;
       ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers'].forEach(s=>{
@@ -3202,10 +3202,16 @@ async function seedDefaultAteliersIfEmpty(){
   for(const a of DEFAULT_ATELIERS){ a._modifie=new Date().toISOString(); await idbPut('ateliers',a); }
 }
 async function populateAtelierSelect(){
-  await seedDefaultAteliersIfEmpty();
-  const rows=(await idbGetAll('ateliers')).filter(a=>a.statut!=='inactif').sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
   const sel=document.getElementById('atelier');
-  if(sel) sel.innerHTML=rows.map(a=>`<option value="${escapeHtml(a.code)}" data-nom="${escapeHtml(a.nom)}" data-couleur="${a.couleur||'slate'}">${escapeHtml(a.nom)}</option>`).join('');
+  if(!sel) return;
+  try{
+    await seedDefaultAteliersIfEmpty();
+    const rows=(await idbGetAll('ateliers')).filter(a=>a.statut!=='inactif').sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
+    sel.innerHTML = rows.length ? rows.map(a=>`<option value="${escapeHtml(a.code)}" data-nom="${escapeHtml(a.nom)}" data-couleur="${a.couleur||'slate'}">${escapeHtml(a.nom)}</option>`).join('')
+      : `<option value="ALU" data-nom="Atelier Aluminium">Atelier Aluminium</option><option value="INOX" data-nom="Atelier Inox">Atelier Inox</option>`;
+  }catch(err){
+    sel.innerHTML=`<option value="ALU" data-nom="Atelier Aluminium">Atelier Aluminium</option><option value="INOX" data-nom="Atelier Inox">Atelier Inox</option>`;
+  }
 }
 
 async function handleAddSerie(e){
@@ -4271,6 +4277,7 @@ function showPage(page){
     document.querySelectorAll('.etude-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===page));
     document.querySelectorAll('.nav').forEach(b=>{if(b.dataset.page==='etude')b.classList.add('active')});
     if(page==='proforma') populateProformaChantierOptions();
+    if(page==='config') populateAtelierSelect();
   } else {
     document.getElementById(page).classList.remove('hidden');
     document.querySelectorAll('.nav').forEach(b=>{if(b.dataset.page===page)b.classList.add('active')});
