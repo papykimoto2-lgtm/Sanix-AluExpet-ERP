@@ -854,8 +854,13 @@ window.SANIX_CFG = {
       <section id="stock" class="page hidden">
         <div class="card bg-white rounded-2xl p-6">
           <div class="flex flex-wrap justify-between gap-3 mb-2">
-            <div><h2 class="text-lg font-bold">Stock matières</h2><p class="text-sm text-slate-500">Disponibilité, réservation et chutes réutilisables.</p></div>
+            <div><h2 class="text-lg font-bold">Stock matières</h2><p class="text-sm text-slate-500">Disponibilité, réservation et chutes réutilisables — liste de composants issue de la BOM et du référentiel.</p></div>
+            <div class="flex flex-wrap gap-2">
+              <button onclick="syncStockFromBOM()" class="border border-blue-600 text-blue-600 px-3 py-2 rounded-lg text-sm font-semibold">🔄 Depuis la BOM actuelle</button>
+              <button onclick="syncStockFromReferentiel()" class="border border-teal-600 text-teal-600 px-3 py-2 rounded-lg text-sm font-semibold">📚 Depuis le référentiel</button>
+            </div>
           </div>
+          <p class="text-xs text-slate-500 bg-slate-50 border rounded-lg p-2 mb-4">ℹ️ "Depuis la BOM actuelle" ajoute au stock les composants du calcul en cours (Configurateur) qui n'y figurent pas encore. "Depuis le référentiel" ajoute tous les profils/vitrages/quincaillerie/joints/consommables actifs manquants. Les quantités sont ajoutées à 0 — à compléter par une entrée de stock.</p>
           <form id="stockMoveForm" onsubmit="return handleStockMove(event)" class="grid sm:grid-cols-5 gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
             <input id="mvRef" placeholder="Référence" required class="border rounded-lg px-2 py-1.5 text-sm">
             <input id="mvLabel" placeholder="Désignation" class="border rounded-lg px-2 py-1.5 text-sm">
@@ -1440,6 +1445,7 @@ function openNewOFForm(){
         <div><h2 class="text-lg font-bold">Nouvel ordre de fabrication</h2><p class="text-sm text-slate-500">${escapeHtml(type)} ${w} × ${h} mm — BOM figée à la création.</p></div>
         <button onclick="document.getElementById('qcDetail').classList.add('hidden')" class="border px-3 py-2 rounded-lg text-sm font-semibold">Fermer</button>
       </div>
+      <p class="text-xs text-slate-500 bg-slate-50 border rounded-lg p-2 mb-4">ℹ️ La BOM et les quantités matières actuellement calculées seront figées de façon permanente dans cet OF (traçabilité, §20) et le stock correspondant sera automatiquement réservé (Disponible → Réservé).</p>
       <form onsubmit="return handleCreateOF(event)" class="grid sm:grid-cols-2 gap-3">
         <label class="text-sm font-semibold block">Client
           <input id="ofClient" required value="Client à renseigner" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
@@ -1462,6 +1468,7 @@ function openNewOFForm(){
 
 async function handleCreateOF(e){
   e.preventDefault();
+  if(!hasRole('of:create')){ alert('Permission refusée.'); return false; }
   const client=document.getElementById('ofClient').value.trim();
   if(!client) return false;
   const operateur=document.getElementById('ofOperateur').value.trim();
@@ -1647,6 +1654,7 @@ async function openQCForm(ofId){
         <div><h2 class="text-lg font-bold">Contrôle qualité — ${escapeHtml(rec.numero)}</h2><p class="text-sm text-slate-500">${escapeHtml(rec.ouvrage)} — ${escapeHtml(rec.client)}</p></div>
         <button onclick="document.getElementById('qcDetail').classList.add('hidden')" class="border px-3 py-2 rounded-lg text-sm font-semibold">Fermer</button>
       </div>
+      <p class="text-xs text-slate-500 bg-slate-50 border rounded-lg p-2 mb-4">ℹ️ Un seul point "Non conforme" suffit à bloquer la clôture de l'OF (statut "Terminé"). L'enregistrement est définitif — il constitue la preuve du contrôle effectué (signature électronique requise).</p>
       <form onsubmit="return handleSubmitQC(event,'${ofId}')">
         <div class="grid sm:grid-cols-3 gap-3 mb-4">
           ${QC_ITEMS.map(([key,label])=>`
@@ -1673,6 +1681,7 @@ async function openQCForm(ofId){
 
 async function handleSubmitQC(e,ofId){
   e.preventDefault();
+  if(!hasRole('qc:validate')){ alert('Permission refusée.'); return false; }
   const rows=await idbGetAll('of');
   const rec=rows.find(r=>r.id===ofId); if(!rec) return false;
   const items={};
@@ -1710,6 +1719,7 @@ async function openPlansPanel(ofId){
         <div><h2 class="text-lg font-bold">Plans & documents — ${escapeHtml(rec.numero)}</h2><p class="text-sm text-slate-500">${escapeHtml(rec.ouvrage)} — ${escapeHtml(rec.client)} • PDF, image, dessin technique (max 5 Mo/fichier).</p></div>
         <button onclick="document.getElementById('qcDetail').classList.add('hidden')" class="border px-3 py-2 rounded-lg text-sm font-semibold">Fermer</button>
       </div>
+      <p class="text-xs text-slate-500 bg-slate-50 border rounded-lg p-2 mb-4">ℹ️ Fichiers stockés localement dans le navigateur (hors ligne). Accessibles même une fois l'OF Terminé ou Annulé, pour archivage.</p>
       <form onsubmit="return handleUploadPlan(event,'${ofId}')" class="flex flex-wrap gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
         <input id="planFile" type="file" accept="application/pdf,image/*" required class="border rounded-lg px-2 py-1.5 text-sm flex-1 bg-white">
         <select id="planType" class="border rounded-lg px-2 py-1.5 text-sm bg-white">
@@ -1724,6 +1734,7 @@ async function openPlansPanel(ofId){
 
 async function handleUploadPlan(e,ofId){
   e.preventDefault();
+  if(!hasRole('of:create')){ alert('Permission refusée.'); return false; }
   const fileInput=document.getElementById('planFile');
   const file=fileInput.files[0];
   if(!file) return false;
@@ -1751,6 +1762,7 @@ async function handleUploadPlan(e,ofId){
 }
 
 async function deletePlan(planId,ofId){
+  if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
   if(!confirm('Supprimer ce document ?')) return;
   await idbDelete('plans',planId);
   await audit('DELETE_PLAN',planId);
@@ -1791,6 +1803,7 @@ async function openSuiviReelForm(ofId){
         <div><h2 class="text-lg font-bold">Consommation réelle — ${escapeHtml(rec.numero)}</h2><p class="text-sm text-slate-500">${escapeHtml(rec.ouvrage)} — comparaison au calcul théorique figé (${escapeHtml(rec.bomVersion||'—')}).</p></div>
         <button onclick="document.getElementById('qcDetail').classList.add('hidden')" class="border px-3 py-2 rounded-lg text-sm font-semibold">Fermer</button>
       </div>
+      <p class="text-xs text-slate-500 bg-slate-50 border rounded-lg p-2 mb-4">ℹ️ Compare ce qui a réellement été consommé/travaillé à ce qui était prévu par le calcul BOM. Alimente l'indicateur "Écart matière prévu/réel" du tableau de bord — utile pour ajuster les coefficients de perte et les temps de fabrication.</p>
       <form onsubmit="return handleSubmitSuiviReel(event,'${ofId}')" class="space-y-4">
         <div class="grid sm:grid-cols-3 gap-3 items-end">
           <div class="text-sm font-semibold">Aluminium (ml)<div class="text-xs text-slate-400 font-normal">Théorique : ${aluT.toFixed(2)} ml</div></div>
@@ -1814,6 +1827,7 @@ async function openSuiviReelForm(ofId){
 
 async function handleSubmitSuiviReel(e,ofId){
   e.preventDefault();
+  if(!hasRole('of:create')){ alert('Permission refusée.'); return false; }
   const rows=await idbGetAll('of');
   const rec=rows.find(r=>r.id===ofId); if(!rec) return false;
   const aluReel=+document.getElementById('srAluReel').value||0;
@@ -1858,6 +1872,59 @@ async function seedStockIfEmpty(){
   ];
   for(const d of defaults){ d._modifie=new Date().toISOString(); await idbPut('stock',d); queueSync('alubom_stock',d); }
 }
+
+/* ---------- Synchronisation stock ↔ BOM / référentiel ---------- */
+async function syncStockFromBOM(){
+  if(!hasRole('stock:write')){ alert('Permission refusée.'); return; }
+  const bomRows=window.lastBOMRows||[];
+  if(!bomRows.length){ alert("Aucune BOM calculée. Allez sur le Configurateur d'abord."); return; }
+  const stockRows=await idbGetAll('stock');
+  const existing=new Set(stockRows.map(s=>s.ref));
+  let added=0;
+  for(const r of bomRows){
+    const code=r[0];
+    if(existing.has(code)) continue;
+    const qty=r[2]||1, montant=r[4]||0;
+    const prixUnitaire = r[3]>0 ? montant/(qty*r[3]/1000||1) : montant/qty;
+    const rec={id:code,ref:code,label:r[1],dispo:0,reserve:0,prix:Math.round(prixUnitaire)||0,_modifie:new Date().toISOString()};
+    await idbPut('stock',rec);
+    queueSync('alubom_stock',rec);
+    existing.add(code);
+    added++;
+  }
+  await audit('SYNC_STOCK_BOM',added+' référence(s) ajoutée(s) depuis la BOM en cours');
+  await renderStockTable();
+  alert(added ? added+' référence(s) ajoutée(s) au stock (quantité 0 — à compléter par une entrée).' : 'Toutes les références de cette BOM sont déjà suivies en stock.');
+}
+
+async function syncStockFromReferentiel(){
+  if(!hasRole('stock:write')){ alert('Permission refusée.'); return; }
+  const stockRows=await idbGetAll('stock');
+  const existing=new Set(stockRows.map(s=>s.ref));
+  const sources=[
+    {store:'profils',priceField:'prixMl'},
+    {store:'vitrages',priceField:'prixM2'},
+    {store:'quincaillerie',priceField:'prixUnitaire'},
+    {store:'joints',priceField:'prixMl'},
+    {store:'consommables',priceField:'prix'}
+  ];
+  let added=0;
+  for(const src of sources){
+    const items=(await idbGetAll(src.store)).filter(i=>i.statut!=='inactif');
+    for(const item of items){
+      if(!item.code || existing.has(item.code)) continue;
+      const rec={id:item.code,ref:item.code,label:item.designation,dispo:0,reserve:0,prix:item[src.priceField]||0,_modifie:new Date().toISOString()};
+      await idbPut('stock',rec);
+      queueSync('alubom_stock',rec);
+      existing.add(item.code);
+      added++;
+    }
+  }
+  await audit('SYNC_STOCK_REFERENTIEL',added+' référence(s) ajoutée(s) depuis le référentiel');
+  await renderStockTable();
+  alert(added ? added+' référence(s) ajoutée(s) au stock (quantité 0 — à compléter par une entrée).' : 'Toutes les références actives du référentiel sont déjà suivies en stock.');
+}
+
 function stockEtat(dispo){
   if(dispo<30) return ['Faible','red'];
   if(dispo<80) return ['Surveillance','amber'];
@@ -2060,6 +2127,9 @@ async function saveChantier(rec){
   queueSync('alubom_chantiers',rec);
 }
 async function advanceChantierStage(id,stage,label){
+  const sensitiveStage = stage==='achats'; // passage en achats = validation DG
+  if(sensitiveStage && !hasRole('chantier:validate')){ alert('Permission refusée (validation DG requise).'); return; }
+  if(!sensitiveStage && !hasRole('chantier:create')){ alert('Permission refusée.'); return; }
   const rec=await getChantier(id); if(!rec) return;
   rec.etape=stage;
   rec.historique=rec.historique||[];
@@ -2168,6 +2238,7 @@ async function openChantierDetail(id){
 
 async function handlePaiement(e,id){
   e.preventDefault();
+  if(!hasRole('chantier:create')){ alert('Permission refusée.'); return false; }
   const type=document.getElementById('payType').value;
   const montant=+document.getElementById('payMontant').value||0;
   if(montant<=0) return false;
@@ -2230,6 +2301,7 @@ let lastCost = 0;
 /* ---------- Clients ---------- */
 async function handleAddClient(e){
   e.preventDefault();
+  if(!hasRole('chantier:create')){ alert('Permission refusée.'); return false; }
   const nom=document.getElementById('clNom').value.trim();
   if(!nom) return false;
   const rec={
@@ -2247,6 +2319,7 @@ async function handleAddClient(e){
   return false;
 }
 async function deleteClient(id){
+  if(!hasRole('chantier:create')){ alert('Permission refusée.'); return; }
   if(!confirm('Supprimer ce client ?')) return;
   await idbDelete('clients',id);
   await audit('DELETE_CLIENT',id);
@@ -2266,6 +2339,7 @@ async function renderClientsTable(){
 /* ---------- Fournisseurs ---------- */
 async function handleAddFournisseur(e){
   e.preventDefault();
+  if(!hasRole('achat:create')){ alert('Permission refusée.'); return false; }
   const nom=document.getElementById('foNom').value.trim();
   if(!nom) return false;
   const rec={
@@ -2283,6 +2357,7 @@ async function handleAddFournisseur(e){
   return false;
 }
 async function deleteFournisseur(id){
+  if(!hasRole('achat:create')){ alert('Permission refusée.'); return; }
   if(!confirm('Supprimer ce fournisseur ?')) return;
   await idbDelete('fournisseurs',id);
   await audit('DELETE_FOURNISSEUR',id);
@@ -2707,6 +2782,7 @@ async function renderPrixFournisseursModal(){
       <div><h2 class="text-lg font-bold">Tarifs fournisseurs</h2><p class="text-sm text-slate-500">${escapeHtml(product.code)} — ${escapeHtml(product.designation)}</p></div>
       <button onclick="closePrixFournisseurs()" class="text-slate-400 text-xl leading-none">×</button>
     </div>
+    <p class="text-xs text-slate-500 bg-slate-50 border rounded-lg p-2 mb-4">ℹ️ Un même produit peut être acheté chez plusieurs fournisseurs à des prix différents. Ajoutez chaque option ci-dessous, puis cliquez "Retenir" sur celle à utiliser dans les calculs (BOM, chiffrage, achats) — un seul prix actif à la fois, l'historique des autres tarifs reste consultable.</p>
     <div class="bg-blue-50 rounded-lg p-3 mb-4 text-sm flex justify-between items-center">
       <span>Prix retenu (utilisé dans les calculs)</span>
       <b class="text-blue-700">${money(product[priceField]||0)}</b>
@@ -3133,6 +3209,7 @@ async function loadProforma(id){
 }
 
 async function deleteProforma(id){
+  if(!hasRole('chantier:create')){ alert('Permission refusée.'); return; }
   if(!confirm('Supprimer cette proforma ?')) return;
   await idbDelete('proforma',id);
   await audit('DELETE_PROFORMA',id);
