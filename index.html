@@ -943,15 +943,18 @@ window.SANIX_CFG = {
       </section>
 
       <section id="referentiel" class="page hidden">
-        <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1">
-          <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold active" data-reftab="series" onclick="showRefTab('series')">🧵 Séries aluminium</button>
-          <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="profils" onclick="showRefTab('profils')">📐 Profils</button>
-          <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="vitrages" onclick="showRefTab('vitrages')">🪟 Vitrages</button>
-          <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="quincaillerie" onclick="showRefTab('quincaillerie')">🔩 Quincaillerie</button>
-          <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="joints" onclick="showRefTab('joints')">➰ Joints</button>
-          <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="consommables" onclick="showRefTab('consommables')">🧪 Consommables</button>
-          <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="machines" onclick="showRefTab('machines')">🛠️ Machines</button>
-          <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="parametres" onclick="showRefTab('parametres')">⚙️ Jeux & tolérances</button>
+        <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1 items-center justify-between">
+          <div class="flex flex-wrap gap-1">
+            <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold active" data-reftab="series" onclick="showRefTab('series')">🧵 Séries aluminium</button>
+            <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="profils" onclick="showRefTab('profils')">📐 Profils</button>
+            <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="vitrages" onclick="showRefTab('vitrages')">🪟 Vitrages</button>
+            <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="quincaillerie" onclick="showRefTab('quincaillerie')">🔩 Quincaillerie</button>
+            <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="joints" onclick="showRefTab('joints')">➰ Joints</button>
+            <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="consommables" onclick="showRefTab('consommables')">🧪 Consommables</button>
+            <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="machines" onclick="showRefTab('machines')">🛠️ Machines</button>
+            <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="parametres" onclick="showRefTab('parametres')">⚙️ Jeux & tolérances</button>
+          </div>
+          <button onclick="openCsvImport()" class="border border-teal-600 text-teal-600 px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap">📥 Importer CSV</button>
         </div>
 
         <div id="refSeries" class="ref-tab">
@@ -1133,6 +1136,10 @@ window.SANIX_CFG = {
 
 <div id="prixFournisseursModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
   <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[85vh] overflow-y-auto" id="prixFournisseursContent"></div>
+</div>
+
+<div id="csvImportModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto" id="csvImportContent"></div>
 </div>
 
 <script>
@@ -2854,6 +2861,241 @@ async function renderGenericRefTable(key){
 async function renderGenericRef(key){
   if(!document.getElementById('refGenericBody_'+key)) renderGenericRefForm(key);
   await renderGenericRefTable(key);
+}
+
+/* =========================================================
+   Import CSV — Référentiel technique (Séries, Profils,
+   Vitrages, Quincaillerie, Joints, Consommables, Machines)
+   ========================================================= */
+let csvImportState = null;
+
+function csvImportableDefs(){
+  const defs = {
+    series:{store:'series',label:'Séries aluminium',prefix:'ser',render:renderSeriesTable,
+      fields:[
+        {id:'code',label:'Code',required:true},
+        {id:'designation',label:'Désignation',required:true},
+        {id:'fabricant',label:'Fabricant'},
+        {id:'type',label:'Type',type:'select',options:['Coulissant','Battante','Façade','Économique','Standard','Premium','Spéciale'],default:'Standard'},
+        {id:'epaisseur',label:'Épaisseur (mm)',type:'number'},
+        {id:'largeurDormant',label:'Largeur dormant (mm)',type:'number'},
+        {id:'longueurBarre',label:'Longueur barre (mm)',type:'number',default:6000},
+        {id:'couleur',label:'Couleur'},
+        {id:'prixRef',label:'Prix référence (FCFA/ml)',type:'number'},
+        {id:'statut',label:'Statut',type:'select',options:['actif','inactif'],default:'actif'}
+      ]
+    },
+    profils:{store:'profils',label:'Profils aluminium',prefix:'pro',render:renderProfilsTable,
+      fields:[
+        {id:'code',label:'Code',required:true},
+        {id:'designation',label:'Désignation',required:true},
+        {id:'serie',label:'Série (code)'},
+        {id:'type',label:'Type',type:'select',options:['Dormant','Ouvrant','Montant','Traverse','Meneau','Parclose','Rail','Couvre-joint','Seuil','Renfort','Profil de liaison'],default:'Dormant'},
+        {id:'poidsMl',label:'Poids/ml (kg)',type:'number'},
+        {id:'longueurComm',label:'Longueur commerciale (mm)',type:'number',default:6000},
+        {id:'prixMl',label:'Prix/ml (FCFA)',type:'number'},
+        {id:'couleur',label:'Couleur'},
+        {id:'alliage',label:'Alliage'},
+        {id:'fournisseur',label:'Fournisseur'},
+        {id:'stock',label:'Stock (ml)',type:'number'},
+        {id:'stockMin',label:'Stock minimum (ml)',type:'number'},
+        {id:'emplacement',label:'Emplacement'},
+        {id:'toleranceCoupe',label:'Tolérance coupe (mm)',type:'number',default:1},
+        {id:'coefPerte',label:'Coefficient perte',type:'number',default:1.02},
+        {id:'statut',label:'Statut',type:'select',options:['actif','inactif'],default:'actif'}
+      ]
+    }
+  };
+  Object.keys(REF_DEFS).forEach(k=>{
+    defs[k]={store:REF_DEFS[k].store,label:REF_DEFS[k].label,prefix:REF_DEFS[k].prefix,render:()=>renderGenericRefTable(k),fields:REF_DEFS[k].fields};
+  });
+  return defs;
+}
+
+function normKey(s){
+  return String(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
+}
+function cleanLabel(label){ return String(label||'').replace(/\(.*?\)/g,'').trim(); }
+
+function parseCsvText(text){
+  text=String(text||'').replace(/^\uFEFF/,'');
+  const firstLine=(text.split(/\r\n|\n/)[0]||'');
+  const delim=(firstLine.split(';').length>firstLine.split(',').length)?';':',';
+  const rows=[]; let row=[],field='',inQ=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(inQ){
+      if(c==='"'){ if(text[i+1]==='"'){ field+='"'; i++; } else inQ=false; }
+      else field+=c;
+    } else {
+      if(c==='"') inQ=true;
+      else if(c===delim){ row.push(field); field=''; }
+      else if(c==='\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+      else if(c==='\r'){ /* ignoré */ }
+      else field+=c;
+    }
+  }
+  if(field!==''||row.length){ row.push(field); rows.push(row); }
+  return rows.filter(r=>r.some(c=>String(c).trim()!==''));
+}
+
+function parseNum(v,def){
+  if(v===undefined||v===null||String(v).trim()==='') return def??0;
+  const s=String(v).trim().replace(/\s/g,'').replace(',', '.');
+  const n=parseFloat(s);
+  return isNaN(n)?(def??0):n;
+}
+function matchSelect(v,f){
+  if(v===undefined||v===null||String(v).trim()==='') return f.default||f.options[0];
+  const nv=normKey(v);
+  const found=f.options.find(o=>normKey(o)===nv);
+  return found||(f.default||f.options[0]);
+}
+
+function openCsvImport(){
+  if(!hasRole('referentiel:manage')){ alert('Permission refusée.'); return; }
+  csvImportState=null;
+  const activeBtn=document.querySelector('.ref-tab-btn.active');
+  const defs=csvImportableDefs();
+  const activeKey=(activeBtn && defs[activeBtn.dataset.reftab])?activeBtn.dataset.reftab:'series';
+  document.getElementById('csvImportContent').innerHTML=csvImportFormHtml(activeKey,defs);
+  document.getElementById('csvImportModal').classList.remove('hidden');
+}
+function closeCsvImport(){
+  document.getElementById('csvImportModal').classList.add('hidden');
+  csvImportState=null;
+}
+function csvImportFormHtml(activeKey,defs){
+  const options=Object.keys(defs).map(k=>`<option value="${k}" ${k===activeKey?'selected':''}>${escapeHtml(defs[k].label)}</option>`).join('');
+  return `
+    <div class="flex justify-between items-start mb-4">
+      <div><h2 class="text-lg font-bold">📥 Import CSV — Référentiel technique</h2><p class="text-sm text-slate-500">Ajoutez ou mettez à jour en masse les fiches d'un référentiel.</p></div>
+      <button onclick="closeCsvImport()" class="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
+    </div>
+    <div class="grid sm:grid-cols-2 gap-3 mb-3">
+      <label class="text-sm font-semibold block">Référentiel cible
+        <select id="csvTargetKey" onchange="onCsvTargetChange()" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">${options}</select>
+      </label>
+      <label class="text-sm font-semibold block">Fichier CSV
+        <input id="csvFileInput" type="file" accept=".csv,text/csv" onchange="handleCsvFileSelected(event)" class="mt-1 w-full border rounded-lg px-3 py-1.5 text-sm bg-white">
+      </label>
+    </div>
+    <div class="flex flex-wrap items-center gap-3 mb-4">
+      <label class="text-sm flex items-center gap-2"><input id="csvUpdateExisting" type="checkbox" class="rounded"> Mettre à jour les fiches existantes (même code)</label>
+      <button type="button" onclick="downloadCsvTemplate()" class="ml-auto text-xs font-semibold border border-teal-600 text-teal-600 px-3 py-1.5 rounded-lg">⬇️ Télécharger le modèle CSV</button>
+    </div>
+    <p class="text-xs text-slate-400 mb-3">Astuce : téléchargez le modèle pour le référentiel choisi — les en-têtes de colonnes sont alors automatiquement reconnus à l'import. Séparateur accepté : virgule ou point-virgule.</p>
+    <div id="csvPreviewZone" class="text-sm text-slate-500">Sélectionnez un fichier CSV pour prévisualiser l'import.</div>
+    <div class="flex justify-end gap-2 mt-5">
+      <button type="button" onclick="closeCsvImport()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Annuler</button>
+      <button type="button" id="btnConfirmCsvImport" onclick="confirmCsvImport()" disabled class="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-semibold">Importer</button>
+    </div>`;
+}
+function onCsvTargetChange(){
+  csvImportState=null;
+  const zone=document.getElementById('csvPreviewZone');
+  if(zone) zone.innerHTML='Sélectionnez un fichier CSV pour prévisualiser l\'import.';
+  const btn=document.getElementById('btnConfirmCsvImport');
+  if(btn) btn.disabled=true;
+  const fi=document.getElementById('csvFileInput'); if(fi) fi.value='';
+}
+function downloadCsvTemplate(){
+  const key=document.getElementById('csvTargetKey').value;
+  const defs=csvImportableDefs(); const def=defs[key];
+  const headers=def.fields.map(f=>cleanLabel(f.label));
+  const example=def.fields.map(f=>{
+    if(f.id==='code') return key.toUpperCase().slice(0,3)+'-001';
+    if(f.id==='designation') return 'Exemple '+def.label.toLowerCase();
+    if(f.type==='select') return f.default||f.options[0];
+    if(f.type==='number') return String(f.default??0);
+    return '';
+  });
+  const csv=[headers,example].map(r=>r.map(v=>{
+    const s=String(v??'');
+    return /[;,"\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+  }).join(';')).join('\r\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='modele_'+key+'.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(a.href);
+}
+async function handleCsvFileSelected(e){
+  const file=e.target.files[0];
+  const zone=document.getElementById('csvPreviewZone');
+  document.getElementById('btnConfirmCsvImport').disabled=true;
+  csvImportState=null;
+  if(!file){ zone.textContent='Sélectionnez un fichier CSV pour prévisualiser l\'import.'; return; }
+  const key=document.getElementById('csvTargetKey').value;
+  const defs=csvImportableDefs(); const def=defs[key];
+  let text;
+  try{ text=await file.text(); }catch(err){ zone.innerHTML='<p class="text-red-600">Impossible de lire le fichier.</p>'; return; }
+  const rows=parseCsvText(text);
+  if(rows.length<2){ zone.innerHTML='<p class="text-red-600">Fichier vide ou sans ligne de données.</p>'; return; }
+  const header=rows[0];
+  const dataRows=rows.slice(1);
+  const colFor={};
+  def.fields.forEach(f=>{
+    const candidates=[normKey(f.id),normKey(cleanLabel(f.label))];
+    const idx=header.findIndex(h=>candidates.includes(normKey(h)));
+    if(idx>=0) colFor[f.id]=idx;
+  });
+  const missingRequired=def.fields.filter(f=>f.required && colFor[f.id]===undefined);
+  if(missingRequired.length){
+    zone.innerHTML=`<p class="text-red-600">Colonnes obligatoires introuvables dans l'en-tête : <b>${missingRequired.map(f=>escapeHtml(cleanLabel(f.label))).join(', ')}</b>. Utilisez le modèle CSV pour garantir la bonne correspondance des colonnes.</p>`;
+    return;
+  }
+  const existing=await idbGetAll(def.store);
+  const existingByCode={};
+  existing.forEach(r=>{ if(r.code) existingByCode[String(r.code).trim().toLowerCase()]=r; });
+  const updateExisting=document.getElementById('csvUpdateExisting').checked;
+  const valid=[]; const skipped=[];
+  dataRows.forEach((r,i)=>{
+    const get=fid=> colFor[fid]!==undefined ? r[colFor[fid]] : undefined;
+    const code=(get('code')||'').toString().trim();
+    const designation=(get('designation')||'').toString().trim();
+    if(!code||!designation){ skipped.push({line:i+2,reason:'Code ou désignation manquant'}); return; }
+    const existRec=existingByCode[code.toLowerCase()];
+    if(existRec && !updateExisting){ skipped.push({line:i+2,reason:'Code déjà existant ('+code+') — cochez « Mettre à jour » pour l\'écraser'}); return; }
+    const rec={ id: existRec?existRec.id:def.prefix+'_'+Date.now()+'_'+i, _modifie:new Date().toISOString() };
+    def.fields.forEach(f=>{
+      const raw=get(f.id);
+      if(f.type==='number') rec[f.id]=parseNum(raw,f.default);
+      else if(f.type==='select') rec[f.id]=matchSelect(raw,f);
+      else rec[f.id]=(raw??'').toString().trim();
+    });
+    valid.push({rec,isUpdate:!!existRec});
+  });
+  csvImportState={key,def,valid,skipped};
+  const nbUpdate=valid.filter(v=>v.isUpdate).length;
+  const nbNew=valid.length-nbUpdate;
+  let html=`<div class="border rounded-xl p-3 bg-slate-50 mb-3">
+    <div class="text-sm mb-2"><b>${valid.length}</b> ligne(s) valide(s) — ${nbNew} nouvelle(s), ${nbUpdate} mise(s) à jour${skipped.length?`, <span class="text-amber-600">${skipped.length} ignorée(s)</span>`:''}.</div>
+    ${skipped.length?`<details class="text-xs text-amber-700 mb-2"><summary class="cursor-pointer font-semibold">Voir les lignes ignorées</summary>${skipped.slice(0,20).map(s=>`Ligne ${s.line} — ${escapeHtml(s.reason)}`).join('<br>')}${skipped.length>20?'<br>…':''}</details>`:''}
+  </div>`;
+  if(valid.length){
+    const previewFields=def.fields.slice(0,6);
+    html+=`<div class="overflow-x-auto max-h-56 border rounded-xl"><table class="w-full text-xs"><thead class="bg-slate-100"><tr>${previewFields.map(f=>`<th class="text-left p-2">${escapeHtml(cleanLabel(f.label))}</th>`).join('')}</tr></thead><tbody>${valid.slice(0,8).map(v=>`<tr class="border-b">${previewFields.map(f=>`<td class="p-2">${escapeHtml(v.rec[f.id])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>${valid.length>8?`<p class="text-xs text-slate-400 mt-1">… et ${valid.length-8} autre(s) ligne(s).</p>`:''}`;
+  }
+  zone.innerHTML=html;
+  document.getElementById('btnConfirmCsvImport').disabled=!valid.length;
+}
+async function confirmCsvImport(){
+  if(!csvImportState || !csvImportState.valid.length) return;
+  if(!hasRole('referentiel:manage')){ alert('Permission refusée.'); return; }
+  const {key,def,valid}=csvImportState;
+  document.getElementById('btnConfirmCsvImport').disabled=true;
+  for(const {rec} of valid){
+    await idbPut(def.store,rec);
+    queueSync('alubom_'+def.store,rec);
+  }
+  const nbUpdate=valid.filter(v=>v.isUpdate).length;
+  const nbNew=valid.length-nbUpdate;
+  await audit('IMPORT_CSV_'+key.toUpperCase(), nbNew+' créée(s), '+nbUpdate+' mise(s) à jour depuis import CSV');
+  closeCsvImport();
+  if(typeof def.render==='function') await def.render();
+  alert('Import terminé : '+nbNew+' fiche(s) créée(s), '+nbUpdate+' mise(s) à jour.');
 }
 
 /* =========================================================
