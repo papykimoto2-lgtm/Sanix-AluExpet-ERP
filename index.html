@@ -897,8 +897,13 @@ window.SANIX_CFG = {
         <div class="card bg-white rounded-2xl p-6">
           <div class="flex flex-wrap justify-between gap-3 mb-5">
             <div><h2 class="text-lg font-bold">Clients</h2><p class="text-sm text-slate-500">Répertoire clients — particuliers ou entreprises. Utilisé pour proforma et dossiers chantier.</p></div>
+            <div class="flex items-center gap-0.5 border rounded-lg p-0.5 bg-slate-50 h-fit">
+              <button onclick="setTiersViewMode('liste')" class="tiers-view-list-btn px-3 py-1.5 rounded-md text-xs font-semibold">☰ Liste</button>
+              <button onclick="setTiersViewMode('grille')" class="tiers-view-grid-btn px-3 py-1.5 rounded-md text-xs font-semibold">🔲 Grille</button>
+            </div>
           </div>
           <form id="clientForm" onsubmit="return handleAddClient(event)" class="grid sm:grid-cols-4 gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
+            <input id="clEditId" type="hidden" value="">
             <select id="clType" onchange="toggleEntityFields('cl')" class="border rounded-lg px-2 py-1.5 text-sm">
               <option value="entreprise">Entreprise</option>
               <option value="particulier">Particulier</option>
@@ -915,9 +920,13 @@ window.SANIX_CFG = {
             <select id="clConditionsPaiement" class="border rounded-lg px-2 py-1.5 text-sm">
               <option value="comptant">Comptant</option><option value="30j">30 jours</option><option value="60j">60 jours</option><option value="acompte50">Acompte 50%</option>
             </select>
-            <button type="submit" class="sm:col-span-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter client</button>
+            <div class="sm:col-span-4 flex gap-2">
+              <button type="submit" id="clSubmitBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter client</button>
+              <button type="button" id="clCancelBtn" onclick="cancelEditClient()" class="hidden border px-4 py-1.5 rounded-lg text-sm font-semibold">Annuler</button>
+            </div>
           </form>
-          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Type</th><th class="text-left p-3">Nom</th><th class="text-left p-3">Contact</th><th class="text-left p-3">Téléphone</th><th class="text-left p-3">Ville</th><th class="text-center p-3">Chantiers</th><th class="p-3"></th></tr></thead><tbody id="clientsBody"></tbody></table></div>
+          <div class="overflow-x-auto tiers-list-view"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Type</th><th class="text-left p-3">Nom</th><th class="text-left p-3">Contact</th><th class="text-left p-3">Téléphone</th><th class="text-left p-3">Ville</th><th class="text-center p-3">Chantiers</th><th class="p-3"></th></tr></thead><tbody id="clientsBody"></tbody></table></div>
+          <div id="clientsGrid" class="tiers-grid-view hidden grid sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
         </div>
       </section>
 
@@ -925,8 +934,13 @@ window.SANIX_CFG = {
         <div class="card bg-white rounded-2xl p-6">
           <div class="flex flex-wrap justify-between gap-3 mb-5">
             <div><h2 class="text-lg font-bold">Fournisseurs</h2><p class="text-sm text-slate-500">Répertoire fournisseurs — particuliers ou entreprises. Utilisé pour les demandes d'achats et bons de commande.</p></div>
+            <div class="flex items-center gap-0.5 border rounded-lg p-0.5 bg-slate-50 h-fit">
+              <button onclick="setTiersViewMode('liste')" class="tiers-view-list-btn px-3 py-1.5 rounded-md text-xs font-semibold">☰ Liste</button>
+              <button onclick="setTiersViewMode('grille')" class="tiers-view-grid-btn px-3 py-1.5 rounded-md text-xs font-semibold">🔲 Grille</button>
+            </div>
           </div>
           <form id="fournisseurForm" onsubmit="return handleAddFournisseur(event)" class="grid sm:grid-cols-4 gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
+            <input id="foEditId" type="hidden" value="">
             <select id="foType" onchange="toggleEntityFields('fo')" class="border rounded-lg px-2 py-1.5 text-sm">
               <option value="entreprise">Entreprise</option>
               <option value="particulier">Particulier</option>
@@ -942,9 +956,13 @@ window.SANIX_CFG = {
             <input id="foAdresse" placeholder="Adresse" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
             <input id="foVille" placeholder="Ville" class="border rounded-lg px-2 py-1.5 text-sm">
             <input id="foDelaiLivraison" type="number" placeholder="Délai livraison moyen (j)" class="border rounded-lg px-2 py-1.5 text-sm">
-            <button type="submit" class="sm:col-span-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter fournisseur</button>
+            <div class="sm:col-span-4 flex gap-2">
+              <button type="submit" id="foSubmitBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter fournisseur</button>
+              <button type="button" id="foCancelBtn" onclick="cancelEditFournisseur()" class="hidden border px-4 py-1.5 rounded-lg text-sm font-semibold">Annuler</button>
+            </div>
           </form>
-          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Type</th><th class="text-left p-3">Nom</th><th class="text-left p-3">Spécialité</th><th class="text-left p-3">Téléphone</th><th class="text-left p-3">Ville</th><th class="p-3"></th></tr></thead><tbody id="fournisseursBody"></tbody></table></div>
+          <div class="overflow-x-auto tiers-list-view"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Type</th><th class="text-left p-3">Nom</th><th class="text-left p-3">Spécialité</th><th class="text-left p-3">Téléphone</th><th class="text-left p-3">Ville</th><th class="p-3"></th></tr></thead><tbody id="fournisseursBody"></tbody></table></div>
+          <div id="fournisseursGrid" class="tiers-grid-view hidden grid sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
         </div>
       </section>
 
@@ -2707,8 +2725,9 @@ async function handleAddClient(e){
   if(!hasRole('chantier:create')){ alert('Permission refusée.'); return false; }
   const nom=document.getElementById('clNom').value.trim();
   if(!nom) return false;
+  const editId=document.getElementById('clEditId').value;
   const rec={
-    id:'cl_'+Date.now(),
+    id: editId || ('cl_'+Date.now()),
     type:document.getElementById('clType').value,
     nom, contact:document.getElementById('clContact').value.trim(),
     fonction:document.getElementById('clFonction').value.trim(),
@@ -2723,25 +2742,54 @@ async function handleAddClient(e){
   };
   await idbPut('clients',rec);
   queueSync('alubom_clients',rec);
-  await audit('CREATE_CLIENT',nom);
-  document.getElementById('clientForm').reset();
-  toggleEntityFields('cl');
+  await audit(editId?'MAJ_CLIENT':'CREATE_CLIENT',nom);
+  cancelEditClient();
   await renderClientsTable();
   return false;
+}
+async function editClient(id){
+  if(!hasRole('chantier:create')){ alert('Permission refusée.'); return; }
+  const rows=await idbGetAll('clients');
+  const r=rows.find(x=>x.id===id); if(!r) return;
+  document.getElementById('clEditId').value=r.id;
+  document.getElementById('clType').value=r.type||'entreprise';
+  document.getElementById('clNom').value=r.nom||'';
+  document.getElementById('clTel').value=r.tel||'';
+  document.getElementById('clEmail').value=r.email||'';
+  document.getElementById('clContact').value=r.contact||'';
+  document.getElementById('clFonction').value=r.fonction||'';
+  document.getElementById('clRccm').value=r.rccm||'';
+  document.getElementById('clNcc').value=r.ncc||'';
+  document.getElementById('clAdresse').value=r.adresse||'';
+  document.getElementById('clVille').value=r.ville||'';
+  document.getElementById('clConditionsPaiement').value=r.conditionsPaiement||'comptant';
+  toggleEntityFields('cl');
+  document.getElementById('clSubmitBtn').textContent='✓ Enregistrer les modifications';
+  document.getElementById('clCancelBtn').classList.remove('hidden');
+  document.getElementById('clientForm').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function cancelEditClient(){
+  document.getElementById('clientForm').reset();
+  document.getElementById('clEditId').value='';
+  document.getElementById('clSubmitBtn').textContent='+ Ajouter client';
+  document.getElementById('clCancelBtn').classList.add('hidden');
+  toggleEntityFields('cl');
 }
 async function deleteClient(id){
   if(!hasRole('chantier:create')){ alert('Permission refusée.'); return; }
   if(!confirm('Supprimer ce client ?')) return;
   await idbDelete('clients',id);
   await audit('DELETE_CLIENT',id);
+  if(document.getElementById('clEditId').value===id) cancelEditClient();
   await renderClientsTable();
 }
 async function renderClientsTable(){
   const el=document.getElementById('clientsBody');
+  const grid=document.getElementById('clientsGrid');
   const dl=document.getElementById('clientsDatalist');
   const rows=(await idbGetAll('clients')).sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
+  const allChantiers=await idbGetAll('chantiers');
   if(el){
-    const allChantiers=await idbGetAll('chantiers');
     el.innerHTML = rows.length ? rows.map(r=>{
       const isEnt=r.type!=='particulier';
       const nbChantiers=allChantiers.filter(c=>chantierBelongsToClient(c,r)).length;
@@ -2752,11 +2800,28 @@ async function renderClientsTable(){
         <td class="p-3">${escapeHtml(r.tel||'')}</td>
         <td class="p-3">${escapeHtml(r.ville||'')}</td>
         <td class="p-3 text-center">${nbChantiers>0?`<span class="badge bg-blue-50 text-blue-700">${nbChantiers}</span>`:'<span class="text-slate-300">0</span>'}</td>
-        <td class="p-3 text-right" onclick="event.stopPropagation()"><button onclick="deleteClient('${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td>
+        <td class="p-3 text-right whitespace-nowrap" onclick="event.stopPropagation()"><button onclick="editClient('${r.id}')" class="text-blue-600 text-xs font-semibold mr-2">✏️ Modifier</button><button onclick="deleteClient('${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td>
       </tr>`;
     }).join('') : `<tr><td class="p-3 text-slate-400" colspan="7">Aucun client enregistré.</td></tr>`;
   }
+  if(grid){
+    grid.innerHTML = rows.length ? rows.map(r=>{
+      const isEnt=r.type!=='particulier';
+      const nbChantiers=allChantiers.filter(c=>chantierBelongsToClient(c,r)).length;
+      return `<div class="border rounded-xl p-3 bg-white shadow-sm flex flex-col cursor-pointer hover:shadow-md" onclick="openEntityDetail('clients','${r.id}')">
+        <div class="flex justify-between items-start gap-2 mb-1"><div class="font-semibold text-sm">${escapeHtml(r.nom)}</div><span class="badge bg-${isEnt?'blue':'slate'}-50 text-${isEnt?'blue':'slate'}-700">${isEnt?'🏢':'👤'}</span></div>
+        <div class="text-xs text-slate-500 space-y-0.5 flex-1">
+          <div>Contact : ${escapeHtml(r.contact||'—')}</div>
+          <div>Tél. : ${escapeHtml(r.tel||'—')}</div>
+          <div>Ville : ${escapeHtml(r.ville||'—')}</div>
+          <div>Chantiers : ${nbChantiers}</div>
+        </div>
+        <div class="flex gap-3 mt-3 pt-2 border-t" onclick="event.stopPropagation()"><button onclick="editClient('${r.id}')" class="text-blue-600 text-xs font-semibold">✏️ Modifier</button><button onclick="deleteClient('${r.id}')" class="text-red-500 text-xs font-semibold ml-auto">Supprimer</button></div>
+      </div>`;
+    }).join('') : `<div class="text-slate-400 text-sm col-span-full">Aucun client enregistré.</div>`;
+  }
   if(dl) dl.innerHTML = rows.map(r=>`<option value="${escapeHtml(r.nom)}">`).join('');
+  applyTiersViewMode();
 }
 
 /* ---------- Fournisseurs ---------- */
@@ -2765,8 +2830,9 @@ async function handleAddFournisseur(e){
   if(!hasRole('achat:create')){ alert('Permission refusée.'); return false; }
   const nom=document.getElementById('foNom').value.trim();
   if(!nom) return false;
+  const editId=document.getElementById('foEditId').value;
   const rec={
-    id:'fo_'+Date.now(),
+    id: editId || ('fo_'+Date.now()),
     type:document.getElementById('foType').value,
     nom, specialite:document.getElementById('foSpecialite').value.trim(),
     tel:document.getElementById('foTel').value.trim(),
@@ -2782,21 +2848,51 @@ async function handleAddFournisseur(e){
   };
   await idbPut('fournisseurs',rec);
   queueSync('alubom_fournisseurs',rec);
-  await audit('CREATE_FOURNISSEUR',nom);
-  document.getElementById('fournisseurForm').reset();
-  toggleEntityFields('fo');
+  await audit(editId?'MAJ_FOURNISSEUR':'CREATE_FOURNISSEUR',nom);
+  cancelEditFournisseur();
   await renderFournisseursTable();
   return false;
+}
+async function editFournisseur(id){
+  if(!hasRole('achat:create')){ alert('Permission refusée.'); return; }
+  const rows=await idbGetAll('fournisseurs');
+  const r=rows.find(x=>x.id===id); if(!r) return;
+  document.getElementById('foEditId').value=r.id;
+  document.getElementById('foType').value=r.type||'entreprise';
+  document.getElementById('foNom').value=r.nom||'';
+  document.getElementById('foSpecialite').value=r.specialite||'';
+  document.getElementById('foTel').value=r.tel||'';
+  document.getElementById('foEmail').value=r.email||'';
+  document.getElementById('foContact').value=r.contact||'';
+  document.getElementById('foFonction').value=r.fonction||'';
+  document.getElementById('foRccm').value=r.rccm||'';
+  document.getElementById('foNcc').value=r.ncc||'';
+  document.getElementById('foAdresse').value=r.adresse||'';
+  document.getElementById('foVille').value=r.ville||'';
+  document.getElementById('foDelaiLivraison').value=r.delaiLivraison||'';
+  toggleEntityFields('fo');
+  document.getElementById('foSubmitBtn').textContent='✓ Enregistrer les modifications';
+  document.getElementById('foCancelBtn').classList.remove('hidden');
+  document.getElementById('fournisseurForm').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function cancelEditFournisseur(){
+  document.getElementById('fournisseurForm').reset();
+  document.getElementById('foEditId').value='';
+  document.getElementById('foSubmitBtn').textContent='+ Ajouter fournisseur';
+  document.getElementById('foCancelBtn').classList.add('hidden');
+  toggleEntityFields('fo');
 }
 async function deleteFournisseur(id){
   if(!hasRole('achat:create')){ alert('Permission refusée.'); return; }
   if(!confirm('Supprimer ce fournisseur ?')) return;
   await idbDelete('fournisseurs',id);
   await audit('DELETE_FOURNISSEUR',id);
+  if(document.getElementById('foEditId').value===id) cancelEditFournisseur();
   await renderFournisseursTable();
 }
 async function renderFournisseursTable(){
   const el=document.getElementById('fournisseursBody');
+  const grid=document.getElementById('fournisseursGrid');
   const dl=document.getElementById('fournisseursDatalist');
   const rows=(await idbGetAll('fournisseurs')).sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
   if(el){
@@ -2808,11 +2904,45 @@ async function renderFournisseursTable(){
         <td class="p-3">${escapeHtml(r.specialite||'')}</td>
         <td class="p-3">${escapeHtml(r.tel||'')}</td>
         <td class="p-3">${escapeHtml(r.ville||'')}</td>
-        <td class="p-3 text-right" onclick="event.stopPropagation()"><button onclick="deleteFournisseur('${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td>
+        <td class="p-3 text-right whitespace-nowrap" onclick="event.stopPropagation()"><button onclick="editFournisseur('${r.id}')" class="text-blue-600 text-xs font-semibold mr-2">✏️ Modifier</button><button onclick="deleteFournisseur('${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td>
       </tr>`;
     }).join('') : `<tr><td class="p-3 text-slate-400" colspan="6">Aucun fournisseur enregistré.</td></tr>`;
   }
+  if(grid){
+    grid.innerHTML = rows.length ? rows.map(r=>{
+      const isEnt=r.type!=='particulier';
+      return `<div class="border rounded-xl p-3 bg-white shadow-sm flex flex-col cursor-pointer hover:shadow-md" onclick="openEntityDetail('fournisseurs','${r.id}')">
+        <div class="flex justify-between items-start gap-2 mb-1"><div class="font-semibold text-sm">${escapeHtml(r.nom)}</div><span class="badge bg-${isEnt?'blue':'slate'}-50 text-${isEnt?'blue':'slate'}-700">${isEnt?'🏢':'👤'}</span></div>
+        <div class="text-xs text-slate-500 space-y-0.5 flex-1">
+          <div>Spécialité : ${escapeHtml(r.specialite||'—')}</div>
+          <div>Tél. : ${escapeHtml(r.tel||'—')}</div>
+          <div>Ville : ${escapeHtml(r.ville||'—')}</div>
+        </div>
+        <div class="flex gap-3 mt-3 pt-2 border-t" onclick="event.stopPropagation()"><button onclick="editFournisseur('${r.id}')" class="text-blue-600 text-xs font-semibold">✏️ Modifier</button><button onclick="deleteFournisseur('${r.id}')" class="text-red-500 text-xs font-semibold ml-auto">Supprimer</button></div>
+      </div>`;
+    }).join('') : `<div class="text-slate-400 text-sm col-span-full">Aucun fournisseur enregistré.</div>`;
+  }
   if(dl) dl.innerHTML = rows.map(r=>`<option value="${escapeHtml(r.nom)}">`).join('');
+  applyTiersViewMode();
+}
+
+/* ---------- Bascule d'affichage Liste / Grille — Clients & Fournisseurs ---------- */
+let tiersViewMode = localStorage.getItem('sanix_tiers_view') || 'liste';
+function setTiersViewMode(mode){
+  tiersViewMode = mode;
+  localStorage.setItem('sanix_tiers_view', mode);
+  applyTiersViewMode();
+}
+function applyTiersViewMode(){
+  const isGrid = tiersViewMode==='grille';
+  document.querySelectorAll('.tiers-list-view').forEach(el=>el.classList.toggle('hidden', isGrid));
+  document.querySelectorAll('.tiers-grid-view').forEach(el=>el.classList.toggle('hidden', !isGrid));
+  document.querySelectorAll('.tiers-view-list-btn').forEach(b=>{
+    b.classList.toggle('bg-white', !isGrid); b.classList.toggle('shadow-sm', !isGrid); b.classList.toggle('text-slate-800', !isGrid); b.classList.toggle('text-slate-400', isGrid);
+  });
+  document.querySelectorAll('.tiers-view-grid-btn').forEach(b=>{
+    b.classList.toggle('bg-white', isGrid); b.classList.toggle('shadow-sm', isGrid); b.classList.toggle('text-slate-800', isGrid); b.classList.toggle('text-slate-400', !isGrid);
+  });
 }
 
 /* ---------- Fiche détail Client/Fournisseur (modale) ---------- */
