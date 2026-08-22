@@ -364,6 +364,21 @@ window.SANIX_CFG = {
                   <option value="6500">6 / 12 / 6</option><option value="8200">6 / 16 / 6</option><option value="9800">8 / 16 / 8</option>
                 </select>
               </label>
+              <label class="text-sm font-semibold">Finition
+                <select id="finition" class="mt-1 w-full border rounded-lg px-3 py-2">
+                  <option>Thermolaquage Blanc RAL9010</option><option>Thermolaquage Gris Anthracite RAL7016</option><option>Thermolaquage Noir RAL9005</option><option>Anodisé naturel</option><option>Anodisé bronze</option>
+                </select>
+              </label>
+              <label class="text-sm font-semibold">Poignée
+                <select id="poignee" class="mt-1 w-full border rounded-lg px-3 py-2">
+                  <option>Encastrée à cuvette</option><option>Poignée cuvette</option><option>Béquille aluminium</option><option>Poignée bâton</option><option>Barre anti-panique</option><option>Sans poignée</option>
+                </select>
+              </label>
+              <label class="text-sm font-semibold">Sens d'ouverture
+                <select id="sensOuverture" class="mt-1 w-full border rounded-lg px-3 py-2">
+                  <option value="coulissant">Coulissant</option><option value="gauche">Ouvrant gauche</option><option value="droite">Ouvrant droite</option><option value="interieur">Ouvrant intérieur</option><option value="exterieur">Ouvrant extérieur</option><option value="fixe">Fixe</option>
+                </select>
+              </label>
               <label class="text-sm font-semibold">Jeu périphérique (mm)
                 <input id="gap" type="number" value="5" class="mt-1 w-full border rounded-lg px-3 py-2">
               </label>
@@ -5664,6 +5679,56 @@ function generateReference(type,w,h,leaves){
   return `${code}${v}-${w}x${h}`;
 }
 
+/* ---------- Détail vitrage (coupe verre selon composition sélectionnée) ---------- */
+function buildDetailVitrageSVG(glassValue){
+  const COMPOS={'6500':[6,12,6],'8200':[6,16,6],'9800':[8,16,8]};
+  const [e1,lame,e2]=COMPOS[glassValue]||[6,12,6];
+  const scale=6, x=40, y0=20, totalH=(e1+lame+e2)*scale;
+  let y=y0;
+  const parts=[];
+  const seg=(h,fill,label)=>{ const r=`<rect x="${x}" y="${y}" width="70" height="${h}" fill="${fill}" stroke="#0f172a" stroke-width="1"/><text x="${x+80}" y="${y+h/2+4}" font-size="12" fill="#334155">${label}</text>`; y+=h; return r; };
+  parts.push(seg(e1*scale,'#bfdbfe',`Verre ${e1} mm`));
+  parts.push(seg(lame*scale,'#f0f9ff',`Lame d'air ${lame} mm (Argon)`));
+  parts.push(seg(e2*scale,'#bfdbfe',`Verre ${e2} mm`));
+  return `<svg viewBox="0 0 320 ${totalH+40}" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+    ${parts.join('')}
+    <line x1="${x}" y1="${y+10}" x2="${x+70}" y2="${y+10}" stroke="#334155" marker-start="url(#dvArrow)" marker-end="url(#dvArrow)"/>
+    <text x="${x+35}" y="${y+26}" text-anchor="middle" font-size="12" font-weight="700">${e1+lame+e2} mm</text>
+    <defs><marker id="dvArrow" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#334155"/></marker></defs>
+  </svg>`;
+}
+
+/* ---------- Ouverture / Fermeture (état ouvert vs fermé) ---------- */
+function buildOuvertureFermetureSVG(type,leaves,sensOuverture){
+  const isCoulissant = /coulissant/i.test(type) || sensOuverture==='coulissant';
+  const frame=(open)=>{
+    const vantauxHtml=[];
+    const n=Math.max(1,leaves||2);
+    const vw=180/n;
+    for(let i=0;i<n;i++){
+      const vx=10+i*vw;
+      const shift = open ? (isCoulissant ? (i%2===0?-14:14) : 0) : 0;
+      vantauxHtml.push(`<rect x="${vx+shift}" y="10" width="${vw-3}" height="130" fill="#dbeafe" stroke="#0f172a" stroke-width="3"/>`);
+      if(open && !isCoulissant){
+        const cx=i%2===0?vx+shift:vx+vw+shift;
+        const cx2=i%2===0?vx+vw+shift:vx+shift;
+        vantauxHtml.push(`<line x1="${cx}" y1="10" x2="${cx2}" y2="75" stroke="#334155" stroke-dasharray="4,3"/>`);
+        vantauxHtml.push(`<line x1="${cx}" y1="140" x2="${cx2}" y2="75" stroke="#334155" stroke-dasharray="4,3"/>`);
+      }
+    }
+    if(open && isCoulissant){
+      vantauxHtml.push(`<line x1="100" y1="0" x2="130" y2="0" stroke="#0f172a" marker-end="url(#ofArrow)"/>`);
+      vantauxHtml.push(`<line x1="100" y1="0" x2="70" y2="0" stroke="#0f172a" marker-end="url(#ofArrow)"/>`);
+    }
+    return `<svg viewBox="-10 -15 220 165" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="ofArrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#0f172a"/></marker></defs>
+      <rect x="5" y="5" width="190" height="140" fill="none" stroke="#0f172a" stroke-width="6"/>
+      ${vantauxHtml.join('')}
+    </svg>`;
+  };
+  return {ferme:frame(false), ouvert:frame(true)};
+}
+
 function printFicheTechnique(autoPrint=true){
   const win=window.open('','_blank','width=1200,height=900');
   if(!win){ alert("Fenêtre bloquée par le navigateur. Autorisez les pop-ups pour ce site."); return; }
@@ -5674,18 +5739,28 @@ function printFicheTechnique(autoPrint=true){
   const w=+document.getElementById('width').value||0;
   const h=+document.getElementById('height').value||0;
   const leaves=+document.getElementById('leaves').value||1;
-  const serie=document.getElementById('serie').selectedOptions[0]?.text||'';
+  const serieOpt=document.getElementById('serie').selectedOptions[0];
+  const serie=serieOpt?.text||'';
+  const glassVal=document.getElementById('glass')?.value||'6500';
+  const glassLabel=document.getElementById('glass')?.selectedOptions[0]?.text||'';
+  const finition=document.getElementById('finition')?.value||'—';
+  const poignee=document.getElementById('poignee')?.value||'—';
+  const sensOuvertureVal=document.getElementById('sensOuverture')?.value||'coulissant';
+  const sensOuvertureLabel=document.getElementById('sensOuverture')?.selectedOptions[0]?.text||'';
+  const gap=document.getElementById('gap')?.value||5;
+  const atelierNom=document.getElementById('atelier')?.selectedOptions[0]?.dataset.nom||'';
   const ref=generateReference(type,w,h,leaves);
   const dateStr=new Date().toLocaleDateString('fr-FR');
   const dessinePar=currentUser?currentUser.email:'Bureau d\'Études';
-  const infoLine1=document.getElementById('schemaLabel')?.textContent.trim()||'';
-  const infoLine2=document.getElementById('fabOpeningLabel')?.textContent.trim()||'';
+  const hasLeavesField = document.getElementById('leavesField') && !document.getElementById('leavesField').classList.contains('hidden');
 
   const techSVG=document.getElementById('technicalDrawing')?.outerHTML||'';
   const fabSVG=document.getElementById('fabricationPlan')?.outerHTML||'';
   const jointSVG=document.getElementById('jointDetail')?.outerHTML||'';
   const bomHTML=document.getElementById('bomBody')?.innerHTML||'';
   const cutHTML=document.getElementById('cutPlan')?.innerHTML||'<p style="color:#94a3b8">Lancez l\'optimisation de débit (onglet Débit) avant impression.</p>';
+  const detailVitrageSVG=buildDetailVitrageSVG(glassVal);
+  const ofSVG=buildOuvertureFermetureSVG(type,leaves,sensOuvertureVal);
 
   const rows=window.lastBOMRows||[];
   const accessoires=rows.filter(r=>CONSUMABLE_KEYWORDS.some(k=>String(r[1]).toLowerCase().includes(k)));
@@ -5700,53 +5775,69 @@ function printFicheTechnique(autoPrint=true){
   win.document.write(`
   <html><head><title>Fiche technique — ${escapeHtml(ref)}</title>
   <style>
-    @page{size:A3 landscape;margin:12mm}
-    body{font-family:Arial,sans-serif;color:#0f172a;font-size:12px}
+    @page{size:A3 landscape;margin:10mm}
+    body{font-family:Arial,sans-serif;color:#0f172a;font-size:11.5px}
     table{width:100%;border-collapse:collapse;font-size:11px}
     th,td{border:1px solid #cbd5e1;padding:5px 8px;text-align:left}
-    th{background:#f1f5f9}
+    th{background:#1d4ed8;color:#fff;font-size:10px;text-transform:uppercase}
     td.right,th.right{text-align:right}
-    svg{width:100%;height:auto;border:1px solid #cbd5e1;border-radius:4px}
-    .cartouche{display:flex;align-items:center;gap:16px;border:2px solid #0f172a;padding:10px 16px;margin-bottom:10px}
-    .cartouche .logo{font-weight:900;font-size:22px;color:#1d4ed8;letter-spacing:1px}
-    .cartouche .title{flex:1}
-    .cartouche h1{font-size:18px;margin:0;font-weight:800}
-    .cartouche h2{font-size:12px;margin:2px 0 0;font-weight:600;color:#475569}
-    .meta{font-size:10px}
-    .meta td{padding:2px 8px;border:0;border-bottom:1px solid #e2e8f0}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+    svg{width:100%;height:auto;border:1px solid #cbd5e1;border-radius:4px;background:#fff}
+    .headband{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0f172a;padding-bottom:8px;margin-bottom:10px}
+    .headband h1{font-size:22px;margin:0;font-weight:900;letter-spacing:0.5px}
+    .headband .sub{font-size:11px;color:#1d4ed8;font-weight:700;margin-top:2px}
+    .infobox{border:2px solid #0f172a;border-radius:4px;min-width:340px}
+    .infobox .ib-title{background:#0f172a;color:#fff;font-size:11px;font-weight:800;padding:5px 10px;text-transform:uppercase}
+    .infobox table{border:0}
+    .infobox td{border:0;border-bottom:1px solid #e2e8f0;padding:3px 10px;font-size:10.5px}
+    .infobox td.lbl{color:#64748b;width:48%}
+    .infobox td.val{font-weight:700}
+    .grid2{display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-bottom:10px}
+    .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
     .panel{border:1px solid #cbd5e1;border-radius:6px;padding:8px}
-    .panel h3{font-size:12px;margin:0 0 6px;font-weight:800;color:#1d4ed8;text-transform:uppercase}
-    .footer-block{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border:1px solid #0f172a;margin-top:10px;font-size:10px}
-    .footer-block div{border-right:1px solid #0f172a;padding:6px 10px}
-    .footer-block div:last-child{border-right:0}
-    .footer-block b{display:block;font-size:9px;color:#64748b;text-transform:uppercase}
+    .panel h3{font-size:11.5px;margin:0 0 6px;font-weight:800;color:#1d4ed8;text-transform:uppercase;border-bottom:2px solid #1d4ed8;padding-bottom:4px}
+    .of-pair{display:flex;gap:8px}
+    .of-pair div{flex:1;text-align:center}
+    .of-pair span{display:block;font-size:9.5px;font-weight:700;color:#475569;margin-top:2px}
+    .cartoucheBottom{display:grid;grid-template-columns:1.3fr 1fr;gap:10px}
+    .cartField{border:1px solid #0f172a;padding:5px 10px}
+    .cartField b{display:block;font-size:8.5px;color:#64748b;text-transform:uppercase}
+    .cartGrid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:2px solid #0f172a}
+    .cartGrid>div{border-right:1px solid #0f172a;border-bottom:1px solid #0f172a}
+    .cartGrid>div:nth-child(2n){border-right:0}
+    .notesBox{border:2px solid #0f172a;padding:8px 10px;font-size:9.5px}
+    .notesBox b{display:block;margin-bottom:4px;color:#1d4ed8;text-transform:uppercase;font-size:10px}
+    .notesBox ul{margin:0;padding-left:16px}
     @media print{.no-print{display:none}}
   </style></head><body>
 
-  ${autoPrint?'':`<div class="no-print" style="position:sticky;top:0;background:#0f172a;padding:10px 16px;margin:-12mm -12mm 12px;display:flex;justify-content:space-between;align-items:center">
+  ${autoPrint?'':`<div class="no-print" style="position:sticky;top:0;background:#0f172a;padding:10px 16px;margin:-10mm -10mm 12px;display:flex;justify-content:space-between;align-items:center">
     <span style="color:#fff;font-size:13px;font-weight:600">👁️ Aperçu avant impression</span>
     <button onclick="window.print()" style="background:#2563eb;color:#fff;border:0;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">🖨️ Imprimer</button>
   </div>`}
 
-  <div class="cartouche">
-    <div class="logo">SANIX<br><span style="font-size:9px;color:#64748b;letter-spacing:2px">FACTORY</span></div>
-    <div class="title">
-      <h1>${escapeHtml(type.toUpperCase())} — ${w} × ${h} mm</h1>
-      <h2>${escapeHtml(serie)} • ${escapeHtml(infoLine1)}</h2>
+  <div class="headband">
+    <div>
+      <h1>${escapeHtml(type.toUpperCase())}${hasLeavesField?` — ${leaves} VANTAUX`:''} — ${escapeHtml(serie.toUpperCase())}</h1>
+      <div class="sub">Réf. ${escapeHtml(ref)} ${atelierNom?'• '+escapeHtml(atelierNom):''}</div>
     </div>
-    <table class="meta" style="width:auto">
-      <tr><td><b>Référence</b></td><td>${escapeHtml(ref)}</td></tr>
-      <tr><td><b>Date</b></td><td>${dateStr}</td></tr>
-      <tr><td><b>Dessiné par</b></td><td>${escapeHtml(dessinePar)}</td></tr>
-      <tr><td><b>Échelle</b></td><td>1:2 / 1:1</td></tr>
-      <tr><td><b>Format</b></td><td>A3</td></tr>
-      <tr><td><b>Unité</b></td><td>mm</td></tr>
-    </table>
+    <div class="infobox">
+      <div class="ib-title">Informations ouvrage</div>
+      <table>
+        <tr><td class="lbl">Type d'ouvrage</td><td class="val">${escapeHtml(type)}</td></tr>
+        <tr><td class="lbl">Série aluminium</td><td class="val">${escapeHtml(serie)}</td></tr>
+        <tr><td class="lbl">Dimensions (L × H)</td><td class="val">${w} × ${h} mm</td></tr>
+        ${hasLeavesField?`<tr><td class="lbl">Nombre de vantaux</td><td class="val">${leaves}</td></tr>`:''}
+        <tr><td class="lbl">Type de vitrage</td><td class="val">Double vitrage ${escapeHtml(glassLabel)}</td></tr>
+        <tr><td class="lbl">Finition</td><td class="val">${escapeHtml(finition)}</td></tr>
+        <tr><td class="lbl">Poignée</td><td class="val">${escapeHtml(poignee)}</td></tr>
+        <tr><td class="lbl">Sens d'ouverture</td><td class="val">${escapeHtml(sensOuvertureLabel)}</td></tr>
+        <tr><td class="lbl">Jeu périphérique</td><td class="val">${gap} mm</td></tr>
+      </table>
+    </div>
   </div>
 
   <div class="grid2">
-    <div class="panel"><h3>1. Vue de face</h3>${techSVG}</div>
+    <div class="panel"><h3>Vue de face — intérieur</h3>${techSVG}</div>
     <div class="panel">
       <h3>Nomenclature principale</h3>
       <table><thead><tr><th>Code</th><th>Désignation</th><th class="right">Qté</th><th class="right">Longueur</th><th class="right">Coût</th></tr></thead>
@@ -5754,36 +5845,48 @@ function printFicheTechnique(autoPrint=true){
     </div>
   </div>
 
-  <div class="panel" style="margin-bottom:10px"><h3>2. Plan de fabrication / coupes</h3>${fabSVG}</div>
+  <div class="panel" style="margin-bottom:10px"><h3>Coupes A-A / B-B — Plan de fabrication</h3>${fabSVG}</div>
 
-  <div class="grid2">
-    <div class="panel"><h3>3. Détail jonction d'angle</h3>${jointSVG}</div>
-    <div class="panel">
-      <h3>Informations ouvrage</h3>
-      <table>
-        <tr><td><b>Type d'ouvrage</b></td><td>${escapeHtml(type)}</td></tr>
-        <tr><td><b>Série aluminium</b></td><td>${escapeHtml(serie)}</td></tr>
-        <tr><td><b>Dimensions (L × H)</b></td><td>${w} × ${h} mm</td></tr>
-        <tr><td><b>Paramètres</b></td><td>${escapeHtml(infoLine1)}</td></tr>
-        <tr><td><b>Fonctionnement</b></td><td>${escapeHtml(infoLine2)}</td></tr>
-        <tr><td><b>Jeu périphérique</b></td><td>5 mm</td></tr>
-      </table>
+  <div class="grid3">
+    <div class="panel"><h3>Détail jonction d'angle</h3>${jointSVG}</div>
+    <div class="panel"><h3>Détail vitrage</h3>${detailVitrageSVG}</div>
+    <div class="panel"><h3>Ouverture / Fermeture</h3>
+      <div class="of-pair">
+        <div>${ofSVG.ferme}<span>Fermé (vue intérieure)</span></div>
+        <div>${ofSVG.ouvert}<span>Ouvert (vue intérieure)</span></div>
+      </div>
     </div>
   </div>
 
-  <div class="panel" style="margin-bottom:10px"><h3>7. Plan de débit aluminium (barre 6000 mm)</h3>${cutHTML}</div>
+  <div class="panel" style="margin-bottom:10px"><h3>Plan de débit aluminium (barre 6000 mm)</h3>${cutHTML}</div>
 
-  <div class="panel"><h3>8. Accessoires & consommables</h3>
+  <div class="panel" style="margin-bottom:10px"><h3>Accessoires & consommables</h3>
     <table><thead><tr><th>Code</th><th>Désignation</th><th class="right">Qté</th><th class="right">Montant</th></tr></thead>
     <tbody>${accessoiresHTML}</tbody></table>
   </div>
 
-  <div class="footer-block">
-    <div><b>Projet</b>${escapeHtml(projet)}</div>
-    <div><b>Client</b>${escapeHtml(client)}</div>
-    <div><b>Référence</b>${escapeHtml(ref)}</div>
-    <div><b>Vérifié par</b>&nbsp;</div>
-    <div><b>Approuvé par / Version</b>&nbsp;&nbsp;1.0</div>
+  <div class="cartoucheBottom">
+    <div class="cartGrid">
+      <div class="cartField"><b>Projet</b>${escapeHtml(projet)}</div>
+      <div class="cartField"><b>Client</b>${escapeHtml(client)}</div>
+      <div class="cartField"><b>Référence</b>${escapeHtml(ref)}</div>
+      <div class="cartField"><b>Date</b>${dateStr}</div>
+      <div class="cartField"><b>Dessiné par</b>${escapeHtml(dessinePar)}</div>
+      <div class="cartField"><b>Vérifié par</b>&nbsp;</div>
+      <div class="cartField"><b>Échelle</b>Indiquée</div>
+      <div class="cartField"><b>Format</b>A3</div>
+      <div class="cartField"><b>Version</b>1.0</div>
+      <div class="cartField"><b>Unité</b>mm</div>
+    </div>
+    <div class="notesBox">
+      <b>Notes générales</b>
+      <ul>
+        <li>Toutes les dimensions sont en mm.</li>
+        <li>Tolérances générales ± 1 mm.</li>
+        <li>Vérifier toutes les dimensions sur site avant fabrication.</li>
+        <li>Respecter le sens d'ouverture indiqué.</li>
+      </ul>
+    </div>
   </div>
 
   </body></html>`);
