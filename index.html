@@ -911,7 +911,7 @@ window.SANIX_CFG = {
             </select>
             <button type="submit" class="sm:col-span-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter client</button>
           </form>
-          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Type</th><th class="text-left p-3">Nom</th><th class="text-left p-3">Contact</th><th class="text-left p-3">Téléphone</th><th class="text-left p-3">Ville</th><th class="p-3"></th></tr></thead><tbody id="clientsBody"></tbody></table></div>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Type</th><th class="text-left p-3">Nom</th><th class="text-left p-3">Contact</th><th class="text-left p-3">Téléphone</th><th class="text-left p-3">Ville</th><th class="text-center p-3">Chantiers</th><th class="p-3"></th></tr></thead><tbody id="clientsBody"></tbody></table></div>
         </div>
       </section>
 
@@ -2359,11 +2359,12 @@ async function createChantierFromProforma(){
   if(!numeroDevis){ alert("Générez d'abord une proforma (page Chiffrage → Générer la proforma)."); return; }
   const client=document.getElementById('proClient')?.value||'Client à renseigner';
   const contact=document.getElementById('proContact')?.value||'';
+  const clientId=await resolveOrCreateClient(client,contact);
   const montantTotal=parseMoney(document.getElementById('proTotal')?.textContent);
   const seq=nextSeq('chantier');
   const numero='CH-'+seq.year+'-'+String(seq.n).padStart(4,'0');
   const rec={
-    id:numero, numero, devisNumero:numeroDevis, client, contact,
+    id:numero, numero, devisNumero:numeroDevis, client, clientId, contact,
     montantTotal, montantPaye:0, etape:'devis',
     lignes:JSON.parse(JSON.stringify(proformaCart)),
     historique:[{etape:'devis',date:new Date().toISOString(),user:currentUser?currentUser.email:'—'}],
@@ -2385,7 +2386,7 @@ async function renderChantierList(){
     const label=CHANTIER_STAGES.find(s=>s.key===r.etape)?.label||r.etape;
     return `<tr class="border-b hover:bg-slate-50 cursor-pointer" onclick="openChantierDetail('${r.id}')">
       <td class="p-3 font-semibold">${escapeHtml(r.numero)}</td>
-      <td class="p-3">${escapeHtml(r.client)}</td>
+      <td class="p-3">${r.clientId?`<button onclick="event.stopPropagation();openEntityDetail('clients','${r.clientId}')" class="text-blue-600 hover:underline">${escapeHtml(r.client)}</button>`:escapeHtml(r.client)}</td>
       <td class="p-3"><span class="badge bg-${c}-50 text-${c}-700">${escapeHtml(label)}</span></td>
       <td class="p-3 text-right">${money(r.montantTotal)}</td>
       <td class="p-3 text-right">${money(r.montantPaye)}</td>
@@ -2581,6 +2582,31 @@ function toggleEntityFields(prefix){
   document.querySelectorAll('.'+prefix+'-entreprise').forEach(el=>el.classList.toggle('hidden',!isEntreprise));
 }
 
+/* ---------- Relation Client → Chantiers (un client peut avoir plusieurs chantiers) ---------- */
+function chantierBelongsToClient(chantier,client){
+  return chantier.clientId===client.id || (!chantier.clientId && (chantier.client||'').trim().toLowerCase()===(client.nom||'').trim().toLowerCase());
+}
+async function getChantiersForClient(client){
+  const all=await idbGetAll('chantiers');
+  return all.filter(c=>chantierBelongsToClient(c,client)).sort((a,b)=>b.dateCreation.localeCompare(a.dateCreation));
+}
+async function resolveOrCreateClient(nom,contact){
+  nom=(nom||'').trim();
+  if(!nom) return null;
+  const rows=await idbGetAll('clients');
+  const existing=rows.find(r=>(r.nom||'').trim().toLowerCase()===nom.toLowerCase());
+  if(existing) return existing.id;
+  const rec={
+    id:'cl_'+Date.now(),type:'entreprise',nom,contact:contact||'',fonction:'',tel:'',email:'',
+    rccm:'',ncc:'',adresse:'',ville:'',conditionsPaiement:'comptant',_modifie:new Date().toISOString()
+  };
+  await idbPut('clients',rec);
+  queueSync('alubom_clients',rec);
+  await audit('CREATE_CLIENT_AUTO','Créé automatiquement depuis un dossier chantier : '+nom);
+  await renderClientsTable();
+  return rec.id;
+}
+
 async function handleAddClient(e){
   e.preventDefault();
   if(!hasRole('chantier:create')){ alert('Permission refusée.'); return false; }
@@ -2620,17 +2646,20 @@ async function renderClientsTable(){
   const dl=document.getElementById('clientsDatalist');
   const rows=(await idbGetAll('clients')).sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
   if(el){
+    const allChantiers=await idbGetAll('chantiers');
     el.innerHTML = rows.length ? rows.map(r=>{
       const isEnt=r.type!=='particulier';
+      const nbChantiers=allChantiers.filter(c=>chantierBelongsToClient(c,r)).length;
       return `<tr class="border-b hover:bg-slate-50 cursor-pointer" onclick="openEntityDetail('clients','${r.id}')">
         <td class="p-3"><span class="badge bg-${isEnt?'blue':'slate'}-50 text-${isEnt?'blue':'slate'}-700">${isEnt?'🏢 Entreprise':'👤 Particulier'}</span></td>
         <td class="p-3 font-semibold">${escapeHtml(r.nom)}</td>
         <td class="p-3">${escapeHtml(r.contact||'')}</td>
         <td class="p-3">${escapeHtml(r.tel||'')}</td>
         <td class="p-3">${escapeHtml(r.ville||'')}</td>
+        <td class="p-3 text-center">${nbChantiers>0?`<span class="badge bg-blue-50 text-blue-700">${nbChantiers}</span>`:'<span class="text-slate-300">0</span>'}</td>
         <td class="p-3 text-right" onclick="event.stopPropagation()"><button onclick="deleteClient('${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td>
       </tr>`;
-    }).join('') : `<tr><td class="p-3 text-slate-400" colspan="6">Aucun client enregistré.</td></tr>`;
+    }).join('') : `<tr><td class="p-3 text-slate-400" colspan="7">Aucun client enregistré.</td></tr>`;
   }
   if(dl) dl.innerHTML = rows.map(r=>`<option value="${escapeHtml(r.nom)}">`).join('');
 }
@@ -2700,6 +2729,23 @@ async function openEntityDetail(kind,id){
   const content=document.getElementById('prixFournisseursContent');
   modal.classList.remove('hidden');
   const isClient=kind==='clients';
+  let chantiersHtml='';
+  if(isClient){
+    const chantiers=await getChantiersForClient(rec);
+    chantiersHtml=`
+    <div class="mt-5 pt-4 border-t">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="font-bold text-sm text-slate-700">🏗️ Chantiers (${chantiers.length})</h3>
+      </div>
+      ${chantiers.length?`<div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Dossier</th><th class="text-left p-2">Étape</th><th class="text-right p-2">Montant</th><th class="text-right p-2">Payé</th><th class="p-2"></th></tr></thead><tbody>
+        ${chantiers.map(c=>{
+          const color=CHANTIER_STAGE_COLOR[c.etape]||'slate';
+          const label=CHANTIER_STAGES.find(s=>s.key===c.etape)?.label||c.etape;
+          return `<tr class="border-b"><td class="p-2 font-semibold">${escapeHtml(c.numero)}</td><td class="p-2"><span class="badge bg-${color}-50 text-${color}-700">${escapeHtml(label)}</span></td><td class="p-2 text-right">${money(c.montantTotal)}</td><td class="p-2 text-right">${money(c.montantPaye)}</td><td class="p-2 text-right"><button onclick="closePrixFournisseurs();showPage('chantier');openChantierDetail('${c.id}')" class="text-blue-600 text-xs font-semibold">Ouvrir →</button></td></tr>`;
+        }).join('')}
+      </tbody></table></div>`:'<p class="text-sm text-slate-400">Aucun chantier pour ce client.</p>'}
+    </div>`;
+  }
   content.innerHTML=`
     <div class="flex justify-between items-start mb-4">
       <div><h2 class="text-lg font-bold">${isEnt?'🏢':'👤'} ${escapeHtml(rec.nom)}</h2><p class="text-sm text-slate-500">${isEnt?'Entreprise':'Particulier'} — ${isClient?'Client':'Fournisseur'}</p></div>
@@ -2717,6 +2763,7 @@ async function openEntityDetail(kind,id){
         :`<div><span class="text-xs text-slate-400 block">Spécialité</span>${escapeHtml(rec.specialite||'—')}</div>
       <div><span class="text-xs text-slate-400 block">Délai livraison moyen</span>${rec.delaiLivraison?rec.delaiLivraison+' jours':'—'}</div>`}
     </div>
+    ${chantiersHtml}
     <div class="mt-5 pt-4 border-t flex justify-end">
       <button onclick="closePrixFournisseurs()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Fermer</button>
     </div>`;
