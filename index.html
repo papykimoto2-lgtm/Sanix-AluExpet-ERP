@@ -33,6 +33,9 @@ window.SANIX_CFG = {
   .ref-tab-btn{color:#475569;background:transparent}
   .ref-tab-btn:hover{background:#f1f5f9}
   .ref-tab-btn.active{background:#2563eb;color:#fff}
+  .cat-tab-btn{color:#475569;background:transparent}
+  .cat-tab-btn:hover{background:#f1f5f9}
+  .cat-tab-btn.active{background:#2563eb;color:#fff}
   @media (max-width:767px){
     .sidebar{position:fixed;inset:0 25% 0 0;z-index:40;transform:translateX(-100%);transition:transform .25s ease;overflow-y:auto;display:block!important}
     .sidebar.open{transform:translateX(0)}
@@ -77,6 +80,7 @@ window.SANIX_CFG = {
 
       <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">1 · Fondations</div>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="referentiel">📚 Référentiel technique</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="catalogue">📖 Catalogue technique</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="clients">👤 Clients</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="fournisseurs">🏭 Fournisseurs</button>
 
@@ -1052,10 +1056,51 @@ window.SANIX_CFG = {
           <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Email</th><th class="text-left p-3">Rôle</th><th class="p-3"></th></tr></thead><tbody id="usersBody"></tbody></table></div>
         </div>
       </section>
+
+      <section id="catalogue" class="page hidden">
+        <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1 items-center justify-between">
+          <div class="flex flex-wrap gap-1">
+            <button class="cat-tab-btn px-4 py-2 rounded-lg text-sm font-semibold active" data-cattab="finis" onclick="showCatalogueTab('finis')">📦 Produits finis</button>
+            <button class="cat-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-cattab="matiere" onclick="showCatalogueTab('matiere')">🧱 Matière première</button>
+            <button class="cat-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-cattab="consommables" onclick="showCatalogueTab('consommables')">🧪 Consommables</button>
+          </div>
+          <button onclick="printCatalogue()" class="border px-4 py-2 rounded-lg text-sm font-semibold">🖨 Imprimer le catalogue</button>
+        </div>
+
+        <div id="catFinis" class="cat-tab">
+          <div class="mb-3 text-sm text-slate-500">18 modèles standards du configurateur + ensembles composés enregistrés.</div>
+          <h3 class="font-bold text-sm text-slate-700 mb-2">Modèles standards</h3>
+          <div id="catFinisStandards" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6"></div>
+          <h3 class="font-bold text-sm text-slate-700 mb-2">Ensembles composés enregistrés</h3>
+          <div id="catFinisEnsembles" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+        </div>
+
+        <div id="catMatiere" class="cat-tab hidden">
+          <div class="mb-3 text-sm text-slate-500">Profils aluminium et vitrages du référentiel technique.</div>
+          <h3 class="font-bold text-sm text-slate-700 mb-2">Profils aluminium</h3>
+          <div class="overflow-x-auto mb-6"><table class="w-full text-sm bg-white rounded-xl overflow-hidden"><thead class="bg-slate-50"><tr><th class="text-left p-3">Code</th><th class="text-left p-3">Désignation</th><th class="text-left p-3">Série</th><th class="text-left p-3">Type</th><th class="text-right p-3">Prix/ml</th><th class="text-right p-3">Stock</th></tr></thead><tbody id="catProfilsBody"></tbody></table></div>
+          <h3 class="font-bold text-sm text-slate-700 mb-2">Vitrages</h3>
+          <div class="overflow-x-auto"><table class="w-full text-sm bg-white rounded-xl overflow-hidden"><thead class="bg-slate-50"><tr><th class="text-left p-3">Code</th><th class="text-left p-3">Désignation</th><th class="text-left p-3">Composition</th><th class="text-left p-3">Type</th><th class="text-right p-3">Prix/m²</th></tr></thead><tbody id="catVitragesBody"></tbody></table></div>
+        </div>
+
+        <div id="catConsommables" class="cat-tab hidden">
+          <div class="mb-3 text-sm text-slate-500">Quincaillerie, joints et consommables du référentiel technique.</div>
+          <h3 class="font-bold text-sm text-slate-700 mb-2">Quincaillerie</h3>
+          <div class="overflow-x-auto mb-6"><table class="w-full text-sm bg-white rounded-xl overflow-hidden"><thead class="bg-slate-50"><tr><th class="text-left p-3">Code</th><th class="text-left p-3">Désignation</th><th class="text-left p-3">Catégorie</th><th class="text-right p-3">Prix unit.</th></tr></thead><tbody id="catQuincBody"></tbody></table></div>
+          <h3 class="font-bold text-sm text-slate-700 mb-2">Joints</h3>
+          <div class="overflow-x-auto mb-6"><table class="w-full text-sm bg-white rounded-xl overflow-hidden"><thead class="bg-slate-50"><tr><th class="text-left p-3">Code</th><th class="text-left p-3">Désignation</th><th class="text-left p-3">Type</th><th class="text-right p-3">Prix/ml</th></tr></thead><tbody id="catJointsBody"></tbody></table></div>
+          <h3 class="font-bold text-sm text-slate-700 mb-2">Consommables</h3>
+          <div class="overflow-x-auto"><table class="w-full text-sm bg-white rounded-xl overflow-hidden"><thead class="bg-slate-50"><tr><th class="text-left p-3">Code</th><th class="text-left p-3">Désignation</th><th class="text-left p-3">Unité</th><th class="text-right p-3">Prix</th></tr></thead><tbody id="catConsoBody"></tbody></table></div>
+        </div>
+      </section>
     </div>
   </main>
   <datalist id="clientsDatalist"></datalist>
   <datalist id="fournisseursDatalist"></datalist>
+</div>
+
+<div id="prixFournisseursModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[85vh] overflow-y-auto" id="prixFournisseursContent"></div>
 </div>
 
 <script>
@@ -1074,10 +1119,10 @@ function escapeHtml(s){
 /* ---------- IndexedDB ---------- */
 function openDB(){
   return new Promise((resolve,reject)=>{
-    const req=indexedDB.open('alubom_db',9);
+    const req=indexedDB.open('alubom_db',10);
     req.onupgradeneeded=e=>{
       const d=e.target.result;
-      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel'].forEach(s=>{
+      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs'].forEach(s=>{
         if(!d.objectStoreNames.contains(s)) d.createObjectStore(s,{keyPath:'id'});
       });
     };
@@ -2378,8 +2423,122 @@ async function renderProfilsTable(){
   const el=document.getElementById('profilsBody'); if(!el) return;
   el.innerHTML = rows.length ? rows.map(r=>{
     const low=r.stock<=r.stockMin;
-    return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.code)}</td><td class="p-3">${escapeHtml(r.designation)}</td><td class="p-3">${escapeHtml(r.serie)}</td><td class="p-3">${escapeHtml(r.type)}</td><td class="p-3 text-right">${money(r.prixMl)}</td><td class="p-3 text-right">${low?'<span class="text-red-600 font-bold">':''}${r.stock} ml${low?'</span>':''}</td><td class="p-3"><span class="badge bg-${r.statut==='actif'?'emerald':'slate'}-50 text-${r.statut==='actif'?'emerald':'slate'}-700">${escapeHtml(r.statut)}</span></td><td class="p-3 text-right"><button onclick="deleteProfil('${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`;
+    return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.code)}</td><td class="p-3">${escapeHtml(r.designation)}</td><td class="p-3">${escapeHtml(r.serie)}</td><td class="p-3">${escapeHtml(r.type)}</td><td class="p-3 text-right">${money(r.prixMl)}</td><td class="p-3 text-right">${low?'<span class="text-red-600 font-bold">':''}${r.stock} ml${low?'</span>':''}</td><td class="p-3"><span class="badge bg-${r.statut==='actif'?'emerald':'slate'}-50 text-${r.statut==='actif'?'emerald':'slate'}-700">${escapeHtml(r.statut)}</span></td><td class="p-3 text-right whitespace-nowrap"><button onclick="openPrixFournisseurs('profils','${r.id}')" class="text-teal-600 text-xs font-semibold mr-2">💰 Tarifs</button><button onclick="deleteProfil('${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`;
   }).join('') : `<tr><td class="p-3 text-slate-400" colspan="8">Aucun profil enregistré.</td></tr>`;
+}
+
+/* =========================================================
+   Catalogue technique — Produits finis / Matière première /
+   Consommables (vue de consultation, alimentée par les
+   référentiels et les ensembles composés)
+   ========================================================= */
+const CATALOGUE_TYPES_ICONS={
+  'Fenêtre':'🪟','Porte':'🚪','Coulissant':'↔️','Coulissant galandage':'📥','Baie vitrée':'🏢',
+  'Façade':'🏬','Garde-corps alu/verre':'🛡️','Bardage alu':'🧱','Pergola bioclimatique':'☀️',
+  'Cloison vitrée':'🪞','Verrière d\'intérieur':'🖼️','Volet roulant':'🎚️','Auvent / marquise':'⛱️',
+  'Store banne':'⛱️','Kiosque / abri de jardin':'🏡','Garde-corps inox':'🔧','Escalier métallique/inox':'🪜','Fenêtre de toit':'🌤️'
+};
+
+function showCatalogueTab(tab){
+  document.querySelectorAll('.cat-tab').forEach(t=>t.classList.add('hidden'));
+  const ids={finis:'catFinis',matiere:'catMatiere',consommables:'catConsommables'};
+  document.getElementById(ids[tab]).classList.remove('hidden');
+  document.querySelectorAll('.cat-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.cattab===tab));
+  renderCatalogue(tab);
+}
+
+async function renderCatalogue(tab){
+  if(!tab || tab==='finis'){
+    const stdEl=document.getElementById('catFinisStandards');
+    if(stdEl){
+      stdEl.innerHTML=Object.keys(TYPE_CODE).map(type=>`
+        <div class="bg-white border rounded-xl p-4">
+          <div class="text-2xl mb-1">${CATALOGUE_TYPES_ICONS[type]||'📐'}</div>
+          <div class="font-bold text-sm">${escapeHtml(type)}</div>
+          <div class="text-xs text-slate-400 font-mono mt-1">${escapeHtml(TYPE_CODE[type])}</div>
+          <button onclick="document.getElementById('type').value='${escapeHtml(type)}';toggleTypeFields();calculateBOM();updateTechnicalDrawing();updateFabricationPlan();showPage('config');" class="mt-2 text-xs text-blue-600 font-semibold">Configurer →</button>
+        </div>`).join('');
+    }
+    const ensEl=document.getElementById('catFinisEnsembles');
+    if(ensEl){
+      const rows=(await idbGetAll('ouvrages')).filter(r=>r.type==='ensemble').sort((a,b)=>b.dateCreation.localeCompare(a.dateCreation));
+      ensEl.innerHTML = rows.length ? rows.map(r=>`
+        <div class="bg-white border rounded-xl p-4">
+          <div class="text-2xl mb-1">📦</div>
+          <div class="font-bold text-sm">${escapeHtml(r.nom)}</div>
+          <div class="text-xs text-slate-500 mt-1">${r.elements.map(e=>escapeHtml(e.type)).join(' + ')}</div>
+          <div class="text-sm font-bold text-blue-700 mt-2">${money(r.total)}</div>
+          <button onclick="loadEnsemble('${r.id}')" class="mt-2 text-xs text-blue-600 font-semibold">Charger dans le devis →</button>
+        </div>`).join('') : '<p class="text-sm text-slate-400 col-span-3">Aucun ensemble composé enregistré (page Bureau d\'étude → Proforma).</p>';
+    }
+  }
+  if(!tab || tab==='matiere'){
+    const profilsBody=document.getElementById('catProfilsBody');
+    if(profilsBody){
+      const rows=(await idbGetAll('profils')).sort((a,b)=>(a.code||'').localeCompare(b.code||''));
+      profilsBody.innerHTML = rows.length ? rows.map(r=>`<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.code)}</td><td class="p-3">${escapeHtml(r.designation)}</td><td class="p-3">${escapeHtml(r.serie)}</td><td class="p-3">${escapeHtml(r.type)}</td><td class="p-3 text-right">${money(r.prixMl)}</td><td class="p-3 text-right">${r.stock} ml</td></tr>`).join('') : `<tr><td class="p-3 text-slate-400" colspan="6">Aucun profil référencé.</td></tr>`;
+    }
+    const vitragesBody=document.getElementById('catVitragesBody');
+    if(vitragesBody){
+      const rows=(await idbGetAll('vitrages')).sort((a,b)=>(a.code||'').localeCompare(b.code||''));
+      vitragesBody.innerHTML = rows.length ? rows.map(r=>`<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.code)}</td><td class="p-3">${escapeHtml(r.designation)}</td><td class="p-3">${escapeHtml(r.composition||'—')}</td><td class="p-3">${escapeHtml(r.type||'—')}</td><td class="p-3 text-right">${money(r.prixM2)}</td></tr>`).join('') : `<tr><td class="p-3 text-slate-400" colspan="5">Aucun vitrage référencé.</td></tr>`;
+    }
+  }
+  if(!tab || tab==='consommables'){
+    const quincBody=document.getElementById('catQuincBody');
+    if(quincBody){
+      const rows=(await idbGetAll('quincaillerie')).sort((a,b)=>(a.code||'').localeCompare(b.code||''));
+      quincBody.innerHTML = rows.length ? rows.map(r=>`<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.code)}</td><td class="p-3">${escapeHtml(r.designation)}</td><td class="p-3">${escapeHtml(r.categorie||'—')}</td><td class="p-3 text-right">${money(r.prixUnitaire)}</td></tr>`).join('') : `<tr><td class="p-3 text-slate-400" colspan="4">Aucune quincaillerie référencée.</td></tr>`;
+    }
+    const jointsBody=document.getElementById('catJointsBody');
+    if(jointsBody){
+      const rows=(await idbGetAll('joints')).sort((a,b)=>(a.code||'').localeCompare(b.code||''));
+      jointsBody.innerHTML = rows.length ? rows.map(r=>`<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.code)}</td><td class="p-3">${escapeHtml(r.designation)}</td><td class="p-3">${escapeHtml(r.type||'—')}</td><td class="p-3 text-right">${money(r.prixMl)}</td></tr>`).join('') : `<tr><td class="p-3 text-slate-400" colspan="4">Aucun joint référencé.</td></tr>`;
+    }
+    const consoBody=document.getElementById('catConsoBody');
+    if(consoBody){
+      const rows=(await idbGetAll('consommables')).sort((a,b)=>(a.code||'').localeCompare(b.code||''));
+      consoBody.innerHTML = rows.length ? rows.map(r=>`<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.code)}</td><td class="p-3">${escapeHtml(r.designation)}</td><td class="p-3">${escapeHtml(r.unite||'—')}</td><td class="p-3 text-right">${money(r.prix)}</td></tr>`).join('') : `<tr><td class="p-3 text-slate-400" colspan="4">Aucun consommable référencé.</td></tr>`;
+    }
+  }
+}
+
+async function printCatalogue(){
+  const [profils,vitrages,quinc,joints,conso,ensembles]=await Promise.all([
+    idbGetAll('profils'),idbGetAll('vitrages'),idbGetAll('quincaillerie'),idbGetAll('joints'),idbGetAll('consommables'),
+    idbGetAll('ouvrages').then(r=>r.filter(x=>x.type==='ensemble'))
+  ]);
+  const section=(title,rows,cols)=>`
+    <h2>${escapeHtml(title)}</h2>
+    <table><thead><tr>${cols.map(c=>`<th>${escapeHtml(c[1])}</th>`).join('')}</tr></thead>
+    <tbody>${rows.length?rows.map(r=>`<tr>${cols.map(c=>`<td>${escapeHtml(c[2]==='money'?money(r[c[0]]||0):(r[c[0]]??'—'))}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${cols.length}" style="color:#94a3b8;text-align:center">Aucune donnée</td></tr>`}</tbody></table>`;
+  const html=`
+    <h1>Catalogue technique — SANIX AluExpert ERP</h1>
+    <p class="sub">Produits finis, matière première et consommables — édité le ${new Date().toLocaleDateString('fr-FR')}</p>
+    <h2>Produits finis — Modèles standards</h2>
+    <table><thead><tr><th>Code</th><th>Type</th></tr></thead><tbody>${Object.entries(TYPE_CODE).map(([t,c])=>`<tr><td>${escapeHtml(c)}</td><td>${escapeHtml(t)}</td></tr>`).join('')}</tbody></table>
+    ${section('Produits finis — Ensembles composés',ensembles,[['nom','Nom'],['total','Total','money']])}
+    ${section('Matière première — Profils aluminium',profils,[['code','Code'],['designation','Désignation'],['serie','Série'],['prixMl','Prix/ml','money']])}
+    ${section('Matière première — Vitrages',vitrages,[['code','Code'],['designation','Désignation'],['composition','Composition'],['prixM2','Prix/m²','money']])}
+    ${section('Consommables — Quincaillerie',quinc,[['code','Code'],['designation','Désignation'],['categorie','Catégorie'],['prixUnitaire','Prix unit.','money']])}
+    ${section('Consommables — Joints',joints,[['code','Code'],['designation','Désignation'],['type','Type'],['prixMl','Prix/ml','money']])}
+    ${section('Consommables — Divers',conso,[['code','Code'],['designation','Désignation'],['unite','Unité'],['prix','Prix','money']])}
+  `;
+  const win=window.open('','_blank','width=1000,height=1100');
+  if(!win) return;
+  win.document.write(`<html><head><title>Catalogue technique</title>
+    <style>
+      body{font-family:Arial,sans-serif;padding:35px;color:#0f172a}
+      h1{font-size:22px;margin-bottom:2px}
+      .sub{color:#64748b;font-size:12px;margin-bottom:24px}
+      h2{font-size:14px;margin:22px 0 8px;color:#1d4ed8;text-transform:uppercase;letter-spacing:.03em}
+      table{width:100%;border-collapse:collapse;margin-bottom:6px}
+      th,td{border:1px solid #cbd5e1;padding:7px 10px;font-size:12px;text-align:left}
+      th{background:#f1f5f9}
+    </style></head><body>${html}</body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(()=>win.print(),300);
 }
 
 /* =========================================================
@@ -2511,12 +2670,115 @@ async function renderGenericRefTable(key){
       if(fmt==='badge') return `<td class="p-3"><span class="badge bg-${v==='actif'||v==='disponible'?'emerald':v==='inactif'||v==='hors service'?'slate':'amber'}-50 text-${v==='actif'||v==='disponible'?'emerald':v==='inactif'||v==='hors service'?'slate':'amber'}-700">${escapeHtml(v)}</span></td>`;
       return `<td class="p-3">${escapeHtml(v)}</td>`;
     }).join('');
-    return `<tr class="border-b">${cells}<td class="p-3 text-right"><button onclick="deleteGenericRef('${key}','${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`;
+    return `<tr class="border-b">${cells}<td class="p-3 text-right whitespace-nowrap">${key!=='machines'?`<button onclick="openPrixFournisseurs('${key}','${r.id}')" class="text-teal-600 text-xs font-semibold mr-2">💰 Tarifs</button>`:''}<button onclick="deleteGenericRef('${key}','${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`;
   }).join('') : `<tr><td class="p-3 text-slate-400" colspan="${def.cols.length+1}">Aucun élément enregistré.</td></tr>`;
 }
 async function renderGenericRef(key){
   if(!document.getElementById('refGenericBody_'+key)) renderGenericRefForm(key);
   await renderGenericRefTable(key);
+}
+
+/* =========================================================
+   Tarifs multi-fournisseurs — un produit acheté (profil,
+   vitrage, quincaillerie, joint, consommable) peut avoir
+   plusieurs fournisseurs à des prix différents.
+   ========================================================= */
+const PRICE_FIELD_BY_STORE={profils:'prixMl',vitrages:'prixM2',quincaillerie:'prixUnitaire',joints:'prixMl',consommables:'prix'};
+const PRICE_LABEL_BY_STORE={profils:'Prix/ml',vitrages:'Prix/m²',quincaillerie:'Prix unitaire',joints:'Prix/ml',consommables:'Prix'};
+
+async function openPrixFournisseurs(store,productId){
+  const rows=await idbGetAll(store);
+  const product=rows.find(r=>r.id===productId); if(!product) return;
+  window._pfCtx={store,productId};
+  await renderPrixFournisseursModal();
+}
+
+async function renderPrixFournisseursModal(){
+  const {store,productId}=window._pfCtx;
+  const rows=await idbGetAll(store);
+  const product=rows.find(r=>r.id===productId); if(!product) { closePrixFournisseurs(); return; }
+  const priceField=PRICE_FIELD_BY_STORE[store];
+  const tarifs=(await idbGetAll('prix_fournisseurs')).filter(t=>t.store===store && t.productId===productId).sort((a,b)=>a.prix-b.prix);
+  const modal=document.getElementById('prixFournisseursModal');
+  const content=document.getElementById('prixFournisseursContent');
+  modal.classList.remove('hidden');
+  content.innerHTML=`
+    <div class="flex justify-between items-start mb-4">
+      <div><h2 class="text-lg font-bold">Tarifs fournisseurs</h2><p class="text-sm text-slate-500">${escapeHtml(product.code)} — ${escapeHtml(product.designation)}</p></div>
+      <button onclick="closePrixFournisseurs()" class="text-slate-400 text-xl leading-none">×</button>
+    </div>
+    <div class="bg-blue-50 rounded-lg p-3 mb-4 text-sm flex justify-between items-center">
+      <span>Prix retenu (utilisé dans les calculs)</span>
+      <b class="text-blue-700">${money(product[priceField]||0)}</b>
+    </div>
+    <form onsubmit="return handleAddPrixFournisseur(event)" class="grid grid-cols-2 gap-2 mb-4 bg-slate-50 border rounded-xl p-3">
+      <input id="pfFournisseur" list="fournisseursDatalist" placeholder="Fournisseur" required class="border rounded-lg px-2 py-1.5 text-sm col-span-2">
+      <input id="pfPrix" type="number" step="0.01" placeholder="${escapeHtml(PRICE_LABEL_BY_STORE[store])}" required class="border rounded-lg px-2 py-1.5 text-sm">
+      <input id="pfDelai" type="number" placeholder="Délai (jours)" class="border rounded-lg px-2 py-1.5 text-sm">
+      <input id="pfRefFournisseur" placeholder="Référence chez le fournisseur (optionnel)" class="border rounded-lg px-2 py-1.5 text-sm col-span-2">
+      <button type="submit" class="col-span-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter un tarif</button>
+    </form>
+    <div class="space-y-2">
+      ${tarifs.length ? tarifs.map((t,i)=>`
+        <div class="flex items-center justify-between border rounded-lg p-3 text-sm ${i===0?'border-emerald-300 bg-emerald-50':''}">
+          <div>
+            <div class="font-semibold">${escapeHtml(t.fournisseur)} ${i===0?'<span class="text-emerald-600 text-xs font-bold">★ Moins cher</span>':''}</div>
+            <div class="text-xs text-slate-500">${t.refFournisseur?'Réf. '+escapeHtml(t.refFournisseur)+' • ':''}${t.delai?'Délai '+t.delai+' j':''}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <b>${money(t.prix)}</b>
+            <button onclick="setPrixRetenu('${t.id}')" class="text-blue-600 text-xs font-semibold">Retenir</button>
+            <button onclick="deletePrixFournisseur('${t.id}')" class="text-red-500 text-xs font-semibold">✕</button>
+          </div>
+        </div>`).join('') : '<p class="text-sm text-slate-400">Aucun tarif fournisseur enregistré pour ce produit.</p>'}
+    </div>`;
+}
+function closePrixFournisseurs(){
+  document.getElementById('prixFournisseursModal').classList.add('hidden');
+  window._pfCtx=null;
+}
+async function handleAddPrixFournisseur(e){
+  e.preventDefault();
+  if(!hasRole('referentiel:manage')){ alert('Permission refusée.'); return false; }
+  const {store,productId}=window._pfCtx;
+  const fournisseur=document.getElementById('pfFournisseur').value.trim();
+  const prix=+document.getElementById('pfPrix').value||0;
+  if(!fournisseur||!prix) return false;
+  const rec={
+    id:'pf_'+Date.now(), store, productId,
+    fournisseur, prix,
+    delai:+document.getElementById('pfDelai').value||0,
+    refFournisseur:document.getElementById('pfRefFournisseur').value.trim(),
+    dateMAJ:new Date().toISOString()
+  };
+  await idbPut('prix_fournisseurs',rec);
+  queueSync('alubom_prix_fournisseurs',rec);
+  await audit('CREATE_PRIX_FOURNISSEUR',store+' '+productId+' — '+fournisseur+' '+money(prix));
+  await renderPrixFournisseursModal();
+  return false;
+}
+async function deletePrixFournisseur(id){
+  if(!hasRole('referentiel:manage')){ alert('Permission refusée.'); return; }
+  await idbDelete('prix_fournisseurs',id);
+  await audit('DELETE_PRIX_FOURNISSEUR',id);
+  await renderPrixFournisseursModal();
+}
+async function setPrixRetenu(tarifId){
+  if(!hasRole('referentiel:manage')){ alert('Permission refusée.'); return; }
+  const {store,productId}=window._pfCtx;
+  const tarifs=await idbGetAll('prix_fournisseurs');
+  const tarif=tarifs.find(t=>t.id===tarifId); if(!tarif) return;
+  const rows=await idbGetAll(store);
+  const product=rows.find(r=>r.id===productId); if(!product) return;
+  const priceField=PRICE_FIELD_BY_STORE[store];
+  product[priceField]=tarif.prix;
+  product.fournisseur=tarif.fournisseur;
+  product._modifie=new Date().toISOString();
+  await idbPut(store,product);
+  queueSync('alubom_'+store,product);
+  await audit('MAJ_PRIX_RETENU',store+' '+product.code+' — '+tarif.fournisseur+' '+money(tarif.prix));
+  await renderPrixFournisseursModal();
+  if(store==='profils') await renderProfilsTable(); else await renderGenericRefTable(store);
 }
 
 /* ---------- Jeux & tolérances (paramètres globaux de calcul) ---------- */
@@ -2679,7 +2941,7 @@ const ETUDE_TABS=['config','bom','cut','cost','proforma'];
 function showPage(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
   document.querySelectorAll('.nav').forEach(b=>b.classList.remove('active'));
-  const titles={dashboard:'Tableau de bord',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',stock:'Stock',chantier:'Circuit Chantier',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs'};
+  const titles={dashboard:'Tableau de bord',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',stock:'Stock',chantier:'Circuit Chantier',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs',catalogue:'Catalogue technique'};
 
   if(ETUDE_TABS.includes(page)){
     document.getElementById('etude').classList.remove('hidden');
@@ -2690,6 +2952,7 @@ function showPage(page){
   } else {
     document.getElementById(page).classList.remove('hidden');
     document.querySelectorAll('.nav').forEach(b=>{if(b.dataset.page===page)b.classList.add('active')});
+    if(page==='catalogue') renderCatalogue();
   }
   document.getElementById('pageTitle').textContent=titles[page];
 }
