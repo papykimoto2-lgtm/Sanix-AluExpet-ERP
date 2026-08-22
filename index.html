@@ -963,6 +963,7 @@ window.SANIX_CFG = {
               <div><h2 class="text-lg font-bold">Séries aluminium</h2><p class="text-sm text-slate-500">Référentiel des séries — alimente le sélecteur "Série" du configurateur.</p></div>
             </div>
             <form id="serieForm" onsubmit="return handleAddSerie(event)" class="grid sm:grid-cols-4 gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
+              <input id="seEditId" type="hidden" value="">
               <input id="seCode" placeholder="Code (ex. SER-004)" required class="border rounded-lg px-2 py-1.5 text-sm">
               <input id="seDesignation" placeholder="Désignation" required class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
               <input id="seFabricant" placeholder="Fabricant" class="border rounded-lg px-2 py-1.5 text-sm">
@@ -975,7 +976,10 @@ window.SANIX_CFG = {
               <input id="seCouleur" placeholder="Couleur" class="border rounded-lg px-2 py-1.5 text-sm">
               <input id="sePrixRef" type="number" placeholder="Prix référence (FCFA/ml)" class="border rounded-lg px-2 py-1.5 text-sm">
               <select id="seStatut" class="border rounded-lg px-2 py-1.5 text-sm"><option value="actif">Actif</option><option value="inactif">Inactif</option></select>
-              <button type="submit" class="sm:col-span-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter série</button>
+              <div class="sm:col-span-4 flex gap-2">
+                <button type="submit" id="seSubmitBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter série</button>
+                <button type="button" id="seCancelBtn" onclick="cancelEditSerie()" class="hidden border px-4 py-1.5 rounded-lg text-sm font-semibold">Annuler</button>
+              </div>
             </form>
             <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Code</th><th class="text-left p-3">Désignation</th><th class="text-left p-3">Type</th><th class="text-right p-3">Largeur dormant</th><th class="text-right p-3">Prix réf.</th><th class="text-left p-3">Statut</th><th class="p-3"></th></tr></thead><tbody id="seriesBody"></tbody></table></div>
           </div>
@@ -987,6 +991,7 @@ window.SANIX_CFG = {
               <div><h2 class="text-lg font-bold">Profils aluminium</h2><p class="text-sm text-slate-500">Fiche technique par profil — rattachée à une série.</p></div>
             </div>
             <form id="profilForm" onsubmit="return handleAddProfil(event)" class="grid sm:grid-cols-4 gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
+              <input id="prEditId" type="hidden" value="">
               <input id="prCode" placeholder="Code (ex. P-DOR-001)" required class="border rounded-lg px-2 py-1.5 text-sm">
               <input id="prDesignation" placeholder="Désignation" required class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
               <select id="prSerie" class="border rounded-lg px-2 py-1.5 text-sm"></select>
@@ -1005,7 +1010,10 @@ window.SANIX_CFG = {
               <input id="prToleranceCoupe" type="number" value="1" placeholder="Tolérance coupe (mm)" class="border rounded-lg px-2 py-1.5 text-sm">
               <input id="prCoefPerte" type="number" step="0.01" value="1.02" placeholder="Coefficient perte" class="border rounded-lg px-2 py-1.5 text-sm">
               <select id="prStatut" class="border rounded-lg px-2 py-1.5 text-sm"><option value="actif">Actif</option><option value="inactif">Inactif</option></select>
-              <button type="submit" class="sm:col-span-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter profil</button>
+              <div class="sm:col-span-4 flex gap-2">
+                <button type="submit" id="prSubmitBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter profil</button>
+                <button type="button" id="prCancelBtn" onclick="cancelEditProfil()" class="hidden border px-4 py-1.5 rounded-lg text-sm font-semibold">Annuler</button>
+              </div>
             </form>
             <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Code</th><th class="text-left p-3">Désignation</th><th class="text-left p-3">Série</th><th class="text-left p-3">Type</th><th class="text-right p-3">Prix/ml</th><th class="text-right p-3">Stock</th><th class="text-left p-3">Statut</th><th class="p-3"></th></tr></thead><tbody id="profilsBody"></tbody></table></div>
           </div>
@@ -2511,8 +2519,9 @@ async function handleAddSerie(e){
   const code=document.getElementById('seCode').value.trim();
   const designation=document.getElementById('seDesignation').value.trim();
   if(!code||!designation) return false;
+  const editId=document.getElementById('seEditId').value;
   const rec={
-    id:'ser_'+Date.now(), code, designation,
+    id: editId || ('ser_'+Date.now()), code, designation,
     fabricant:document.getElementById('seFabricant').value.trim(),
     type:document.getElementById('seType').value,
     epaisseur:+document.getElementById('seEpaisseur').value||0,
@@ -2525,11 +2534,37 @@ async function handleAddSerie(e){
   };
   await idbPut('series',rec);
   queueSync('alubom_series',rec);
-  await audit('CREATE_SERIE',code+' — '+designation);
-  document.getElementById('serieForm').reset();
-  document.getElementById('seLongueurBarre').value=6000;
+  await audit(editId?'MAJ_SERIE':'CREATE_SERIE',code+' — '+designation);
+  cancelEditSerie();
   await renderSeriesTable();
   return false;
+}
+async function editSerie(id){
+  if(!hasRole('referentiel:manage')){ alert('Permission refusée.'); return; }
+  const rows=await idbGetAll('series');
+  const r=rows.find(x=>x.id===id);
+  if(!r) return;
+  document.getElementById('seEditId').value=r.id;
+  document.getElementById('seCode').value=r.code||'';
+  document.getElementById('seDesignation').value=r.designation||'';
+  document.getElementById('seFabricant').value=r.fabricant||'';
+  document.getElementById('seType').value=r.type||'Standard';
+  document.getElementById('seEpaisseur').value=r.epaisseur||'';
+  document.getElementById('seLargeurDormant').value=r.largeurDormant||'';
+  document.getElementById('seLongueurBarre').value=r.longueurBarre||6000;
+  document.getElementById('seCouleur').value=r.couleur||'';
+  document.getElementById('sePrixRef').value=r.prixRef||'';
+  document.getElementById('seStatut').value=r.statut||'actif';
+  document.getElementById('seSubmitBtn').textContent='✓ Enregistrer les modifications';
+  document.getElementById('seCancelBtn').classList.remove('hidden');
+  document.getElementById('serieForm').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function cancelEditSerie(){
+  document.getElementById('serieForm').reset();
+  document.getElementById('seEditId').value='';
+  document.getElementById('seLongueurBarre').value=6000;
+  document.getElementById('seSubmitBtn').textContent='+ Ajouter série';
+  document.getElementById('seCancelBtn').classList.add('hidden');
 }
 async function deleteSerie(id){
   if(!hasRole('referentiel:manage')){ alert('Permission refusée.'); return; }
@@ -2543,7 +2578,7 @@ async function renderSeriesTable(){
   const rows=(await idbGetAll('series')).sort((a,b)=>(a.code||'').localeCompare(b.code||''));
   const el=document.getElementById('seriesBody');
   if(el){
-    el.innerHTML = rows.map(r=>`<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.code)}</td><td class="p-3">${escapeHtml(r.designation)}</td><td class="p-3">${escapeHtml(r.type)}</td><td class="p-3 text-right">${r.largeurDormant} mm</td><td class="p-3 text-right">${money(r.prixRef)}</td><td class="p-3"><span class="badge bg-${r.statut==='actif'?'emerald':'slate'}-50 text-${r.statut==='actif'?'emerald':'slate'}-700">${escapeHtml(r.statut)}</span></td><td class="p-3 text-right"><button onclick="deleteSerie('${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`).join('');
+    el.innerHTML = rows.map(r=>`<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.code)}</td><td class="p-3">${escapeHtml(r.designation)}</td><td class="p-3">${escapeHtml(r.type)}</td><td class="p-3 text-right">${r.largeurDormant} mm</td><td class="p-3 text-right">${money(r.prixRef)}</td><td class="p-3"><span class="badge bg-${r.statut==='actif'?'emerald':'slate'}-50 text-${r.statut==='actif'?'emerald':'slate'}-700">${escapeHtml(r.statut)}</span></td><td class="p-3 text-right whitespace-nowrap"><button onclick="editSerie('${r.id}')" class="text-blue-600 text-xs font-semibold mr-2">✏️ Modifier</button><button onclick="deleteSerie('${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`).join('');
   }
   const select=document.getElementById('serie');
   const prSelect=document.getElementById('prSerie');
@@ -2566,8 +2601,9 @@ async function handleAddProfil(e){
   const code=document.getElementById('prCode').value.trim();
   const designation=document.getElementById('prDesignation').value.trim();
   if(!code||!designation) return false;
+  const editId=document.getElementById('prEditId').value;
   const rec={
-    id:'pro_'+Date.now(), code, designation,
+    id: editId || ('pro_'+Date.now()), code, designation,
     serie:document.getElementById('prSerie').value,
     type:document.getElementById('prType').value,
     poidsMl:+document.getElementById('prPoidsMl').value||0,
@@ -2586,15 +2622,47 @@ async function handleAddProfil(e){
   };
   await idbPut('profils',rec);
   queueSync('alubom_profils',rec);
-  await audit('CREATE_PROFIL',code+' — '+designation);
+  await audit(editId?'MAJ_PROFIL':'CREATE_PROFIL',code+' — '+designation);
+  cancelEditProfil();
+  await renderProfilsTable();
+  return false;
+}
+async function editProfil(id){
+  if(!hasRole('referentiel:manage')){ alert('Permission refusée.'); return; }
+  const rows=await idbGetAll('profils');
+  const r=rows.find(x=>x.id===id);
+  if(!r) return;
+  document.getElementById('prEditId').value=r.id;
+  document.getElementById('prCode').value=r.code||'';
+  document.getElementById('prDesignation').value=r.designation||'';
+  document.getElementById('prSerie').value=r.serie||'';
+  document.getElementById('prType').value=r.type||'Dormant';
+  document.getElementById('prPoidsMl').value=r.poidsMl||'';
+  document.getElementById('prLongueurComm').value=r.longueurComm||6000;
+  document.getElementById('prPrixMl').value=r.prixMl||'';
+  document.getElementById('prCouleur').value=r.couleur||'';
+  document.getElementById('prAlliage').value=r.alliage||'';
+  document.getElementById('prFournisseur').value=r.fournisseur||'';
+  document.getElementById('prStock').value=r.stock||0;
+  document.getElementById('prStockMin').value=r.stockMin||0;
+  document.getElementById('prEmplacement').value=r.emplacement||'';
+  document.getElementById('prToleranceCoupe').value=r.toleranceCoupe||1;
+  document.getElementById('prCoefPerte').value=r.coefPerte||1.02;
+  document.getElementById('prStatut').value=r.statut||'actif';
+  document.getElementById('prSubmitBtn').textContent='✓ Enregistrer les modifications';
+  document.getElementById('prCancelBtn').classList.remove('hidden');
+  document.getElementById('profilForm').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function cancelEditProfil(){
   document.getElementById('profilForm').reset();
+  document.getElementById('prEditId').value='';
   document.getElementById('prLongueurComm').value=6000;
   document.getElementById('prStock').value=0;
   document.getElementById('prStockMin').value=0;
   document.getElementById('prToleranceCoupe').value=1;
   document.getElementById('prCoefPerte').value=1.02;
-  await renderProfilsTable();
-  return false;
+  document.getElementById('prSubmitBtn').textContent='+ Ajouter profil';
+  document.getElementById('prCancelBtn').classList.add('hidden');
 }
 async function deleteProfil(id){
   if(!hasRole('referentiel:manage')){ alert('Permission refusée.'); return; }
@@ -2608,7 +2676,7 @@ async function renderProfilsTable(){
   const el=document.getElementById('profilsBody'); if(!el) return;
   el.innerHTML = rows.length ? rows.map(r=>{
     const low=r.stock<=r.stockMin;
-    return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.code)}</td><td class="p-3">${escapeHtml(r.designation)}</td><td class="p-3">${escapeHtml(r.serie)}</td><td class="p-3">${escapeHtml(r.type)}</td><td class="p-3 text-right">${money(r.prixMl)}</td><td class="p-3 text-right">${low?'<span class="text-red-600 font-bold">':''}${r.stock} ml${low?'</span>':''}</td><td class="p-3"><span class="badge bg-${r.statut==='actif'?'emerald':'slate'}-50 text-${r.statut==='actif'?'emerald':'slate'}-700">${escapeHtml(r.statut)}</span></td><td class="p-3 text-right whitespace-nowrap"><button onclick="openPrixFournisseurs('profils','${r.id}')" class="text-teal-600 text-xs font-semibold mr-2">💰 Tarifs</button><button onclick="deleteProfil('${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`;
+    return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.code)}</td><td class="p-3">${escapeHtml(r.designation)}</td><td class="p-3">${escapeHtml(r.serie)}</td><td class="p-3">${escapeHtml(r.type)}</td><td class="p-3 text-right">${money(r.prixMl)}</td><td class="p-3 text-right">${low?'<span class="text-red-600 font-bold">':''}${r.stock} ml${low?'</span>':''}</td><td class="p-3"><span class="badge bg-${r.statut==='actif'?'emerald':'slate'}-50 text-${r.statut==='actif'?'emerald':'slate'}-700">${escapeHtml(r.statut)}</span></td><td class="p-3 text-right whitespace-nowrap"><button onclick="editProfil('${r.id}')" class="text-blue-600 text-xs font-semibold mr-2">✏️ Modifier</button><button onclick="openPrixFournisseurs('profils','${r.id}')" class="text-teal-600 text-xs font-semibold mr-2">💰 Tarifs</button><button onclick="deleteProfil('${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`;
   }).join('') : `<tr><td class="p-3 text-slate-400" colspan="8">Aucun profil enregistré.</td></tr>`;
 }
 
@@ -2812,8 +2880,12 @@ function renderGenericRefForm(key){
       <div><h2 class="text-lg font-bold">${escapeHtml(def.label)}</h2><p class="text-sm text-slate-500">Référentiel technique — utilisable dans les calculs et demandes d'achats.</p></div>
     </div>
     <form onsubmit="return handleAddGenericRef(event,'${key}')" class="grid sm:grid-cols-4 gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
+      <input type="hidden" id="gf_${key}_editId" value="">
       ${fieldsHtml}
-      <button type="submit" class="sm:col-span-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter</button>
+      <div class="sm:col-span-4 flex gap-2">
+        <button type="submit" id="gf_${key}_submitBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter</button>
+        <button type="button" id="gf_${key}_cancelBtn" onclick="cancelEditGenericRef('${key}')" class="hidden border px-4 py-1.5 rounded-lg text-sm font-semibold">Annuler</button>
+      </div>
     </form>
     <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr>${def.cols.map(c=>`<th class="text-left p-3">${escapeHtml(c[1])}</th>`).join('')}<th class="p-3"></th></tr></thead><tbody id="refGenericBody_${key}"></tbody></table></div>`;
 }
@@ -2825,17 +2897,40 @@ async function handleAddGenericRef(e,key){
   const code=document.getElementById('gf_'+key+'_code').value.trim();
   const designation=document.getElementById('gf_'+key+'_designation').value.trim();
   if(!code||!designation) return false;
-  const rec={id:def.prefix+'_'+Date.now(),_modifie:new Date().toISOString()};
+  const editId=document.getElementById('gf_'+key+'_editId').value;
+  const rec={id: editId || (def.prefix+'_'+Date.now()), _modifie:new Date().toISOString()};
   def.fields.forEach(f=>{
     const el=document.getElementById('gf_'+key+'_'+f.id);
     rec[f.id]= f.type==='number' ? (+el.value||0) : el.value.trim();
   });
   await idbPut(key,rec);
   queueSync('alubom_'+key,rec);
-  await audit('CREATE_'+key.toUpperCase(),code+' — '+designation);
-  document.querySelector(`#refGeneric_${key} form`).reset();
+  await audit((editId?'MAJ_':'CREATE_')+key.toUpperCase(),code+' — '+designation);
+  cancelEditGenericRef(key);
   await renderGenericRefTable(key);
   return false;
+}
+async function editGenericRef(key,id){
+  if(!hasRole('referentiel:manage')){ alert('Permission refusée.'); return; }
+  const def=REF_DEFS[key];
+  const rows=await idbGetAll(key);
+  const r=rows.find(x=>x.id===id);
+  if(!r) return;
+  document.getElementById('gf_'+key+'_editId').value=r.id;
+  def.fields.forEach(f=>{
+    const el=document.getElementById('gf_'+key+'_'+f.id);
+    if(el) el.value = r[f.id] ?? (f.type==='select' ? f.options[0] : '');
+  });
+  document.getElementById('gf_'+key+'_submitBtn').textContent='✓ Enregistrer les modifications';
+  document.getElementById('gf_'+key+'_cancelBtn').classList.remove('hidden');
+  document.querySelector(`#refGeneric_${key} form`).scrollIntoView({behavior:'smooth',block:'center'});
+}
+function cancelEditGenericRef(key){
+  const form=document.querySelector(`#refGeneric_${key} form`);
+  if(form) form.reset();
+  const editEl=document.getElementById('gf_'+key+'_editId'); if(editEl) editEl.value='';
+  const submitBtn=document.getElementById('gf_'+key+'_submitBtn'); if(submitBtn) submitBtn.textContent='+ Ajouter';
+  const cancelBtn=document.getElementById('gf_'+key+'_cancelBtn'); if(cancelBtn) cancelBtn.classList.add('hidden');
 }
 async function deleteGenericRef(key,id){
   if(!hasRole('referentiel:manage')){ alert('Permission refusée.'); return; }
@@ -2855,7 +2950,7 @@ async function renderGenericRefTable(key){
       if(fmt==='badge') return `<td class="p-3"><span class="badge bg-${v==='actif'||v==='disponible'?'emerald':v==='inactif'||v==='hors service'?'slate':'amber'}-50 text-${v==='actif'||v==='disponible'?'emerald':v==='inactif'||v==='hors service'?'slate':'amber'}-700">${escapeHtml(v)}</span></td>`;
       return `<td class="p-3">${escapeHtml(v)}</td>`;
     }).join('');
-    return `<tr class="border-b">${cells}<td class="p-3 text-right whitespace-nowrap">${key!=='machines'?`<button onclick="openPrixFournisseurs('${key}','${r.id}')" class="text-teal-600 text-xs font-semibold mr-2">💰 Tarifs</button>`:''}<button onclick="deleteGenericRef('${key}','${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`;
+    return `<tr class="border-b">${cells}<td class="p-3 text-right whitespace-nowrap"><button onclick="editGenericRef('${key}','${r.id}')" class="text-blue-600 text-xs font-semibold mr-2">✏️ Modifier</button>${key!=='machines'?`<button onclick="openPrixFournisseurs('${key}','${r.id}')" class="text-teal-600 text-xs font-semibold mr-2">💰 Tarifs</button>`:''}<button onclick="deleteGenericRef('${key}','${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`;
   }).join('') : `<tr><td class="p-3 text-slate-400" colspan="${def.cols.length+1}">Aucun élément enregistré.</td></tr>`;
 }
 async function renderGenericRef(key){
