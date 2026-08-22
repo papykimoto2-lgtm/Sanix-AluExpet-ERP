@@ -802,16 +802,19 @@ window.SANIX_CFG = {
             </div>
 
             <div class="mt-6 border border-amber-200 bg-amber-50 rounded-2xl p-6">
-              <details>
+              <details open>
                 <summary class="font-bold cursor-pointer text-amber-800">🔒 Calcul de besoin consolidé (tous ouvrages du devis) — usage interne, non imprimé</summary>
-                <p class="text-xs text-amber-700 mt-2 mb-3">Quantités matières et composants cumulées, référence par référence, pour préparer les demandes d'achats. N'apparaît jamais sur le document client.</p>
+                <p class="text-xs text-amber-700 mt-2 mb-3">Quantités matières et composants cumulées, référence par référence. Choisissez un fournisseur par composant pour générer les bons de commande.</p>
                 <div class="border rounded-lg overflow-hidden bg-white">
                   <table class="w-full text-sm">
-                    <thead class="bg-slate-100"><tr><th class="text-left p-3">Code</th><th class="text-left p-3">Composant</th><th class="text-right p-3">Qté totale</th><th class="text-right p-3">Montant</th></tr></thead>
+                    <thead class="bg-slate-100"><tr><th class="text-left p-3">Code</th><th class="text-left p-3">Composant</th><th class="text-right p-3">Qté totale</th><th class="text-right p-3">Montant</th><th class="text-left p-3">Fournisseur</th></tr></thead>
                     <tbody id="consolidatedNeedsBody"></tbody>
                   </table>
                 </div>
-                <div class="flex justify-end mt-2 text-sm"><span class="font-bold mr-2">Total besoin :</span><b id="consolidatedNeedsTotal">0 FCFA</b></div>
+                <div class="flex flex-wrap justify-between items-center gap-2 mt-3">
+                  <button type="button" onclick="genererBonsDeCommande()" class="border border-blue-600 text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold">🧾 Générer les bons de commande par fournisseur</button>
+                  <div class="text-sm"><span class="font-bold mr-2">Total besoin :</span><b id="consolidatedNeedsTotal">0 FCFA</b></div>
+                </div>
               </details>
             </div>
           </div>
@@ -861,14 +864,15 @@ window.SANIX_CFG = {
             </div>
           </div>
           <p class="text-xs text-slate-500 bg-slate-50 border rounded-lg p-2 mb-4">ℹ️ "Depuis la BOM actuelle" ajoute au stock les composants du calcul en cours (Configurateur) qui n'y figurent pas encore. "Depuis le référentiel" ajoute tous les profils/vitrages/quincaillerie/joints/consommables actifs manquants. Les quantités sont ajoutées à 0 — à compléter par une entrée de stock.</p>
-          <form id="stockMoveForm" onsubmit="return handleStockMove(event)" class="grid sm:grid-cols-5 gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
+          <form id="stockMoveForm" onsubmit="return handleStockMove(event)" class="grid sm:grid-cols-6 gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
             <input id="mvRef" placeholder="Référence" required class="border rounded-lg px-2 py-1.5 text-sm">
             <input id="mvLabel" placeholder="Désignation" class="border rounded-lg px-2 py-1.5 text-sm">
-            <select id="mvType" class="border rounded-lg px-2 py-1.5 text-sm"><option value="entree">Entrée</option><option value="sortie">Sortie</option></select>
+            <select id="mvType" onchange="document.getElementById('mvPrix').classList.toggle('hidden',this.value!=='entree')" class="border rounded-lg px-2 py-1.5 text-sm"><option value="entree">Entrée</option><option value="sortie">Sortie</option></select>
             <input id="mvQty" type="number" step="0.01" placeholder="Qté (ml)" required class="border rounded-lg px-2 py-1.5 text-sm">
+            <input id="mvPrix" type="number" step="0.01" placeholder="Prix unitaire (achat)" class="border rounded-lg px-2 py-1.5 text-sm">
             <button type="submit" class="bg-slate-900 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">Enregistrer</button>
           </form>
-          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Référence</th><th class="text-left p-3">Désignation</th><th class="text-right p-3">Disponible</th><th class="text-right p-3">Réservé</th><th class="text-right p-3">Prix/ml</th><th class="text-left p-3">État</th></tr></thead><tbody id="stockBody"></tbody></table></div>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Référence</th><th class="text-left p-3">Désignation</th><th class="text-right p-3">Disponible</th><th class="text-right p-3">Réservé</th><th class="text-right p-3">Prix/ml</th><th class="text-right p-3">CUMP réel</th><th class="text-left p-3">État</th></tr></thead><tbody id="stockBody"></tbody></table></div>
         </div>
       </section>
 
@@ -1933,10 +1937,12 @@ function stockEtat(dispo){
 async function renderStockTable(){
   const el=document.getElementById('stockBody'); if(!el) return;
   const rows=(await idbGetAll('stock')).sort((a,b)=>a.ref.localeCompare(b.ref));
-  el.innerHTML = rows.map(r=>{
+  const cells=await Promise.all(rows.map(async r=>{
     const [label,color]=stockEtat(r.dispo);
-    return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.ref)}</td><td class="p-3">${escapeHtml(r.label)}</td><td class="p-3 text-right">${r.dispo.toFixed(1)} ml</td><td class="p-3 text-right">${(r.reserve||0).toFixed(1)} ml</td><td class="p-3 text-right">${money(r.prix)}</td><td class="p-3"><span class="badge bg-${color}-50 text-${color}-700">${label}</span></td></tr>`;
-  }).join('');
+    const cump=await computeCUMP(r.ref);
+    return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.ref)}</td><td class="p-3">${escapeHtml(r.label)}</td><td class="p-3 text-right">${r.dispo.toFixed(1)} ml</td><td class="p-3 text-right">${(r.reserve||0).toFixed(1)} ml</td><td class="p-3 text-right">${money(r.prix)}</td><td class="p-3 text-right">${cump!=null?money(cump):'<span class="text-slate-400">—</span>'}</td><td class="p-3"><span class="badge bg-${color}-50 text-${color}-700">${label}</span></td></tr>`;
+  }));
+  el.innerHTML = cells.join('');
 }
 async function handleStockMove(e){
   e.preventDefault();
@@ -1945,18 +1951,21 @@ async function handleStockMove(e){
   const label=document.getElementById('mvLabel').value.trim();
   const type=document.getElementById('mvType').value;
   const qty=Math.abs(+document.getElementById('mvQty').value||0);
+  const prixUnitaire=+document.getElementById('mvPrix').value||0;
   if(!ref||!qty) return false;
   const rows=await idbGetAll('stock');
   let row=rows.find(r=>r.ref===ref) || {id:ref,ref,label:label||ref,dispo:0,reserve:0,prix:0};
   row.dispo = type==='entree' ? row.dispo+qty : Math.max(0,row.dispo-qty);
+  if(type==='entree' && prixUnitaire>0) row.prix=prixUnitaire;
   row._modifie=new Date().toISOString();
   await idbPut('stock',row);
   queueSync('alubom_stock',row);
-  const mv={id:'m_'+Date.now(),ref,type,qty,ts:new Date().toISOString()};
+  const mv={id:'m_'+Date.now(),ref,type,qty,prixUnitaire:type==='entree'?prixUnitaire:0,ts:new Date().toISOString()};
   await idbPut('stock_mouvements',mv);
   queueSync('alubom_stock_mouvements',mv);
-  await audit('MOUVEMENT_STOCK',`${type} ${qty}ml ${ref}`);
+  await audit('MOUVEMENT_STOCK',`${type} ${qty}ml ${ref}`+(prixUnitaire?` @ ${money(prixUnitaire)}`:''));
   document.getElementById('stockMoveForm').reset();
+  document.getElementById('mvPrix').classList.remove('hidden');
   await renderStockTable();
   return false;
 }
@@ -2774,6 +2783,8 @@ async function renderPrixFournisseursModal(){
   const product=rows.find(r=>r.id===productId); if(!product) { closePrixFournisseurs(); return; }
   const priceField=PRICE_FIELD_BY_STORE[store];
   const tarifs=(await idbGetAll('prix_fournisseurs')).filter(t=>t.store===store && t.productId===productId).sort((a,b)=>a.prix-b.prix);
+  const prixMoyenSimple = tarifs.length ? tarifs.reduce((s,t)=>s+t.prix,0)/tarifs.length : null;
+  const cump = await computeCUMP(product.code);
   const modal=document.getElementById('prixFournisseursModal');
   const content=document.getElementById('prixFournisseursContent');
   modal.classList.remove('hidden');
@@ -2783,10 +2794,18 @@ async function renderPrixFournisseursModal(){
       <button onclick="closePrixFournisseurs()" class="text-slate-400 text-xl leading-none">×</button>
     </div>
     <p class="text-xs text-slate-500 bg-slate-50 border rounded-lg p-2 mb-4">ℹ️ Un même produit peut être acheté chez plusieurs fournisseurs à des prix différents. Ajoutez chaque option ci-dessous, puis cliquez "Retenir" sur celle à utiliser dans les calculs (BOM, chiffrage, achats) — un seul prix actif à la fois, l'historique des autres tarifs reste consultable.</p>
-    <div class="bg-blue-50 rounded-lg p-3 mb-4 text-sm flex justify-between items-center">
+    <div class="bg-blue-50 rounded-lg p-3 mb-2 text-sm flex justify-between items-center">
       <span>Prix retenu (utilisé dans les calculs)</span>
       <b class="text-blue-700">${money(product[priceField]||0)}</b>
     </div>
+    <div class="bg-emerald-50 rounded-lg p-3 mb-2 text-sm flex justify-between items-center">
+      <span>CUMP réel <span class="text-xs text-emerald-600 font-normal">(coût unitaire moyen pondéré — entrées de stock réelles)</span></span>
+      <b class="text-emerald-700">${cump!=null?money(cump):'Aucune entrée de stock enregistrée'}</b>
+    </div>
+    ${tarifs.length>1?`<div class="bg-slate-50 rounded-lg p-3 mb-4 text-sm flex justify-between items-center">
+      <span>Prix moyen simple <span class="text-xs text-slate-400 font-normal">(${tarifs.length} fournisseurs, non pondéré)</span></span>
+      <b>${money(prixMoyenSimple)}</b>
+    </div>`:'<div class="mb-4"></div>'}
     <form onsubmit="return handleAddPrixFournisseur(event)" class="grid grid-cols-2 gap-2 mb-4 bg-slate-50 border rounded-xl p-3">
       <input id="pfFournisseur" list="fournisseursDatalist" placeholder="Fournisseur" required class="border rounded-lg px-2 py-1.5 text-sm col-span-2">
       <input id="pfPrix" type="number" step="0.01" placeholder="${escapeHtml(PRICE_LABEL_BY_STORE[store])}" required class="border rounded-lg px-2 py-1.5 text-sm">
@@ -3146,7 +3165,30 @@ async function renderProformaQR(total){
   el.dataset.hash=hash;
 }
 
-function renderConsolidatedNeeds(lines){
+async function getPrixFournisseursForCode(code){
+  const stores=['profils','vitrages','quincaillerie','joints','consommables'];
+  for(const store of stores){
+    const items=await idbGetAll(store);
+    const item=items.find(i=>i.code===code);
+    if(item){
+      const tarifs=(await idbGetAll('prix_fournisseurs')).filter(t=>t.store===store && t.productId===item.id).sort((a,b)=>a.prix-b.prix);
+      return {store,item,tarifs};
+    }
+  }
+  return {store:null,item:null,tarifs:[]};
+}
+
+async function computeCUMP(ref){
+  const mouvements=(await idbGetAll('stock_mouvements')).filter(m=>m.ref===ref && m.type==='entree' && m.prixUnitaire>0);
+  if(!mouvements.length) return null;
+  const totalQte=mouvements.reduce((s,m)=>s+m.qty,0);
+  const totalValeur=mouvements.reduce((s,m)=>s+m.qty*m.prixUnitaire,0);
+  return totalQte>0 ? totalValeur/totalQte : null;
+}
+
+window.consolidatedFournisseurChoice = window.consolidatedFournisseurChoice || {};
+
+async function renderConsolidatedNeeds(lines){
   const el=document.getElementById('consolidatedNeedsBody'); if(!el) return;
   const map=new Map();
   lines.forEach(l=>{
@@ -3159,11 +3201,79 @@ function renderConsolidatedNeeds(lines){
     });
   });
   const rows=[...map.values()].sort((a,b)=>(a.code||'').localeCompare(b.code||''));
-  el.innerHTML = rows.length ? rows.map(r=>`<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.code||'—')}</td><td class="p-3">${escapeHtml(r.designation)}</td><td class="p-3 text-right">${r.qte.toFixed(2)}</td><td class="p-3 text-right">${money(r.montant)}</td></tr>`).join('')
-    : `<tr><td class="p-3 text-slate-400" colspan="4">Ajoutez des ouvrages au devis pour calculer le besoin consolidé.</td></tr>`;
+
+  const rowsHtml = await Promise.all(rows.map(async r=>{
+    const {tarifs,item,store:matchedStore}=await getPrixFournisseursForCode(r.code);
+    const options=[...tarifs];
+    if(item?.fournisseur && !options.some(t=>t.fournisseur===item.fournisseur)){
+      options.unshift({fournisseur:item.fournisseur,prix:item[PRICE_FIELD_BY_STORE[matchedStore]]||0});
+    }
+    if(!window.consolidatedFournisseurChoice[r.code] && options.length) window.consolidatedFournisseurChoice[r.code]=options[0].fournisseur;
+    const selected=window.consolidatedFournisseurChoice[r.code]||'';
+    const select = options.length
+      ? `<select onchange="window.consolidatedFournisseurChoice['${escapeHtml(r.code||'')}']=this.value" class="border rounded px-2 py-1 text-xs w-full">
+          ${options.map(o=>`<option value="${escapeHtml(o.fournisseur)}" ${o.fournisseur===selected?'selected':''}>${escapeHtml(o.fournisseur)} (${money(o.prix)})</option>`).join('')}
+        </select>`
+      : '<span class="text-xs text-slate-400">Non référencé</span>';
+    return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.code||'—')}</td><td class="p-3">${escapeHtml(r.designation)}</td><td class="p-3 text-right">${r.qte.toFixed(2)}</td><td class="p-3 text-right">${money(r.montant)}</td><td class="p-3">${select}</td></tr>`;
+  }));
+
+  el.innerHTML = rowsHtml.length ? rowsHtml.join('') : `<tr><td class="p-3 text-slate-400" colspan="5">Ajoutez des ouvrages au devis pour calculer le besoin consolidé.</td></tr>`;
   const totalMontant=rows.reduce((s,r)=>s+r.montant,0);
   const totalEl=document.getElementById('consolidatedNeedsTotal');
   if(totalEl) totalEl.textContent=money(totalMontant);
+  window._consolidatedRows=rows;
+}
+
+async function genererBonsDeCommande(){
+  const rows=window._consolidatedRows||[];
+  if(!rows.length){ alert('Aucun besoin consolidé — ajoutez des ouvrages au devis.'); return; }
+  const groups={};
+  for(const r of rows){
+    const fournisseur=window.consolidatedFournisseurChoice[r.code]||'Non assigné';
+    if(!groups[fournisseur]) groups[fournisseur]=[];
+    const {tarifs}=await getPrixFournisseursForCode(r.code);
+    const tarif=tarifs.find(t=>t.fournisseur===fournisseur);
+    const prixUnitaire=tarif?tarif.prix:(r.qte?r.montant/r.qte:0);
+    groups[fournisseur].push({...r,prixUnitaire,sousTotal:prixUnitaire*r.qte});
+  }
+  const client=document.getElementById('proClient')?.value||'—';
+  const devisNumero=document.getElementById('proNumber')?.textContent||'—';
+  const dateStr=new Date().toLocaleDateString('fr-FR');
+  const sections=Object.entries(groups).map(([fournisseur,items],i)=>{
+    const total=items.reduce((s,it)=>s+it.sousTotal,0);
+    return `<div class="${i>0?'bc-page':''}">
+      <div class="bc-header">
+        <div><b>SANIX AFRICA</b> — Division Technologies</div>
+        <div class="sub">Bon de commande n° BC-${devisNumero}-${String(i+1).padStart(2,'0')} • ${dateStr}</div>
+      </div>
+      <table class="bc-meta"><tr><td><b>Fournisseur</b></td><td>${escapeHtml(fournisseur)}</td><td><b>Devis lié</b></td><td>${escapeHtml(devisNumero)}</td></tr>
+      <tr><td><b>Client final</b></td><td>${escapeHtml(client)}</td><td><b>Date</b></td><td>${dateStr}</td></tr></table>
+      <table>
+        <thead><tr><th>Code</th><th>Désignation</th><th>Qté</th><th>Prix unit.</th><th>Sous-total</th></tr></thead>
+        <tbody>${items.map(it=>`<tr><td>${escapeHtml(it.code||'—')}</td><td>${escapeHtml(it.designation)}</td><td>${it.qte.toFixed(2)}</td><td>${money(it.prixUnitaire)}</td><td>${money(it.sousTotal)}</td></tr>`).join('')}</tbody>
+      </table>
+      <div class="bc-total">Total commande : ${money(total)}</div>
+    </div>`;
+  }).join('');
+  const win=window.open('','_blank','width=1000,height=1100');
+  if(!win) return;
+  win.document.write(`<html><head><title>Bons de commande</title>
+    <style>
+      body{font-family:Arial,sans-serif;padding:30px;color:#0f172a;font-size:13px}
+      .bc-header{border-bottom:2px solid #0f172a;padding-bottom:10px;margin-bottom:14px}
+      .bc-header .sub{color:#64748b;font-size:12px;margin-top:2px}
+      table{width:100%;border-collapse:collapse;margin-bottom:14px}
+      th,td{border:1px solid #cbd5e1;padding:7px 10px;text-align:left;font-size:12px}
+      th{background:#f1f5f9}
+      .bc-meta td{border:0;padding:3px 10px 3px 0}
+      .bc-total{text-align:right;font-weight:800;font-size:15px;margin-bottom:20px}
+      .bc-page{page-break-before:always;padding-top:10px}
+    </style></head><body>${sections}</body></html>`);
+  win.document.close();
+  win.focus();
+  await audit('GENERER_BC',Object.keys(groups).length+' bon(s) de commande généré(s) — devis '+devisNumero);
+  setTimeout(()=>win.print(),300);
 }
 
 let currentProformaId = null;
