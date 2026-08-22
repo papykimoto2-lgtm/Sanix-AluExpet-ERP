@@ -72,7 +72,7 @@ window.SANIX_CFG = {
 
 <div id="appRoot" class="flex min-h-screen hidden">
   <div id="sidebarOverlay" onclick="closeSidebar()"></div>
-  <aside id="sidebar" class="sidebar text-slate-300 w-64 p-4 hidden md:block">
+  <aside id="sidebar" class="sidebar text-slate-300 w-64 p-4 hidden md:flex md:flex-col md:sticky md:top-0 md:h-screen md:overflow-y-auto md:shrink-0">
     <div class="flex items-center justify-between px-3 py-4">
       <div class="text-white text-xl font-extrabold">Sanix <span class="text-blue-400">AluExpert</span></div>
       <button onclick="closeSidebar()" class="md:hidden text-slate-400 text-2xl leading-none px-2">×</button>
