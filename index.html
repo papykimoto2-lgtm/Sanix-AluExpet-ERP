@@ -2956,6 +2956,27 @@ async function openEntityDetail(kind,id){
   const isClient=kind==='clients';
   let chantiersHtml='';
   let statsHtml='';
+  const isFournisseur=kind==='fournisseurs';
+  if(isFournisseur){
+    const achatsF=(await idbGetAll('achats')).filter(a=>(a.fournisseur||'').trim().toLowerCase()===(rec.nom||'').trim().toLowerCase());
+    const totAchats=achatsF.reduce((s,a)=>s+(+a.montant||0),0);
+    const nbRecues=achatsF.filter(a=>a.statut==='recue').length;
+    const nbEnCours=achatsF.filter(a=>a.statut!=='recue').length;
+    const dernier=achatsF.slice().sort((a,b)=>(b.dateCreation||'').localeCompare(a.dateCreation||''))[0];
+    statsHtml=`
+    <div class="mt-5 pt-4 border-t">
+      <h3 class="font-bold text-sm text-slate-700 mb-2">📊 Statistiques fournisseur</h3>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+        <div class="bg-slate-50 rounded-lg p-2.5"><div class="text-xs text-slate-400">Total achats</div><div class="font-bold">${money(totAchats)}</div></div>
+        <div class="bg-slate-50 rounded-lg p-2.5"><div class="text-xs text-slate-400">Demandes d'achat</div><div class="font-bold">${achatsF.length}</div></div>
+        <div class="bg-emerald-50 rounded-lg p-2.5"><div class="text-xs text-slate-400">Reçues</div><div class="font-bold text-emerald-700">${nbRecues}</div></div>
+        <div class="bg-amber-50 rounded-lg p-2.5"><div class="text-xs text-slate-400">En cours</div><div class="font-bold text-amber-700">${nbEnCours}</div></div>
+        <div class="bg-slate-50 rounded-lg p-2.5"><div class="text-xs text-slate-400">Panier moyen</div><div class="font-bold">${money(achatsF.length?totAchats/achatsF.length:0)}</div></div>
+        <div class="bg-slate-50 rounded-lg p-2.5"><div class="text-xs text-slate-400">Délai livraison moy.</div><div class="font-bold">${rec.delaiLivraison?rec.delaiLivraison+' j':'—'}</div></div>
+        <div class="bg-slate-50 rounded-lg p-2.5 col-span-2"><div class="text-xs text-slate-400">Dernier achat</div><div class="font-bold">${dernier?escapeHtml(dernier.designation)+' — '+money(dernier.montant):'—'}</div></div>
+      </div>
+    </div>`;
+  }
   if(isClient){
     const chantiers=await getChantiersForClient(rec);
     const ofsClient=(await idbGetAll('of')).filter(o=>(o.client||'').trim().toLowerCase()===(rec.nom||'').trim().toLowerCase());
