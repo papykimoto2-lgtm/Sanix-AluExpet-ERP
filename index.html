@@ -1107,13 +1107,21 @@ window.SANIX_CFG = {
       </section>
 
       <section id="catalogue" class="page hidden">
-        <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1 items-center justify-between">
-          <div class="flex flex-wrap gap-1">
-            <button class="cat-tab-btn px-4 py-2 rounded-lg text-sm font-semibold active" data-cattab="finis" onclick="showCatalogueTab('finis')">📦 Produits finis</button>
-            <button class="cat-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-cattab="matiere" onclick="showCatalogueTab('matiere')">🧱 Matière première</button>
-            <button class="cat-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-cattab="consommables" onclick="showCatalogueTab('consommables')">🧪 Consommables</button>
+        <div class="card bg-white rounded-2xl p-2 mb-4">
+          <div class="flex flex-wrap gap-1 items-center justify-between mb-2">
+            <div class="flex flex-wrap gap-1">
+              <button class="cat-tab-btn px-4 py-2 rounded-lg text-sm font-semibold active" data-cattab="finis" onclick="showCatalogueTab('finis')">📦 Produits finis</button>
+              <button class="cat-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-cattab="matiere" onclick="showCatalogueTab('matiere')">🧱 Matière première</button>
+              <button class="cat-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-cattab="consommables" onclick="showCatalogueTab('consommables')">🧪 Consommables</button>
+              <button class="cat-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-cattab="mouvements" onclick="showCatalogueTab('mouvements')">📜 Journal de mouvement</button>
+              <button class="cat-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-cattab="inventaire" onclick="showCatalogueTab('inventaire')">🧮 Inventaire</button>
+            </div>
+            <button onclick="printCatalogue()" class="border px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap">🖨 Imprimer le catalogue</button>
           </div>
-          <button onclick="printCatalogue()" class="border px-4 py-2 rounded-lg text-sm font-semibold">🖨 Imprimer le catalogue</button>
+          <div class="relative">
+            <input id="catSearchInput" type="text" placeholder="🔍 Rechercher (code, désignation, référence...)" oninput="filterCatalogueTables()" class="w-full border rounded-lg pl-3 pr-8 py-2 text-sm">
+            <button id="catSearchClear" onclick="clearCatalogueFilter()" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-sm" title="Effacer">✕</button>
+          </div>
         </div>
 
         <div id="catFinis" class="cat-tab">
@@ -1140,6 +1148,47 @@ window.SANIX_CFG = {
           <div class="overflow-x-auto mb-6"><table class="w-full text-sm bg-white rounded-xl overflow-hidden"><thead class="bg-slate-50"><tr><th class="text-left p-3">Code</th><th class="text-left p-3">Désignation</th><th class="text-left p-3">Type</th><th class="text-right p-3">Prix/ml</th></tr></thead><tbody id="catJointsBody"></tbody></table></div>
           <h3 class="font-bold text-sm text-slate-700 mb-2">Consommables</h3>
           <div class="overflow-x-auto"><table class="w-full text-sm bg-white rounded-xl overflow-hidden"><thead class="bg-slate-50"><tr><th class="text-left p-3">Code</th><th class="text-left p-3">Désignation</th><th class="text-left p-3">Unité</th><th class="text-right p-3">Prix</th></tr></thead><tbody id="catConsoBody"></tbody></table></div>
+        </div>
+
+        <div id="catMouvements" class="cat-tab hidden">
+          <div class="mb-3 flex flex-wrap items-end gap-2 bg-slate-50 border rounded-xl p-3">
+            <div>
+              <label class="text-xs font-semibold text-slate-600 block mb-1">Référence</label>
+              <input id="mvfRef" type="text" placeholder="Toutes" oninput="renderCatalogueMouvements()" class="border rounded-lg px-2 py-1.5 text-sm">
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-slate-600 block mb-1">Type</label>
+              <select id="mvfType" onchange="renderCatalogueMouvements()" class="border rounded-lg px-2 py-1.5 text-sm">
+                <option value="">Tous</option>
+                <option value="entree">Entrée</option>
+                <option value="sortie">Sortie</option>
+                <option value="ajustement">Ajustement (inventaire)</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-slate-600 block mb-1">Du</label>
+              <input id="mvfFrom" type="date" onchange="renderCatalogueMouvements()" class="border rounded-lg px-2 py-1.5 text-sm">
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-slate-600 block mb-1">Au</label>
+              <input id="mvfTo" type="date" onchange="renderCatalogueMouvements()" class="border rounded-lg px-2 py-1.5 text-sm">
+            </div>
+            <button onclick="resetMouvementsFilters()" class="border px-3 py-1.5 rounded-lg text-sm font-semibold">↺ Réinitialiser</button>
+            <button onclick="printJournalMouvements()" class="ml-auto border px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap">🖨 Imprimer</button>
+          </div>
+          <div class="overflow-x-auto"><table class="w-full text-sm bg-white rounded-xl overflow-hidden"><thead class="bg-slate-50"><tr><th class="text-left p-3">Date</th><th class="text-left p-3">Référence</th><th class="text-left p-3">Désignation</th><th class="text-left p-3">Type</th><th class="text-right p-3">Quantité</th><th class="text-right p-3">Prix unitaire</th><th class="text-left p-3">Utilisateur</th></tr></thead><tbody id="catMouvementsBody"></tbody></table></div>
+          <div id="catMouvementsEmpty" class="hidden text-sm text-slate-400 text-center py-6">Aucun mouvement pour ces critères.</div>
+        </div>
+
+        <div id="catInventaire" class="cat-tab hidden">
+          <div class="mb-3 flex flex-wrap justify-between items-center gap-2">
+            <p class="text-sm text-slate-500 max-w-2xl">Comptage physique — saisissez la quantité comptée par référence. L'écart est calculé automatiquement. La validation génère un mouvement d'ajustement pour chaque référence modifiée.</p>
+            <div class="flex gap-2 shrink-0">
+              <button onclick="printInventaire()" class="border px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap">🖨 Fiche d'inventaire</button>
+              <button onclick="validerInventaire()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap">✔ Valider l'inventaire</button>
+            </div>
+          </div>
+          <div class="overflow-x-auto"><table class="w-full text-sm bg-white rounded-xl overflow-hidden"><thead class="bg-slate-50"><tr><th class="text-left p-3">Référence</th><th class="text-left p-3">Désignation</th><th class="text-right p-3">Théorique</th><th class="text-right p-3">Comptée</th><th class="text-right p-3">Écart</th><th class="text-left p-3">État</th></tr></thead><tbody id="catInventaireBody"></tbody></table></div>
         </div>
       </section>
     </div>
@@ -2004,7 +2053,7 @@ async function handleStockMove(e){
   row._modifie=new Date().toISOString();
   await idbPut('stock',row);
   queueSync('alubom_stock',row);
-  const mv={id:'m_'+Date.now(),ref,type,qty,prixUnitaire:type==='entree'?prixUnitaire:0,ts:new Date().toISOString()};
+  const mv={id:'m_'+Date.now(),ref,type,qty,prixUnitaire:type==='entree'?prixUnitaire:0,ts:new Date().toISOString(),user:currentUser?currentUser.email:undefined};
   await idbPut('stock_mouvements',mv);
   queueSync('alubom_stock_mouvements',mv);
   await audit('MOUVEMENT_STOCK',`${type} ${qty}ml ${ref}`+(prixUnitaire?` @ ${money(prixUnitaire)}`:''));
@@ -2012,6 +2061,170 @@ async function handleStockMove(e){
   document.getElementById('mvPrix').classList.remove('hidden');
   await renderStockTable();
   return false;
+}
+
+/* =========================================================
+   Catalogue technique — Journal de mouvement
+   ========================================================= */
+function getMouvementsFilters(){
+  return {
+    ref: normalizeSearch(document.getElementById('mvfRef').value.trim()),
+    type: document.getElementById('mvfType').value,
+    from: document.getElementById('mvfFrom').value,
+    to: document.getElementById('mvfTo').value
+  };
+}
+async function getFilteredMouvements(){
+  const [mouvements,stockRows]=await Promise.all([idbGetAll('stock_mouvements'),idbGetAll('stock')]);
+  const labelByRef={}; stockRows.forEach(s=>labelByRef[s.ref]=s.label);
+  const f=getMouvementsFilters();
+  let rows=mouvements.slice().sort((a,b)=>(b.ts||'').localeCompare(a.ts||''));
+  if(f.ref) rows=rows.filter(m=>normalizeSearch(m.ref).includes(f.ref));
+  if(f.type) rows=rows.filter(m=>m.type===f.type);
+  if(f.from) rows=rows.filter(m=>(m.ts||'').slice(0,10)>=f.from);
+  if(f.to) rows=rows.filter(m=>(m.ts||'').slice(0,10)<=f.to);
+  return {rows,labelByRef};
+}
+function mouvementSignedQty(m){
+  let sign='+', val=Math.abs(m.qty||0);
+  if(m.type==='sortie') sign='-';
+  else if(m.type==='ajustement') sign=(m.qty||0)>=0?'+':'-';
+  return sign+val.toFixed(2)+' ml';
+}
+async function renderCatalogueMouvements(){
+  const body=document.getElementById('catMouvementsBody'); if(!body) return;
+  const emptyEl=document.getElementById('catMouvementsEmpty');
+  const {rows,labelByRef}=await getFilteredMouvements();
+  const typeLabels={entree:['Entrée','emerald'],sortie:['Sortie','red'],ajustement:['Ajustement','amber']};
+  body.innerHTML=rows.map(m=>{
+    const [tl,color]=typeLabels[m.type]||[m.type,'slate'];
+    return `<tr class="border-b"><td class="p-3">${m.ts?new Date(m.ts).toLocaleString('fr-FR'):'—'}</td><td class="p-3 font-semibold">${escapeHtml(m.ref)}</td><td class="p-3">${escapeHtml(labelByRef[m.ref]||'—')}</td><td class="p-3"><span class="badge bg-${color}-50 text-${color}-700">${tl}</span></td><td class="p-3 text-right">${mouvementSignedQty(m)}</td><td class="p-3 text-right">${m.prixUnitaire?money(m.prixUnitaire):'—'}</td><td class="p-3">${escapeHtml(m.user||'—')}</td></tr>`;
+  }).join('');
+  emptyEl.classList.toggle('hidden',rows.length>0);
+}
+function resetMouvementsFilters(){
+  document.getElementById('mvfRef').value='';
+  document.getElementById('mvfType').value='';
+  document.getElementById('mvfFrom').value='';
+  document.getElementById('mvfTo').value='';
+  renderCatalogueMouvements();
+}
+async function printJournalMouvements(){
+  const {rows,labelByRef}=await getFilteredMouvements();
+  const typeLabels={entree:'Entrée',sortie:'Sortie',ajustement:'Ajustement'};
+  const html=`
+    <h1>Journal de mouvement de stock — SANIX AluExpert ERP</h1>
+    <p class="sub">${rows.length} mouvement(s) — édité le ${new Date().toLocaleDateString('fr-FR')}</p>
+    <table><thead><tr><th>Date</th><th>Référence</th><th>Désignation</th><th>Type</th><th>Quantité</th><th>Prix unitaire</th><th>Utilisateur</th></tr></thead>
+    <tbody>${rows.length?rows.map(m=>`<tr><td>${m.ts?new Date(m.ts).toLocaleString('fr-FR'):'—'}</td><td>${escapeHtml(m.ref)}</td><td>${escapeHtml(labelByRef[m.ref]||'—')}</td><td>${typeLabels[m.type]||m.type}</td><td>${mouvementSignedQty(m)}</td><td>${m.prixUnitaire?money(m.prixUnitaire):'—'}</td><td>${escapeHtml(m.user||'—')}</td></tr>`).join(''):`<tr><td colspan="7" style="color:#94a3b8;text-align:center">Aucun mouvement</td></tr>`}</tbody></table>`;
+  const win=window.open('','_blank','width=1000,height=1100');
+  if(!win) return;
+  win.document.write(`<html><head><title>Journal de mouvement</title>
+    <style>
+      body{font-family:Arial,sans-serif;padding:35px;color:#0f172a}
+      h1{font-size:22px;margin-bottom:2px}
+      .sub{color:#64748b;font-size:12px;margin-bottom:24px}
+      table{width:100%;border-collapse:collapse;margin-bottom:6px}
+      th,td{border:1px solid #cbd5e1;padding:7px 10px;font-size:12px;text-align:left}
+      th{background:#f1f5f9}
+    </style></head><body>${html}</body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(()=>win.print(),300);
+}
+
+/* =========================================================
+   Catalogue technique — Inventaire (comptage physique)
+   ========================================================= */
+async function renderCatalogueInventaire(){
+  const body=document.getElementById('catInventaireBody'); if(!body) return;
+  const rows=(await idbGetAll('stock')).sort((a,b)=>a.ref.localeCompare(b.ref));
+  body.innerHTML = rows.length ? rows.map(r=>`
+    <tr class="border-b" data-ref="${escapeHtml(r.ref)}">
+      <td class="p-3 font-semibold">${escapeHtml(r.ref)}</td>
+      <td class="p-3">${escapeHtml(r.label)}</td>
+      <td class="p-3 text-right theo-qty" data-theo="${r.dispo}">${r.dispo.toFixed(2)} ml</td>
+      <td class="p-3 text-right"><input type="number" step="0.01" class="inv-compte border rounded-lg px-2 py-1 text-sm w-28 text-right" placeholder="${r.dispo.toFixed(2)}" oninput="updateEcartRow(this)"></td>
+      <td class="p-3 text-right ecart-cell text-slate-400">—</td>
+      <td class="p-3 etat-cell"><span class="badge bg-slate-50 text-slate-500">Non compté</span></td>
+    </tr>`).join('') : `<tr><td class="p-3 text-slate-400" colspan="6">Aucune référence en stock à inventorier.</td></tr>`;
+}
+function updateEcartRow(input){
+  const tr=input.closest('tr');
+  const theo=+tr.querySelector('.theo-qty').dataset.theo;
+  const val=input.value.trim();
+  const ecartCell=tr.querySelector('.ecart-cell');
+  const etatCell=tr.querySelector('.etat-cell');
+  if(val===''){
+    ecartCell.textContent='—'; ecartCell.className='p-3 text-right ecart-cell text-slate-400';
+    etatCell.innerHTML='<span class="badge bg-slate-50 text-slate-500">Non compté</span>';
+    return;
+  }
+  const compte=+val, ecart=compte-theo;
+  ecartCell.textContent=(ecart>0?'+':'')+ecart.toFixed(2)+' ml';
+  ecartCell.className='p-3 text-right ecart-cell font-semibold '+(ecart===0?'text-slate-500':ecart>0?'text-emerald-600':'text-red-600');
+  etatCell.innerHTML = ecart===0 ? '<span class="badge bg-emerald-50 text-emerald-700">Conforme</span>' : '<span class="badge bg-amber-50 text-amber-700">Écart</span>';
+}
+async function validerInventaire(){
+  if(!hasRole('stock:write')){ alert('Permission refusée.'); return; }
+  const trs=[...document.querySelectorAll('#catInventaireBody tr[data-ref]')];
+  const changes=[];
+  trs.forEach(tr=>{
+    const input=tr.querySelector('.inv-compte');
+    const val=input.value.trim();
+    if(val==='') return;
+    const theo=+tr.querySelector('.theo-qty').dataset.theo;
+    const compte=+val, ecart=compte-theo;
+    if(Math.abs(ecart)>0.001) changes.push({ref:tr.dataset.ref,theo,compte,ecart});
+  });
+  if(!changes.length){ alert('Aucun écart à enregistrer.'); return; }
+  if(!confirm(changes.length+' référence(s) avec écart détecté. Confirmer l\'ajustement du stock ?')) return;
+  const stockRows=await idbGetAll('stock');
+  for(const c of changes){
+    const row=stockRows.find(r=>r.ref===c.ref);
+    if(!row) continue;
+    row.dispo=c.compte;
+    row._modifie=new Date().toISOString();
+    await idbPut('stock',row);
+    queueSync('alubom_stock',row);
+    const mv={id:'m_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),ref:c.ref,type:'ajustement',qty:c.ecart,prixUnitaire:0,ts:new Date().toISOString(),user:currentUser?currentUser.email:undefined};
+    await idbPut('stock_mouvements',mv);
+    queueSync('alubom_stock_mouvements',mv);
+    await audit('INVENTAIRE_AJUSTEMENT',`${c.ref} : ${c.theo.toFixed(2)} → ${c.compte.toFixed(2)} (écart ${c.ecart>0?'+':''}${c.ecart.toFixed(2)})`);
+  }
+  alert(changes.length+' référence(s) ajustée(s) suite à inventaire.');
+  await renderCatalogueInventaire();
+  await renderStockTable();
+}
+async function printInventaire(){
+  const trs=[...document.querySelectorAll('#catInventaireBody tr[data-ref]')];
+  const rowsHtml=trs.map(tr=>{
+    const ref=tr.dataset.ref;
+    const label=tr.children[1].textContent;
+    const theo=+tr.querySelector('.theo-qty').dataset.theo;
+    const compte=tr.querySelector('.inv-compte').value.trim();
+    const ecart=compte===''?'—':(((+compte-theo)>0?'+':'')+(+compte-theo).toFixed(2));
+    return `<tr><td>${escapeHtml(ref)}</td><td>${escapeHtml(label)}</td><td style="text-align:right">${theo.toFixed(2)}</td><td style="text-align:right">${compte||'—'}</td><td style="text-align:right">${ecart}</td></tr>`;
+  }).join('');
+  const html=`
+    <h1>Fiche d'inventaire — SANIX AluExpert ERP</h1>
+    <p class="sub">Comptage physique édité le ${new Date().toLocaleDateString('fr-FR')}</p>
+    <table><thead><tr><th>Référence</th><th>Désignation</th><th>Théorique (ml)</th><th>Comptée (ml)</th><th>Écart (ml)</th></tr></thead>
+    <tbody>${rowsHtml||'<tr><td colspan="5" style="color:#94a3b8;text-align:center">Aucune référence en stock</td></tr>'}</tbody></table>`;
+  const win=window.open('','_blank','width=1000,height=1100');
+  if(!win) return;
+  win.document.write(`<html><head><title>Fiche d'inventaire</title>
+    <style>
+      body{font-family:Arial,sans-serif;padding:35px;color:#0f172a}
+      h1{font-size:22px;margin-bottom:2px}
+      .sub{color:#64748b;font-size:12px;margin-bottom:24px}
+      table{width:100%;border-collapse:collapse;margin-bottom:6px}
+      th,td{border:1px solid #cbd5e1;padding:7px 10px;font-size:12px;text-align:left}
+      th{background:#f1f5f9}
+    </style></head><body>${html}</body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(()=>win.print(),300);
 }
 
 /* ---------- Réservation stock (Disponible → Réservé) à la création d'OF ---------- */
@@ -2760,9 +2973,11 @@ const CATALOGUE_TYPES_ICONS={
 
 function showCatalogueTab(tab){
   document.querySelectorAll('.cat-tab').forEach(t=>t.classList.add('hidden'));
-  const ids={finis:'catFinis',matiere:'catMatiere',consommables:'catConsommables'};
+  const ids={finis:'catFinis',matiere:'catMatiere',consommables:'catConsommables',mouvements:'catMouvements',inventaire:'catInventaire'};
   document.getElementById(ids[tab]).classList.remove('hidden');
   document.querySelectorAll('.cat-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.cattab===tab));
+  const search=document.getElementById('catSearchInput');
+  if(search){ search.value=''; document.getElementById('catSearchClear').classList.add('hidden'); }
   renderCatalogue(tab);
 }
 
@@ -2820,6 +3035,30 @@ async function renderCatalogue(tab){
       consoBody.innerHTML = rows.length ? rows.map(r=>`<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.code)}</td><td class="p-3">${escapeHtml(r.designation)}</td><td class="p-3">${escapeHtml(r.unite||'—')}</td><td class="p-3 text-right">${money(r.prix)}</td></tr>`).join('') : `<tr><td class="p-3 text-slate-400" colspan="4">Aucun consommable référencé.</td></tr>`;
     }
   }
+  if(tab==='mouvements') await renderCatalogueMouvements();
+  if(tab==='inventaire') await renderCatalogueInventaire();
+}
+
+/* ---------- Filtre transversal du catalogue ---------- */
+function normalizeSearch(s){
+  return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+function filterCatalogueTables(){
+  const raw=document.getElementById('catSearchInput').value.trim();
+  const q=normalizeSearch(raw);
+  document.getElementById('catSearchClear').classList.toggle('hidden',!raw);
+  const active=document.querySelector('.cat-tab:not(.hidden)');
+  if(!active) return;
+  active.querySelectorAll('tbody tr').forEach(tr=>{
+    tr.classList.toggle('hidden', !!q && !normalizeSearch(tr.textContent).includes(q));
+  });
+  active.querySelectorAll('#catFinisStandards > div, #catFinisEnsembles > div').forEach(card=>{
+    card.classList.toggle('hidden', !!q && !normalizeSearch(card.textContent).includes(q));
+  });
+}
+function clearCatalogueFilter(){
+  document.getElementById('catSearchInput').value='';
+  filterCatalogueTables();
 }
 
 async function printCatalogue(){
