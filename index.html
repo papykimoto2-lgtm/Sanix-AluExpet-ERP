@@ -25,6 +25,11 @@ window.SANIX_CFG = {
   .modal-overlay>div{overscroll-behavior:contain}
   .glass{background:rgba(255,255,255,.88);backdrop-filter:blur(12px)}
   .sidebar{background:#0f172a}
+  #sidebar{scrollbar-width:thin;scrollbar-color:#334155 #0f172a}
+  #sidebar::-webkit-scrollbar{width:6px}
+  #sidebar::-webkit-scrollbar-track{background:#0f172a}
+  #sidebar::-webkit-scrollbar-thumb{background:#334155;border-radius:999px}
+  #sidebar::-webkit-scrollbar-thumb:hover{background:#475569}
   .active{background:#1e293b;color:#fff}
   .card{box-shadow:0 10px 30px rgba(15,23,42,.07)}
   input,select{outline:none}
