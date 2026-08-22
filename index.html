@@ -1063,10 +1063,10 @@ function escapeHtml(s){
 /* ---------- IndexedDB ---------- */
 function openDB(){
   return new Promise((resolve,reject)=>{
-    const req=indexedDB.open('alubom_db',7);
+    const req=indexedDB.open('alubom_db',8);
     req.onupgradeneeded=e=>{
       const d=e.target.result;
-      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines'].forEach(s=>{
+      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans'].forEach(s=>{
         if(!d.objectStoreNames.contains(s)) d.createObjectStore(s,{keyPath:'id'});
       });
     };
@@ -1510,6 +1510,8 @@ async function renderOFTable(){
   const el=document.getElementById('ofBody'); if(!el) return;
   const rows=(await idbGetAll('of')).sort((a,b)=>b.date.localeCompare(a.date));
   const qcRows=await idbGetAll('controles_qualite');
+  const plansRows=await idbGetAll('plans');
+  const plansCount={}; plansRows.forEach(p=>{ plansCount[p.ofId]=(plansCount[p.ofId]||0)+1; });
   const today=new Date().toISOString().slice(0,10);
   el.innerHTML = rows.length ? rows.map(r=>{
     const c=OF_STATUS_COLOR[r.statut]||'slate';
@@ -1519,10 +1521,13 @@ async function renderOFTable(){
       ? `<span class="badge bg-${qc.statut==='conforme'?'emerald':'red'}-50 text-${qc.statut==='conforme'?'emerald':'red'}-700">${qc.statut==='conforme'?'✓ Conforme':'✕ Non conforme'}</span>`
       : `<span class="badge bg-slate-50 text-slate-500">Non contrôlé</span>`;
     const enRetard = r.datePrevue && r.datePrevue<today && r.statut!=='Terminé' && r.statut!=='Annulé';
-    const meta = `${escapeHtml(r.operateur||'—')} • ${escapeHtml(r.poste||'—')}${r.datePrevue?' • prévu '+r.datePrevue:''}${enRetard?' <span class="text-red-600 font-bold">⚠ En retard</span>':''}`;
-    const actions = (r.statut==='Terminé'||r.statut==='Annulé') ? '' : `
+    const meta = `${r.origineAuto?'<span class="text-indigo-600 font-semibold">⚙ Auto</span> • ':''}${escapeHtml(r.operateur||'—')} • ${escapeHtml(r.poste||'—')}${r.datePrevue?' • prévu '+r.datePrevue:''}${enRetard?' <span class="text-red-600 font-bold">⚠ En retard</span>':''}`;
+    const nbPlans=(plansCount[r.id]||0);
+    const planBtn=`<button onclick="openPlansPanel('${r.id}')" class="text-indigo-600 text-xs font-semibold mr-2">📎 Plans${nbPlans?' ('+nbPlans+')':''}</button>`;
+    const actions = (r.statut==='Terminé'||r.statut==='Annulé') ? planBtn : `
       ${next?`<button onclick="advanceOFStatus('${r.id}','${next}')" class="text-blue-600 text-xs font-semibold mr-2">→ ${escapeHtml(next)}</button>`:''}
       <button onclick="openQCForm('${r.id}')" class="text-amber-600 text-xs font-semibold mr-2">Contrôle qualité</button>
+      ${planBtn}
       <button onclick="viewOFBom('${r.id}')" class="text-slate-500 text-xs font-semibold mr-2">BOM figée</button>
       <button onclick="advanceOFStatus('${r.id}','Annulé')" class="text-red-500 text-xs font-semibold">Annuler</button>`;
     return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.numero)}</td><td class="p-3">${escapeHtml(r.ouvrage)}<div class="text-xs text-slate-400">${meta}</div></td><td class="p-3">${escapeHtml(r.client)}</td><td class="p-3"><span class="badge bg-${c}-50 text-${c}-700">${escapeHtml(r.statut)}</span></td><td class="p-3">${qcBadge}</td><td class="p-3 text-right">${escapeHtml(r.marge)}</td><td class="p-3 text-right whitespace-nowrap">${actions}</td></tr>`;
@@ -1620,6 +1625,86 @@ async function handleSubmitQC(e,ofId){
   return false;
 }
 
+/* ---------- Gestion des plans (dessin technique, PDF, photo, schéma) ---------- */
+const PLAN_MAX_SIZE=5*1024*1024; // 5 Mo par fichier
+
+async function openPlansPanel(ofId){
+  const rows=await idbGetAll('of');
+  const rec=rows.find(r=>r.id===ofId); if(!rec) return;
+  const wrap=document.getElementById('qcDetail');
+  wrap.classList.remove('hidden');
+  wrap.innerHTML=`
+    <div class="card bg-white rounded-2xl p-6">
+      <div class="flex flex-wrap justify-between gap-3 mb-5">
+        <div><h2 class="text-lg font-bold">Plans & documents — ${escapeHtml(rec.numero)}</h2><p class="text-sm text-slate-500">${escapeHtml(rec.ouvrage)} — ${escapeHtml(rec.client)} • PDF, image, dessin technique (max 5 Mo/fichier).</p></div>
+        <button onclick="document.getElementById('qcDetail').classList.add('hidden')" class="border px-3 py-2 rounded-lg text-sm font-semibold">Fermer</button>
+      </div>
+      <form onsubmit="return handleUploadPlan(event,'${ofId}')" class="flex flex-wrap gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
+        <input id="planFile" type="file" accept="application/pdf,image/*" required class="border rounded-lg px-2 py-1.5 text-sm flex-1 bg-white">
+        <select id="planType" class="border rounded-lg px-2 py-1.5 text-sm bg-white">
+          <option>Dessin technique</option><option>Plan PDF</option><option>Photo</option><option>Schéma</option><option>Plan de coupe</option>
+        </select>
+        <button type="submit" class="bg-blue-600 text-white rounded-lg px-4 py-1.5 text-sm font-semibold">+ Ajouter</button>
+      </form>
+      <div id="plansList" class="grid sm:grid-cols-3 gap-3"></div>
+    </div>`;
+  await renderPlansList(ofId);
+}
+
+async function handleUploadPlan(e,ofId){
+  e.preventDefault();
+  const fileInput=document.getElementById('planFile');
+  const file=fileInput.files[0];
+  if(!file) return false;
+  if(file.size>PLAN_MAX_SIZE){ alert('Fichier trop volumineux (max 5 Mo).'); return false; }
+  const type=document.getElementById('planType').value;
+  const dataUrl=await new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+  const rec={
+    id:'plan_'+Date.now(),
+    ofId, type, filename:file.name, mime:file.type, size:file.size,
+    dataUrl, uploadedBy:currentUser?currentUser.email:'—',
+    date:new Date().toISOString()
+  };
+  await idbPut('plans',rec);
+  queueSync('alubom_plans',rec);
+  await audit('UPLOAD_PLAN',rec.filename+' ('+type+') — OF '+ofId);
+  fileInput.value='';
+  await renderPlansList(ofId);
+  await renderOFTable();
+  return false;
+}
+
+async function deletePlan(planId,ofId){
+  if(!confirm('Supprimer ce document ?')) return;
+  await idbDelete('plans',planId);
+  await audit('DELETE_PLAN',planId);
+  await renderPlansList(ofId);
+  await renderOFTable();
+}
+
+async function renderPlansList(ofId){
+  const el=document.getElementById('plansList'); if(!el) return;
+  const rows=(await idbGetAll('plans')).filter(p=>p.ofId===ofId).sort((a,b)=>b.date.localeCompare(a.date));
+  el.innerHTML = rows.length ? rows.map(p=>{
+    const isImg=p.mime && p.mime.startsWith('image/');
+    const sizeKb=(p.size/1024).toFixed(0);
+    return `<div class="border rounded-xl p-3">
+      ${isImg
+        ? `<a href="${p.dataUrl}" target="_blank"><img src="${p.dataUrl}" class="w-full h-32 object-cover rounded-lg mb-2"></a>`
+        : `<a href="${p.dataUrl}" target="_blank" download="${escapeHtml(p.filename)}" class="flex items-center justify-center h-32 bg-slate-100 rounded-lg mb-2 text-4xl">📄</a>`
+      }
+      <div class="text-xs font-semibold truncate" title="${escapeHtml(p.filename)}">${escapeHtml(p.filename)}</div>
+      <div class="text-xs text-slate-400">${escapeHtml(p.type)} • ${sizeKb} Ko</div>
+      <button onclick="deletePlan('${p.id}','${ofId}')" class="text-red-500 text-xs font-semibold mt-1">Supprimer</button>
+    </div>`;
+  }).join('') : '<p class="text-sm text-slate-400 col-span-3">Aucun document joint.</p>';
+}
+
 async function loadRecentOF(){
   const el=document.getElementById('recentOF'); if(!el) return;
   const rows=(await idbGetAll('of')).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3);
@@ -1677,15 +1762,14 @@ async function handleStockMove(e){
 }
 
 /* ---------- Réservation stock (Disponible → Réservé) à la création d'OF ---------- */
-async function reserveStockForBOM(){
-  const rowsHtml=document.getElementById('bomBody').querySelectorAll('tr');
+async function reserveStockForBOMArray(bomRows){
   const stockRows=await idbGetAll('stock');
   const reservations=[];
-  for(const tr of rowsHtml){
-    const code=tr.children[0].textContent.trim();
+  for(const r of bomRows){
+    const code=r[0];
     const match=stockRows.find(s=>s.ref===code);
     if(match){
-      const qty=(parseFloat(tr.children[2].textContent)||0)*0.001;
+      const qty=(r[2]||0)*0.001;
       const applied=Math.min(qty,match.dispo);
       match.dispo=Math.max(0,match.dispo-applied);
       match.reserve=(match.reserve||0)+applied;
@@ -1696,6 +1780,55 @@ async function reserveStockForBOM(){
   }
   return reservations;
 }
+async function reserveStockForBOM(){
+  const rowsHtml=document.getElementById('bomBody').querySelectorAll('tr');
+  const bomRows=[...rowsHtml].map(tr=>[tr.children[0].textContent.trim(),tr.children[1].textContent.trim(),parseFloat(tr.children[2].textContent)||0]);
+  return reserveStockForBOMArray(bomRows);
+}
+
+/* ---------- Devis accepté → OF automatique (§22) ---------- */
+async function createOFFromLine(line,client,chantierId){
+  const seq=nextSeq('of');
+  const numero='OF-'+seq.year+'-'+String(seq.n).padStart(4,'0');
+  const bomArray=(line.bom||[]).map(b=>[b.code,b.designation,b.qte,b.longueur||0,b.montant]);
+  const reservations=await reserveStockForBOMArray(bomArray);
+  const bomVersion='v'+new Date().toISOString().replace(/[-:T.]/g,'').slice(0,14);
+  const rec={
+    id:numero,numero,ouvrage:line.detail,client,
+    operateur:'',poste:'Débit',
+    datePrevue:new Date(Date.now()+3*86400000).toISOString().slice(0,10),dateReelle:null,
+    statut:'Découpe',marge:'—',cout:line.subtotal||0,date:new Date().toISOString(),
+    reservations,bomVersion,configSnapshot:{type:line.type,detail:line.detail},bomSnapshot:bomArray,
+    chantierId,origineAuto:true,
+    _modifie:new Date().toISOString()
+  };
+  await idbPut('of',rec);
+  queueSync('alubom_of',rec);
+  await audit('CREATE_OF_AUTO',numero+' / '+client+' — généré automatiquement depuis devis');
+  return rec;
+}
+
+async function genererDossierFabrication(id){
+  if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
+  const rec=await getChantier(id); if(!rec) return;
+  const lignes=rec.lignes||[];
+  if(!lignes.length){
+    alert("Aucune ligne de devis rattachée à ce dossier (créé avant cette fonctionnalité, ou devis vide). Passage direct à l'installation — créez les OF manuellement si besoin.");
+    await advanceChantierStage(id,'installation');
+    return;
+  }
+  const createdOF=[];
+  for(const line of lignes){
+    const of=await createOFFromLine(line,rec.client,id);
+    createdOF.push(of.numero);
+  }
+  rec.ofGeneres=(rec.ofGeneres||[]).concat(createdOF);
+  await saveChantier(rec);
+  await refreshAllTables();
+  await advanceChantierStage(id,'installation',createdOF.length+' OF généré(s) automatiquement : '+createdOF.join(', '));
+  alert(createdOF.length+' ordre(s) de fabrication créé(s) automatiquement :\n'+createdOF.join('\n'));
+}
+
 async function consumeReservation(reservations){
   if(!reservations||!reservations.length) return;
   const stockRows=await idbGetAll('stock');
@@ -1753,6 +1886,7 @@ async function createChantierFromProforma(){
   const rec={
     id:numero, numero, devisNumero:numeroDevis, client, contact,
     montantTotal, montantPaye:0, etape:'devis',
+    lignes:JSON.parse(JSON.stringify(proformaCart)),
     historique:[{etape:'devis',date:new Date().toISOString(),user:currentUser?currentUser.email:'—'}],
     dateCreation:new Date().toISOString(), _modifie:new Date().toISOString()
   };
@@ -1868,9 +2002,11 @@ async function openChantierDetail(id){
       </div>
       <button ${allRecue?'':'disabled class="opacity-50 cursor-not-allowed"'} onclick="advanceChantierStage('${id}','fabrication')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">Passer au dossier de fabrication →</button>`;
   } else if(rec.etape==='fabrication'){
+    const nLignes=(rec.lignes||[]).length;
     actionPanel=`
-      <p class="text-sm text-slate-600 mb-3">Compile la BOM, le plan de fabrication et la fiche de débit actuellement calculés dans le Configurateur.</p>
-      <button onclick="advanceChantierStage('${id}','installation')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">Générer dossier de fabrication →</button>`;
+      <p class="text-sm text-slate-600 mb-3">${nLignes?`Génère automatiquement <b>${nLignes} ordre${nLignes>1?'s':''} de fabrication</b> — un par ouvrage du devis, BOM figée et stock réservé pour chacun.`:'Aucune ligne de devis rattachée — passage direct à l\'installation.'}</p>
+      ${rec.ofGeneres&&rec.ofGeneres.length?`<p class="text-xs text-emerald-600 mb-3">Déjà générés : ${rec.ofGeneres.map(escapeHtml).join(', ')}</p>`:''}
+      <button onclick="genererDossierFabrication('${id}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">⚙️ Générer les OF automatiquement →</button>`;
   } else if(rec.etape==='installation'){
     actionPanel=`
       <form onsubmit="return handlePlanifierInstallation(event,'${id}')" class="flex flex-wrap gap-2 mb-3">
