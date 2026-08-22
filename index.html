@@ -2955,8 +2955,31 @@ async function openEntityDetail(kind,id){
   modal.classList.remove('hidden');
   const isClient=kind==='clients';
   let chantiersHtml='';
+  let statsHtml='';
   if(isClient){
     const chantiers=await getChantiersForClient(rec);
+    const ofsClient=(await idbGetAll('of')).filter(o=>(o.client||'').trim().toLowerCase()===(rec.nom||'').trim().toLowerCase());
+    const proformasClient=await getProformasForClientName(rec.nom);
+    const totCA=chantiers.reduce((s,c)=>s+(+c.montantTotal||0),0);
+    const totPaye=chantiers.reduce((s,c)=>s+(+c.montantPaye||0),0);
+    const reste=totCA-totPaye;
+    const totProforma=proformasClient.reduce((s,p)=>s+parseMoney(p.total),0);
+    const marges=ofsClient.map(o=>parseFloat(String(o.marge).replace('%',''))).filter(n=>!isNaN(n));
+    const margeMoy=marges.length?(marges.reduce((a,b)=>a+b,0)/marges.length).toFixed(1):'—';
+    statsHtml=`
+    <div class="mt-5 pt-4 border-t">
+      <h3 class="font-bold text-sm text-slate-700 mb-2">📊 Statistiques client</h3>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+        <div class="bg-slate-50 rounded-lg p-2.5"><div class="text-xs text-slate-400">CA chantiers</div><div class="font-bold">${money(totCA)}</div></div>
+        <div class="bg-emerald-50 rounded-lg p-2.5"><div class="text-xs text-slate-400">Payé</div><div class="font-bold text-emerald-700">${money(totPaye)}</div></div>
+        <div class="bg-red-50 rounded-lg p-2.5"><div class="text-xs text-slate-400">Reste à payer</div><div class="font-bold text-red-600">${money(reste)}</div></div>
+        <div class="bg-blue-50 rounded-lg p-2.5"><div class="text-xs text-slate-400">Proforma émises</div><div class="font-bold">${proformasClient.length} — ${money(totProforma)}</div></div>
+        <div class="bg-slate-50 rounded-lg p-2.5"><div class="text-xs text-slate-400">Chantiers</div><div class="font-bold">${chantiers.length}</div></div>
+        <div class="bg-slate-50 rounded-lg p-2.5"><div class="text-xs text-slate-400">OF liés</div><div class="font-bold">${ofsClient.length}</div></div>
+        <div class="bg-slate-50 rounded-lg p-2.5"><div class="text-xs text-slate-400">Marge moy. OF</div><div class="font-bold">${margeMoy}${margeMoy!=='—'?'%':''}</div></div>
+        <div class="bg-slate-50 rounded-lg p-2.5"><div class="text-xs text-slate-400">Panier moyen chantier</div><div class="font-bold">${money(chantiers.length?totCA/chantiers.length:0)}</div></div>
+      </div>
+    </div>`;
     chantiersHtml=`
     <div class="mt-5 pt-4 border-t">
       <div class="flex items-center justify-between mb-2">
@@ -2988,6 +3011,7 @@ async function openEntityDetail(kind,id){
         :`<div><span class="text-xs text-slate-400 block">Spécialité</span>${escapeHtml(rec.specialite||'—')}</div>
       <div><span class="text-xs text-slate-400 block">Délai livraison moyen</span>${rec.delaiLivraison?rec.delaiLivraison+' jours':'—'}</div>`}
     </div>
+    ${statsHtml}
     ${chantiersHtml}
     <div class="mt-5 pt-4 border-t flex justify-end">
       <button onclick="closePrixFournisseurs()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Fermer</button>
