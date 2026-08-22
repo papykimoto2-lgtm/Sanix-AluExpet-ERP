@@ -955,6 +955,10 @@ window.SANIX_CFG = {
             <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="parametres" onclick="showRefTab('parametres')">⚙️ Jeux & tolérances</button>
           </div>
           <button onclick="openCsvImport()" class="border border-teal-600 text-teal-600 px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap">📥 Importer CSV</button>
+          <div class="flex items-center gap-0.5 border rounded-lg p-0.5 bg-slate-50">
+            <button id="refViewListBtn" onclick="setRefViewMode('liste')" class="px-3 py-1.5 rounded-md text-xs font-semibold">☰ Liste</button>
+            <button id="refViewGridBtn" onclick="setRefViewMode('grille')" class="px-3 py-1.5 rounded-md text-xs font-semibold">🔲 Grille</button>
+          </div>
         </div>
 
         <div id="refSeries" class="ref-tab">
@@ -981,7 +985,8 @@ window.SANIX_CFG = {
                 <button type="button" id="seCancelBtn" onclick="cancelEditSerie()" class="hidden border px-4 py-1.5 rounded-lg text-sm font-semibold">Annuler</button>
               </div>
             </form>
-            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Code</th><th class="text-left p-3">Désignation</th><th class="text-left p-3">Type</th><th class="text-right p-3">Largeur dormant</th><th class="text-right p-3">Prix réf.</th><th class="text-left p-3">Statut</th><th class="p-3"></th></tr></thead><tbody id="seriesBody"></tbody></table></div>
+            <div class="overflow-x-auto ref-list-view"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Code</th><th class="text-left p-3">Désignation</th><th class="text-left p-3">Type</th><th class="text-right p-3">Largeur dormant</th><th class="text-right p-3">Prix réf.</th><th class="text-left p-3">Statut</th><th class="p-3"></th></tr></thead><tbody id="seriesBody"></tbody></table></div>
+            <div id="seriesGrid" class="ref-grid-view hidden grid sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
           </div>
         </div>
 
@@ -1015,7 +1020,8 @@ window.SANIX_CFG = {
                 <button type="button" id="prCancelBtn" onclick="cancelEditProfil()" class="hidden border px-4 py-1.5 rounded-lg text-sm font-semibold">Annuler</button>
               </div>
             </form>
-            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Code</th><th class="text-left p-3">Désignation</th><th class="text-left p-3">Série</th><th class="text-left p-3">Type</th><th class="text-right p-3">Prix/ml</th><th class="text-right p-3">Stock</th><th class="text-left p-3">Statut</th><th class="p-3"></th></tr></thead><tbody id="profilsBody"></tbody></table></div>
+            <div class="overflow-x-auto ref-list-view"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Code</th><th class="text-left p-3">Désignation</th><th class="text-left p-3">Série</th><th class="text-left p-3">Type</th><th class="text-right p-3">Prix/ml</th><th class="text-right p-3">Stock</th><th class="text-left p-3">Statut</th><th class="p-3"></th></tr></thead><tbody id="profilsBody"></tbody></table></div>
+            <div id="profilsGrid" class="ref-grid-view hidden grid sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
           </div>
         </div>
 
@@ -2501,6 +2507,30 @@ function showRefTab(tab){
   if(REF_DEFS[tab]) renderGenericRef(tab);
 }
 
+/* ---------- Bascule d'affichage Liste / Grille ---------- */
+let refViewMode = localStorage.getItem('sanix_ref_view') || 'liste';
+function setRefViewMode(mode){
+  refViewMode = mode;
+  localStorage.setItem('sanix_ref_view', mode);
+  applyRefViewMode();
+}
+function applyRefViewMode(){
+  const isGrid = refViewMode==='grille';
+  document.querySelectorAll('.ref-list-view').forEach(el=>el.classList.toggle('hidden', isGrid));
+  document.querySelectorAll('.ref-grid-view').forEach(el=>el.classList.toggle('hidden', !isGrid));
+  const listBtn=document.getElementById('refViewListBtn'), gridBtn=document.getElementById('refViewGridBtn');
+  if(listBtn && gridBtn){
+    listBtn.classList.toggle('bg-white', !isGrid); listBtn.classList.toggle('shadow-sm', !isGrid); listBtn.classList.toggle('text-slate-800', !isGrid); listBtn.classList.toggle('text-slate-400', isGrid);
+    gridBtn.classList.toggle('bg-white', isGrid); gridBtn.classList.toggle('shadow-sm', isGrid); gridBtn.classList.toggle('text-slate-800', isGrid); gridBtn.classList.toggle('text-slate-400', !isGrid);
+  }
+}
+function refCardStatutBadge(statut){
+  const ok=statut==='actif'||statut==='disponible';
+  const bad=statut==='inactif'||statut==='hors service';
+  const cls=ok?'emerald':(bad?'slate':'amber');
+  return `<span class="badge bg-${cls}-50 text-${cls}-700">${escapeHtml(statut)}</span>`;
+}
+
 const DEFAULT_SERIES=[
   {id:'ser_std120',code:'STD120',designation:'Série Standard 120',fabricant:'—',type:'Standard',epaisseur:1.4,largeurDormant:120,longueurBarre:6000,couleur:'Blanc',prixRef:8500,statut:'actif'},
   {id:'ser_coul120',code:'COUL120',designation:'Série Coulissant 120',fabricant:'—',type:'Coulissant',epaisseur:1.5,largeurDormant:120,longueurBarre:6000,couleur:'Gris',prixRef:8500,statut:'actif'},
@@ -2580,6 +2610,21 @@ async function renderSeriesTable(){
   if(el){
     el.innerHTML = rows.map(r=>`<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.code)}</td><td class="p-3">${escapeHtml(r.designation)}</td><td class="p-3">${escapeHtml(r.type)}</td><td class="p-3 text-right">${r.largeurDormant} mm</td><td class="p-3 text-right">${money(r.prixRef)}</td><td class="p-3"><span class="badge bg-${r.statut==='actif'?'emerald':'slate'}-50 text-${r.statut==='actif'?'emerald':'slate'}-700">${escapeHtml(r.statut)}</span></td><td class="p-3 text-right whitespace-nowrap"><button onclick="editSerie('${r.id}')" class="text-blue-600 text-xs font-semibold mr-2">✏️ Modifier</button><button onclick="deleteSerie('${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`).join('');
   }
+  const grid=document.getElementById('seriesGrid');
+  if(grid){
+    grid.innerHTML = rows.length ? rows.map(r=>`
+      <div class="border rounded-xl p-3 bg-white shadow-sm flex flex-col">
+        <div class="flex justify-between items-start gap-2 mb-1"><div class="font-semibold text-sm">${escapeHtml(r.code)}</div>${refCardStatutBadge(r.statut)}</div>
+        <div class="text-sm text-slate-700 mb-2">${escapeHtml(r.designation)}</div>
+        <div class="text-xs text-slate-500 space-y-0.5 flex-1">
+          <div>Type : ${escapeHtml(r.type)}</div>
+          <div>Largeur dormant : ${r.largeurDormant||0} mm</div>
+          <div>Couleur : ${escapeHtml(r.couleur||'—')}</div>
+          <div>Prix réf. : ${money(r.prixRef)}</div>
+        </div>
+        <div class="flex gap-3 mt-3 pt-2 border-t"><button onclick="editSerie('${r.id}')" class="text-blue-600 text-xs font-semibold">✏️ Modifier</button><button onclick="deleteSerie('${r.id}')" class="text-red-500 text-xs font-semibold ml-auto">Supprimer</button></div>
+      </div>`).join('') : `<div class="text-slate-400 text-sm col-span-full">Aucune série enregistrée.</div>`;
+  }
   const select=document.getElementById('serie');
   const prSelect=document.getElementById('prSerie');
   const actifs=rows.filter(r=>r.statut==='actif');
@@ -2593,6 +2638,7 @@ async function renderSeriesTable(){
     prSelect.innerHTML = actifs.map(r=>`<option value="${escapeHtml(r.code)}">${escapeHtml(r.designation)}</option>`).join('');
     if(actifs.some(r=>r.code===cur)) prSelect.value=cur;
   }
+  applyRefViewMode();
 }
 
 async function handleAddProfil(e){
@@ -2673,11 +2719,31 @@ async function deleteProfil(id){
 }
 async function renderProfilsTable(){
   const rows=(await idbGetAll('profils')).sort((a,b)=>(a.code||'').localeCompare(b.code||''));
-  const el=document.getElementById('profilsBody'); if(!el) return;
-  el.innerHTML = rows.length ? rows.map(r=>{
-    const low=r.stock<=r.stockMin;
-    return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.code)}</td><td class="p-3">${escapeHtml(r.designation)}</td><td class="p-3">${escapeHtml(r.serie)}</td><td class="p-3">${escapeHtml(r.type)}</td><td class="p-3 text-right">${money(r.prixMl)}</td><td class="p-3 text-right">${low?'<span class="text-red-600 font-bold">':''}${r.stock} ml${low?'</span>':''}</td><td class="p-3"><span class="badge bg-${r.statut==='actif'?'emerald':'slate'}-50 text-${r.statut==='actif'?'emerald':'slate'}-700">${escapeHtml(r.statut)}</span></td><td class="p-3 text-right whitespace-nowrap"><button onclick="editProfil('${r.id}')" class="text-blue-600 text-xs font-semibold mr-2">✏️ Modifier</button><button onclick="openPrixFournisseurs('profils','${r.id}')" class="text-teal-600 text-xs font-semibold mr-2">💰 Tarifs</button><button onclick="deleteProfil('${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`;
-  }).join('') : `<tr><td class="p-3 text-slate-400" colspan="8">Aucun profil enregistré.</td></tr>`;
+  const el=document.getElementById('profilsBody');
+  if(el){
+    el.innerHTML = rows.length ? rows.map(r=>{
+      const low=r.stock<=r.stockMin;
+      return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.code)}</td><td class="p-3">${escapeHtml(r.designation)}</td><td class="p-3">${escapeHtml(r.serie)}</td><td class="p-3">${escapeHtml(r.type)}</td><td class="p-3 text-right">${money(r.prixMl)}</td><td class="p-3 text-right">${low?'<span class="text-red-600 font-bold">':''}${r.stock} ml${low?'</span>':''}</td><td class="p-3"><span class="badge bg-${r.statut==='actif'?'emerald':'slate'}-50 text-${r.statut==='actif'?'emerald':'slate'}-700">${escapeHtml(r.statut)}</span></td><td class="p-3 text-right whitespace-nowrap"><button onclick="editProfil('${r.id}')" class="text-blue-600 text-xs font-semibold mr-2">✏️ Modifier</button><button onclick="openPrixFournisseurs('profils','${r.id}')" class="text-teal-600 text-xs font-semibold mr-2">💰 Tarifs</button><button onclick="deleteProfil('${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`;
+    }).join('') : `<tr><td class="p-3 text-slate-400" colspan="8">Aucun profil enregistré.</td></tr>`;
+  }
+  const grid=document.getElementById('profilsGrid');
+  if(grid){
+    grid.innerHTML = rows.length ? rows.map(r=>{
+      const low=r.stock<=r.stockMin;
+      return `<div class="border rounded-xl p-3 bg-white shadow-sm flex flex-col">
+        <div class="flex justify-between items-start gap-2 mb-1"><div class="font-semibold text-sm">${escapeHtml(r.code)}</div>${refCardStatutBadge(r.statut)}</div>
+        <div class="text-sm text-slate-700 mb-2">${escapeHtml(r.designation)}</div>
+        <div class="text-xs text-slate-500 space-y-0.5 flex-1">
+          <div>Série : ${escapeHtml(r.serie||'—')}</div>
+          <div>Type : ${escapeHtml(r.type)}</div>
+          <div>Prix/ml : ${money(r.prixMl)}</div>
+          <div>Stock : ${low?'<span class="text-red-600 font-bold">':''}${r.stock} ml${low?'</span>':''}</div>
+        </div>
+        <div class="flex gap-3 mt-3 pt-2 border-t"><button onclick="editProfil('${r.id}')" class="text-blue-600 text-xs font-semibold">✏️ Modifier</button><button onclick="openPrixFournisseurs('profils','${r.id}')" class="text-teal-600 text-xs font-semibold">💰 Tarifs</button><button onclick="deleteProfil('${r.id}')" class="text-red-500 text-xs font-semibold ml-auto">Supprimer</button></div>
+      </div>`;
+    }).join('') : `<div class="text-slate-400 text-sm col-span-full">Aucun profil enregistré.</div>`;
+  }
+  applyRefViewMode();
 }
 
 /* =========================================================
@@ -2887,7 +2953,8 @@ function renderGenericRefForm(key){
         <button type="button" id="gf_${key}_cancelBtn" onclick="cancelEditGenericRef('${key}')" class="hidden border px-4 py-1.5 rounded-lg text-sm font-semibold">Annuler</button>
       </div>
     </form>
-    <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr>${def.cols.map(c=>`<th class="text-left p-3">${escapeHtml(c[1])}</th>`).join('')}<th class="p-3"></th></tr></thead><tbody id="refGenericBody_${key}"></tbody></table></div>`;
+    <div class="overflow-x-auto ref-list-view"><table class="w-full text-sm"><thead class="bg-slate-50"><tr>${def.cols.map(c=>`<th class="text-left p-3">${escapeHtml(c[1])}</th>`).join('')}<th class="p-3"></th></tr></thead><tbody id="refGenericBody_${key}"></tbody></table></div>
+    <div id="refGenericGrid_${key}" class="ref-grid-view hidden grid sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>`;
 }
 
 async function handleAddGenericRef(e,key){
@@ -2941,17 +3008,41 @@ async function deleteGenericRef(key,id){
 }
 async function renderGenericRefTable(key){
   const def=REF_DEFS[key];
-  const el=document.getElementById('refGenericBody_'+key); if(!el) return;
+  const el=document.getElementById('refGenericBody_'+key);
   const rows=(await idbGetAll(key)).sort((a,b)=>(a.code||'').localeCompare(b.code||''));
-  el.innerHTML = rows.length ? rows.map(r=>{
-    const cells=def.cols.map(([field,label,fmt])=>{
-      let v=r[field]??'';
-      if(fmt==='money') v=money(v);
-      if(fmt==='badge') return `<td class="p-3"><span class="badge bg-${v==='actif'||v==='disponible'?'emerald':v==='inactif'||v==='hors service'?'slate':'amber'}-50 text-${v==='actif'||v==='disponible'?'emerald':v==='inactif'||v==='hors service'?'slate':'amber'}-700">${escapeHtml(v)}</span></td>`;
-      return `<td class="p-3">${escapeHtml(v)}</td>`;
-    }).join('');
-    return `<tr class="border-b">${cells}<td class="p-3 text-right whitespace-nowrap"><button onclick="editGenericRef('${key}','${r.id}')" class="text-blue-600 text-xs font-semibold mr-2">✏️ Modifier</button>${key!=='machines'?`<button onclick="openPrixFournisseurs('${key}','${r.id}')" class="text-teal-600 text-xs font-semibold mr-2">💰 Tarifs</button>`:''}<button onclick="deleteGenericRef('${key}','${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`;
-  }).join('') : `<tr><td class="p-3 text-slate-400" colspan="${def.cols.length+1}">Aucun élément enregistré.</td></tr>`;
+  if(el){
+    el.innerHTML = rows.length ? rows.map(r=>{
+      const cells=def.cols.map(([field,label,fmt])=>{
+        let v=r[field]??'';
+        if(fmt==='money') v=money(v);
+        if(fmt==='badge') return `<td class="p-3"><span class="badge bg-${v==='actif'||v==='disponible'?'emerald':v==='inactif'||v==='hors service'?'slate':'amber'}-50 text-${v==='actif'||v==='disponible'?'emerald':v==='inactif'||v==='hors service'?'slate':'amber'}-700">${escapeHtml(v)}</span></td>`;
+        return `<td class="p-3">${escapeHtml(v)}</td>`;
+      }).join('');
+      return `<tr class="border-b">${cells}<td class="p-3 text-right whitespace-nowrap"><button onclick="editGenericRef('${key}','${r.id}')" class="text-blue-600 text-xs font-semibold mr-2">✏️ Modifier</button>${key!=='machines'?`<button onclick="openPrixFournisseurs('${key}','${r.id}')" class="text-teal-600 text-xs font-semibold mr-2">💰 Tarifs</button>`:''}<button onclick="deleteGenericRef('${key}','${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`;
+    }).join('') : `<tr><td class="p-3 text-slate-400" colspan="${def.cols.length+1}">Aucun élément enregistré.</td></tr>`;
+  }
+  const grid=document.getElementById('refGenericGrid_'+key);
+  if(grid){
+    const [titleField]=def.cols[0]||[]; const [subField]=def.cols[1]||[];
+    const detailCols=def.cols.slice(2);
+    grid.innerHTML = rows.length ? rows.map(r=>{
+      const detailHtml=detailCols.map(([field,label,fmt])=>{
+        let v=r[field]??'';
+        if(fmt==='money') v=money(v);
+        if(fmt==='badge') return '';
+        return `<div>${escapeHtml(label)} : ${escapeHtml(v)}</div>`;
+      }).join('');
+      const statutCol=def.cols.find(c=>c[2]==='badge');
+      const statutVal=statutCol?r[statutCol[0]]:null;
+      return `<div class="border rounded-xl p-3 bg-white shadow-sm flex flex-col">
+        <div class="flex justify-between items-start gap-2 mb-1"><div class="font-semibold text-sm">${escapeHtml(r[titleField]??'')}</div>${statutVal?refCardStatutBadge(statutVal):''}</div>
+        <div class="text-sm text-slate-700 mb-2">${escapeHtml(r[subField]??'')}</div>
+        <div class="text-xs text-slate-500 space-y-0.5 flex-1">${detailHtml}</div>
+        <div class="flex gap-3 mt-3 pt-2 border-t"><button onclick="editGenericRef('${key}','${r.id}')" class="text-blue-600 text-xs font-semibold">✏️ Modifier</button>${key!=='machines'?`<button onclick="openPrixFournisseurs('${key}','${r.id}')" class="text-teal-600 text-xs font-semibold">💰 Tarifs</button>`:''}<button onclick="deleteGenericRef('${key}','${r.id}')" class="text-red-500 text-xs font-semibold ml-auto">Supprimer</button></div>
+      </div>`;
+    }).join('') : `<div class="text-slate-400 text-sm col-span-full">Aucun élément enregistré.</div>`;
+  }
+  applyRefViewMode();
 }
 async function renderGenericRef(key){
   if(!document.getElementById('refGenericBody_'+key)) renderGenericRefForm(key);
