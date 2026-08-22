@@ -3013,7 +3013,11 @@ async function openEntityDetail(kind,id){
     </div>
     ${statsHtml}
     ${chantiersHtml}
-    <div class="mt-5 pt-4 border-t flex justify-end">
+    <div class="mt-5 pt-4 border-t flex justify-end gap-2">
+      ${isClient?`<button onclick="closePrixFournisseurs();showPage('clients');editClient('${rec.id}')" class="border border-blue-600 text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold">✏️ Modifier</button>
+      <button onclick="closePrixFournisseurs();deleteClient('${rec.id}')" class="border border-red-500 text-red-500 px-4 py-2 rounded-lg text-sm font-semibold">🗑️ Supprimer</button>`
+      :`<button onclick="closePrixFournisseurs();showPage('fournisseurs');editFournisseur('${rec.id}')" class="border border-blue-600 text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold">✏️ Modifier</button>
+      <button onclick="closePrixFournisseurs();deleteFournisseur('${rec.id}')" class="border border-red-500 text-red-500 px-4 py-2 rounded-lg text-sm font-semibold">🗑️ Supprimer</button>`}
       <button onclick="closePrixFournisseurs()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Fermer</button>
     </div>`;
 }
