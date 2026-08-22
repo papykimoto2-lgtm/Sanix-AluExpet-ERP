@@ -890,32 +890,55 @@ window.SANIX_CFG = {
       <section id="clients" class="page hidden">
         <div class="card bg-white rounded-2xl p-6">
           <div class="flex flex-wrap justify-between gap-3 mb-5">
-            <div><h2 class="text-lg font-bold">Clients</h2><p class="text-sm text-slate-500">Répertoire clients — utilisé pour proforma et dossiers chantier.</p></div>
+            <div><h2 class="text-lg font-bold">Clients</h2><p class="text-sm text-slate-500">Répertoire clients — particuliers ou entreprises. Utilisé pour proforma et dossiers chantier.</p></div>
           </div>
-          <form id="clientForm" onsubmit="return handleAddClient(event)" class="grid sm:grid-cols-5 gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
+          <form id="clientForm" onsubmit="return handleAddClient(event)" class="grid sm:grid-cols-4 gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
+            <select id="clType" onchange="toggleEntityFields('cl')" class="border rounded-lg px-2 py-1.5 text-sm">
+              <option value="entreprise">Entreprise</option>
+              <option value="particulier">Particulier</option>
+            </select>
             <input id="clNom" placeholder="Nom / Raison sociale" required class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
-            <input id="clContact" placeholder="Contact" class="border rounded-lg px-2 py-1.5 text-sm">
             <input id="clTel" placeholder="Téléphone" class="border rounded-lg px-2 py-1.5 text-sm">
-            <input id="clAdresse" placeholder="Adresse" class="border rounded-lg px-2 py-1.5 text-sm">
-            <button type="submit" class="sm:col-span-5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter client</button>
+            <input id="clEmail" type="email" placeholder="Email" class="border rounded-lg px-2 py-1.5 text-sm">
+            <input id="clContact" placeholder="Contact principal (nom)" class="border rounded-lg px-2 py-1.5 text-sm">
+            <input id="clFonction" placeholder="Fonction du contact" class="border rounded-lg px-2 py-1.5 text-sm cl-entreprise">
+            <input id="clRccm" placeholder="RCCM" class="border rounded-lg px-2 py-1.5 text-sm cl-entreprise">
+            <input id="clNcc" placeholder="NCC (compte contribuable)" class="border rounded-lg px-2 py-1.5 text-sm cl-entreprise">
+            <input id="clAdresse" placeholder="Adresse" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
+            <input id="clVille" placeholder="Ville" class="border rounded-lg px-2 py-1.5 text-sm">
+            <select id="clConditionsPaiement" class="border rounded-lg px-2 py-1.5 text-sm">
+              <option value="comptant">Comptant</option><option value="30j">30 jours</option><option value="60j">60 jours</option><option value="acompte50">Acompte 50%</option>
+            </select>
+            <button type="submit" class="sm:col-span-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter client</button>
           </form>
-          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Nom</th><th class="text-left p-3">Contact</th><th class="text-left p-3">Téléphone</th><th class="text-left p-3">Adresse</th><th class="p-3"></th></tr></thead><tbody id="clientsBody"></tbody></table></div>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Type</th><th class="text-left p-3">Nom</th><th class="text-left p-3">Contact</th><th class="text-left p-3">Téléphone</th><th class="text-left p-3">Ville</th><th class="p-3"></th></tr></thead><tbody id="clientsBody"></tbody></table></div>
         </div>
       </section>
 
       <section id="fournisseurs" class="page hidden">
         <div class="card bg-white rounded-2xl p-6">
           <div class="flex flex-wrap justify-between gap-3 mb-5">
-            <div><h2 class="text-lg font-bold">Fournisseurs</h2><p class="text-sm text-slate-500">Répertoire fournisseurs — utilisé pour les demandes d'achats.</p></div>
+            <div><h2 class="text-lg font-bold">Fournisseurs</h2><p class="text-sm text-slate-500">Répertoire fournisseurs — particuliers ou entreprises. Utilisé pour les demandes d'achats et bons de commande.</p></div>
           </div>
-          <form id="fournisseurForm" onsubmit="return handleAddFournisseur(event)" class="grid sm:grid-cols-5 gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
+          <form id="fournisseurForm" onsubmit="return handleAddFournisseur(event)" class="grid sm:grid-cols-4 gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
+            <select id="foType" onchange="toggleEntityFields('fo')" class="border rounded-lg px-2 py-1.5 text-sm">
+              <option value="entreprise">Entreprise</option>
+              <option value="particulier">Particulier</option>
+            </select>
             <input id="foNom" placeholder="Nom / Raison sociale" required class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
             <input id="foSpecialite" placeholder="Spécialité (profilés, vitrage, quincaillerie...)" class="border rounded-lg px-2 py-1.5 text-sm">
             <input id="foTel" placeholder="Téléphone" class="border rounded-lg px-2 py-1.5 text-sm">
-            <input id="foContact" placeholder="Contact" class="border rounded-lg px-2 py-1.5 text-sm">
-            <button type="submit" class="sm:col-span-5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter fournisseur</button>
+            <input id="foEmail" type="email" placeholder="Email" class="border rounded-lg px-2 py-1.5 text-sm">
+            <input id="foContact" placeholder="Contact principal (nom)" class="border rounded-lg px-2 py-1.5 text-sm">
+            <input id="foFonction" placeholder="Fonction du contact" class="border rounded-lg px-2 py-1.5 text-sm fo-entreprise">
+            <input id="foRccm" placeholder="RCCM" class="border rounded-lg px-2 py-1.5 text-sm fo-entreprise">
+            <input id="foNcc" placeholder="NCC (compte contribuable)" class="border rounded-lg px-2 py-1.5 text-sm fo-entreprise">
+            <input id="foAdresse" placeholder="Adresse" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
+            <input id="foVille" placeholder="Ville" class="border rounded-lg px-2 py-1.5 text-sm">
+            <input id="foDelaiLivraison" type="number" placeholder="Délai livraison moyen (j)" class="border rounded-lg px-2 py-1.5 text-sm">
+            <button type="submit" class="sm:col-span-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter fournisseur</button>
           </form>
-          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Nom</th><th class="text-left p-3">Spécialité</th><th class="text-left p-3">Téléphone</th><th class="text-left p-3">Contact</th><th class="p-3"></th></tr></thead><tbody id="fournisseursBody"></tbody></table></div>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Type</th><th class="text-left p-3">Nom</th><th class="text-left p-3">Spécialité</th><th class="text-left p-3">Téléphone</th><th class="text-left p-3">Ville</th><th class="p-3"></th></tr></thead><tbody id="fournisseursBody"></tbody></table></div>
         </div>
       </section>
 
@@ -2308,6 +2331,11 @@ async function handlePlanifierInstallation(e,id){
 let lastCost = 0;
 
 /* ---------- Clients ---------- */
+function toggleEntityFields(prefix){
+  const isEntreprise=document.getElementById(prefix+'Type').value==='entreprise';
+  document.querySelectorAll('.'+prefix+'-entreprise').forEach(el=>el.classList.toggle('hidden',!isEntreprise));
+}
+
 async function handleAddClient(e){
   e.preventDefault();
   if(!hasRole('chantier:create')){ alert('Permission refusée.'); return false; }
@@ -2315,15 +2343,23 @@ async function handleAddClient(e){
   if(!nom) return false;
   const rec={
     id:'cl_'+Date.now(),
+    type:document.getElementById('clType').value,
     nom, contact:document.getElementById('clContact').value.trim(),
+    fonction:document.getElementById('clFonction').value.trim(),
     tel:document.getElementById('clTel').value.trim(),
+    email:document.getElementById('clEmail').value.trim(),
+    rccm:document.getElementById('clRccm').value.trim(),
+    ncc:document.getElementById('clNcc').value.trim(),
     adresse:document.getElementById('clAdresse').value.trim(),
+    ville:document.getElementById('clVille').value.trim(),
+    conditionsPaiement:document.getElementById('clConditionsPaiement').value,
     _modifie:new Date().toISOString()
   };
   await idbPut('clients',rec);
   queueSync('alubom_clients',rec);
   await audit('CREATE_CLIENT',nom);
   document.getElementById('clientForm').reset();
+  toggleEntityFields('cl');
   await renderClientsTable();
   return false;
 }
@@ -2339,8 +2375,17 @@ async function renderClientsTable(){
   const dl=document.getElementById('clientsDatalist');
   const rows=(await idbGetAll('clients')).sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
   if(el){
-    el.innerHTML = rows.length ? rows.map(r=>`<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.nom)}</td><td class="p-3">${escapeHtml(r.contact||'')}</td><td class="p-3">${escapeHtml(r.tel||'')}</td><td class="p-3">${escapeHtml(r.adresse||'')}</td><td class="p-3 text-right"><button onclick="deleteClient('${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`).join('')
-      : `<tr><td class="p-3 text-slate-400" colspan="5">Aucun client enregistré.</td></tr>`;
+    el.innerHTML = rows.length ? rows.map(r=>{
+      const isEnt=r.type!=='particulier';
+      return `<tr class="border-b hover:bg-slate-50 cursor-pointer" onclick="openEntityDetail('clients','${r.id}')">
+        <td class="p-3"><span class="badge bg-${isEnt?'blue':'slate'}-50 text-${isEnt?'blue':'slate'}-700">${isEnt?'🏢 Entreprise':'👤 Particulier'}</span></td>
+        <td class="p-3 font-semibold">${escapeHtml(r.nom)}</td>
+        <td class="p-3">${escapeHtml(r.contact||'')}</td>
+        <td class="p-3">${escapeHtml(r.tel||'')}</td>
+        <td class="p-3">${escapeHtml(r.ville||'')}</td>
+        <td class="p-3 text-right" onclick="event.stopPropagation()"><button onclick="deleteClient('${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td>
+      </tr>`;
+    }).join('') : `<tr><td class="p-3 text-slate-400" colspan="6">Aucun client enregistré.</td></tr>`;
   }
   if(dl) dl.innerHTML = rows.map(r=>`<option value="${escapeHtml(r.nom)}">`).join('');
 }
@@ -2353,15 +2398,24 @@ async function handleAddFournisseur(e){
   if(!nom) return false;
   const rec={
     id:'fo_'+Date.now(),
+    type:document.getElementById('foType').value,
     nom, specialite:document.getElementById('foSpecialite').value.trim(),
     tel:document.getElementById('foTel').value.trim(),
+    email:document.getElementById('foEmail').value.trim(),
     contact:document.getElementById('foContact').value.trim(),
+    fonction:document.getElementById('foFonction').value.trim(),
+    rccm:document.getElementById('foRccm').value.trim(),
+    ncc:document.getElementById('foNcc').value.trim(),
+    adresse:document.getElementById('foAdresse').value.trim(),
+    ville:document.getElementById('foVille').value.trim(),
+    delaiLivraison:+document.getElementById('foDelaiLivraison').value||0,
     _modifie:new Date().toISOString()
   };
   await idbPut('fournisseurs',rec);
   queueSync('alubom_fournisseurs',rec);
   await audit('CREATE_FOURNISSEUR',nom);
   document.getElementById('fournisseurForm').reset();
+  toggleEntityFields('fo');
   await renderFournisseursTable();
   return false;
 }
@@ -2377,10 +2431,50 @@ async function renderFournisseursTable(){
   const dl=document.getElementById('fournisseursDatalist');
   const rows=(await idbGetAll('fournisseurs')).sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
   if(el){
-    el.innerHTML = rows.length ? rows.map(r=>`<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.nom)}</td><td class="p-3">${escapeHtml(r.specialite||'')}</td><td class="p-3">${escapeHtml(r.tel||'')}</td><td class="p-3">${escapeHtml(r.contact||'')}</td><td class="p-3 text-right"><button onclick="deleteFournisseur('${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`).join('')
-      : `<tr><td class="p-3 text-slate-400" colspan="5">Aucun fournisseur enregistré.</td></tr>`;
+    el.innerHTML = rows.length ? rows.map(r=>{
+      const isEnt=r.type!=='particulier';
+      return `<tr class="border-b hover:bg-slate-50 cursor-pointer" onclick="openEntityDetail('fournisseurs','${r.id}')">
+        <td class="p-3"><span class="badge bg-${isEnt?'blue':'slate'}-50 text-${isEnt?'blue':'slate'}-700">${isEnt?'🏢 Entreprise':'👤 Particulier'}</span></td>
+        <td class="p-3 font-semibold">${escapeHtml(r.nom)}</td>
+        <td class="p-3">${escapeHtml(r.specialite||'')}</td>
+        <td class="p-3">${escapeHtml(r.tel||'')}</td>
+        <td class="p-3">${escapeHtml(r.ville||'')}</td>
+        <td class="p-3 text-right" onclick="event.stopPropagation()"><button onclick="deleteFournisseur('${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td>
+      </tr>`;
+    }).join('') : `<tr><td class="p-3 text-slate-400" colspan="6">Aucun fournisseur enregistré.</td></tr>`;
   }
   if(dl) dl.innerHTML = rows.map(r=>`<option value="${escapeHtml(r.nom)}">`).join('');
+}
+
+/* ---------- Fiche détail Client/Fournisseur (modale) ---------- */
+async function openEntityDetail(kind,id){
+  const rows=await idbGetAll(kind);
+  const rec=rows.find(r=>r.id===id); if(!rec) return;
+  const isEnt=rec.type!=='particulier';
+  const modal=document.getElementById('prixFournisseursModal');
+  const content=document.getElementById('prixFournisseursContent');
+  modal.classList.remove('hidden');
+  const isClient=kind==='clients';
+  content.innerHTML=`
+    <div class="flex justify-between items-start mb-4">
+      <div><h2 class="text-lg font-bold">${isEnt?'🏢':'👤'} ${escapeHtml(rec.nom)}</h2><p class="text-sm text-slate-500">${isEnt?'Entreprise':'Particulier'} — ${isClient?'Client':'Fournisseur'}</p></div>
+      <button onclick="closePrixFournisseurs()" class="text-slate-400 text-xl leading-none">×</button>
+    </div>
+    <div class="grid grid-cols-2 gap-3 text-sm">
+      <div><span class="text-xs text-slate-400 block">Contact principal</span>${escapeHtml(rec.contact||'—')}</div>
+      <div><span class="text-xs text-slate-400 block">Fonction</span>${escapeHtml(rec.fonction||'—')}</div>
+      <div><span class="text-xs text-slate-400 block">Téléphone</span>${escapeHtml(rec.tel||'—')}</div>
+      <div><span class="text-xs text-slate-400 block">Email</span>${escapeHtml(rec.email||'—')}</div>
+      ${isEnt?`<div><span class="text-xs text-slate-400 block">RCCM</span>${escapeHtml(rec.rccm||'—')}</div>
+      <div><span class="text-xs text-slate-400 block">NCC</span>${escapeHtml(rec.ncc||'—')}</div>`:''}
+      <div class="col-span-2"><span class="text-xs text-slate-400 block">Adresse</span>${escapeHtml(rec.adresse||'—')}${rec.ville?', '+escapeHtml(rec.ville):''}</div>
+      ${isClient?`<div class="col-span-2"><span class="text-xs text-slate-400 block">Conditions de paiement</span>${escapeHtml(rec.conditionsPaiement||'—')}</div>`
+        :`<div><span class="text-xs text-slate-400 block">Spécialité</span>${escapeHtml(rec.specialite||'—')}</div>
+      <div><span class="text-xs text-slate-400 block">Délai livraison moyen</span>${rec.delaiLivraison?rec.delaiLivraison+' jours':'—'}</div>`}
+    </div>
+    <div class="mt-5 pt-4 border-t flex justify-end">
+      <button onclick="closePrixFournisseurs()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Fermer</button>
+    </div>`;
 }
 
 /* ---------- Référentiel technique : Séries & Profils ---------- */
