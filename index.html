@@ -74,13 +74,23 @@ window.SANIX_CFG = {
     <div class="text-xs uppercase tracking-widest text-slate-500 px-3 mb-3">Menu</div>
     <nav class="space-y-1">
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg active" data-page="dashboard">📊 Tableau de bord</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="etude">🧑‍💻 Bureau d'étude</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="production">🏭 Production</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="stock">📦 Stock</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="chantier">🏗️ Circuit Chantier</button>
+
+      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">1 · Fondations</div>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="referentiel">📚 Référentiel technique</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="clients">👤 Clients</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="fournisseurs">🏭 Fournisseurs</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="referentiel">📚 Référentiel technique</button>
+
+      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">2 · Conception & devis</div>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="etude">🧑‍💻 Bureau d'étude</button>
+
+      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">3 · Engagement commercial</div>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="chantier">🏗️ Circuit Chantier</button>
+
+      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">4 · Exécution</div>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="production">🏭 Production</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="stock">📦 Stock</button>
+
+      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">5 · Administration</div>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="utilisateurs">👥 Utilisateurs</button>
     </nav>
     <div class="mt-8 border-t border-slate-700 pt-4 text-xs text-slate-500">
@@ -113,10 +123,11 @@ window.SANIX_CFG = {
           <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Marge moyenne</div><div id="kpiMarge" class="text-3xl font-black mt-2">—</div><div id="kpiMargeSub" class="text-xs text-slate-400 mt-2">&nbsp;</div></div>
           <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Stock aluminium</div><div id="kpiStock" class="text-3xl font-black mt-2">—</div><div id="kpiStockSub" class="text-xs text-amber-600 mt-2">&nbsp;</div></div>
         </div>
-        <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">OF en retard</div><div id="kpiRetard" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">date prévue dépassée</div></div>
           <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Temps moyen / ouvrage</div><div id="kpiTempsMoyen" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">création → clôture</div></div>
           <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Taux de non-conformité</div><div id="kpiTauxNC" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">contrôles qualité</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Écart matière prévu/réel</div><div id="kpiEcartMatiere" class="text-3xl font-black mt-2">—</div><div id="kpiEcartSub" class="text-xs text-slate-400 mt-2">aluminium consommé</div></div>
         </div>
 
         <div class="grid lg:grid-cols-3 gap-6">
@@ -1063,10 +1074,10 @@ function escapeHtml(s){
 /* ---------- IndexedDB ---------- */
 function openDB(){
   return new Promise((resolve,reject)=>{
-    const req=indexedDB.open('alubom_db',8);
+    const req=indexedDB.open('alubom_db',9);
     req.onupgradeneeded=e=>{
       const d=e.target.result;
-      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans'].forEach(s=>{
+      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel'].forEach(s=>{
         if(!d.objectStoreNames.contains(s)) d.createObjectStore(s,{keyPath:'id'});
       });
     };
@@ -1429,6 +1440,7 @@ async function handleCreateOF(e){
     datePrevue,dateReelle:null,statut:'Découpe',
     marge:(margin*100).toFixed(0)+'%',cout:lastCost,date:new Date().toISOString(),
     reservations,bomVersion,configSnapshot,bomSnapshot:window.lastBOMRows||[],
+    aluMlTheorique:window.lastAluMl||0,glassM2Theorique:window.lastGlassM2||0,moHeuresTheorique:1.8,
     _modifie:new Date().toISOString()
   };
   await idbPut('of',rec);
@@ -1489,6 +1501,17 @@ async function updateDashboard(){
   const nc=qcRows.filter(q=>q.statut==='non_conforme').length;
   document.getElementById('kpiTauxNC').textContent = qcRows.length ? (nc/qcRows.length*100).toFixed(1).replace('.',',')+'%' : '—';
 
+  const suiviRows=await idbGetAll('suivi_reel');
+  if(suiviRows.length){
+    const avgEcart=suiviRows.reduce((s,r)=>s+r.aluEcartPct,0)/suiviRows.length;
+    document.getElementById('kpiEcartMatiere').textContent=(avgEcart>=0?'+':'')+avgEcart.toFixed(1).replace('.',',')+'%';
+    document.getElementById('kpiEcartMatiere').className='text-3xl font-black mt-2 '+(Math.abs(avgEcart)>10?'text-red-600':avgEcart>0?'text-amber-600':'text-emerald-600');
+    document.getElementById('kpiEcartSub').textContent='sur '+suiviRows.length+' OF clôturé(s)';
+  } else {
+    document.getElementById('kpiEcartMatiere').textContent='—';
+    document.getElementById('kpiEcartSub').textContent='aucune saisie réelle';
+  }
+
   const statusCounts={};
   Object.keys(OF_STATUS_COLOR).forEach(s=>statusCounts[s]=0);
   ofs.forEach(o=>{ statusCounts[o.statut]=(statusCounts[o.statut]||0)+1; });
@@ -1512,6 +1535,7 @@ async function renderOFTable(){
   const qcRows=await idbGetAll('controles_qualite');
   const plansRows=await idbGetAll('plans');
   const plansCount={}; plansRows.forEach(p=>{ plansCount[p.ofId]=(plansCount[p.ofId]||0)+1; });
+  const suiviRows=await idbGetAll('suivi_reel');
   const today=new Date().toISOString().slice(0,10);
   el.innerHTML = rows.length ? rows.map(r=>{
     const c=OF_STATUS_COLOR[r.statut]||'slate';
@@ -1524,7 +1548,9 @@ async function renderOFTable(){
     const meta = `${r.origineAuto?'<span class="text-indigo-600 font-semibold">⚙ Auto</span> • ':''}${escapeHtml(r.operateur||'—')} • ${escapeHtml(r.poste||'—')}${r.datePrevue?' • prévu '+r.datePrevue:''}${enRetard?' <span class="text-red-600 font-bold">⚠ En retard</span>':''}`;
     const nbPlans=(plansCount[r.id]||0);
     const planBtn=`<button onclick="openPlansPanel('${r.id}')" class="text-indigo-600 text-xs font-semibold mr-2">📎 Plans${nbPlans?' ('+nbPlans+')':''}</button>`;
-    const actions = (r.statut==='Terminé'||r.statut==='Annulé') ? planBtn : `
+    const suivi=suiviRows.find(s=>s.ofId===r.id);
+    const suiviBtn = r.statut==='Terminé' ? `<button onclick="openSuiviReelForm('${r.id}')" class="text-teal-600 text-xs font-semibold mr-2">${suivi?'✓ Réel saisi':'📊 Saisir le réel'}</button>` : '';
+    const actions = (r.statut==='Terminé'||r.statut==='Annulé') ? planBtn+suiviBtn : `
       ${next?`<button onclick="advanceOFStatus('${r.id}','${next}')" class="text-blue-600 text-xs font-semibold mr-2">→ ${escapeHtml(next)}</button>`:''}
       <button onclick="openQCForm('${r.id}')" class="text-amber-600 text-xs font-semibold mr-2">Contrôle qualité</button>
       ${planBtn}
@@ -1705,6 +1731,68 @@ async function renderPlansList(ofId){
   }).join('') : '<p class="text-sm text-slate-400 col-span-3">Aucun document joint.</p>';
 }
 
+/* ---------- Comparaison prévu/réel (§25) — matière & main-d'œuvre ---------- */
+async function openSuiviReelForm(ofId){
+  const rows=await idbGetAll('of');
+  const rec=rows.find(r=>r.id===ofId); if(!rec) return;
+  const suiviRows=await idbGetAll('suivi_reel');
+  const existing=suiviRows.find(s=>s.ofId===ofId);
+  const wrap=document.getElementById('qcDetail');
+  wrap.classList.remove('hidden');
+  const aluT=rec.aluMlTheorique||0, vitT=rec.glassM2Theorique, moT=rec.moHeuresTheorique||1.8;
+  wrap.innerHTML=`
+    <div class="card bg-white rounded-2xl p-6">
+      <div class="flex flex-wrap justify-between gap-3 mb-5">
+        <div><h2 class="text-lg font-bold">Consommation réelle — ${escapeHtml(rec.numero)}</h2><p class="text-sm text-slate-500">${escapeHtml(rec.ouvrage)} — comparaison au calcul théorique figé (${escapeHtml(rec.bomVersion||'—')}).</p></div>
+        <button onclick="document.getElementById('qcDetail').classList.add('hidden')" class="border px-3 py-2 rounded-lg text-sm font-semibold">Fermer</button>
+      </div>
+      <form onsubmit="return handleSubmitSuiviReel(event,'${ofId}')" class="space-y-4">
+        <div class="grid sm:grid-cols-3 gap-3 items-end">
+          <div class="text-sm font-semibold">Aluminium (ml)<div class="text-xs text-slate-400 font-normal">Théorique : ${aluT.toFixed(2)} ml</div></div>
+          <input id="srAluReel" type="number" step="0.01" value="${(existing?.aluMlReel ?? aluT).toFixed(2)}" class="border rounded-lg px-3 py-2 text-sm sm:col-span-2" placeholder="Réel consommé (ml)">
+        </div>
+        <div class="grid sm:grid-cols-3 gap-3 items-end">
+          <div class="text-sm font-semibold">Vitrage (m²)<div class="text-xs text-slate-400 font-normal">Théorique : ${vitT!=null?vitT.toFixed(2)+' m²':'non disponible (OF auto)'}</div></div>
+          <input id="srVitReel" type="number" step="0.01" value="${existing?.glassM2Reel ?? (vitT ?? 0)}" class="border rounded-lg px-3 py-2 text-sm sm:col-span-2" placeholder="Réel consommé (m²)">
+        </div>
+        <div class="grid sm:grid-cols-3 gap-3 items-end">
+          <div class="text-sm font-semibold">Main-d'œuvre (heures)<div class="text-xs text-slate-400 font-normal">Théorique : ${moT.toFixed(1)} h</div></div>
+          <input id="srMoReel" type="number" step="0.1" value="${existing?.moHeuresReel ?? moT}" class="border rounded-lg px-3 py-2 text-sm sm:col-span-2" placeholder="Heures réelles">
+        </div>
+        <label class="text-sm font-semibold block">Observations
+          <textarea id="srObservations" rows="2" class="mt-1 w-full border rounded-lg p-2 text-sm">${escapeHtml(existing?.observations||'')}</textarea>
+        </label>
+        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-bold">Enregistrer le réel</button>
+      </form>
+    </div>`;
+}
+
+async function handleSubmitSuiviReel(e,ofId){
+  e.preventDefault();
+  const rows=await idbGetAll('of');
+  const rec=rows.find(r=>r.id===ofId); if(!rec) return false;
+  const aluReel=+document.getElementById('srAluReel').value||0;
+  const vitReel=+document.getElementById('srVitReel').value||0;
+  const moReel=+document.getElementById('srMoReel').value||0;
+  const aluT=rec.aluMlTheorique||0, vitT=rec.glassM2Theorique, moT=rec.moHeuresTheorique||1.8;
+  const suivi={
+    id:'sr_'+ofId, ofId, ofNumero:rec.numero,
+    aluMlTheorique:aluT, aluMlReel:aluReel, aluEcartPct: aluT? ((aluReel-aluT)/aluT*100) : 0,
+    glassM2Theorique:vitT, glassM2Reel:vitReel, glassEcartPct: vitT? ((vitReel-vitT)/vitT*100) : 0,
+    moHeuresTheorique:moT, moHeuresReel:moReel, moEcartPct: moT? ((moReel-moT)/moT*100) : 0,
+    observations:document.getElementById('srObservations').value.trim(),
+    date:new Date().toISOString(), saisiPar:currentUser?currentUser.email:'—'
+  };
+  await idbPut('suivi_reel',suivi);
+  queueSync('alubom_suivi_reel',suivi);
+  await audit('SUIVI_REEL',rec.numero+' — écart alu '+suivi.aluEcartPct.toFixed(1)+'%');
+  document.getElementById('qcDetail').classList.add('hidden');
+  await renderOFTable();
+  if(document.getElementById('costChart')) updateDashboard();
+  alert(`Réel enregistré.\nÉcart aluminium : ${suivi.aluEcartPct>=0?'+':''}${suivi.aluEcartPct.toFixed(1)}%\nÉcart main-d'œuvre : ${suivi.moEcartPct>=0?'+':''}${suivi.moEcartPct.toFixed(1)}%`);
+  return false;
+}
+
 async function loadRecentOF(){
   const el=document.getElementById('recentOF'); if(!el) return;
   const rows=(await idbGetAll('of')).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3);
@@ -1793,12 +1881,14 @@ async function createOFFromLine(line,client,chantierId){
   const bomArray=(line.bom||[]).map(b=>[b.code,b.designation,b.qte,b.longueur||0,b.montant]);
   const reservations=await reserveStockForBOMArray(bomArray);
   const bomVersion='v'+new Date().toISOString().replace(/[-:T.]/g,'').slice(0,14);
+  const aluMlApprox=bomArray.filter(r=>r[3]>0).reduce((s,r)=>s+(r[2]*r[3])/1000,0);
   const rec={
     id:numero,numero,ouvrage:line.detail,client,
     operateur:'',poste:'Débit',
     datePrevue:new Date(Date.now()+3*86400000).toISOString().slice(0,10),dateReelle:null,
     statut:'Découpe',marge:'—',cout:line.subtotal||0,date:new Date().toISOString(),
     reservations,bomVersion,configSnapshot:{type:line.type,detail:line.detail},bomSnapshot:bomArray,
+    aluMlTheorique:aluMlApprox,glassM2Theorique:null,moHeuresTheorique:1.8,
     chantierId,origineAuto:true,
     _modifie:new Date().toISOString()
   };
@@ -3310,6 +3400,8 @@ function calculateBOM(){
 
   document.getElementById('bomBody').innerHTML=rows.map(r=>`<tr class="border-b hover:bg-slate-50"><td class="p-3 font-semibold">${r[0]}</td><td class="p-3">${r[1]}</td><td class="p-3 text-right">${Number(r[2]).toFixed(2)}</td><td class="p-3 text-right">${r[3]?Number(r[3]).toFixed(0)+' mm':'—'}</td><td class="p-3 text-right">${money(r[4])}</td></tr>`).join('');
   window.lastBOMRows = rows;
+  window.lastAluMl = alu;
+  window.lastGlassM2 = glassArea;
   const mat=rows.reduce((s,r)=>s+r[4],0);
   lastCost=mat;
   document.getElementById('previewTitle').textContent=`${type} ${w} × ${h}`;
