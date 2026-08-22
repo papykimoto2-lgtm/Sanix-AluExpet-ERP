@@ -2547,37 +2547,101 @@ async function saveChantier(rec){
   queueSync('alubom_chantiers',rec);
 }
 
-/* ---------- Édition dossier chantier (client, contact, montant) ---------- */
+/* ---------- Édition dossier chantier (client, contact, montant, composants) ---------- */
+let editChantierLignes=[];
+let editChantierId=null;
 async function openEditChantierModal(id){
   if(!hasRole('chantier:create')){ alert('Permission refusée.'); return; }
   const rec=await getChantier(id); if(!rec) return;
+  editChantierId=id;
+  editChantierLignes=JSON.parse(JSON.stringify(rec.lignes||[]));
   const modal=document.getElementById('editChantierModal');
   const content=document.getElementById('editChantierContent');
+  const ofDejaGeneres = rec.ofGeneres && rec.ofGeneres.length;
   content.innerHTML=`
     <div class="flex justify-between items-start mb-4">
       <h2 class="text-lg font-bold">✏️ Modifier dossier ${escapeHtml(rec.numero)}</h2>
       <button onclick="closeEditChantierModal()" class="text-slate-400 text-xl leading-none">×</button>
     </div>
+    ${ofDejaGeneres?`<p class="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-2 mb-3">⚠️ Des OF ont déjà été générés (${rec.ofGeneres.map(escapeHtml).join(', ')}). Modifier les composants ici ne modifie pas les OF déjà lancés — régénérez-les manuellement si besoin.</p>`:''}
     <form onsubmit="return handleEditChantier(event,'${id}')" class="space-y-3">
-      <label class="text-sm font-semibold block">Client
-        <input id="ecClient" list="clientsDatalist" value="${escapeHtml(rec.client||'')}" required class="mt-1 w-full border rounded-lg px-3 py-2">
-      </label>
-      <label class="text-sm font-semibold block">Contact
-        <input id="ecContact" value="${escapeHtml(rec.contact||'')}" class="mt-1 w-full border rounded-lg px-3 py-2">
-      </label>
-      <label class="text-sm font-semibold block">Montant total (FCFA)
-        <input id="ecMontantTotal" type="number" min="0" value="${rec.montantTotal||0}" required class="mt-1 w-full border rounded-lg px-3 py-2">
-      </label>
-      <label class="text-sm font-semibold block">Montant payé (FCFA)
-        <input id="ecMontantPaye" type="number" min="0" value="${rec.montantPaye||0}" required class="mt-1 w-full border rounded-lg px-3 py-2">
-      </label>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <label class="text-sm font-semibold block">Client
+          <input id="ecClient" list="clientsDatalist" value="${escapeHtml(rec.client||'')}" required class="mt-1 w-full border rounded-lg px-3 py-2">
+        </label>
+        <label class="text-sm font-semibold block">Contact
+          <input id="ecContact" value="${escapeHtml(rec.contact||'')}" class="mt-1 w-full border rounded-lg px-3 py-2">
+        </label>
+      </div>
+
+      <div class="border-t pt-3">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-bold text-sm text-slate-700">🧩 Composants du dossier (${editChantierLignes.length})</h3>
+          <button type="button" onclick="ajouterConfigActuelleAuChantier()" class="border border-blue-600 text-blue-600 px-2 py-1 rounded-lg text-xs font-semibold">+ Ajouter la config. actuelle</button>
+        </div>
+        <p class="text-xs text-slate-500 mb-2">Le client a changé d'avis ? Ajustez qté/prix ou retirez une ligne — le montant total se recalcule automatiquement.</p>
+        <div id="ecLignesBody" class="space-y-2 max-h-64 overflow-y-auto"></div>
+      </div>
+
+      <div class="grid sm:grid-cols-2 gap-3 border-t pt-3">
+        <label class="text-sm font-semibold block">Montant total (FCFA)
+          <input id="ecMontantTotal" type="number" min="0" value="${rec.montantTotal||0}" required class="mt-1 w-full border rounded-lg px-3 py-2 bg-slate-50" readonly>
+        </label>
+        <label class="text-sm font-semibold block">Montant payé (FCFA)
+          <input id="ecMontantPaye" type="number" min="0" value="${rec.montantPaye||0}" required class="mt-1 w-full border rounded-lg px-3 py-2">
+        </label>
+      </div>
       <div class="flex justify-end gap-2 pt-2">
         <button type="button" onclick="closeEditChantierModal()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Annuler</button>
         <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">✓ Enregistrer</button>
       </div>
     </form>`;
+  renderEcLignes();
   modal.classList.remove('hidden');
   setModalOpen(true);
+}
+function renderEcLignes(){
+  const el=document.getElementById('ecLignesBody'); if(!el) return;
+  el.innerHTML = editChantierLignes.length ? editChantierLignes.map((l,i)=>`
+    <div class="flex items-center gap-2 border rounded-lg p-2 text-xs">
+      <div class="flex-1">
+        <div class="font-semibold">${escapeHtml(l.detail||l.type||'Ouvrage')}</div>
+        <div class="text-slate-400">${escapeHtml(l.atelierNom||'—')}</div>
+      </div>
+      <label>Qté <input type="number" min="1" value="${l.qty||1}" onchange="updateEcLigne(${i},'qty',this.value)" class="w-14 border rounded px-1 py-1"></label>
+      <label>P.U. <input type="number" min="0" value="${l.unit||0}" onchange="updateEcLigne(${i},'unit',this.value)" class="w-24 border rounded px-1 py-1"></label>
+      <div class="w-24 text-right font-semibold">${money(l.subtotal||0)}</div>
+      <button type="button" onclick="removeEcLigne(${i})" class="text-red-500 font-bold px-1">✕</button>
+    </div>`).join('') : '<p class="text-xs text-slate-400">Aucun composant — dossier vide.</p>';
+  const total=editChantierLignes.reduce((s,l)=>s+(l.subtotal||0),0);
+  const totalEl=document.getElementById('ecMontantTotal');
+  if(totalEl) totalEl.value=total;
+}
+function updateEcLigne(i,field,value){
+  const l=editChantierLignes[i]; if(!l) return;
+  l[field]=+value||0;
+  l.subtotal=(l.unit||0)*(l.qty||1);
+  renderEcLignes();
+}
+function removeEcLigne(i){
+  if(!confirm('Retirer ce composant du dossier ?')) return;
+  editChantierLignes.splice(i,1);
+  renderEcLignes();
+}
+function ajouterConfigActuelleAuChantier(){
+  const type=document.getElementById('type')?.value;
+  const unit=parseMoney(document.getElementById('cSale')?.textContent);
+  if(!type || !unit){ alert("Ouvrez le Configurateur, chiffrez un ouvrage, puis revenez ici pour l'ajouter."); return; }
+  const atelierSel=document.getElementById('atelier');
+  const atelier=atelierSel?.value||'', atelierNom=atelierSel?.selectedOptions[0]?.dataset.nom||atelier;
+  const w=+document.getElementById('width')?.value||0, h=+document.getElementById('height')?.value||0;
+  const leaves=+document.getElementById('leaves')?.value||1;
+  const qty=Math.max(1,+document.getElementById('qty')?.value||1);
+  const bom=(window.lastBOMRows||[]).map(r=>({code:r[0],designation:r[1],qte:r[2],longueur:r[3]||0,montant:r[4]}));
+  const schemaLabel=document.getElementById('schemaLabel')?.textContent||`${type} ${w}×${h}`;
+  const schemaSVG=document.getElementById('technicalDrawing')?.outerHTML||'';
+  editChantierLignes.push({id:'ln_'+Date.now(),type,atelier,atelierNom,detail:`${type} ${w}×${h} mm • ${leaves} vantail${leaves>1?'s':''}`,qty,unit,subtotal:unit*qty,bom,schemaLabel,schemaSVG});
+  renderEcLignes();
 }
 function closeEditChantierModal(){
   document.getElementById('editChantierModal').classList.add('hidden');
@@ -2589,13 +2653,15 @@ async function handleEditChantier(e,id){
   const rec=await getChantier(id); if(!rec) return false;
   const nouveauClient=document.getElementById('ecClient').value.trim();
   const clientId=await resolveOrCreateClient(nouveauClient,document.getElementById('ecContact').value.trim());
+  const nouveauTotal=editChantierLignes.reduce((s,l)=>s+(l.subtotal||0),0);
   rec.client=nouveauClient;
   rec.clientId=clientId;
   rec.contact=document.getElementById('ecContact').value.trim();
-  rec.montantTotal=+document.getElementById('ecMontantTotal').value||0;
+  rec.lignes=editChantierLignes;
+  rec.montantTotal=nouveauTotal;
   rec.montantPaye=+document.getElementById('ecMontantPaye').value||0;
   await saveChantier(rec);
-  await audit('MAJ_CHANTIER',rec.numero+' — modification manuelle (client/montant)');
+  await audit('MAJ_CHANTIER',rec.numero+' — client/composants modifiés ('+editChantierLignes.length+' ligne(s), nouveau total '+money(nouveauTotal)+')');
   closeEditChantierModal();
   await renderChantierList();
   await openChantierDetail(id);
