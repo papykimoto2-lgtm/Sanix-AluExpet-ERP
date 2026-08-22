@@ -2532,7 +2532,7 @@ async function renderChantierList(){
       <td class="p-3"><span class="badge bg-${c}-50 text-${c}-700">${escapeHtml(label)}</span></td>
       <td class="p-3 text-right">${money(r.montantTotal)}</td>
       <td class="p-3 text-right">${money(r.montantPaye)}</td>
-      <td class="p-3 text-right whitespace-nowrap"><button type="button" onclick="event.stopPropagation();openEditChantierModal('${r.id}')" class="text-slate-500 text-xs font-semibold mr-2">✏️</button><button type="button" onclick="event.stopPropagation();openChantierDetail('${r.id}')" class="text-blue-600 font-semibold hover:underline cursor-pointer">Ouvrir →</button></td>
+      <td class="p-3 text-right whitespace-nowrap"><button type="button" onclick="event.stopPropagation();deleteChantier('${r.id}')" class="text-red-500 text-xs font-semibold mr-2">🗑️</button><button type="button" onclick="event.stopPropagation();openEditChantierModal('${r.id}')" class="text-slate-500 text-xs font-semibold mr-2">✏️</button><button type="button" onclick="event.stopPropagation();openChantierDetail('${r.id}')" class="text-blue-600 font-semibold hover:underline cursor-pointer">Ouvrir →</button></td>
     </tr>`;
   }).join('') : `<tr><td class="p-3 text-slate-400" colspan="6">Aucun dossier chantier. Créez-en un depuis une proforma générée.</td></tr>`;
 }
@@ -2666,6 +2666,36 @@ async function handleEditChantier(e,id){
   await renderChantierList();
   await openChantierDetail(id);
   return false;
+}
+
+/* ---------- Suppression dossier chantier ---------- */
+async function deleteChantier(id){
+  if(!hasRole('chantier:validate')){ alert('Permission refusée (validation DG requise pour supprimer un dossier).'); return; }
+  const rec=await getChantier(id); if(!rec) return;
+  const avance = !['devis','paiement'].includes(rec.etape);
+  const achatsLies=(await idbGetAll('achats')).filter(a=>a.chantierId===id);
+  const ofLies=rec.ofGeneres&&rec.ofGeneres.length;
+  let msg=`Supprimer définitivement le dossier ${rec.numero} (${rec.client}) ?\n\nCette action est irréversible.`;
+  if(avance) msg+=`\n\n⚠️ Ce dossier est à l'étape "${CHANTIER_STAGES.find(s=>s.key===rec.etape)?.label||rec.etape}" — des paiements, OF ou achats peuvent déjà exister.`;
+  if(ofLies) msg+=`\nOF déjà générés : ${rec.ofGeneres.join(', ')} — ils ne seront PAS supprimés.`;
+  if(achatsLies.length) msg+=`\n${achatsLies.length} demande(s) d'achat liée(s) — elles ne seront PAS supprimées.`;
+  if(!confirm(msg)) return;
+  if(avance){
+    const confirmText=prompt(`Confirmation renforcée requise. Tapez le numéro du dossier pour confirmer : ${rec.numero}`);
+    if(confirmText!==rec.numero){ alert('Numéro incorrect — suppression annulée.'); return; }
+  }
+  // Détache les proformas liées (ne les supprime pas)
+  const proformasLiees=await getProformasForChantier(id);
+  for(const p of proformasLiees){
+    p.chantierId=null; p.chantierNumero=null; p._modifie=new Date().toISOString();
+    await idbPut('proforma',p); queueSync('alubom_proforma',p);
+  }
+  await idbDelete('chantiers',id);
+  await audit('DELETE_CHANTIER',rec.numero+' / '+rec.client+' — dossier supprimé ('+proformasLiees.length+' proforma(s) détachée(s))');
+  document.getElementById('chantierDetail').classList.add('hidden');
+  if(currentChantierId===id) currentChantierId=null;
+  await renderChantierList();
+  await renderProformaList();
 }
 async function advanceChantierStage(id,stage,label){
   const sensitiveStage = stage==='achats'; // passage en achats = validation DG
@@ -2831,6 +2861,7 @@ async function openChantierDetail(id){
         <div><h2 class="text-lg font-bold">${escapeHtml(rec.numero)} — ${escapeHtml(rec.client)}</h2><p class="text-sm text-slate-500">Devis ${escapeHtml(rec.devisNumero)} • ${escapeHtml(rec.contact||'')}</p></div>
         <div class="flex gap-2">
           <button onclick="openEditChantierModal('${id}')" class="border border-blue-600 text-blue-600 px-3 py-2 rounded-lg text-sm font-semibold">✏️ Modifier</button>
+          <button onclick="deleteChantier('${id}')" class="border border-red-500 text-red-500 px-3 py-2 rounded-lg text-sm font-semibold">🗑️ Supprimer</button>
           <button onclick="document.getElementById('chantierDetail').classList.add('hidden')" class="border px-3 py-2 rounded-lg text-sm font-semibold">Fermer</button>
         </div>
       </div>
