@@ -379,6 +379,7 @@ window.SANIX_CFG = {
                   <p class="text-xs text-slate-500">Le dessin se met à jour avec la largeur, la hauteur et le nombre de vantaux.</p>
                 </div>
                 <span class="badge bg-white text-slate-600 border">Vue façade</span>
+                <button type="button" onclick="previewPlanTechnique()" class="border px-3 py-1.5 rounded-lg text-xs font-semibold">👁️ Aperçu</button>
                 <button type="button" onclick="printPlanTechnique()" class="border px-3 py-1.5 rounded-lg text-xs font-semibold">🖨️ Imprimer plan</button>
               </div>
               <div class="bg-white rounded-xl border p-3 overflow-hidden">
@@ -564,6 +565,7 @@ window.SANIX_CFG = {
                 <button type="button" onclick="window.print()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Imprimer le plan</button>
                 <button type="button" onclick="showPage('cut')" class="border px-4 py-2 rounded-lg text-sm font-semibold">Voir le débit</button>
                 <button type="button" onclick="showPage('bom')" class="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-semibold">Voir la BOM</button>
+                <button type="button" onclick="previewFicheTechnique()" class="border px-4 py-2 rounded-lg text-sm font-semibold">👁️ Aperçu</button>
                 <button type="button" onclick="printFicheTechnique()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">📐 Fiche technique A3 complète</button>
               </div>
             </div>
@@ -5044,7 +5046,7 @@ function buildDossierPage(label,svg){
   </div>`;
 }
 
-async function printPlanTechnique(){
+async function printPlanTechnique(autoPrint=true){
   const svg=document.getElementById('technicalDrawing')?.outerHTML;
   if(!svg){ alert('Aucun schéma à imprimer.'); return; }
   const win=window.open('','_blank','width=900,height=1000');
@@ -5059,12 +5061,17 @@ async function printPlanTechnique(){
   const entete=buildPrintHeaderHtml();
   const pied=await buildPrintFooterHtml(label);
   if(win.closed) return;
+  const barreOutils=autoPrint?'':`<div style="position:sticky;top:0;background:#0f172a;padding:10px 24px;margin:-24px -24px 24px;display:flex;justify-content:space-between;align-items:center" class="no-print">
+    <span style="color:#fff;font-size:13px;font-weight:600">👁️ Aperçu avant impression</span>
+    <button onclick="window.print()" style="background:#2563eb;color:#fff;border:0;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">🖨️ Imprimer</button>
+  </div>`;
   win.document.open();
   win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Plan technique — ${escapeHtml(label)}</title>
-    <style>body{font-family:sans-serif;margin:0;padding:24px}.dossier-title{font-size:18px;font-weight:700}.dossier-sub{font-size:12px;color:#64748b;margin-bottom:16px}${PRINT_ENTETE_PIED_CSS}</style>
-    </head><body>${entete}${atelier?`<p style="font-size:12px;color:#334155;margin:-8px 0 12px"><b>Atelier :</b> ${escapeHtml(atelier)}</p>`:''}${buildDossierPage(label,svg)}${pied}<script>window.onload=()=>window.print()<\/script></body></html>`);
+    <style>body{font-family:sans-serif;margin:0;padding:24px}.dossier-title{font-size:18px;font-weight:700}.dossier-sub{font-size:12px;color:#64748b;margin-bottom:16px}${PRINT_ENTETE_PIED_CSS}@media print{.no-print{display:none}}</style>
+    </head><body>${barreOutils}${entete}${atelier?`<p style="font-size:12px;color:#334155;margin:-8px 0 12px"><b>Atelier :</b> ${escapeHtml(atelier)}</p>`:''}${buildDossierPage(label,svg)}${pied}${autoPrint?'<script>window.onload=()=>window.print()<\/script>':''}</body></html>`);
   win.document.close();
 }
+function previewPlanTechnique(){ printPlanTechnique(false); }
 
 function toggleTypeFields(){
   const type=document.getElementById('type').value;
@@ -5657,7 +5664,7 @@ function generateReference(type,w,h,leaves){
   return `${code}${v}-${w}x${h}`;
 }
 
-function printFicheTechnique(){
+function printFicheTechnique(autoPrint=true){
   const win=window.open('','_blank','width=1200,height=900');
   if(!win){ alert("Fenêtre bloquée par le navigateur. Autorisez les pop-ups pour ce site."); return; }
   win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Fiche technique</title></head><body style="font-family:sans-serif;padding:24px;color:#64748b">Génération du document…</body></html>');
@@ -5714,7 +5721,13 @@ function printFicheTechnique(){
     .footer-block div{border-right:1px solid #0f172a;padding:6px 10px}
     .footer-block div:last-child{border-right:0}
     .footer-block b{display:block;font-size:9px;color:#64748b;text-transform:uppercase}
+    @media print{.no-print{display:none}}
   </style></head><body>
+
+  ${autoPrint?'':`<div class="no-print" style="position:sticky;top:0;background:#0f172a;padding:10px 16px;margin:-12mm -12mm 12px;display:flex;justify-content:space-between;align-items:center">
+    <span style="color:#fff;font-size:13px;font-weight:600">👁️ Aperçu avant impression</span>
+    <button onclick="window.print()" style="background:#2563eb;color:#fff;border:0;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">🖨️ Imprimer</button>
+  </div>`}
 
   <div class="cartouche">
     <div class="logo">SANIX<br><span style="font-size:9px;color:#64748b;letter-spacing:2px">FACTORY</span></div>
@@ -5776,13 +5789,14 @@ function printFicheTechnique(){
   </body></html>`);
   win.document.close();
   win.focus();
-  setTimeout(()=>win.print(),400);
+  if(autoPrint) setTimeout(()=>win.print(),400);
   }catch(err){
     win.document.open();
     win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="font-family:sans-serif;padding:24px;color:#dc2626">Erreur génération fiche technique : '+escapeHtml(err.message)+'<br>Assurez-vous que le configurateur et le BOM sont bien chargés avant impression.</body></html>');
     win.document.close();
   }
 }
+function previewFicheTechnique(){ printFicheTechnique(false); }
 
 
 function updateFabricationPlan(){
