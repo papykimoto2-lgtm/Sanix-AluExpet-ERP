@@ -20,6 +20,9 @@ window.SANIX_CFG = {
 </script>
 <style>
   body{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f4f7fb}
+  body.modal-open{overflow:hidden}
+  .modal-overlay{overscroll-behavior:contain}
+  .modal-overlay>div{overscroll-behavior:contain}
   .glass{background:rgba(255,255,255,.88);backdrop-filter:blur(12px)}
   .sidebar{background:#0f172a}
   .active{background:#1e293b;color:#fff}
@@ -1269,15 +1272,15 @@ window.SANIX_CFG = {
   <datalist id="fournisseursDatalist"></datalist>
 </div>
 
-<div id="prixFournisseursModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+<div id="prixFournisseursModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 modal-overlay">
   <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[85vh] overflow-y-auto" id="prixFournisseursContent"></div>
 </div>
 
-<div id="csvImportModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+<div id="csvImportModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 modal-overlay">
   <div class="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto" id="csvImportContent"></div>
 </div>
 
-<div id="companyInfoModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+<div id="companyInfoModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 modal-overlay">
   <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" id="companyInfoContent"></div>
 </div>
 
@@ -1290,6 +1293,9 @@ const CFG = window.SANIX_CFG;
 let currentUser = null; // {id,email,role,permissions}
 let db = null;
 
+function setModalOpen(open){
+  document.body.classList.toggle('modal-open',open);
+}
 function escapeHtml(s){
   return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
@@ -3074,6 +3080,7 @@ async function openEntityDetail(kind,id){
   const modal=document.getElementById('prixFournisseursModal');
   const content=document.getElementById('prixFournisseursContent');
   modal.classList.remove('hidden');
+  setModalOpen(true);
   const isClient=kind==='clients';
   let chantiersHtml='';
   let statsHtml='';
@@ -3873,9 +3880,11 @@ function openCsvImport(){
   const activeKey=(activeBtn && defs[activeBtn.dataset.reftab])?activeBtn.dataset.reftab:'series';
   document.getElementById('csvImportContent').innerHTML=csvImportFormHtml(activeKey,defs);
   document.getElementById('csvImportModal').classList.remove('hidden');
+  setModalOpen(true);
 }
 function closeCsvImport(){
   document.getElementById('csvImportModal').classList.add('hidden');
+  setModalOpen(false);
   csvImportState=null;
 }
 function csvImportFormHtml(activeKey,defs){
@@ -4037,6 +4046,7 @@ async function renderPrixFournisseursModal(){
   const modal=document.getElementById('prixFournisseursModal');
   const content=document.getElementById('prixFournisseursContent');
   modal.classList.remove('hidden');
+  setModalOpen(true);
   content.innerHTML=`
     <div class="flex justify-between items-start mb-4">
       <div><h2 class="text-lg font-bold">Tarifs fournisseurs</h2><p class="text-sm text-slate-500">${escapeHtml(product.code)} — ${escapeHtml(product.designation)}</p></div>
@@ -4079,6 +4089,7 @@ async function renderPrixFournisseursModal(){
 }
 function closePrixFournisseurs(){
   document.getElementById('prixFournisseursModal').classList.add('hidden');
+  setModalOpen(false);
   window._pfCtx=null;
 }
 async function handleAddPrixFournisseur(e){
@@ -4438,10 +4449,11 @@ function openCompanyInfoModal(){
       <input id="ciNcc" value="${escapeHtml(c.ncc)}" placeholder="NCC (compte contribuable)" class="border rounded-lg px-2 py-1.5 text-sm">
       <div class="sm:col-span-2 flex gap-2 mt-2">
         <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">Enregistrer</button>
-        <button type="button" onclick="document.getElementById('companyInfoModal').classList.add('hidden')" class="border px-4 py-1.5 rounded-lg text-sm font-semibold">Fermer</button>
+        <button type="button" onclick="document.getElementById('companyInfoModal').classList.add('hidden');setModalOpen(false)" class="border px-4 py-1.5 rounded-lg text-sm font-semibold">Fermer</button>
       </div>
     </form>`;
   document.getElementById('companyInfoModal').classList.remove('hidden');
+  setModalOpen(true);
 }
 function handleSaveCompanyInfo(e){
   e.preventDefault();
@@ -4455,6 +4467,7 @@ function handleSaveCompanyInfo(e){
     ncc:document.getElementById('ciNcc').value.trim()
   });
   document.getElementById('companyInfoModal').classList.add('hidden');
+  setModalOpen(false);
   return false;
 }
 function buildPrintHeaderHtml(){
