@@ -1289,6 +1289,10 @@ window.SANIX_CFG = {
   <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" id="companyInfoContent"></div>
 </div>
 
+<div id="editChantierModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 modal-overlay">
+  <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" id="editChantierContent"></div>
+</div>
+
 <script>
 /* =========================================================
    Sanix AluExpert ERP — Couche ERP (Auth Supabase, IndexedDB offline,
@@ -2528,7 +2532,7 @@ async function renderChantierList(){
       <td class="p-3"><span class="badge bg-${c}-50 text-${c}-700">${escapeHtml(label)}</span></td>
       <td class="p-3 text-right">${money(r.montantTotal)}</td>
       <td class="p-3 text-right">${money(r.montantPaye)}</td>
-      <td class="p-3 text-right"><button type="button" onclick="event.stopPropagation();openChantierDetail('${r.id}')" class="text-blue-600 font-semibold hover:underline cursor-pointer">Ouvrir →</button></td>
+      <td class="p-3 text-right whitespace-nowrap"><button type="button" onclick="event.stopPropagation();openEditChantierModal('${r.id}')" class="text-slate-500 text-xs font-semibold mr-2">✏️</button><button type="button" onclick="event.stopPropagation();openChantierDetail('${r.id}')" class="text-blue-600 font-semibold hover:underline cursor-pointer">Ouvrir →</button></td>
     </tr>`;
   }).join('') : `<tr><td class="p-3 text-slate-400" colspan="6">Aucun dossier chantier. Créez-en un depuis une proforma générée.</td></tr>`;
 }
@@ -2541,6 +2545,61 @@ async function saveChantier(rec){
   rec._modifie=new Date().toISOString();
   await idbPut('chantiers',rec);
   queueSync('alubom_chantiers',rec);
+}
+
+/* ---------- Édition dossier chantier (client, contact, montant) ---------- */
+async function openEditChantierModal(id){
+  if(!hasRole('chantier:create')){ alert('Permission refusée.'); return; }
+  const rec=await getChantier(id); if(!rec) return;
+  const modal=document.getElementById('editChantierModal');
+  const content=document.getElementById('editChantierContent');
+  content.innerHTML=`
+    <div class="flex justify-between items-start mb-4">
+      <h2 class="text-lg font-bold">✏️ Modifier dossier ${escapeHtml(rec.numero)}</h2>
+      <button onclick="closeEditChantierModal()" class="text-slate-400 text-xl leading-none">×</button>
+    </div>
+    <form onsubmit="return handleEditChantier(event,'${id}')" class="space-y-3">
+      <label class="text-sm font-semibold block">Client
+        <input id="ecClient" list="clientsDatalist" value="${escapeHtml(rec.client||'')}" required class="mt-1 w-full border rounded-lg px-3 py-2">
+      </label>
+      <label class="text-sm font-semibold block">Contact
+        <input id="ecContact" value="${escapeHtml(rec.contact||'')}" class="mt-1 w-full border rounded-lg px-3 py-2">
+      </label>
+      <label class="text-sm font-semibold block">Montant total (FCFA)
+        <input id="ecMontantTotal" type="number" min="0" value="${rec.montantTotal||0}" required class="mt-1 w-full border rounded-lg px-3 py-2">
+      </label>
+      <label class="text-sm font-semibold block">Montant payé (FCFA)
+        <input id="ecMontantPaye" type="number" min="0" value="${rec.montantPaye||0}" required class="mt-1 w-full border rounded-lg px-3 py-2">
+      </label>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" onclick="closeEditChantierModal()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Annuler</button>
+        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">✓ Enregistrer</button>
+      </div>
+    </form>`;
+  modal.classList.remove('hidden');
+  setModalOpen(true);
+}
+function closeEditChantierModal(){
+  document.getElementById('editChantierModal').classList.add('hidden');
+  setModalOpen(false);
+}
+async function handleEditChantier(e,id){
+  e.preventDefault();
+  if(!hasRole('chantier:create')){ alert('Permission refusée.'); return false; }
+  const rec=await getChantier(id); if(!rec) return false;
+  const nouveauClient=document.getElementById('ecClient').value.trim();
+  const clientId=await resolveOrCreateClient(nouveauClient,document.getElementById('ecContact').value.trim());
+  rec.client=nouveauClient;
+  rec.clientId=clientId;
+  rec.contact=document.getElementById('ecContact').value.trim();
+  rec.montantTotal=+document.getElementById('ecMontantTotal').value||0;
+  rec.montantPaye=+document.getElementById('ecMontantPaye').value||0;
+  await saveChantier(rec);
+  await audit('MAJ_CHANTIER',rec.numero+' — modification manuelle (client/montant)');
+  closeEditChantierModal();
+  await renderChantierList();
+  await openChantierDetail(id);
+  return false;
 }
 async function advanceChantierStage(id,stage,label){
   const sensitiveStage = stage==='achats'; // passage en achats = validation DG
@@ -2704,7 +2763,10 @@ async function openChantierDetail(id){
     <div class="card bg-white rounded-2xl p-6">
       <div class="flex flex-wrap justify-between gap-3 mb-5">
         <div><h2 class="text-lg font-bold">${escapeHtml(rec.numero)} — ${escapeHtml(rec.client)}</h2><p class="text-sm text-slate-500">Devis ${escapeHtml(rec.devisNumero)} • ${escapeHtml(rec.contact||'')}</p></div>
-        <button onclick="document.getElementById('chantierDetail').classList.add('hidden')" class="border px-3 py-2 rounded-lg text-sm font-semibold">Fermer</button>
+        <div class="flex gap-2">
+          <button onclick="openEditChantierModal('${id}')" class="border border-blue-600 text-blue-600 px-3 py-2 rounded-lg text-sm font-semibold">✏️ Modifier</button>
+          <button onclick="document.getElementById('chantierDetail').classList.add('hidden')" class="border px-3 py-2 rounded-lg text-sm font-semibold">Fermer</button>
+        </div>
       </div>
       <div class="flex mb-6">${stepperHtml}</div>
       <div class="border-t pt-5">${actionPanel}</div>
