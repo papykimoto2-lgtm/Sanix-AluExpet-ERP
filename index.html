@@ -178,6 +178,9 @@ window.SANIX_CFG = {
                   <option>Fenêtre</option><option>Porte</option><option>Coulissant</option><option>Coulissant galandage</option><option>Baie vitrée</option><option>Façade</option><option>Garde-corps alu/verre</option><option>Bardage alu</option><option>Pergola bioclimatique</option><option>Cloison vitrée</option><option>Verrière d'intérieur</option><option>Volet roulant</option><option>Auvent / marquise</option><option>Store banne</option><option>Kiosque / abri de jardin</option><option>Garde-corps inox</option><option>Escalier métallique/inox</option><option>Fenêtre de toit</option>
                 </select>
               </label>
+              <label class="text-sm font-semibold">Atelier / Spécialité
+                <select id="atelier" class="mt-1 w-full border rounded-lg px-3 py-2"></select>
+              </label>
               <label class="text-sm font-semibold">Série aluminium
                 <select id="serie" class="mt-1 w-full border rounded-lg px-3 py-2">
                   <option value="STD120">Série Standard 120</option><option value="COUL120">Série Coulissant 120</option><option value="PREM150">Série Premium 150</option>
@@ -370,12 +373,13 @@ window.SANIX_CFG = {
             </div>
             
             <div class="mt-6 border border-slate-200 rounded-2xl p-4 bg-slate-50">
-              <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
                 <div>
                   <h3 class="font-bold">Schéma technique paramétrique</h3>
                   <p class="text-xs text-slate-500">Le dessin se met à jour avec la largeur, la hauteur et le nombre de vantaux.</p>
                 </div>
                 <span class="badge bg-white text-slate-600 border">Vue façade</span>
+                <button type="button" onclick="printPlanTechnique()" class="border px-3 py-1.5 rounded-lg text-xs font-semibold">🖨️ Imprimer plan</button>
               </div>
               <div class="bg-white rounded-xl border p-3 overflow-hidden">
                 <svg id="technicalDrawing" viewBox="0 0 760 390" class="w-full h-auto" role="img" aria-label="Schéma technique de l'ouvrage">
@@ -399,6 +403,7 @@ window.SANIX_CFG = {
                   <line x1="615" y1="42" x2="615" y2="55" stroke="#64748b"/>
                   <text id="dimWidth" x="380" y="27" text-anchor="middle" font-size="16" font-weight="700" fill="#0f172a">1500 mm</text>
 
+
                   <line x1="120" y1="55" x2="120" y2="315" stroke="#334155" stroke-width="2"
                         marker-start="url(#arrow)" marker-end="url(#arrow)"/>
                   <line x1="127" y1="55" x2="145" y2="55" stroke="#64748b"/>
@@ -413,8 +418,31 @@ window.SANIX_CFG = {
               </div>
             </div>
 
+            <div class="mt-6 border border-slate-200 rounded-2xl p-4 bg-slate-50">
+              <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div>
+                  <h3 class="font-bold">📚 Bibliothèque de plans façade</h3>
+                  <p class="text-xs text-slate-500">Modèles réutilisables (type, dimensions, série) — indépendants du devis.</p>
+                </div>
+                <button type="button" onclick="savePlanFacade()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">💾 Enregistrer comme modèle</button>
+              </div>
+              <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-white"><tr><th class="text-left p-2">Nom</th><th class="text-left p-2">Ouvrage</th><th class="text-right p-2">Dimensions</th><th class="p-2"></th></tr></thead><tbody id="plansFacadeBody"></tbody></table></div>
+            </div>
 
-            
+            <div class="mt-6 border border-slate-200 rounded-2xl p-4 bg-slate-50">
+              <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div>
+                  <h3 class="font-bold">🕓 Révisions de configuration</h3>
+                  <p class="text-xs text-slate-500">Historique versionné par repère de projet — traçabilité avant création d'OF.</p>
+                </div>
+                <div class="flex gap-2 items-center">
+                  <input id="revRepere" placeholder="Repère projet (ex: Villa Cocody - Baie A)" class="border rounded-lg px-2 py-1.5 text-xs w-56">
+                  <button type="button" onclick="saveRevision()" class="border border-blue-600 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-semibold">💾 Enregistrer révision</button>
+                </div>
+              </div>
+              <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-white"><tr><th class="text-left p-2">Rév.</th><th class="text-left p-2">Repère</th><th class="text-left p-2">Config</th><th class="text-left p-2">Date</th><th class="p-2"></th></tr></thead><tbody id="revisionsBody"></tbody></table></div>
+            </div>
+
             <div class="mt-6 border border-slate-200 rounded-2xl p-4 bg-slate-50">
               <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
                 <div>
@@ -976,6 +1004,7 @@ window.SANIX_CFG = {
             <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="joints" onclick="showRefTab('joints')">➰ Joints</button>
             <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="consommables" onclick="showRefTab('consommables')">🧪 Consommables</button>
             <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="machines" onclick="showRefTab('machines')">🛠️ Machines</button>
+            <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="ateliers" onclick="showRefTab('ateliers')">🏭 Ateliers</button>
             <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="parametres" onclick="showRefTab('parametres')">⚙️ Jeux & tolérances</button>
           </div>
           <button onclick="openCsvImport()" class="border border-teal-600 text-teal-600 px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap">📥 Importer CSV</button>
@@ -1050,6 +1079,7 @@ window.SANIX_CFG = {
         </div>
 
         <div id="refVitrages" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_vitrages"></div></div>
+        <div id="refAteliers" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_ateliers"></div></div>
         <div id="refQuincaillerie" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_quincaillerie"></div></div>
         <div id="refJoints" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_joints"></div></div>
         <div id="refConsommables" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_consommables"></div></div>
@@ -1253,7 +1283,7 @@ function openDB(){
     const req=indexedDB.open('alubom_db',10);
     req.onupgradeneeded=e=>{
       const d=e.target.result;
-      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs'].forEach(s=>{
+      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers'].forEach(s=>{
         if(!d.objectStoreNames.contains(s)) d.createObjectStore(s,{keyPath:'id'});
       });
     };
@@ -1556,7 +1586,7 @@ async function checkSession(){
 document.addEventListener('DOMContentLoaded',checkSession);
 
 /* ---------- Ordres de Fabrication (OF) ---------- */
-async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable(),renderEnsemblesList(),loadParams()]); renderUsersTable(); if(document.getElementById('costChart')) updateDashboard(); }
+async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable(),renderEnsemblesList(),renderPlansFacadeTable(),renderRevisionsTable(),populateAtelierSelect(),loadParams()]); renderUsersTable(); if(document.getElementById('costChart')) updateDashboard(); }
 
 function openNewOFForm(){
   if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
@@ -2332,6 +2362,48 @@ async function genererDossierFabrication(id){
   alert(createdOF.length+' ordre(s) de fabrication créé(s) automatiquement :\n'+createdOF.join('\n'));
 }
 
+/* ---------- MRP : Besoins matières issus du dossier de fabrication validé ---------- */
+async function calculerBesoinsMRP(chantierId){
+  const rec=await getChantier(chantierId); if(!rec) return [];
+  const lignes=rec.lignes||[];
+  const besoins={};
+  lignes.forEach(l=>{
+    const qtyLigne=l.qty||1;
+    (l.bom||[]).forEach(b=>{
+      const qte=(b.qte||0)*0.001*qtyLigne;
+      if(!besoins[b.code]) besoins[b.code]={code:b.code,designation:b.designation,qte:0};
+      besoins[b.code].qte+=qte;
+    });
+  });
+  const [stockRows,profils,vitrages,quinc,joints,conso]=await Promise.all(['stock','profils','vitrages','quincaillerie','joints','consommables'].map(s=>idbGetAll(s)));
+  const allRef=[...profils,...vitrages,...quinc,...joints,...conso];
+  return Object.values(besoins).map(b=>{
+    const stock=stockRows.find(s=>s.ref===b.code);
+    const dispo=stock?stock.dispo:0;
+    const manquant=Math.max(0,b.qte-dispo);
+    const refInfo=allRef.find(r=>r.code===b.code);
+    const fournisseur=refInfo?.fournisseur||'';
+    const prixUnitaire=refInfo?(refInfo.prixMl||refInfo.prixM2||refInfo.prixUnitaire||refInfo.prix||0):(stock?.prix||0);
+    return {code:b.code,designation:b.designation,besoin:b.qte,dispo,manquant,fournisseur,prixUnitaire};
+  }).sort((a,b)=>b.manquant-a.manquant);
+}
+async function genererAchatsDepuisMRP(chantierId){
+  if(!hasRole('achat:create')){ alert('Permission refusée.'); return; }
+  const besoins=await calculerBesoinsMRP(chantierId);
+  const manquants=besoins.filter(b=>b.manquant>0.01);
+  if(!manquants.length){ alert('Aucun manquant — stock suffisant pour ce dossier.'); return; }
+  for(const m of manquants){
+    const seq=nextSeq('achat');
+    const numero='DA-'+seq.year+'-'+String(seq.n).padStart(4,'0');
+    const rec={id:numero,numero,chantierId,fournisseur:m.fournisseur||'À définir',designation:m.designation+' ('+m.code+')',qte:Math.round(m.manquant*100)/100,montant:Math.round(m.manquant*(m.prixUnitaire||0)),statut:'demande',dateCreation:new Date().toISOString(),origineMRP:true};
+    await idbPut('achats',rec);
+    queueSync('alubom_achats',rec);
+  }
+  await audit('GENERER_ACHATS_MRP',chantierId+' — '+manquants.length+' référence(s) commandée(s) automatiquement');
+  await openChantierDetail(chantierId);
+  alert(manquants.length+' demande(s) d\'achat générée(s) automatiquement (MRP).');
+}
+
 async function consumeReservation(reservations){
   if(!reservations||!reservations.length) return;
   const stockRows=await idbGetAll('stock');
@@ -2477,6 +2549,24 @@ async function openChantierDetail(id){
   const proformasClient=await getProformasForClientName(rec.client);
   const proformasNonLiees=proformasClient.filter(p=>p.chantierId!==id);
 
+  const groupesAtelier={};
+  proformasLiees.forEach(p=>{
+    (p.lignes||[]).forEach(l=>{
+      const key=l.atelierNom||'Sans atelier';
+      groupesAtelier[key]=groupesAtelier[key]||{nb:0,total:0};
+      groupesAtelier[key].nb+=1;
+      groupesAtelier[key].total+=(+l.subtotal||0);
+    });
+  });
+  const totalConsolide=Object.values(groupesAtelier).reduce((s,g)=>s+g.total,0);
+  const consolidationHtml = Object.keys(groupesAtelier).length ? `
+    <div class="border-t pt-5 mt-5">
+      <h3 class="font-bold text-sm text-slate-700 mb-2">🏭 Cotation consolidée par atelier</h3>
+      <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Atelier</th><th class="text-right p-2">Lignes</th><th class="text-right p-2">Montant</th><th class="text-right p-2">Part</th></tr></thead><tbody>
+        ${Object.entries(groupesAtelier).map(([nom,g])=>`<tr class="border-b"><td class="p-2 font-semibold">${escapeHtml(nom)}</td><td class="p-2 text-right">${g.nb}</td><td class="p-2 text-right">${money(g.total)}</td><td class="p-2 text-right">${totalConsolide?((g.total/totalConsolide*100).toFixed(1)):0}%</td></tr>`).join('')}
+      </tbody><tfoot><tr class="border-t font-bold"><td class="p-2">Total</td><td class="p-2 text-right">${Object.values(groupesAtelier).reduce((s,g)=>s+g.nb,0)}</td><td class="p-2 text-right">${money(totalConsolide)}</td><td class="p-2 text-right">100%</td></tr></tfoot></table></div>
+    </div>` : '';
+
   const proformasHtml=`
     <div class="border-t pt-5 mt-5">
       <h3 class="font-bold text-sm text-slate-700 mb-2">🧾 Proformas liées (${proformasLiees.length})</h3>
@@ -2528,7 +2618,20 @@ async function openChantierDetail(id){
       : `<p class="text-sm text-amber-600">En attente de validation DG — permission requise.</p>`;
   } else if(rec.etape==='achats'){
     const allRecue=achats.length>0 && achats.every(a=>a.statut==='recue');
+    const besoinsMRP=await calculerBesoinsMRP(id);
+    const manquantsMRP=besoinsMRP.filter(b=>b.manquant>0.01);
+    const mrpHtml=`
+      <div class="mb-4 border rounded-xl p-3 bg-blue-50/40">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <h4 class="font-bold text-sm text-slate-700">📦 Besoins matières (MRP) — issus du dossier de fabrication validé</h4>
+          ${manquantsMRP.length?`<button onclick="genererAchatsDepuisMRP('${id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">⚙️ Générer les DA manquantes (${manquantsMRP.length})</button>`:''}
+        </div>
+        ${besoinsMRP.length?`<div class="overflow-x-auto"><table class="w-full text-xs"><thead class="bg-white"><tr><th class="text-left p-1.5">Réf.</th><th class="text-left p-1.5">Désignation</th><th class="text-right p-1.5">Besoin</th><th class="text-right p-1.5">Stock dispo</th><th class="text-right p-1.5">Manquant</th><th class="p-1.5">Fournisseur</th></tr></thead><tbody>
+          ${besoinsMRP.map(b=>`<tr class="border-b ${b.manquant>0.01?'bg-red-50/50':''}"><td class="p-1.5 font-semibold">${escapeHtml(b.code)}</td><td class="p-1.5">${escapeHtml(b.designation)}</td><td class="p-1.5 text-right">${b.besoin.toFixed(2)}</td><td class="p-1.5 text-right">${b.dispo.toFixed(2)}</td><td class="p-1.5 text-right ${b.manquant>0.01?'font-bold text-red-600':''}">${b.manquant.toFixed(2)}</td><td class="p-1.5">${escapeHtml(b.fournisseur||'—')}</td></tr>`).join('')}
+        </tbody></table></div>`:'<p class="text-xs text-slate-400">Aucune ligne BOM sur ce dossier.</p>'}
+      </div>`;
     actionPanel=`
+      ${mrpHtml}
       <div class="mb-3">
         <p class="text-sm text-slate-600 mb-2">Demandes d'achats multi-fournisseurs pour ce chantier.</p>
         <form onsubmit="return handleAddAchat(event,'${id}')" class="grid sm:grid-cols-5 gap-2 mb-3 bg-slate-50 border rounded-xl p-3">
@@ -2540,7 +2643,7 @@ async function openChantierDetail(id){
         </form>
         <div class="space-y-2">${achats.length?achats.map(a=>`
           <div class="flex items-center justify-between border rounded-lg p-3 text-sm">
-            <div><b>${escapeHtml(a.numero)}</b> — ${escapeHtml(a.fournisseur)} — ${escapeHtml(a.designation)} × ${a.qte} — ${money(a.montant)}</div>
+            <div><b>${escapeHtml(a.numero)}</b> — ${escapeHtml(a.fournisseur)} — ${escapeHtml(a.designation)} × ${a.qte} — ${money(a.montant)}${a.origineMRP?' <span class="badge bg-blue-50 text-blue-700">MRP auto</span>':''}</div>
             <div class="flex items-center gap-2">
               <span class="badge bg-${a.statut==='recue'?'emerald':a.statut==='commandee'?'blue':a.statut==='validee'?'amber':'slate'}-50 text-${a.statut==='recue'?'emerald':a.statut==='commandee'?'blue':a.statut==='validee'?'amber':'slate'}-700">${escapeHtml(a.statut)}</span>
               ${a.statut!=='recue'?`<button onclick="advanceAchatStatut('${a.id}','${id}')" class="text-blue-600 text-xs font-semibold">Étape suivante →</button>`:''}
@@ -2576,6 +2679,7 @@ async function openChantierDetail(id){
       </div>
       <div class="flex mb-6">${stepperHtml}</div>
       <div class="border-t pt-5">${actionPanel}</div>
+      ${consolidationHtml}
       ${proformasHtml}
     </div>`;
 }
@@ -3046,7 +3150,7 @@ async function openEntityDetail(kind,id){
 /* ---------- Référentiel technique : Séries & Profils ---------- */
 function showRefTab(tab){
   document.querySelectorAll('.ref-tab').forEach(t=>t.classList.add('hidden'));
-  const ids={series:'refSeries',profils:'refProfils',vitrages:'refVitrages',quincaillerie:'refQuincaillerie',joints:'refJoints',consommables:'refConsommables',machines:'refMachines',parametres:'refParametres'};
+  const ids={series:'refSeries',profils:'refProfils',vitrages:'refVitrages',quincaillerie:'refQuincaillerie',joints:'refJoints',consommables:'refConsommables',machines:'refMachines',ateliers:'refAteliers',parametres:'refParametres'};
   document.getElementById(ids[tab]).classList.remove('hidden');
   document.querySelectorAll('.ref-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.reftab===tab));
   if(REF_DEFS[tab]) renderGenericRef(tab);
@@ -3086,6 +3190,22 @@ async function seedDefaultSeriesIfEmpty(){
   const rows=await idbGetAll('series');
   if(rows.length) return;
   for(const s of DEFAULT_SERIES){ s._modifie=new Date().toISOString(); await idbPut('series',s); }
+}
+
+const DEFAULT_ATELIERS=[
+  {id:'at_alu',code:'ALU',nom:'Atelier Aluminium',responsable:'—',couleur:'blue',statut:'actif'},
+  {id:'at_inox',code:'INOX',nom:'Atelier Inox',responsable:'—',couleur:'slate',statut:'actif'}
+];
+async function seedDefaultAteliersIfEmpty(){
+  const rows=await idbGetAll('ateliers');
+  if(rows.length) return;
+  for(const a of DEFAULT_ATELIERS){ a._modifie=new Date().toISOString(); await idbPut('ateliers',a); }
+}
+async function populateAtelierSelect(){
+  await seedDefaultAteliersIfEmpty();
+  const rows=(await idbGetAll('ateliers')).filter(a=>a.statut!=='inactif').sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
+  const sel=document.getElementById('atelier');
+  if(sel) sel.innerHTML=rows.map(a=>`<option value="${escapeHtml(a.code)}" data-nom="${escapeHtml(a.nom)}" data-couleur="${a.couleur||'slate'}">${escapeHtml(a.nom)}</option>`).join('');
 }
 
 async function handleAddSerie(e){
@@ -3488,6 +3608,16 @@ const REF_DEFS={
       {id:'statut',label:'Statut',type:'select',options:['actif','inactif']}
     ],
     cols:[['code','Code'],['designation','Désignation'],['unite','Unité'],['prix','Prix','money'],['statut','Statut','badge']]
+  },
+  ateliers:{store:'ateliers',label:'Ateliers / Spécialités',prefix:'at',
+    fields:[
+      {id:'code',label:'Code (ex. ALU, INOX)',required:true},
+      {id:'nom',label:'Nom atelier (ex. Atelier Aluminium)',required:true,span:2},
+      {id:'responsable',label:'Responsable atelier'},
+      {id:'couleur',label:'Couleur badge',type:'select',options:['blue','emerald','amber','violet','rose','slate']},
+      {id:'statut',label:'Statut',type:'select',options:['actif','inactif']}
+    ],
+    cols:[['code','Code'],['nom','Nom'],['responsable','Responsable'],['statut','Statut','badge']]
   },
   machines:{store:'machines',label:'Machines',prefix:'ma',
     fields:[
@@ -4166,6 +4296,9 @@ function saveProformaCartLocal(){ localStorage.setItem('alubom_proforma_cart',JS
 
 function addToProformaCart(){
   const type=document.getElementById('type').value;
+  const atelierSel=document.getElementById('atelier');
+  const atelier=atelierSel?.value||'';
+  const atelierNom=atelierSel?.selectedOptions[0]?.dataset.nom||atelier;
   const w=+document.getElementById('width').value||0;
   const h=+document.getElementById('height').value||0;
   const leaves=+document.getElementById('leaves').value||1;
@@ -4177,7 +4310,7 @@ function addToProformaCart(){
   const bom = (window.lastBOMRows||[]).map(r=>({code:r[0],designation:r[1],qte:r[2],longueur:r[3]||0,montant:r[4]}));
   const schemaLabel = document.getElementById('schemaLabel')?.textContent || detail;
   const schemaSVG = document.getElementById('technicalDrawing')?.outerHTML || '';
-  proformaCart.push({id:'ln_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),type,detail,qty,unit,subtotal:unit*qty,bom,schemaLabel,schemaSVG});
+  proformaCart.push({id:'ln_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),type,atelier,atelierNom,detail,qty,unit,subtotal:unit*qty,bom,schemaLabel,schemaSVG});
   saveProformaCartLocal();
   const hint=document.getElementById('cartHint');
   if(hint){ hint.textContent=`${proformaCart.length} ouvrage${proformaCart.length>1?'s':''} dans le devis en cours.`; hint.classList.remove('hidden'); }
@@ -4202,6 +4335,9 @@ function updateProforma(){
   let lines = proformaCart;
   if(!lines.length){
     const type = document.getElementById('type').value;
+    const atelierSel=document.getElementById('atelier');
+    const atelier=atelierSel?.value||'';
+    const atelierNom=atelierSel?.selectedOptions[0]?.dataset.nom||atelier;
     const w = +document.getElementById('width').value || 0;
     const h = +document.getElementById('height').value || 0;
     const leaves = +document.getElementById('leaves').value || 1;
@@ -4210,7 +4346,7 @@ function updateProforma(){
     const bom = (window.lastBOMRows||[]).map(r=>({code:r[0],designation:r[1],qte:r[2],longueur:r[3]||0,montant:r[4]}));
     const schemaLabel = document.getElementById('schemaLabel')?.textContent || '';
     const schemaSVG = document.getElementById('technicalDrawing')?.outerHTML || '';
-    lines = [{id:'current',type,detail:`${type} aluminium ${w} × ${h} mm • ${leaves} vantail${leaves>1?'s':''} • configuration en cours`,qty,unit,subtotal:unit*qty,bom,schemaLabel,schemaSVG}];
+    lines = [{id:'current',type,atelier,atelierNom,detail:`${type} aluminium ${w} × ${h} mm • ${leaves} vantail${leaves>1?'s':''} • configuration en cours`,qty,unit,subtotal:unit*qty,bom,schemaLabel,schemaSVG}];
   }
 
   const subtotal = lines.reduce((s,l)=>s+l.subtotal,0);
@@ -4219,7 +4355,14 @@ function updateProforma(){
   const tax = taxable * taxRate;
   const total = taxable + tax;
 
-  document.getElementById('proLines').innerHTML = lines.map(l=>`
+  const groupes={};
+  lines.forEach(l=>{ const key=l.atelierNom||'Sans atelier'; (groupes[key]=groupes[key]||[]).push(l); });
+  let rowsHtml='';
+  Object.keys(groupes).forEach(nomAtelier=>{
+    const grp=groupes[nomAtelier];
+    const sousTotal=grp.reduce((s,l)=>s+l.subtotal,0);
+    rowsHtml+=`<tr class="bg-slate-100"><td colspan="5" class="p-2 text-xs font-bold text-slate-600">🏭 ${escapeHtml(nomAtelier)} — ${grp.length} ligne${grp.length>1?'s':''} — ${money(sousTotal)}</td></tr>`;
+    rowsHtml+=grp.map(l=>`
     <tr>
       <td class="p-3">
         <div class="font-semibold">${escapeHtml(l.detail)}</div>
@@ -4230,6 +4373,8 @@ function updateProforma(){
       <td class="p-3 text-right">${money(l.subtotal)}</td>
       <td class="p-3 text-right">${l.id!=='current'?`<button onclick="removeFromProformaCart('${l.id}')" class="text-red-500 text-xs font-semibold">✕</button>`:''}</td>
     </tr>`).join('');
+  });
+  document.getElementById('proLines').innerHTML = rowsHtml;
   document.getElementById('proSubtotal').textContent = money(subtotal);
   document.getElementById('proDiscount').textContent = money(discount);
   document.getElementById('proTax').textContent = money(tax);
@@ -4756,12 +4901,155 @@ function printProforma(){
   win.focus();
 }
 
+/* ---------- Bibliothèque de plans façade (modèles configurateur réutilisables) ---------- */
+async function savePlanFacade(){
+  if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
+  const nom=prompt('Nom du modèle :',document.getElementById('type').value+' '+document.getElementById('width').value+'×'+document.getElementById('height').value);
+  if(!nom) return;
+  const rec={
+    id:'pf_'+Date.now(), nom,
+    type:document.getElementById('type').value,
+    w:+document.getElementById('width').value||0,
+    h:+document.getElementById('height').value||0,
+    leaves:+document.getElementById('leaves').value||1,
+    serie:document.getElementById('serie').value,
+    jointType:document.getElementById('jointType')?.value||null,
+    glass:document.getElementById('glass')?.value||null,
+    gap:+document.getElementById('gap')?.value||5,
+    dateCreation:new Date().toISOString(), _modifie:new Date().toISOString()
+  };
+  await idbPut('plans_facade',rec);
+  queueSync('alubom_plans_facade',rec);
+  await audit('CREATE_PLAN_FACADE',nom);
+  await renderPlansFacadeTable();
+}
+async function loadPlanFacade(id){
+  const rows=await idbGetAll('plans_facade');
+  const r=rows.find(x=>x.id===id); if(!r) return;
+  document.getElementById('type').value=r.type; toggleTypeFields();
+  document.getElementById('width').value=r.w;
+  document.getElementById('height').value=r.h;
+  document.getElementById('leaves').value=r.leaves;
+  document.getElementById('serie').value=r.serie;
+  if(document.getElementById('jointType')&&r.jointType) document.getElementById('jointType').value=r.jointType;
+  if(document.getElementById('glass')&&r.glass) document.getElementById('glass').value=r.glass;
+  if(document.getElementById('gap')) document.getElementById('gap').value=r.gap||5;
+  calculateBOM();
+  await audit('CHARGER_PLAN_FACADE',r.nom);
+}
+async function deletePlanFacade(id){
+  if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
+  if(!confirm('Supprimer ce modèle ?')) return;
+  await idbDelete('plans_facade',id);
+  await audit('DELETE_PLAN_FACADE',id);
+  await renderPlansFacadeTable();
+}
+async function renderPlansFacadeTable(){
+  const el=document.getElementById('plansFacadeBody'); if(!el) return;
+  const rows=(await idbGetAll('plans_facade')).sort((a,b)=>b.dateCreation.localeCompare(a.dateCreation));
+  el.innerHTML = rows.length ? rows.map(r=>`
+    <tr class="border-b">
+      <td class="p-2 font-semibold">${escapeHtml(r.nom)}</td>
+      <td class="p-2 text-xs text-slate-500">${escapeHtml(r.type)} • ${r.leaves} vantail(x) • ${escapeHtml(r.serie)}</td>
+      <td class="p-2 text-right">${r.w}×${r.h} mm</td>
+      <td class="p-2 text-right whitespace-nowrap">
+        <button onclick="loadPlanFacade('${r.id}')" class="text-blue-600 text-xs font-semibold mr-2">Charger</button>
+        <button onclick="deletePlanFacade('${r.id}')" class="text-red-500 text-xs font-semibold">Suppr.</button>
+      </td>
+    </tr>`).join('') : `<tr><td class="p-2 text-slate-400" colspan="4">Aucun modèle enregistré.</td></tr>`;
+}
+
+/* ---------- Révisions de configuration (versionning pré-OF) ---------- */
+async function saveRevision(){
+  if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
+  const repere=document.getElementById('revRepere').value.trim();
+  if(!repere){ alert('Renseignez un repère de projet.'); return; }
+  const all=await idbGetAll('revisions');
+  const existantes=all.filter(r=>r.repere.trim().toLowerCase()===repere.toLowerCase());
+  const numero='Rev.'+(existantes.length+1);
+  const rec={
+    id:'rv_'+Date.now(), repere, numero,
+    configSnapshot:{
+      type:document.getElementById('type').value,
+      w:+document.getElementById('width').value||0,
+      h:+document.getElementById('height').value||0,
+      leaves:+document.getElementById('leaves').value||1,
+      serie:document.getElementById('serie').value,
+      jointType:document.getElementById('jointType')?.value||null,
+      glass:document.getElementById('glass')?.value||null,
+      gap:+document.getElementById('gap')?.value||5
+    },
+    bomSnapshot:window.lastBOMRows||[],
+    cout:lastCost,
+    dateCreation:new Date().toISOString()
+  };
+  await idbPut('revisions',rec);
+  queueSync('alubom_revisions',rec);
+  await audit('CREATE_REVISION',repere+' — '+numero);
+  await renderRevisionsTable();
+}
+async function loadRevision(id){
+  const rows=await idbGetAll('revisions');
+  const r=rows.find(x=>x.id===id); if(!r) return;
+  const c=r.configSnapshot;
+  document.getElementById('revRepere').value=r.repere;
+  document.getElementById('type').value=c.type; toggleTypeFields();
+  document.getElementById('width').value=c.w;
+  document.getElementById('height').value=c.h;
+  document.getElementById('leaves').value=c.leaves;
+  document.getElementById('serie').value=c.serie;
+  if(document.getElementById('jointType')&&c.jointType) document.getElementById('jointType').value=c.jointType;
+  if(document.getElementById('glass')&&c.glass) document.getElementById('glass').value=c.glass;
+  if(document.getElementById('gap')) document.getElementById('gap').value=c.gap||5;
+  calculateBOM();
+  await audit('RESTAURER_REVISION',r.repere+' — '+r.numero);
+}
+async function deleteRevision(id){
+  if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
+  if(!confirm('Supprimer cette révision ?')) return;
+  await idbDelete('revisions',id);
+  await audit('DELETE_REVISION',id);
+  await renderRevisionsTable();
+}
+async function renderRevisionsTable(){
+  const el=document.getElementById('revisionsBody'); if(!el) return;
+  const rows=(await idbGetAll('revisions')).sort((a,b)=>b.dateCreation.localeCompare(a.dateCreation));
+  el.innerHTML = rows.length ? rows.map(r=>{
+    const c=r.configSnapshot;
+    return `<tr class="border-b">
+      <td class="p-2 font-semibold">${escapeHtml(r.numero)}</td>
+      <td class="p-2">${escapeHtml(r.repere)}</td>
+      <td class="p-2 text-xs text-slate-500">${escapeHtml(c.type)} ${c.w}×${c.h} • ${c.leaves}v • ${escapeHtml(c.serie)}</td>
+      <td class="p-2 text-xs text-slate-500">${new Date(r.dateCreation).toLocaleString('fr-FR')}</td>
+      <td class="p-2 text-right whitespace-nowrap">
+        <button onclick="loadRevision('${r.id}')" class="text-blue-600 text-xs font-semibold mr-2">Restaurer</button>
+        <button onclick="deleteRevision('${r.id}')" class="text-red-500 text-xs font-semibold">Suppr.</button>
+      </td>
+    </tr>`;
+  }).join('') : `<tr><td class="p-2 text-slate-400" colspan="5">Aucune révision enregistrée.</td></tr>`;
+}
+
 function buildDossierPage(label,svg){
   return `<div class="sheet dossier-page">
     <div class="dossier-title">Dossier technique — Fiche de schéma</div>
     <div class="dossier-sub">${escapeHtml(label)} • SANIX AFRICA — Division Technologies</div>
     ${svg}
   </div>`;
+}
+
+function printPlanTechnique(){
+  const svg=document.getElementById('technicalDrawing')?.outerHTML;
+  if(!svg){ alert('Aucun schéma à imprimer.'); return; }
+  const type=document.getElementById('type')?.value||'Ouvrage';
+  const w=document.getElementById('width')?.value||0, h=document.getElementById('height')?.value||0;
+  const serie=document.getElementById('serie')?.selectedOptions[0]?.text||'';
+  const label=`${type} ${w}×${h} mm — ${serie}`;
+  const win=window.open('','_blank','width=900,height=1000');
+  if(!win) return;
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Plan technique — ${escapeHtml(label)}</title>
+    <style>body{font-family:sans-serif;margin:0;padding:24px}.dossier-title{font-size:18px;font-weight:700}.dossier-sub{font-size:12px;color:#64748b;margin-bottom:16px}</style>
+    </head><body>${buildDossierPage(label,svg)}<script>window.onload=()=>window.print()<\/script></body></html>`);
+  win.document.close();
 }
 
 function toggleTypeFields(){
