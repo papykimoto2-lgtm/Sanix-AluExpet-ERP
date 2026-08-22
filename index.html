@@ -81,6 +81,7 @@ window.SANIX_CFG = {
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="clients">👤 Clients</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="fournisseurs">🏭 Fournisseurs</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="referentiel">📚 Référentiel technique</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="utilisateurs">👥 Utilisateurs</button>
     </nav>
     <div class="mt-8 border-t border-slate-700 pt-4 text-xs text-slate-500">
       Version prototype<br>Module BOM Menuiserie Aluminium
@@ -106,16 +107,21 @@ window.SANIX_CFG = {
 
     <div class="p-4 md:p-8">
       <section id="dashboard" class="page">
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">OF en cours</div><div class="text-3xl font-black mt-2">12</div><div class="text-xs text-emerald-600 mt-2">+8% cette semaine</div></div>
-          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Chutes aluminium</div><div class="text-3xl font-black mt-2">6,8%</div><div class="text-xs text-emerald-600 mt-2">objectif &lt; 8%</div></div>
-          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Marge moyenne</div><div class="text-3xl font-black mt-2">31,4%</div><div class="text-xs text-emerald-600 mt-2">+2,1 pts</div></div>
-          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Stock aluminium</div><div class="text-3xl font-black mt-2">428 ml</div><div class="text-xs text-amber-600 mt-2">3 références faibles</div></div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">OF en cours</div><div id="kpiOFEnCours" class="text-3xl font-black mt-2">—</div><div id="kpiOFEnCoursSub" class="text-xs text-slate-400 mt-2">&nbsp;</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Chute (dernier débit)</div><div id="kpiChute" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">objectif &lt; 8%</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Marge moyenne</div><div id="kpiMarge" class="text-3xl font-black mt-2">—</div><div id="kpiMargeSub" class="text-xs text-slate-400 mt-2">&nbsp;</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Stock aluminium</div><div id="kpiStock" class="text-3xl font-black mt-2">—</div><div id="kpiStockSub" class="text-xs text-amber-600 mt-2">&nbsp;</div></div>
+        </div>
+        <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">OF en retard</div><div id="kpiRetard" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">date prévue dépassée</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Temps moyen / ouvrage</div><div id="kpiTempsMoyen" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">création → clôture</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Taux de non-conformité</div><div id="kpiTauxNC" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">contrôles qualité</div></div>
         </div>
 
         <div class="grid lg:grid-cols-3 gap-6">
           <div class="card bg-white rounded-2xl p-6 lg:col-span-2">
-            <div class="flex justify-between mb-4"><div><h2 class="font-bold text-lg">Performance production</h2><p class="text-sm text-slate-500">Coût prévu vs coût réel</p></div></div>
+            <div class="flex justify-between mb-4"><div><h2 class="font-bold text-lg">Ordres de fabrication par statut</h2><p class="text-sm text-slate-500">Répartition en temps réel</p></div></div>
             <canvas id="costChart" height="120"></canvas>
           </div>
           <div class="card bg-white rounded-2xl p-6">
@@ -568,9 +574,15 @@ window.SANIX_CFG = {
       </div>
 
       <div id="bom" class="etude-tab hidden">
+        <div class="card bg-white rounded-2xl p-6 mb-6">
+          <div class="flex flex-wrap justify-between gap-3 mb-5">
+            <div><h2 class="text-lg font-bold">Nomenclature multi-niveaux</h2><p class="text-sm text-slate-500">Niveau 0 — Produit fini · Niveau 1 — Sous-ensembles · Niveau 2 — Composants.</p></div>
+          </div>
+          <div id="bomTree" class="space-y-2"></div>
+        </div>
         <div class="card bg-white rounded-2xl p-6">
           <div class="flex flex-wrap justify-between gap-3 mb-5">
-            <div><h2 class="text-lg font-bold">BOM / Nomenclature</h2><p class="text-sm text-slate-500">Résultat du dernier calcul paramétrique.</p></div>
+            <div><h2 class="text-lg font-bold">BOM / Nomenclature — vue à plat</h2><p class="text-sm text-slate-500">Résultat du dernier calcul paramétrique.</p></div>
             <button onclick="showPage('cut')" class="bg-slate-900 text-white px-4 py-2 rounded-lg">Optimiser le débit →</button>
           </div>
           <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Code</th><th class="text-left p-3">Composant</th><th class="text-right p-3">Qté</th><th class="text-right p-3">Longueur</th><th class="text-right p-3">Coût</th></tr></thead><tbody id="bomBody"></tbody></table></div>
@@ -580,18 +592,34 @@ window.SANIX_CFG = {
       <div id="cut" class="etude-tab hidden">
         <div class="grid lg:grid-cols-3 gap-6">
           <div class="lg:col-span-2 card bg-white rounded-2xl p-6">
-            <div class="flex flex-wrap justify-between gap-2 mb-5"><div><h2 class="text-lg font-bold">Fiche de débit — Optimisation des barres</h2><p class="text-sm text-slate-500">Calculée à partir de la BOM réelle de l'ouvrage, par référence de profil.</p></div><span id="cutRate" class="badge bg-emerald-50 text-emerald-700">—</span></div>
+            <div class="flex flex-wrap justify-between gap-2 mb-5"><div><h2 class="text-lg font-bold">Fiche de débit — Optimisation des barres</h2><p class="text-sm text-slate-500">Calculée à partir de la BOM réelle, par référence de profil.</p></div><span id="cutRate" class="badge bg-emerald-50 text-emerald-700">—</span></div>
+            <div id="cutModeNote" class="text-xs text-slate-500 bg-slate-50 border rounded-lg p-2 mb-4 hidden"></div>
             <div id="cutPlan" class="space-y-6"></div>
           </div>
           <div class="card bg-white rounded-2xl p-6 h-fit">
             <h2 class="font-bold">Paramètres</h2>
-            <div class="mt-4 space-y-3 text-sm">
+            <label class="text-sm font-semibold block mt-4">Mode d'optimisation
+              <select id="cutMode" onchange="handleCutModeChange()" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+                <option value="economique">Économique — minimiser la chute</option>
+                <option value="stock">Stock — prioriser les chutes réutilisables</option>
+                <option value="fournisseur">Fournisseur — barres d'un seul fournisseur</option>
+                <option value="chantier">Chantier — consolider tous les ouvrages du devis</option>
+              </select>
+            </label>
+            <label id="cutFournisseurField" class="text-sm font-semibold block mt-3 hidden">Fournisseur
+              <input id="cutFournisseur" list="fournisseursDatalist" placeholder="Nom du fournisseur" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+            </label>
+            <div class="mt-4 space-y-2.5 text-sm">
               <div class="flex justify-between"><span>Barre standard</span><b id="cutBarLen">6 000 mm</b></div>
-              <div class="flex justify-between"><span>Trait de scie</span><b>3 mm</b></div>
+              <div class="flex justify-between"><span>Trait de scie</span><b id="cutKerf">3 mm</b></div>
               <div class="flex justify-between"><span>Seuil chute réutilisable</span><b>500 mm</b></div>
-              <div class="flex justify-between"><span>Barres nécessaires</span><b id="cutTotalBars">0</b></div>
+              <div class="border-t pt-2.5 flex justify-between"><span>Barres nécessaires</span><b id="cutTotalBars">0</b></div>
+              <div class="flex justify-between"><span>Matière théorique</span><b id="cutTheorique">0 mm</b></div>
+              <div class="flex justify-between"><span>Matière consommée</span><b id="cutConsommee">0 mm</b></div>
+              <div class="flex justify-between"><span>Taux d'utilisation</span><b id="cutTauxUtil">0 %</b></div>
               <div class="flex justify-between"><span>Chute réutilisable</span><b id="cutReusable">0 mm</b></div>
               <div class="flex justify-between"><span>Déchet</span><b id="cutWaste">0 mm</b></div>
+              <div class="flex justify-between text-emerald-700"><span>Économie réalisée</span><b id="cutEconomie">—</b></div>
             </div>
             <button onclick="optimize()" class="mt-6 w-full bg-blue-600 text-white py-2.5 rounded-lg font-bold">Relancer l'optimisation</button>
             <button onclick="returnChutesToStock()" class="mt-2 w-full border border-emerald-600 text-emerald-700 py-2.5 rounded-lg font-bold">Retourner les chutes en stock</button>
@@ -602,24 +630,54 @@ window.SANIX_CFG = {
       <div id="cost" class="etude-tab hidden">
         <div class="card bg-white rounded-2xl p-6">
           <h2 class="text-lg font-bold">Chiffrage</h2>
-          <p class="text-sm text-slate-500 mb-5">Calcul du coût de revient et de la marge.</p>
-          <div class="grid md:grid-cols-4 gap-4">
-            <div class="bg-slate-50 rounded-xl p-4"><span class="text-sm text-slate-500">Matières</span><b id="cMat" class="block text-xl mt-1">0 FCFA</b></div>
-            <div class="bg-slate-50 rounded-xl p-4"><span class="text-sm text-slate-500">Main-d'œuvre</span><b id="cLab" class="block text-xl mt-1">0 FCFA</b></div>
-            <div class="bg-slate-50 rounded-xl p-4"><span class="text-sm text-slate-500">Coût revient</span><b id="cTotal" class="block text-xl mt-1">0 FCFA</b></div>
-            <div class="bg-blue-50 rounded-xl p-4"><span class="text-sm text-blue-600">Prix de vente</span><b id="cSale" class="block text-xl mt-1 text-blue-700">0 FCFA</b></div>
+          <p class="text-sm text-slate-500 mb-5">Coût matière → coût direct → coût indirect → coût de revient → prix de vente.</p>
+
+          <h3 class="text-xs uppercase tracking-wider text-slate-400 font-bold mb-2">Coût matière (détail par sous-ensemble)</h3>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+            <div class="bg-slate-50 rounded-xl p-3"><span class="text-xs text-slate-500">🏗️ Structure</span><b id="cMatStructure" class="block text-base mt-1">0 FCFA</b></div>
+            <div class="bg-slate-50 rounded-xl p-3"><span class="text-xs text-slate-500">🚪 Mobile</span><b id="cMatMobile" class="block text-base mt-1">0 FCFA</b></div>
+            <div class="bg-slate-50 rounded-xl p-3"><span class="text-xs text-slate-500">🪟 Vitrage</span><b id="cMatVitrage" class="block text-base mt-1">0 FCFA</b></div>
+            <div class="bg-slate-50 rounded-xl p-3"><span class="text-xs text-slate-500">🔩 Quincaillerie</span><b id="cMatQuinc" class="block text-base mt-1">0 FCFA</b></div>
           </div>
+
+          <h3 class="text-xs uppercase tracking-wider text-slate-400 font-bold mb-2">Coût direct</h3>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-2">
+            <div class="bg-slate-50 rounded-xl p-3"><span class="text-xs text-slate-500">Matière (total)</span><b id="cMat" class="block text-lg mt-1">0 FCFA</b></div>
+            <div class="bg-slate-50 rounded-xl p-3"><span class="text-xs text-slate-500">Main-d'œuvre fabrication</span><b id="cLab" class="block text-lg mt-1">0 FCFA</b></div>
+            <div class="bg-slate-50 rounded-xl p-3"><span class="text-xs text-slate-500">Pose / installation</span><b id="cPose" class="block text-lg mt-1">0 FCFA</b></div>
+            <div class="bg-slate-100 rounded-xl p-3"><span class="text-xs text-slate-500">Sous-total direct</span><b id="cDirect" class="block text-lg mt-1">0 FCFA</b></div>
+          </div>
+
+          <h3 class="text-xs uppercase tracking-wider text-slate-400 font-bold mt-4 mb-2">Coût indirect</h3>
+          <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-2">
+            <div class="bg-slate-50 rounded-xl p-3"><span class="text-xs text-slate-500">Énergie</span><b id="cEnergie" class="block text-sm mt-1">0 FCFA</b></div>
+            <div class="bg-slate-50 rounded-xl p-3"><span class="text-xs text-slate-500">Amortissement</span><b id="cAmort" class="block text-sm mt-1">0 FCFA</b></div>
+            <div class="bg-slate-50 rounded-xl p-3"><span class="text-xs text-slate-500">Transport</span><b id="cTransport" class="block text-sm mt-1">0 FCFA</b></div>
+            <div class="bg-slate-50 rounded-xl p-3"><span class="text-xs text-slate-500">Frais atelier</span><b id="cFraisAtelier" class="block text-sm mt-1">0 FCFA</b></div>
+            <div class="bg-slate-50 rounded-xl p-3"><span class="text-xs text-slate-500">Frais admin</span><b id="cFraisAdmin" class="block text-sm mt-1">0 FCFA</b></div>
+          </div>
+          <div class="text-right text-sm text-slate-500 mb-5">Total coût indirect : <b id="cIndirect">0 FCFA</b></div>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="bg-slate-900 text-white rounded-xl p-4"><span class="text-sm text-slate-300">Coût de revient total</span><b id="cTotal" class="block text-2xl mt-1">0 FCFA</b></div>
+            <div class="bg-blue-50 rounded-xl p-4"><span class="text-sm text-blue-600">Prix de vente (marge incluse)</span><b id="cSale" class="block text-2xl mt-1 text-blue-700">0 FCFA</b></div>
+          </div>
+
           <div class="mt-6 flex flex-wrap justify-end gap-2">
             <button onclick="addToProformaCart()" class="border border-blue-600 text-blue-600 px-5 py-2.5 rounded-lg font-bold">+ Ajouter au devis</button>
             <button onclick="generateProforma()" class="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-bold">🧾 Générer la proforma</button>
           </div>
           <p id="cartHint" class="text-sm text-slate-500 mt-2 text-right hidden"></p>
-          <div class="mt-6 grid md:grid-cols-2 gap-4">
+          <div class="mt-6 grid md:grid-cols-3 gap-4">
             <label class="text-sm font-semibold">Marge (%)
               <input id="margin" type="number" value="30" class="mt-1 w-full border rounded-lg px-3 py-2" oninput="updateCost()">
             </label>
             <label class="text-sm font-semibold">Taux main-d'œuvre horaire (FCFA)
               <input id="labor" type="number" value="3500" class="mt-1 w-full border rounded-lg px-3 py-2" oninput="updateCost()">
+            </label>
+            <label class="text-sm font-semibold">Forfait pose (FCFA)
+              <input id="posePrice" type="number" value="0" class="mt-1 w-full border rounded-lg px-3 py-2" oninput="updateCost()">
+              <span class="text-xs text-slate-400">0 = pose non incluse dans ce chiffrage.</span>
             </label>
           </div>
         </div>
@@ -627,6 +685,13 @@ window.SANIX_CFG = {
 
 
       <div id="proforma" class="etude-tab hidden">
+        <div class="card bg-white rounded-2xl p-4 mb-4">
+          <div class="flex flex-wrap justify-between gap-2 items-center mb-3">
+            <div><h3 class="font-bold text-sm">Ensembles composés / Modèles d'ouvrages</h3><p class="text-xs text-slate-500">Ex. Baie 4000×2400 = 2 fixes + 2 coulissants + traverse. Enregistre le panier actuel comme un ensemble réutilisable.</p></div>
+            <button onclick="saveEnsemble()" class="border border-blue-600 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-semibold">💾 Enregistrer le panier comme ensemble</button>
+          </div>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Nom</th><th class="text-left p-2">Composition</th><th class="text-right p-2">Éléments</th><th class="p-2"></th></tr></thead><tbody id="ensemblesBody"></tbody></table></div>
+        </div>
         <div class="card bg-white rounded-2xl p-4 mb-4">
           <div class="flex flex-wrap justify-between gap-2 items-center mb-3">
             <h3 class="font-bold text-sm">Proformas enregistrées</h3>
@@ -760,9 +825,10 @@ window.SANIX_CFG = {
 
       <section id="production" class="page hidden">
         <div class="card bg-white rounded-2xl p-6">
-          <div class="flex justify-between mb-5"><div><h2 class="text-lg font-bold">Ordres de fabrication</h2><p class="text-sm text-slate-500">Suivi du cycle atelier.</p></div><button id="btnNewOF" onclick="createOF()" class="bg-blue-600 text-white px-4 py-2 rounded-lg">+ Nouvel OF</button></div>
-          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">OF</th><th class="text-left p-3">Ouvrage</th><th class="text-left p-3">Client</th><th class="text-left p-3">Statut</th><th class="text-right p-3">Marge</th></tr></thead><tbody id="ofBody"></tbody></table></div>
+          <div class="flex justify-between mb-5"><div><h2 class="text-lg font-bold">Ordres de fabrication</h2><p class="text-sm text-slate-500">Suivi du cycle atelier — BOM figée au lancement, contrôle qualité avant clôture.</p></div><button id="btnNewOF" onclick="openNewOFForm()" class="bg-blue-600 text-white px-4 py-2 rounded-lg">+ Nouvel OF</button></div>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">OF</th><th class="text-left p-3">Ouvrage</th><th class="text-left p-3">Client</th><th class="text-left p-3">Statut</th><th class="text-left p-3">Qualité</th><th class="text-right p-3">Marge</th><th class="p-3"></th></tr></thead><tbody id="ofBody"></tbody></table></div>
         </div>
+        <div id="qcDetail" class="hidden mt-6"></div>
         <div class="card bg-white rounded-2xl p-6 mt-6">
           <details><summary class="font-bold cursor-pointer">Journal d'audit (dernières actions)</summary>
             <div id="auditLog" class="mt-4 text-xs text-slate-500 space-y-1"></div>
@@ -833,6 +899,12 @@ window.SANIX_CFG = {
         <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1">
           <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold active" data-reftab="series" onclick="showRefTab('series')">🧵 Séries aluminium</button>
           <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="profils" onclick="showRefTab('profils')">📐 Profils</button>
+          <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="vitrages" onclick="showRefTab('vitrages')">🪟 Vitrages</button>
+          <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="quincaillerie" onclick="showRefTab('quincaillerie')">🔩 Quincaillerie</button>
+          <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="joints" onclick="showRefTab('joints')">➰ Joints</button>
+          <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="consommables" onclick="showRefTab('consommables')">🧪 Consommables</button>
+          <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="machines" onclick="showRefTab('machines')">🛠️ Machines</button>
+          <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="parametres" onclick="showRefTab('parametres')">⚙️ Jeux & tolérances</button>
         </div>
 
         <div id="refSeries" class="ref-tab">
@@ -888,6 +960,86 @@ window.SANIX_CFG = {
             <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Code</th><th class="text-left p-3">Désignation</th><th class="text-left p-3">Série</th><th class="text-left p-3">Type</th><th class="text-right p-3">Prix/ml</th><th class="text-right p-3">Stock</th><th class="text-left p-3">Statut</th><th class="p-3"></th></tr></thead><tbody id="profilsBody"></tbody></table></div>
           </div>
         </div>
+
+        <div id="refVitrages" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_vitrages"></div></div>
+        <div id="refQuincaillerie" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_quincaillerie"></div></div>
+        <div id="refJoints" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_joints"></div></div>
+        <div id="refConsommables" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_consommables"></div></div>
+        <div id="refMachines" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_machines"></div></div>
+
+        <div id="refParametres" class="ref-tab hidden">
+          <div class="card bg-white rounded-2xl p-6">
+            <div class="mb-5"><h2 class="text-lg font-bold">Jeux & tolérances</h2><p class="text-sm text-slate-500">Paramètres globaux de calcul — modifiables uniquement par un administrateur ou responsable technique.</p></div>
+            <form id="paramsForm" onsubmit="return handleSaveParams(event)" class="grid sm:grid-cols-3 gap-4">
+              <label class="text-sm font-semibold block">Jeu largeur dormant (mm)
+                <input id="pJeuLargeurDormant" type="number" step="0.5" class="mt-1 w-full border rounded-lg px-3 py-2">
+                <span class="text-xs text-slate-400">Jeu de pose entre dormant et gros-œuvre (référence fabrication).</span>
+              </label>
+              <label class="text-sm font-semibold block">Jeu hauteur dormant (mm)
+                <input id="pJeuHauteurDormant" type="number" step="0.5" class="mt-1 w-full border rounded-lg px-3 py-2">
+                <span class="text-xs text-slate-400">Idem, en hauteur.</span>
+              </label>
+              <label class="text-sm font-semibold block">Jeu vitrage (mm)
+                <input id="pJeuVitrage" type="number" step="0.5" class="mt-1 w-full border rounded-lg px-3 py-2">
+                <span class="text-xs text-slate-400">Utilisé dans le calcul réel des dimensions de vitrage.</span>
+              </label>
+              <label class="text-sm font-semibold block">Jeu ouvrant par défaut (mm)
+                <input id="pJeuOuvrant" type="number" step="0.5" class="mt-1 w-full border rounded-lg px-3 py-2">
+                <span class="text-xs text-slate-400">Valeur pré-remplie du champ "Jeu" au Configurateur.</span>
+              </label>
+              <label class="text-sm font-semibold block">Trait de scie (mm)
+                <input id="pTraitDeScie" type="number" step="0.5" class="mt-1 w-full border rounded-lg px-3 py-2">
+                <span class="text-xs text-slate-400">Utilisé dans l'optimisation des barres (fiche de débit).</span>
+              </label>
+              <label class="text-sm font-semibold block">Tolérance fabrication (mm)
+                <input id="pToleranceFabrication" type="number" step="0.5" class="mt-1 w-full border rounded-lg px-3 py-2">
+                <span class="text-xs text-slate-400">Référence contrôle qualité / fiche technique.</span>
+              </label>
+              <div class="sm:col-span-3 border-t pt-4 mt-1"><h3 class="font-bold text-sm text-slate-700">Coûts indirects (% du coût direct)</h3></div>
+              <label class="text-sm font-semibold block">Énergie (%)
+                <input id="pTauxEnergie" type="number" step="0.1" class="mt-1 w-full border rounded-lg px-3 py-2">
+              </label>
+              <label class="text-sm font-semibold block">Amortissement machines (%)
+                <input id="pTauxAmortissement" type="number" step="0.1" class="mt-1 w-full border rounded-lg px-3 py-2">
+              </label>
+              <label class="text-sm font-semibold block">Transport (%)
+                <input id="pTauxTransport" type="number" step="0.1" class="mt-1 w-full border rounded-lg px-3 py-2">
+              </label>
+              <label class="text-sm font-semibold block">Frais atelier (%)
+                <input id="pTauxFraisAtelier" type="number" step="0.1" class="mt-1 w-full border rounded-lg px-3 py-2">
+              </label>
+              <label class="text-sm font-semibold block">Frais administratifs (%)
+                <input id="pTauxFraisAdmin" type="number" step="0.1" class="mt-1 w-full border rounded-lg px-3 py-2">
+              </label>
+              <button type="submit" id="btnSaveParams" class="sm:col-span-3 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-bold">Enregistrer les paramètres</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <section id="utilisateurs" class="page hidden">
+        <div class="card bg-white rounded-2xl p-6">
+          <div class="flex flex-wrap justify-between gap-3 mb-2">
+            <div><h2 class="text-lg font-bold">Utilisateurs</h2><p class="text-sm text-slate-500">Comptes locaux (mode hors-ligne) — rôles et permissions.</p></div>
+          </div>
+          <p id="usersSupabaseHint" class="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-2 mb-4 hidden">Supabase configuré : la gestion des utilisateurs se fait via <code>alubom_users_roles</code>. Cette liste locale n'a plus d'effet.</p>
+          <form id="userForm" onsubmit="return handleAddLocalUser(event)" class="grid sm:grid-cols-4 gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
+            <input id="usEmail" type="email" placeholder="Email" required class="border rounded-lg px-2 py-1.5 text-sm">
+            <input id="usPassword" type="text" placeholder="Mot de passe" required class="border rounded-lg px-2 py-1.5 text-sm">
+            <select id="usRole" class="border rounded-lg px-2 py-1.5 text-sm">
+              <option value="admin">Administrateur</option>
+              <option value="responsable_technique">Responsable technique</option>
+              <option value="commercial">Commercial</option>
+              <option value="responsable_production">Responsable production</option>
+              <option value="magasinier">Magasinier</option>
+              <option value="poseur">Poseur</option>
+              <option value="comptable">Comptable</option>
+              <option value="direction">Direction</option>
+            </select>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Créer utilisateur</button>
+          </form>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Email</th><th class="text-left p-3">Rôle</th><th class="p-3"></th></tr></thead><tbody id="usersBody"></tbody></table></div>
+        </div>
       </section>
     </div>
   </main>
@@ -911,10 +1063,10 @@ function escapeHtml(s){
 /* ---------- IndexedDB ---------- */
 function openDB(){
   return new Promise((resolve,reject)=>{
-    const req=indexedDB.open('alubom_db',4);
+    const req=indexedDB.open('alubom_db',7);
     req.onupgradeneeded=e=>{
       const d=e.target.result;
-      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils'].forEach(s=>{
+      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines'].forEach(s=>{
         if(!d.objectStoreNames.contains(s)) d.createObjectStore(s,{keyPath:'id'});
       });
     };
@@ -1048,6 +1200,17 @@ function setLocalUsers(list){ localStorage.setItem('alubom_local_users',JSON.str
 const DEFAULT_LOCAL_EMAIL='admin@sanix.local';
 const DEFAULT_LOCAL_PASSWORD='Sanix2026!';
 
+const ROLE_PRESETS={
+  admin:{label:'Administrateur',permissions:['*']},
+  responsable_technique:{label:'Responsable technique',permissions:['referentiel:manage','ouvrage:create']},
+  commercial:{label:'Commercial',permissions:['chantier:create','ouvrage:create']},
+  responsable_production:{label:'Responsable production',permissions:['of:create','chantier:validate','stock:write','qc:validate']},
+  magasinier:{label:'Magasinier',permissions:['stock:write','achat:manage']},
+  poseur:{label:'Poseur',permissions:['installation:manage']},
+  comptable:{label:'Comptable',permissions:['achat:create']},
+  direction:{label:'Direction',permissions:['chantier:validate']}
+};
+
 async function seedDefaultLocalUser(){
   const users=getLocalUsers();
   if(users.length) return;
@@ -1109,7 +1272,7 @@ async function fetchRole(){
     currentUser.permissions = d?.permissions || [];
   }catch(e){
     console.warn('Rôle non résolu, profil opérateur par défaut.', e.message);
-    currentUser.role='operateur'; currentUser.permissions=['of:create','stock:write','chantier:create','chantier:validate','achat:create','achat:manage','installation:manage','referentiel:manage'];
+    currentUser.role='operateur'; currentUser.permissions=['of:create','stock:write','chantier:create','chantier:validate','achat:create','achat:manage','installation:manage','referentiel:manage','qc:validate'];
   }
 }
 function hasRole(perm){
@@ -1123,6 +1286,48 @@ function applyRoleGuards(){
   guard('btnNewOuvrage','ouvrage:create');
   guard('btnNewOF','of:create');
   guard('btnNewChantier','chantier:create');
+  guard('btnSaveParams','referentiel:manage');
+}
+
+/* ---------- Gestion des utilisateurs (mode local) ---------- */
+async function handleAddLocalUser(e){
+  e.preventDefault();
+  if(!hasRole('*') && currentUser?.role!=='admin'){ alert('Réservé à l\'administrateur.'); return false; }
+  const email=document.getElementById('usEmail').value.trim().toLowerCase();
+  const password=document.getElementById('usPassword').value;
+  const role=document.getElementById('usRole').value;
+  if(!email||!password) return false;
+  const users=getLocalUsers();
+  if(users.some(u=>u.email===email)){ alert('Cet email existe déjà.'); return false; }
+  const {salt,hash}=await pbkdf2Hash(password);
+  const preset=ROLE_PRESETS[role]||ROLE_PRESETS.commercial;
+  users.push({id:'local_'+Date.now(),email,salt,hash,role,permissions:preset.permissions});
+  setLocalUsers(users);
+  await audit('CREATE_USER',email+' — '+preset.label);
+  document.getElementById('userForm').reset();
+  renderUsersTable();
+  return false;
+}
+function deleteLocalUser(email){
+  if(currentUser?.role!=='admin'){ alert('Réservé à l\'administrateur.'); return; }
+  const users=getLocalUsers();
+  const admins=users.filter(u=>u.role==='admin');
+  const target=users.find(u=>u.email===email);
+  if(target?.role==='admin' && admins.length<=1){ alert('Impossible de supprimer le dernier administrateur.'); return; }
+  if(!confirm('Supprimer l\'utilisateur '+email+' ?')) return;
+  setLocalUsers(users.filter(u=>u.email!==email));
+  audit('DELETE_USER',email);
+  renderUsersTable();
+}
+function renderUsersTable(){
+  const el=document.getElementById('usersBody'); if(!el) return;
+  const hint=document.getElementById('usersSupabaseHint');
+  if(hint) hint.classList.toggle('hidden', !isSupabaseConfigured());
+  const users=getLocalUsers();
+  el.innerHTML = users.length ? users.map(u=>{
+    const preset=ROLE_PRESETS[u.role]||{label:u.role};
+    return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(u.email)}</td><td class="p-3">${escapeHtml(preset.label)}</td><td class="p-3 text-right"><button onclick="deleteLocalUser('${escapeHtml(u.email)}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`;
+  }).join('') : '<tr><td class="p-3 text-slate-400" colspan="3">Aucun utilisateur.</td></tr>';
 }
 
 async function logout(){
@@ -1138,7 +1343,7 @@ function showApp(){
   document.getElementById('authGate').classList.add('hidden');
   document.getElementById('appRoot').classList.remove('hidden');
   const ub=document.getElementById('userBadge');
-  if(ub) ub.textContent = currentUser.email+' • '+currentUser.role;
+  if(ub) ub.textContent = currentUser.email+' • '+(ROLE_PRESETS[currentUser.role]?.label||currentUser.role);
   initApp();
 }
 
@@ -1164,35 +1369,255 @@ async function checkSession(){
 document.addEventListener('DOMContentLoaded',checkSession);
 
 /* ---------- Ordres de Fabrication (OF) ---------- */
-async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable()]); }
+async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable(),renderEnsemblesList(),loadParams()]); renderUsersTable(); if(document.getElementById('costChart')) updateDashboard(); }
 
-async function createOF(){
+function openNewOFForm(){
   if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
-  const client=prompt('Nom du client :','Client à renseigner');
-  if(!client) return;
+  const type=document.getElementById('type').value;
+  const w=+document.getElementById('width').value||0, h=+document.getElementById('height').value||0;
+  const wrap=document.getElementById('qcDetail');
+  wrap.classList.remove('hidden');
+  const defaultDate=new Date(Date.now()+3*86400000).toISOString().slice(0,10);
+  wrap.innerHTML=`
+    <div class="card bg-white rounded-2xl p-6">
+      <div class="flex flex-wrap justify-between gap-3 mb-5">
+        <div><h2 class="text-lg font-bold">Nouvel ordre de fabrication</h2><p class="text-sm text-slate-500">${escapeHtml(type)} ${w} × ${h} mm — BOM figée à la création.</p></div>
+        <button onclick="document.getElementById('qcDetail').classList.add('hidden')" class="border px-3 py-2 rounded-lg text-sm font-semibold">Fermer</button>
+      </div>
+      <form onsubmit="return handleCreateOF(event)" class="grid sm:grid-cols-2 gap-3">
+        <label class="text-sm font-semibold block">Client
+          <input id="ofClient" required value="Client à renseigner" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+        </label>
+        <label class="text-sm font-semibold block">Opérateur assigné
+          <input id="ofOperateur" placeholder="Nom de l'opérateur" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+        </label>
+        <label class="text-sm font-semibold block">Poste de travail
+          <select id="ofPoste" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+            <option>Débit</option><option>Usinage</option><option>Assemblage</option><option>Vitrage</option><option>Finition / Contrôle</option>
+          </select>
+        </label>
+        <label class="text-sm font-semibold block">Date prévue
+          <input id="ofDatePrevue" type="date" value="${defaultDate}" required class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+        </label>
+        <button type="submit" class="sm:col-span-2 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-bold">Créer l'OF</button>
+      </form>
+    </div>`;
+}
+
+async function handleCreateOF(e){
+  e.preventDefault();
+  const client=document.getElementById('ofClient').value.trim();
+  if(!client) return false;
+  const operateur=document.getElementById('ofOperateur').value.trim();
+  const poste=document.getElementById('ofPoste').value;
+  const datePrevue=document.getElementById('ofDatePrevue').value;
   const seq=nextSeq('of');
   const numero='OF-'+seq.year+'-'+String(seq.n).padStart(4,'0');
   const type=document.getElementById('type').value;
   const w=+document.getElementById('width').value||0, h=+document.getElementById('height').value||0;
   const margin=(+document.getElementById('margin').value||30)/100;
-  const rec={id:numero,numero,ouvrage:`${type} ${w}×${h}`,client,statut:'Découpe',marge:(margin*100).toFixed(0)+'%',cout:lastCost,date:new Date().toISOString(),_modifie:new Date().toISOString()};
+  const reservations=await reserveStockForBOM();
+  const bomVersion='v'+new Date().toISOString().replace(/[-:T.]/g,'').slice(0,14);
+  const configSnapshot={
+    type, w, h,
+    leaves:+document.getElementById('leaves').value||1,
+    serie:document.getElementById('serie').value,
+    jointType:document.getElementById('jointType')?.value||null
+  };
+  const rec={
+    id:numero,numero,ouvrage:`${type} ${w}×${h}`,client,operateur,poste,
+    datePrevue,dateReelle:null,statut:'Découpe',
+    marge:(margin*100).toFixed(0)+'%',cout:lastCost,date:new Date().toISOString(),
+    reservations,bomVersion,configSnapshot,bomSnapshot:window.lastBOMRows||[],
+    _modifie:new Date().toISOString()
+  };
   await idbPut('of',rec);
   queueSync('alubom_of',rec);
-  await deductStockForBOM();
-  await audit('CREATE_OF',numero+' / '+client);
+  await audit('CREATE_OF',numero+' / '+client+' — BOM figée '+bomVersion+' — '+reservations.length+' référence(s) réservée(s)');
+  document.getElementById('qcDetail').classList.add('hidden');
   await refreshAllTables();
   showPage('production');
+  return false;
 }
 
 const OF_STATUS_COLOR={'Découpe':'blue','Assemblage':'blue','Vitrage':'amber','Terminé':'emerald','Annulé':'red'};
+const OF_STATUS_FLOW={'Découpe':'Assemblage','Assemblage':'Vitrage','Vitrage':'Terminé'};
+
+function viewOFBom(id){
+  idbGetAll('of').then(rows=>{
+    const rec=rows.find(r=>r.id===id); if(!rec) return;
+    const bom=rec.bomSnapshot||[];
+    const lines=bom.map(r=>`${r[0]} — ${r[1]} — qté ${Number(r[2]).toFixed(2)} — ${r[3]?Number(r[3]).toFixed(0)+' mm':'—'} — ${money(r[4])}`).join('\n');
+    alert(`BOM figée ${rec.bomVersion} — OF ${rec.numero}\n\n${lines||'Aucune donnée BOM enregistrée pour cet OF.'}`);
+  });
+}
+
+/* ---------- Dashboard — données réelles ---------- */
+let dashboardChart=null;
+async function updateDashboard(){
+  const ofs=await idbGetAll('of');
+  const enCours=ofs.filter(o=>o.statut!=='Terminé' && o.statut!=='Annulé');
+  document.getElementById('kpiOFEnCours').textContent=enCours.length;
+  document.getElementById('kpiOFEnCoursSub').textContent=ofs.length+' OF au total';
+
+  const cutRateTxt=document.getElementById('cutRate')?.textContent||'';
+  document.getElementById('kpiChute').textContent = cutRateTxt && cutRateTxt!=='—' ? cutRateTxt.replace(' de chute','') : '—';
+
+  const marges=ofs.map(o=>parseFloat(String(o.marge).replace('%',''))).filter(n=>!isNaN(n));
+  const margeMoy=marges.length?marges.reduce((a,b)=>a+b,0)/marges.length:0;
+  document.getElementById('kpiMarge').textContent = marges.length ? margeMoy.toFixed(1).replace('.',',')+'%' : '—';
+  document.getElementById('kpiMargeSub').textContent = marges.length ? 'sur '+marges.length+' OF' : 'aucun OF chiffré';
+
+  const stockRows=await idbGetAll('stock');
+  const totalDispo=stockRows.reduce((s,r)=>s+(r.dispo||0),0);
+  const faibles=stockRows.filter(r=>(r.dispo||0)<30).length;
+  document.getElementById('kpiStock').textContent = totalDispo.toFixed(0)+' ml';
+  document.getElementById('kpiStockSub').textContent = faibles ? faibles+' référence'+(faibles>1?'s':'')+' faible'+(faibles>1?'s':'') : 'stock sain';
+  document.getElementById('kpiStockSub').className = 'text-xs mt-2 '+(faibles?'text-amber-600':'text-emerald-600');
+
+  const today=new Date().toISOString().slice(0,10);
+  const enRetard=ofs.filter(o=>o.datePrevue && o.datePrevue<today && o.statut!=='Terminé' && o.statut!=='Annulé');
+  document.getElementById('kpiRetard').textContent=enRetard.length;
+  document.getElementById('kpiRetard').className='text-3xl font-black mt-2 '+(enRetard.length?'text-red-600':'');
+
+  const termines=ofs.filter(o=>o.statut==='Terminé' && o.dateReelle);
+  const durations=termines.map(o=>(new Date(o.dateReelle)-new Date(o.date))/86400000).filter(d=>d>=0);
+  const tempsMoyen=durations.length?durations.reduce((a,b)=>a+b,0)/durations.length:0;
+  document.getElementById('kpiTempsMoyen').textContent = durations.length ? tempsMoyen.toFixed(1).replace('.',',')+' j' : '—';
+
+  const qcRows=await idbGetAll('controles_qualite');
+  const nc=qcRows.filter(q=>q.statut==='non_conforme').length;
+  document.getElementById('kpiTauxNC').textContent = qcRows.length ? (nc/qcRows.length*100).toFixed(1).replace('.',',')+'%' : '—';
+
+  const statusCounts={};
+  Object.keys(OF_STATUS_COLOR).forEach(s=>statusCounts[s]=0);
+  ofs.forEach(o=>{ statusCounts[o.statut]=(statusCounts[o.statut]||0)+1; });
+  const labels=Object.keys(statusCounts);
+  const data=labels.map(l=>statusCounts[l]);
+  const colors=['#2563eb','#3b82f6','#f59e0b','#10b981','#ef4444'];
+  const ctx=document.getElementById('costChart');
+  if(ctx){
+    if(dashboardChart) dashboardChart.destroy();
+    dashboardChart=new Chart(ctx,{
+      type:'bar',
+      data:{labels,datasets:[{label:'Ordres de fabrication',data,backgroundColor:colors}]},
+      options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}
+    });
+  }
+}
 
 async function renderOFTable(){
   const el=document.getElementById('ofBody'); if(!el) return;
   const rows=(await idbGetAll('of')).sort((a,b)=>b.date.localeCompare(a.date));
+  const qcRows=await idbGetAll('controles_qualite');
+  const today=new Date().toISOString().slice(0,10);
   el.innerHTML = rows.length ? rows.map(r=>{
     const c=OF_STATUS_COLOR[r.statut]||'slate';
-    return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.numero)}</td><td class="p-3">${escapeHtml(r.ouvrage)}</td><td class="p-3">${escapeHtml(r.client)}</td><td class="p-3"><span class="badge bg-${c}-50 text-${c}-700">${escapeHtml(r.statut)}</span></td><td class="p-3 text-right">${escapeHtml(r.marge)}</td></tr>`;
-  }).join('') : `<tr><td class="p-3 text-slate-400" colspan="5">Aucun OF. Créez-en un depuis le Chiffrage ou ici.</td></tr>`;
+    const next=OF_STATUS_FLOW[r.statut];
+    const qc=qcRows.filter(q=>q.ofId===r.id).sort((a,b)=>b.date.localeCompare(a.date))[0];
+    const qcBadge = qc
+      ? `<span class="badge bg-${qc.statut==='conforme'?'emerald':'red'}-50 text-${qc.statut==='conforme'?'emerald':'red'}-700">${qc.statut==='conforme'?'✓ Conforme':'✕ Non conforme'}</span>`
+      : `<span class="badge bg-slate-50 text-slate-500">Non contrôlé</span>`;
+    const enRetard = r.datePrevue && r.datePrevue<today && r.statut!=='Terminé' && r.statut!=='Annulé';
+    const meta = `${escapeHtml(r.operateur||'—')} • ${escapeHtml(r.poste||'—')}${r.datePrevue?' • prévu '+r.datePrevue:''}${enRetard?' <span class="text-red-600 font-bold">⚠ En retard</span>':''}`;
+    const actions = (r.statut==='Terminé'||r.statut==='Annulé') ? '' : `
+      ${next?`<button onclick="advanceOFStatus('${r.id}','${next}')" class="text-blue-600 text-xs font-semibold mr-2">→ ${escapeHtml(next)}</button>`:''}
+      <button onclick="openQCForm('${r.id}')" class="text-amber-600 text-xs font-semibold mr-2">Contrôle qualité</button>
+      <button onclick="viewOFBom('${r.id}')" class="text-slate-500 text-xs font-semibold mr-2">BOM figée</button>
+      <button onclick="advanceOFStatus('${r.id}','Annulé')" class="text-red-500 text-xs font-semibold">Annuler</button>`;
+    return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.numero)}</td><td class="p-3">${escapeHtml(r.ouvrage)}<div class="text-xs text-slate-400">${meta}</div></td><td class="p-3">${escapeHtml(r.client)}</td><td class="p-3"><span class="badge bg-${c}-50 text-${c}-700">${escapeHtml(r.statut)}</span></td><td class="p-3">${qcBadge}</td><td class="p-3 text-right">${escapeHtml(r.marge)}</td><td class="p-3 text-right whitespace-nowrap">${actions}</td></tr>`;
+  }).join('') : `<tr><td class="p-3 text-slate-400" colspan="7">Aucun OF. Créez-en un depuis le Chiffrage ou ici.</td></tr>`;
+}
+
+async function advanceOFStatus(id,newStatut){
+  if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
+  const rows=await idbGetAll('of');
+  const rec=rows.find(r=>r.id===id); if(!rec) return;
+  if(newStatut==='Terminé'){
+    const qcRows=await idbGetAll('controles_qualite');
+    const qc=qcRows.filter(q=>q.ofId===id).sort((a,b)=>b.date.localeCompare(a.date))[0];
+    if(!qc || qc.statut!=='conforme'){
+      alert("Contrôle qualité requis (et conforme) avant de clôturer cet OF. Utilisez le bouton \"Contrôle qualité\".");
+      return;
+    }
+    await consumeReservation(rec.reservations||[]);
+    rec.dateReelle=new Date().toISOString().slice(0,10);
+  }
+  if(newStatut==='Annulé') await releaseReservation(rec.reservations||[]);
+  rec.statut=newStatut;
+  rec._modifie=new Date().toISOString();
+  await idbPut('of',rec);
+  queueSync('alubom_of',rec);
+  await audit('OF_'+newStatut.toUpperCase(),rec.numero);
+  await refreshAllTables();
+}
+
+/* ---------- Contrôle qualité ---------- */
+const QC_ITEMS=[
+  ['dimensions','Dimensions'],['equerrage','Équerrage'],['coupe','Coupe'],['assemblage','Assemblage'],
+  ['vitrage','Vitrage'],['fermeture','Fermeture'],['serrure','Serrure / quincaillerie'],['joints','Joints'],
+  ['finition','Finition'],['couleur','Couleur'],['rayures','Absence de rayures'],['fonctionnement','Fonctionnement']
+];
+
+async function openQCForm(ofId){
+  if(!hasRole('qc:validate')){ alert('Permission refusée.'); return; }
+  const rows=await idbGetAll('of');
+  const rec=rows.find(r=>r.id===ofId); if(!rec) return;
+  const wrap=document.getElementById('qcDetail');
+  wrap.classList.remove('hidden');
+  wrap.innerHTML=`
+    <div class="card bg-white rounded-2xl p-6">
+      <div class="flex flex-wrap justify-between gap-3 mb-5">
+        <div><h2 class="text-lg font-bold">Contrôle qualité — ${escapeHtml(rec.numero)}</h2><p class="text-sm text-slate-500">${escapeHtml(rec.ouvrage)} — ${escapeHtml(rec.client)}</p></div>
+        <button onclick="document.getElementById('qcDetail').classList.add('hidden')" class="border px-3 py-2 rounded-lg text-sm font-semibold">Fermer</button>
+      </div>
+      <form onsubmit="return handleSubmitQC(event,'${ofId}')">
+        <div class="grid sm:grid-cols-3 gap-3 mb-4">
+          ${QC_ITEMS.map(([key,label])=>`
+            <label class="flex items-center justify-between border rounded-lg px-3 py-2 text-sm bg-slate-50">
+              <span>${escapeHtml(label)}</span>
+              <select id="qc_${key}" class="border rounded px-1 py-0.5 text-xs">
+                <option value="ok">Conforme</option>
+                <option value="nok">Non conforme</option>
+              </select>
+            </label>`).join('')}
+        </div>
+        <label class="text-sm font-semibold block mb-1">Observations</label>
+        <textarea id="qcObservations" rows="3" class="w-full border rounded-lg p-2 text-sm mb-4" placeholder="Remarques, non-conformités détaillées..."></textarea>
+        <label class="text-sm font-semibold block mb-1">Contrôleur</label>
+        <input id="qcControleur" class="w-full border rounded-lg px-3 py-2 text-sm mb-4" value="${escapeHtml(currentUser?currentUser.email:'')}" placeholder="Nom du contrôleur">
+        <label class="flex items-center gap-2 text-sm mb-4">
+          <input type="checkbox" id="qcSignature" required class="w-4 h-4">
+          Je certifie avoir réalisé ce contrôle (signature électronique)
+        </label>
+        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-bold">Valider le contrôle</button>
+      </form>
+    </div>`;
+}
+
+async function handleSubmitQC(e,ofId){
+  e.preventDefault();
+  const rows=await idbGetAll('of');
+  const rec=rows.find(r=>r.id===ofId); if(!rec) return false;
+  const items={};
+  let allOk=true;
+  QC_ITEMS.forEach(([key])=>{ const v=document.getElementById('qc_'+key).value; items[key]=v; if(v!=='ok') allOk=false; });
+  const qc={
+    id:'qc_'+Date.now(),
+    ofId, ofNumero:rec.numero,
+    date:new Date().toISOString(),
+    controleur:document.getElementById('qcControleur').value.trim(),
+    items,
+    observations:document.getElementById('qcObservations').value.trim(),
+    statut: allOk ? 'conforme' : 'non_conforme'
+  };
+  await idbPut('controles_qualite',qc);
+  queueSync('alubom_controles_qualite',qc);
+  await audit('CONTROLE_QUALITE',rec.numero+' — '+qc.statut);
+  document.getElementById('qcDetail').classList.add('hidden');
+  await renderOFTable();
+  alert('Contrôle enregistré : '+(allOk?'✓ Conforme':'✕ Non conforme — voir observations')+'.');
+  return false;
 }
 
 async function loadRecentOF(){
@@ -1209,9 +1634,9 @@ async function seedStockIfEmpty(){
   const rows=await idbGetAll('stock');
   if(rows.length) return;
   const defaults=[
-    {id:'P-STD-001',ref:'P-STD-001',label:'Dormant série 120',dispo:128,reserve:32,prix:8500},
-    {id:'P-STD-002',ref:'P-STD-002',label:'Ouvrant série 120',dispo:74,reserve:41,prix:9200},
-    {id:'P-COUL-001',ref:'P-COUL-001',label:'Rail coulissant',dispo:21,reserve:18,prix:11500}
+    {id:'P-STD-001',ref:'P-STD-001',label:'Dormant série 120',dispo:128,reserve:0,prix:8500},
+    {id:'P-STD-002',ref:'P-STD-002',label:'Ouvrant série 120',dispo:74,reserve:0,prix:9200},
+    {id:'P-COUL-001',ref:'P-COUL-001',label:'Rail coulissant',dispo:21,reserve:0,prix:11500}
   ];
   for(const d of defaults){ d._modifie=new Date().toISOString(); await idbPut('stock',d); queueSync('alubom_stock',d); }
 }
@@ -1225,7 +1650,7 @@ async function renderStockTable(){
   const rows=(await idbGetAll('stock')).sort((a,b)=>a.ref.localeCompare(b.ref));
   el.innerHTML = rows.map(r=>{
     const [label,color]=stockEtat(r.dispo);
-    return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.ref)}</td><td class="p-3">${escapeHtml(r.label)}</td><td class="p-3 text-right">${r.dispo.toFixed(1)} ml</td><td class="p-3 text-right">${r.reserve.toFixed(1)} ml</td><td class="p-3 text-right">${money(r.prix)}</td><td class="p-3"><span class="badge bg-${color}-50 text-${color}-700">${label}</span></td></tr>`;
+    return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.ref)}</td><td class="p-3">${escapeHtml(r.label)}</td><td class="p-3 text-right">${r.dispo.toFixed(1)} ml</td><td class="p-3 text-right">${(r.reserve||0).toFixed(1)} ml</td><td class="p-3 text-right">${money(r.prix)}</td><td class="p-3"><span class="badge bg-${color}-50 text-${color}-700">${label}</span></td></tr>`;
   }).join('');
 }
 async function handleStockMove(e){
@@ -1250,15 +1675,47 @@ async function handleStockMove(e){
   await renderStockTable();
   return false;
 }
-async function deductStockForBOM(){
+
+/* ---------- Réservation stock (Disponible → Réservé) à la création d'OF ---------- */
+async function reserveStockForBOM(){
   const rowsHtml=document.getElementById('bomBody').querySelectorAll('tr');
   const stockRows=await idbGetAll('stock');
+  const reservations=[];
   for(const tr of rowsHtml){
     const code=tr.children[0].textContent.trim();
     const match=stockRows.find(s=>s.ref===code);
     if(match){
-      const qty=parseFloat(tr.children[2].textContent)||0;
-      match.dispo=Math.max(0,match.dispo-qty*0.001*1); // conversion prudente mm->ml négligeable si non applicable
+      const qty=(parseFloat(tr.children[2].textContent)||0)*0.001;
+      const applied=Math.min(qty,match.dispo);
+      match.dispo=Math.max(0,match.dispo-applied);
+      match.reserve=(match.reserve||0)+applied;
+      match._modifie=new Date().toISOString();
+      await idbPut('stock',match); queueSync('alubom_stock',match);
+      reservations.push({ref:code,qty:applied});
+    }
+  }
+  return reservations;
+}
+async function consumeReservation(reservations){
+  if(!reservations||!reservations.length) return;
+  const stockRows=await idbGetAll('stock');
+  for(const r of reservations){
+    const match=stockRows.find(s=>s.ref===r.ref);
+    if(match){
+      match.reserve=Math.max(0,(match.reserve||0)-r.qty);
+      match._modifie=new Date().toISOString();
+      await idbPut('stock',match); queueSync('alubom_stock',match);
+    }
+  }
+}
+async function releaseReservation(reservations){
+  if(!reservations||!reservations.length) return;
+  const stockRows=await idbGetAll('stock');
+  for(const r of reservations){
+    const match=stockRows.find(s=>s.ref===r.ref);
+    if(match){
+      match.reserve=Math.max(0,(match.reserve||0)-r.qty);
+      match.dispo=(match.dispo||0)+r.qty;
       match._modifie=new Date().toISOString();
       await idbPut('stock',match); queueSync('alubom_stock',match);
     }
@@ -1574,8 +2031,10 @@ async function renderFournisseursTable(){
 /* ---------- Référentiel technique : Séries & Profils ---------- */
 function showRefTab(tab){
   document.querySelectorAll('.ref-tab').forEach(t=>t.classList.add('hidden'));
-  document.getElementById(tab==='series'?'refSeries':'refProfils').classList.remove('hidden');
+  const ids={series:'refSeries',profils:'refProfils',vitrages:'refVitrages',quincaillerie:'refQuincaillerie',joints:'refJoints',consommables:'refConsommables',machines:'refMachines',parametres:'refParametres'};
+  document.getElementById(ids[tab]).classList.remove('hidden');
   document.querySelectorAll('.ref-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.reftab===tab));
+  if(REF_DEFS[tab]) renderGenericRef(tab);
 }
 
 const DEFAULT_SERIES=[
@@ -1697,14 +2156,304 @@ async function renderProfilsTable(){
   }).join('') : `<tr><td class="p-3 text-slate-400" colspan="8">Aucun profil enregistré.</td></tr>`;
 }
 
+/* =========================================================
+   Référentiels génériques (config-driven) — Vitrages,
+   Quincaillerie, Joints, Consommables, Machines
+   ========================================================= */
+const REF_DEFS={
+  vitrages:{store:'vitrages',label:'Vitrages',prefix:'vi',
+    fields:[
+      {id:'code',label:'Code (ex. VIT-6126)',required:true},
+      {id:'designation',label:'Désignation (ex. Double vitrage 6/12/6)',required:true,span:2},
+      {id:'composition',label:'Composition (ex. 6/12/6)'},
+      {id:'type',label:'Type',type:'select',options:['Simple','Double','Feuilleté','Sécurit','Double feuilleté']},
+      {id:'epaisseurTotale',label:'Épaisseur totale (mm)',type:'number'},
+      {id:'coeffUg',label:'Coefficient Ug (W/m²K)',type:'number',step:'0.1'},
+      {id:'prixM2',label:'Prix/m² (FCFA)',type:'number'},
+      {id:'fournisseur',label:'Fournisseur',datalist:'fournisseursDatalist'},
+      {id:'statut',label:'Statut',type:'select',options:['actif','inactif']}
+    ],
+    cols:[['code','Code'],['designation','Désignation'],['composition','Composition'],['prixM2','Prix/m²','money'],['statut','Statut','badge']]
+  },
+  quincaillerie:{store:'quincaillerie',label:'Quincaillerie',prefix:'qc',
+    fields:[
+      {id:'code',label:'Code (ex. QUI-POI-001)',required:true},
+      {id:'designation',label:'Désignation',required:true,span:2},
+      {id:'categorie',label:'Catégorie',type:'select',options:['Poignée','Serrure','Roulette','Paumelle','Gâche','Verrou','Charnière','Butée','Renvoi d\'angle','Autre']},
+      {id:'prixUnitaire',label:'Prix unitaire (FCFA)',type:'number'},
+      {id:'fournisseur',label:'Fournisseur',datalist:'fournisseursDatalist'},
+      {id:'stock',label:'Stock (unité)',type:'number'},
+      {id:'statut',label:'Statut',type:'select',options:['actif','inactif']}
+    ],
+    cols:[['code','Code'],['designation','Désignation'],['categorie','Catégorie'],['prixUnitaire','Prix unit.','money'],['statut','Statut','badge']]
+  },
+  joints:{store:'joints',label:'Joints',prefix:'jt',
+    fields:[
+      {id:'code',label:'Code (ex. JNT-EPDM-01)',required:true},
+      {id:'designation',label:'Désignation',required:true,span:2},
+      {id:'type',label:'Type',type:'select',options:['EPDM','Silicone','Brosse','TPE','Néoprène']},
+      {id:'section',label:'Section (mm)'},
+      {id:'prixMl',label:'Prix/ml (FCFA)',type:'number'},
+      {id:'fournisseur',label:'Fournisseur',datalist:'fournisseursDatalist'},
+      {id:'statut',label:'Statut',type:'select',options:['actif','inactif']}
+    ],
+    cols:[['code','Code'],['designation','Désignation'],['type','Type'],['prixMl','Prix/ml','money'],['statut','Statut','badge']]
+  },
+  consommables:{store:'consommables',label:'Consommables',prefix:'co',
+    fields:[
+      {id:'code',label:'Code (ex. CON-SIL-001)',required:true},
+      {id:'designation',label:'Désignation',required:true,span:2},
+      {id:'unite',label:'Unité',type:'select',options:['cartouche','lot','ml','unité','kg']},
+      {id:'coefficient',label:'Coefficient d\'usage',type:'number',step:'0.01'},
+      {id:'prix',label:'Prix (FCFA)',type:'number'},
+      {id:'fournisseur',label:'Fournisseur',datalist:'fournisseursDatalist'},
+      {id:'statut',label:'Statut',type:'select',options:['actif','inactif']}
+    ],
+    cols:[['code','Code'],['designation','Désignation'],['unite','Unité'],['prix','Prix','money'],['statut','Statut','badge']]
+  },
+  machines:{store:'machines',label:'Machines',prefix:'ma',
+    fields:[
+      {id:'code',label:'Code (ex. MAC-SCIE-01)',required:true},
+      {id:'designation',label:'Désignation',required:true,span:2},
+      {id:'type',label:'Type',type:'select',options:['Scie à onglet','Perceuse de refente','Centre d\'usinage','Sertisseuse','Presse à coins','Table de découpe','Autre']},
+      {id:'capacite',label:'Capacité (ex. barre 6500mm)'},
+      {id:'poste',label:'Poste de travail associé'},
+      {id:'statut',label:'Statut',type:'select',options:['disponible','en maintenance','hors service']}
+    ],
+    cols:[['code','Code'],['designation','Désignation'],['type','Type'],['poste','Poste'],['statut','Statut','badge']]
+  }
+};
+
+function renderGenericRefForm(key){
+  const def=REF_DEFS[key];
+  const el=document.getElementById('refGeneric_'+key);
+  const fieldsHtml=def.fields.map(f=>{
+    const inputId='gf_'+key+'_'+f.id;
+    let input;
+    if(f.type==='select'){
+      input=`<select id="${inputId}" class="border rounded-lg px-2 py-1.5 text-sm w-full">${f.options.map(o=>`<option value="${o}">${o}</option>`).join('')}</select>`;
+    } else {
+      input=`<input id="${inputId}" type="${f.type||'text'}" ${f.step?`step="${f.step}"`:''} ${f.datalist?`list="${f.datalist}"`:''} placeholder="${escapeHtml(f.label)}" ${f.required?'required':''} class="border rounded-lg px-2 py-1.5 text-sm w-full">`;
+    }
+    return `<div class="${f.span===2?'sm:col-span-2':''}">${input}</div>`;
+  }).join('');
+  el.innerHTML=`
+    <div class="flex flex-wrap justify-between gap-3 mb-5">
+      <div><h2 class="text-lg font-bold">${escapeHtml(def.label)}</h2><p class="text-sm text-slate-500">Référentiel technique — utilisable dans les calculs et demandes d'achats.</p></div>
+    </div>
+    <form onsubmit="return handleAddGenericRef(event,'${key}')" class="grid sm:grid-cols-4 gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
+      ${fieldsHtml}
+      <button type="submit" class="sm:col-span-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter</button>
+    </form>
+    <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr>${def.cols.map(c=>`<th class="text-left p-3">${escapeHtml(c[1])}</th>`).join('')}<th class="p-3"></th></tr></thead><tbody id="refGenericBody_${key}"></tbody></table></div>`;
+}
+
+async function handleAddGenericRef(e,key){
+  e.preventDefault();
+  if(!hasRole('referentiel:manage')){ alert('Permission refusée.'); return false; }
+  const def=REF_DEFS[key];
+  const code=document.getElementById('gf_'+key+'_code').value.trim();
+  const designation=document.getElementById('gf_'+key+'_designation').value.trim();
+  if(!code||!designation) return false;
+  const rec={id:def.prefix+'_'+Date.now(),_modifie:new Date().toISOString()};
+  def.fields.forEach(f=>{
+    const el=document.getElementById('gf_'+key+'_'+f.id);
+    rec[f.id]= f.type==='number' ? (+el.value||0) : el.value.trim();
+  });
+  await idbPut(key,rec);
+  queueSync('alubom_'+key,rec);
+  await audit('CREATE_'+key.toUpperCase(),code+' — '+designation);
+  document.querySelector(`#refGeneric_${key} form`).reset();
+  await renderGenericRefTable(key);
+  return false;
+}
+async function deleteGenericRef(key,id){
+  if(!hasRole('referentiel:manage')){ alert('Permission refusée.'); return; }
+  if(!confirm('Supprimer cet élément ?')) return;
+  await idbDelete(key,id);
+  await audit('DELETE_'+key.toUpperCase(),id);
+  await renderGenericRefTable(key);
+}
+async function renderGenericRefTable(key){
+  const def=REF_DEFS[key];
+  const el=document.getElementById('refGenericBody_'+key); if(!el) return;
+  const rows=(await idbGetAll(key)).sort((a,b)=>(a.code||'').localeCompare(b.code||''));
+  el.innerHTML = rows.length ? rows.map(r=>{
+    const cells=def.cols.map(([field,label,fmt])=>{
+      let v=r[field]??'';
+      if(fmt==='money') v=money(v);
+      if(fmt==='badge') return `<td class="p-3"><span class="badge bg-${v==='actif'||v==='disponible'?'emerald':v==='inactif'||v==='hors service'?'slate':'amber'}-50 text-${v==='actif'||v==='disponible'?'emerald':v==='inactif'||v==='hors service'?'slate':'amber'}-700">${escapeHtml(v)}</span></td>`;
+      return `<td class="p-3">${escapeHtml(v)}</td>`;
+    }).join('');
+    return `<tr class="border-b">${cells}<td class="p-3 text-right"><button onclick="deleteGenericRef('${key}','${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`;
+  }).join('') : `<tr><td class="p-3 text-slate-400" colspan="${def.cols.length+1}">Aucun élément enregistré.</td></tr>`;
+}
+async function renderGenericRef(key){
+  if(!document.getElementById('refGenericBody_'+key)) renderGenericRefForm(key);
+  await renderGenericRefTable(key);
+}
+
+/* ---------- Jeux & tolérances (paramètres globaux de calcul) ---------- */
+const DEFAULT_PARAMS={id:'global',jeuLargeurDormant:5,jeuHauteurDormant:5,jeuVitrage:3,jeuOuvrant:4,traitDeScie:3,toleranceFabrication:1,tauxEnergie:2,tauxAmortissement:3,tauxTransport:2,tauxFraisAtelier:5,tauxFraisAdmin:4};
+window.PARAMS={...DEFAULT_PARAMS};
+
+async function loadParams(){
+  const rows=await idbGetAll('parametres');
+  const rec=rows.find(r=>r.id==='global');
+  window.PARAMS = rec ? {...DEFAULT_PARAMS,...rec} : {...DEFAULT_PARAMS};
+  if(!rec){ await idbPut('parametres',window.PARAMS); }
+  const f={pJeuLargeurDormant:'jeuLargeurDormant',pJeuHauteurDormant:'jeuHauteurDormant',pJeuVitrage:'jeuVitrage',pJeuOuvrant:'jeuOuvrant',pTraitDeScie:'traitDeScie',pToleranceFabrication:'toleranceFabrication',pTauxEnergie:'tauxEnergie',pTauxAmortissement:'tauxAmortissement',pTauxTransport:'tauxTransport',pTauxFraisAtelier:'tauxFraisAtelier',pTauxFraisAdmin:'tauxFraisAdmin'};
+  Object.entries(f).forEach(([id,key])=>{ const el=document.getElementById(id); if(el) el.value=window.PARAMS[key]; });
+  const gapEl=document.getElementById('gap');
+  if(gapEl && (!gapEl.value || gapEl.value==='0')) gapEl.value=window.PARAMS.jeuOuvrant;
+}
+
+async function handleSaveParams(e){
+  e.preventDefault();
+  if(!hasRole('referentiel:manage')){ alert('Permission refusée.'); return false; }
+  const rec={
+    id:'global',
+    jeuLargeurDormant:+document.getElementById('pJeuLargeurDormant').value||5,
+    jeuHauteurDormant:+document.getElementById('pJeuHauteurDormant').value||5,
+    jeuVitrage:+document.getElementById('pJeuVitrage').value||3,
+    jeuOuvrant:+document.getElementById('pJeuOuvrant').value||4,
+    traitDeScie:+document.getElementById('pTraitDeScie').value||3,
+    toleranceFabrication:+document.getElementById('pToleranceFabrication').value||1,
+    tauxEnergie:+document.getElementById('pTauxEnergie').value||0,
+    tauxAmortissement:+document.getElementById('pTauxAmortissement').value||0,
+    tauxTransport:+document.getElementById('pTauxTransport').value||0,
+    tauxFraisAtelier:+document.getElementById('pTauxFraisAtelier').value||0,
+    tauxFraisAdmin:+document.getElementById('pTauxFraisAdmin').value||0,
+    _modifie:new Date().toISOString()
+  };
+  await idbPut('parametres',rec);
+  queueSync('alubom_parametres',rec);
+  window.PARAMS=rec;
+  await audit('MAJ_PARAMETRES','Jeux, tolérances & coûts indirects mis à jour');
+  calculateBOM();
+  alert('Paramètres enregistrés — recalcul effectué.');
+  return false;
+}
+
 function money(n){return new Intl.NumberFormat('fr-FR').format(Math.round(n))+' FCFA';}
+
+/* =========================================================
+   Nomenclature multi-niveaux — CŒUR DE MÉTIER
+   Niveau 0 : Produit fini
+   Niveau 1 : Sous-ensembles fonctionnels
+   Niveau 2 : Sous-catégories techniques
+   Niveau 3 : Composants (lignes BOM réelles)
+   ========================================================= */
+const BOM_L1_CATEGORIES=[
+  {key:'structure',label:'Structure / Ossature',icon:'🏗️'},
+  {key:'mobile',label:'Éléments mobiles / Ouvrants',icon:'🚪'},
+  {key:'remplissage',label:'Vitrage / Remplissage',icon:'🪟'},
+  {key:'quincaillerie',label:'Quincaillerie & Consommables',icon:'🔩'}
+];
+
+const BOM_L2_RULES={
+  structure:[
+    {key:'horizontaux',label:'Profils horizontaux',keywords:['dormant horizontal','traverse','chaînage','lisse','main courante','ceinture','barre de charge','coffre','coffre store','coffre volet','coffre store banne']},
+    {key:'verticaux',label:'Profils verticaux',keywords:['dormant vertical','dormant montant','montant','poteau','meneau','limon']},
+    {key:'couverture',label:'Éléments de couverture / support',keywords:['chevron','poutre','arbalétrier','ossature primaire','ossature secondaire','rail','console','bras articulé']},
+    {key:'caissons',label:'Caissons & coffres techniques',keywords:['caisson']},
+  ],
+  mobile:[
+    {key:'vantaux',label:'Vantaux / Ouvrants',keywords:['ouvrant','vantail']},
+    {key:'coulissants',label:'Éléments coulissants / orientables',keywords:['lame','cassette','tablier']},
+    {key:'marches',label:'Marches',keywords:['marche']}
+  ],
+  remplissage:[
+    {key:'vitrage',label:'Vitrage',keywords:['vitrage','verre','vec']},
+    {key:'maintien',label:'Maintien du vitrage',keywords:['parclose']}
+  ],
+  quincaillerie:[
+    {key:'fixation',label:'Fixation & assemblage',keywords:['vis','équerre','platine','fixation','clip','tendeur','pince']},
+    {key:'etancheite',label:'Étanchéité',keywords:['joint','silicone','brosse','solin']},
+    {key:'mecanismes',label:'Mécanismes & manœuvre',keywords:['serrure','poignée','paumelle','roulette','moteur','manivelle','gâche','ferme-porte']},
+    {key:'finitions',label:'Finitions & accessoires divers',keywords:['capot','sangle','câble','gouttière','profilé de jonction']}
+  ]
+};
+const BOM_L1_KEYWORDS={
+  structure:['dormant','montant','traverse','meneau','poteau','limon','chevron','poutre','rail','chaînage','caisson','ossature','cadre','coffre','console','ceinture','bras articulé','barre de charge'],
+  mobile:['ouvrant','vantail','marche','lame','tablier','cassette'],
+  remplissage:['vitrage','verre','vec','parclose'],
+  quincaillerie:['vis','joint','poignée','serrure','paumelle','roulette','silicone','moteur','manivelle','tendeur','pince','clip','platine','gouttière','solin','brosse','sangle','équerre','gâche','ferme-porte','fixation','câble','capot','profilé de jonction']
+};
+
+function classifyBOMLine(designation){
+  const d=String(designation).toLowerCase();
+  for(const [l1,keywords] of Object.entries(BOM_L1_KEYWORDS)){
+    if(keywords.some(k=>d.includes(k))) return l1;
+  }
+  return 'structure';
+}
+function classifyBOMLineL2(l1,designation){
+  const d=String(designation).toLowerCase();
+  const rules=BOM_L2_RULES[l1]||[];
+  for(const r of rules){
+    if(r.keywords.some(k=>d.includes(k))) return r;
+  }
+  return {key:'autres',label:'Autres composants'};
+}
+
+function renderBOMTree(type,w,h,rows){
+  const el=document.getElementById('bomTree'); if(!el) return;
+  const total=rows.reduce((s,r)=>s+r[4],0);
+
+  const level1Html=BOM_L1_CATEGORIES.map(cat=>{
+    const catLines=rows.filter(r=>classifyBOMLine(r[1])===cat.key);
+    if(!catLines.length) return '';
+    const catSubtotal=catLines.reduce((s,r)=>s+r[4],0);
+
+    const l2Groups={};
+    catLines.forEach(r=>{
+      const l2=classifyBOMLineL2(cat.key,r[1]);
+      if(!l2Groups[l2.key]) l2Groups[l2.key]={label:l2.label,lines:[]};
+      l2Groups[l2.key].lines.push(r);
+    });
+
+    const level2Html=Object.values(l2Groups).map(g=>{
+      const subtotal2=g.lines.reduce((s,r)=>s+r[4],0);
+      return `<details class="border rounded-lg ml-4" open>
+        <summary class="cursor-pointer px-3 py-2 flex justify-between items-center bg-white border-b">
+          <span class="text-sm">↳ Niveau 2 — ${escapeHtml(g.label)} <span class="text-slate-400">(${g.lines.length})</span></span>
+          <span class="text-sm font-semibold">${money(subtotal2)}</span>
+        </summary>
+        <table class="w-full text-sm">
+          <thead><tr class="text-xs text-slate-400"><th class="text-left pl-8 pt-2 pb-1">Code</th><th class="text-left pt-2 pb-1">Niveau 3 — Composant</th><th class="text-right pt-2 pb-1">Qté</th><th class="text-right pt-2 pb-1">Longueur</th><th class="text-right pr-4 pt-2 pb-1">Coût</th></tr></thead>
+          <tbody>
+            ${g.lines.map(r=>`<tr class="border-t"><td class="py-2 pl-8 pr-2 text-slate-500 font-mono text-xs">${escapeHtml(r[0])}</td><td class="py-2 px-2">${escapeHtml(r[1])}</td><td class="py-2 px-2 text-right">${Number(r[2]).toFixed(2)}</td><td class="py-2 px-2 text-right">${r[3]?Number(r[3]).toFixed(0)+' mm':'—'}</td><td class="py-2 pr-4 text-right">${money(r[4])}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      </details>`;
+    }).join('');
+
+    return `<details class="border-2 border-blue-200 rounded-lg" open>
+      <summary class="cursor-pointer px-4 py-2.5 flex justify-between items-center bg-blue-50 rounded-lg">
+        <span class="font-semibold text-sm">${cat.icon} Niveau 1 — ${escapeHtml(cat.label)} <span class="text-slate-400 font-normal">(${catLines.length} composant${catLines.length>1?'s':''})</span></span>
+        <span class="text-sm font-bold">${money(catSubtotal)}</span>
+      </summary>
+      <div class="p-2 space-y-2">${level2Html}</div>
+    </details>`;
+  }).join('');
+
+  el.innerHTML=`
+    <details class="border-2 border-slate-900 rounded-lg" open>
+      <summary class="cursor-pointer px-4 py-3 flex justify-between items-center bg-slate-900 text-white rounded-lg">
+        <span class="font-bold">📦 Niveau 0 — Produit fini : ${escapeHtml(type)} ${w} × ${h} mm</span>
+        <span class="font-bold">${money(total)}</span>
+      </summary>
+      <div class="p-3 space-y-3">${level1Html || '<p class="text-sm text-slate-400 p-2">Aucune donnée BOM.</p>'}</div>
+    </details>`;
+}
 
 
 const ETUDE_TABS=['config','bom','cut','cost','proforma'];
 function showPage(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
   document.querySelectorAll('.nav').forEach(b=>b.classList.remove('active'));
-  const titles={dashboard:'Tableau de bord',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',stock:'Stock',chantier:'Circuit Chantier',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique'};
+  const titles={dashboard:'Tableau de bord',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',stock:'Stock',chantier:'Circuit Chantier',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs'};
 
   if(ETUDE_TABS.includes(page)){
     document.getElementById('etude').classList.remove('hidden');
@@ -1744,7 +2493,7 @@ function addToProformaCart(){
   if(!unit){ alert("Calculez d'abord le chiffrage (BOM non vide)."); return; }
   const isSpecial=['Façade','Garde-corps alu/verre','Bardage alu','Pergola bioclimatique','Cloison vitrée',"Verrière d'intérieur",'Garde-corps inox'].includes(type);
   const detail = isSpecial ? `${type} • ${w}×${h} mm` : `${type} aluminium ${w} × ${h} mm • ${leaves} vantail${leaves>1?'s':''}`;
-  const bom = (window.lastBOMRows||[]).map(r=>({code:r[0],designation:r[1],qte:r[2],montant:r[4]}));
+  const bom = (window.lastBOMRows||[]).map(r=>({code:r[0],designation:r[1],qte:r[2],longueur:r[3]||0,montant:r[4]}));
   const schemaLabel = document.getElementById('schemaLabel')?.textContent || detail;
   const schemaSVG = document.getElementById('technicalDrawing')?.outerHTML || '';
   proformaCart.push({id:'ln_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),type,detail,qty,unit,subtotal:unit*qty,bom,schemaLabel,schemaSVG});
@@ -1777,7 +2526,7 @@ function updateProforma(){
     const leaves = +document.getElementById('leaves').value || 1;
     const qty = Math.max(1, +document.getElementById('qty').value || 1);
     const unit = parseMoney(document.getElementById('cSale')?.textContent) || (lastCost||0)*1.30;
-    const bom = (window.lastBOMRows||[]).map(r=>({code:r[0],designation:r[1],qte:r[2],montant:r[4]}));
+    const bom = (window.lastBOMRows||[]).map(r=>({code:r[0],designation:r[1],qte:r[2],longueur:r[3]||0,montant:r[4]}));
     const schemaLabel = document.getElementById('schemaLabel')?.textContent || '';
     const schemaSVG = document.getElementById('technicalDrawing')?.outerHTML || '';
     lines = [{id:'current',type,detail:`${type} aluminium ${w} × ${h} mm • ${leaves} vantail${leaves>1?'s':''} • configuration en cours`,qty,unit,subtotal:unit*qty,bom,schemaLabel,schemaSVG}];
@@ -1916,6 +2665,62 @@ async function renderProformaList(){
         <button onclick="deleteProforma('${r.id}')" class="text-red-500 text-xs font-semibold">Suppr.</button>
       </td>
     </tr>`).join('') : `<tr><td class="p-2 text-slate-400" colspan="5">Aucune proforma enregistrée.</td></tr>`;
+}
+
+/* ---------- Ouvrages composés (ensembles multi-éléments réutilisables) ---------- */
+async function saveEnsemble(){
+  if(!hasRole('ouvrage:create')){ alert('Permission refusée.'); return; }
+  if(!proformaCart.length){ alert('Le panier est vide. Ajoutez au moins deux ouvrages (bouton "+ Ajouter au devis" depuis le Chiffrage) avant d\'enregistrer un ensemble.'); return; }
+  const nom=prompt('Nom de l\'ensemble composé :', `Ensemble ${proformaCart.length} éléments`);
+  if(!nom) return;
+  const rec={
+    id:'ens_'+Date.now(),
+    type:'ensemble',
+    nom,
+    elements:proformaCart.map(l=>({type:l.type,detail:l.detail,qty:l.qty,unit:l.unit,subtotal:l.subtotal,bom:l.bom,schemaLabel:l.schemaLabel,schemaSVG:l.schemaSVG})),
+    total:proformaCart.reduce((s,l)=>s+l.subtotal,0),
+    dateCreation:new Date().toISOString(),
+    _modifie:new Date().toISOString()
+  };
+  await idbPut('ouvrages',rec);
+  queueSync('alubom_ouvrages',rec);
+  await audit('CREATE_ENSEMBLE',nom+' — '+rec.elements.length+' élément(s)');
+  await renderEnsemblesList();
+  alert('Ensemble "'+nom+'" enregistré ('+rec.elements.length+' éléments).');
+}
+async function loadEnsemble(id){
+  const rows=await idbGetAll('ouvrages');
+  const rec=rows.find(r=>r.id===id); if(!rec) return;
+  proformaCart = rec.elements.map(e=>({...e,id:'ln_'+Date.now()+'_'+Math.random().toString(36).slice(2,6)}));
+  saveProformaCartLocal();
+  currentProformaId=null;
+  document.getElementById('proClient').value='Client à renseigner';
+  document.getElementById('proNumber').textContent='—';
+  document.getElementById('proDate').textContent='';
+  updateProforma();
+  showPage('proforma');
+  await audit('CHARGER_ENSEMBLE',rec.nom);
+}
+async function deleteEnsemble(id){
+  if(!hasRole('ouvrage:create')){ alert('Permission refusée.'); return; }
+  if(!confirm('Supprimer cet ensemble ?')) return;
+  await idbDelete('ouvrages',id);
+  await audit('DELETE_ENSEMBLE',id);
+  await renderEnsemblesList();
+}
+async function renderEnsemblesList(){
+  const el=document.getElementById('ensemblesBody'); if(!el) return;
+  const rows=(await idbGetAll('ouvrages')).filter(r=>r.type==='ensemble').sort((a,b)=>b.dateCreation.localeCompare(a.dateCreation));
+  el.innerHTML = rows.length ? rows.map(r=>`
+    <tr class="border-b">
+      <td class="p-2 font-semibold">${escapeHtml(r.nom)}</td>
+      <td class="p-2 text-xs text-slate-500">${r.elements.map(e=>escapeHtml(e.type)).join(' + ')}</td>
+      <td class="p-2 text-right">${r.elements.length}</td>
+      <td class="p-2 text-right whitespace-nowrap">
+        <button onclick="loadEnsemble('${r.id}')" class="text-blue-600 text-xs font-semibold mr-2">Charger dans le devis</button>
+        <button onclick="deleteEnsemble('${r.id}')" class="text-red-500 text-xs font-semibold">Suppr.</button>
+      </td>
+    </tr>`).join('') : `<tr><td class="p-2 text-slate-400" colspan="4">Aucun ensemble enregistré.</td></tr>`;
 }
 
 function emailProforma(){
@@ -2332,8 +3137,9 @@ function calculateBOM(){
     ];
   } else {
     const ouvrantW=Math.max(0,(w-(leaves-1)*45)/leaves);
-    const glassW=Math.max(0,ouvrantW-110-gap);
-    const glassH=Math.max(0,h-110-gap);
+    const glassRebate=107+(window.PARAMS?.jeuVitrage ?? 3);
+    const glassW=Math.max(0,ouvrantW-glassRebate-gap);
+    const glassH=Math.max(0,h-glassRebate-gap);
     glassArea=glassW*glassH/1000000*leaves*qty;
     alu=(perimeter + leaves*(2*ouvrantW+2*h))*qty/1000;
     const isGalandage = type==='Coulissant galandage';
@@ -2377,100 +3183,208 @@ function calculateBOM(){
   document.getElementById('costPreview').textContent=money(mat);
   updateCost();
   optimize();
+  renderBOMTree(type,w,h,rows);
   showPage('bom');
 }
 
 function updateCost(){
+  const rows=window.lastBOMRows||[];
+  const matByCat={structure:0,mobile:0,remplissage:0,quincaillerie:0};
+  rows.forEach(r=>{ matByCat[classifyBOMLine(r[1])]+=r[4]; });
+  document.getElementById('cMatStructure').textContent=money(matByCat.structure);
+  document.getElementById('cMatMobile').textContent=money(matByCat.mobile);
+  document.getElementById('cMatVitrage').textContent=money(matByCat.remplissage);
+  document.getElementById('cMatQuinc').textContent=money(matByCat.quincaillerie);
+
   const laborRate=+document.getElementById('labor').value||3500;
   const labor=lastCost?laborRate*1.8:0;
-  const total=lastCost+labor;
+  const pose=+document.getElementById('posePrice')?.value||0;
+  const direct=lastCost+labor+pose;
+
+  const p=window.PARAMS||{};
+  const energie=direct*(p.tauxEnergie||0)/100;
+  const amort=direct*(p.tauxAmortissement||0)/100;
+  const transport=direct*(p.tauxTransport||0)/100;
+  const fraisAtelier=direct*(p.tauxFraisAtelier||0)/100;
+  const fraisAdmin=direct*(p.tauxFraisAdmin||0)/100;
+  const indirect=energie+amort+transport+fraisAtelier+fraisAdmin;
+
+  const total=direct+indirect;
   const margin=(+document.getElementById('margin').value||0)/100;
   const sale=total*(1+margin);
+
   document.getElementById('cMat').textContent=money(lastCost);
   document.getElementById('cLab').textContent=money(labor);
+  document.getElementById('cPose').textContent=money(pose);
+  document.getElementById('cDirect').textContent=money(direct);
+  document.getElementById('cEnergie').textContent=money(energie);
+  document.getElementById('cAmort').textContent=money(amort);
+  document.getElementById('cTransport').textContent=money(transport);
+  document.getElementById('cFraisAtelier').textContent=money(fraisAtelier);
+  document.getElementById('cFraisAdmin').textContent=money(fraisAdmin);
+  document.getElementById('cIndirect').textContent=money(indirect);
   document.getElementById('cTotal').textContent=money(total);
   document.getElementById('cSale').textContent=money(sale);
 }
 
-function binPackCuts(cuts,barLen,kerf){
+function binPackCuts(cuts,barLen,kerf,seedRemaining){
   const sorted=[...cuts].sort((a,b)=>b-a);
-  let bars=[], remaining=[];
+  let remaining=[], seeded=[], barCuts=[];
+  (seedRemaining||[]).forEach(len=>{ remaining.push(len); seeded.push(true); barCuts.push([]); });
   sorted.forEach(c=>{
     let i=remaining.findIndex(r=>r>=c+kerf);
-    if(i<0){bars.push([c]);remaining.push(barLen-c-kerf);}
-    else{bars[i].push(c);remaining[i]-=c+kerf;}
+    if(i<0){ remaining.push(barLen-c-kerf); seeded.push(false); barCuts.push([c]); }
+    else{ barCuts[i].push(c); remaining[i]-=c+kerf; }
   });
-  return bars.map(bar=>({cuts:bar,used:bar.reduce((a,b)=>a+b+kerf,0),chute:barLen-bar.reduce((a,b)=>a+b+kerf,0)}));
+  return barCuts.map((cuts,i)=>({
+    cuts, fromStock:seeded[i]===true,
+    used:cuts.reduce((a,b)=>a+b+kerf,0),
+    chute:remaining[i]
+  })).filter(b=>b.cuts.length>0);
 }
 
-async function getBarLengthForCode(code){
+async function getBarLengthForCode(code,fournisseurFilter){
   const profils=await idbGetAll('profils');
-  const p=profils.find(x=>x.code===code);
-  if(p && p.longueurComm) return p.longueurComm;
+  let p=profils.find(x=>x.code===code && (!fournisseurFilter || (x.fournisseur||'').toLowerCase()===fournisseurFilter.toLowerCase()));
+  if(!p) p=profils.find(x=>x.code===code);
+  if(p && p.longueurComm) return {barLen:p.longueurComm, prixMl:p.prixMl||0, matched:!fournisseurFilter || (p.fournisseur||'').toLowerCase()===String(fournisseurFilter||'').toLowerCase()};
   const series=await idbGetAll('series');
   const serieCode=document.getElementById('serie')?.value;
   const s=series.find(x=>x.code===serieCode);
-  if(s && s.longueurBarre) return s.longueurBarre;
-  return 6000;
+  if(s && s.longueurBarre) return {barLen:s.longueurBarre, prixMl:s.prixRef||0, matched:!fournisseurFilter};
+  return {barLen:6000, prixMl:0, matched:!fournisseurFilter};
+}
+
+function handleCutModeChange(){
+  const mode=document.getElementById('cutMode').value;
+  document.getElementById('cutFournisseurField').classList.toggle('hidden',mode!=='fournisseur');
+  optimize();
+}
+
+async function gatherCutGroups(mode){
+  const groups={};
+  const addRow=(code,label,qte,longueur)=>{
+    if(!(longueur>0)) return;
+    const q=Math.max(1,Math.round(qte)), len=Math.round(longueur);
+    if(!groups[code]) groups[code]={label,cuts:[]};
+    for(let i=0;i<q;i++) groups[code].cuts.push(len);
+  };
+  if(mode==='chantier' && proformaCart.length){
+    proformaCart.forEach(line=>(line.bom||[]).forEach(b=>addRow(b.code,b.designation,b.qte,b.longueur||0)));
+  } else {
+    (window.lastBOMRows||[]).forEach(r=>addRow(r[0],r[1],r[2],r[3]||0));
+  }
+  return groups;
 }
 
 async function optimize(){
-  const rows=window.lastBOMRows||[];
-  const profileCuts=rows.filter(r=>r[3] && r[3]>0);
-  if(!profileCuts.length){
+  const mode=document.getElementById('cutMode')?.value||'economique';
+  const fournisseurFilter=mode==='fournisseur' ? (document.getElementById('cutFournisseur')?.value||'').trim() : null;
+  const groups=await gatherCutGroups(mode);
+  const noteEl=document.getElementById('cutModeNote');
+
+  if(!Object.keys(groups).length){
     document.getElementById('cutPlan').innerHTML='<p class="text-sm text-slate-400">Calculez d\'abord la BOM (Configurateur → Calculer la BOM) avant de lancer le débit.</p>';
-    document.getElementById('cutRate').textContent='—';
-    document.getElementById('cutTotalBars').textContent='0';
-    document.getElementById('cutReusable').textContent='0 mm';
-    document.getElementById('cutWaste').textContent='0 mm';
+    ['cutRate','cutTotalBars','cutReusable','cutWaste','cutTheorique','cutConsommee','cutTauxUtil','cutEconomie'].forEach(id=>document.getElementById(id).textContent=id==='cutTotalBars'?'0':'—');
+    noteEl.classList.add('hidden');
     return;
   }
-  const kerf=3, threshold=500;
-  const groups={};
-  profileCuts.forEach(r=>{
-    const code=r[0], label=r[1], qty=Math.max(1,Math.round(r[2])), len=Math.round(r[3]);
-    if(!groups[code]) groups[code]={label,cuts:[],barLen:null};
-    for(let i=0;i<qty;i++) groups[code].cuts.push(len);
-  });
+
+  const kerf=window.PARAMS?.traitDeScie||3, threshold=500;
+  document.getElementById('cutKerf').textContent=kerf+' mm';
+
+  // Mode stock : seed avec chutes réutilisables déjà en stock
+  let chuteStock={};
+  if(mode==='stock'){
+    const stockRows=await idbGetAll('stock');
+    stockRows.filter(s=>s.ref && s.ref.startsWith('CHUTE-')).forEach(s=>{
+      const code=s.ref.replace('CHUTE-','');
+      chuteStock[code]=(chuteStock[code]||0)+Math.round((s.dispo||0)*1000);
+    });
+  }
 
   let html='', totalBars=0, totalChuteReutil=0, totalDechet=0, rates=[];
+  let theorique=0, consommeeNeuf=0, naiveBars=0, chuteStockUsedValue=0, unmatchedFournisseur=[];
   window.lastChutes=[];
+
   for(const code of Object.keys(groups)){
     const g=groups[code];
-    g.barLen=await getBarLengthForCode(code);
-    const bars=binPackCuts(g.cuts,g.barLen,kerf);
-    totalBars+=bars.length;
+    const {barLen,prixMl,matched}=await getBarLengthForCode(code,fournisseurFilter);
+    if(mode==='fournisseur' && !matched) unmatchedFournisseur.push(code);
+    g.barLen=barLen;
+    theorique += g.cuts.reduce((a,b)=>a+b,0);
+    naiveBars += g.cuts.length;
+
+    let seed=[];
+    if(mode==='stock' && chuteStock[code]){
+      seed=[chuteStock[code]];
+    }
+    const bars=binPackCuts(g.cuts,barLen,kerf,seed);
+    const barsNeuves=bars.filter(b=>!b.fromStock);
+    totalBars+=barsNeuves.length;
+    consommeeNeuf += barsNeuves.length*barLen;
     bars.forEach(b=>{
-      if(b.chute>=threshold){ totalChuteReutil+=b.chute; window.lastChutes.push({code,label:g.label,length:b.chute}); }
-      else totalDechet+=b.chute;
+      if(b.fromStock){ chuteStockUsedValue += (b.used)*(prixMl||9000)/1000; }
+      if(b.chute>=threshold && !b.fromStock){ totalChuteReutil+=b.chute; window.lastChutes.push({code,label:g.label,length:b.chute}); }
+      else if(!b.fromStock) totalDechet+=b.chute;
     });
-    const groupUsed=bars.reduce((s,b)=>s+b.used,0), groupTotal=bars.length*g.barLen;
+    const groupUsed=barsNeuves.reduce((s,b)=>s+b.used,0), groupTotal=barsNeuves.length*barLen;
     const rate=groupTotal?(1-groupUsed/groupTotal)*100:0;
     rates.push(rate);
+
     html+=`<div>
       <div class="flex flex-wrap justify-between items-center mb-2 gap-1">
         <b class="text-sm">${escapeHtml(code)} — ${escapeHtml(g.label)}</b>
-        <span class="text-xs text-slate-500">${bars.length} barre${bars.length>1?'s':''} de ${g.barLen.toLocaleString('fr-FR')} mm • ${rate.toFixed(1).replace('.',',')}% chute</span>
+        <span class="text-xs text-slate-500">${barsNeuves.length} barre${barsNeuves.length>1?'s':''} neuve${barsNeuves.length>1?'s':''} de ${barLen.toLocaleString('fr-FR')} mm${bars.length>barsNeuves.length?` + ${bars.length-barsNeuves.length} chute réutilisée`:''} • ${rate.toFixed(1).replace('.',',')}% chute</span>
       </div>
       <div class="space-y-2">
       ${bars.map((b,i)=>`
-        <div class="border rounded-xl p-3">
-          <div class="flex justify-between mb-1 text-xs text-slate-500"><span>Barre ${i+1}</span><span>Chute ${b.chute} mm${b.chute>=threshold?' <span class="text-emerald-600 font-semibold">(réutilisable)</span>':''}</span></div>
+        <div class="border rounded-xl p-3 ${b.fromStock?'border-emerald-300 bg-emerald-50':''}">
+          <div class="flex justify-between mb-1 text-xs text-slate-500"><span>${b.fromStock?'♻️ Chute stock':'Barre '+(i+1)}</span><span>Chute ${Math.round(b.chute)} mm${b.chute>=threshold&&!b.fromStock?' <span class="text-emerald-600 font-semibold">(réutilisable)</span>':''}</span></div>
           <div class="h-7 bg-slate-100 rounded-lg flex overflow-hidden">
-            ${b.cuts.map(c=>`<div style="width:${(c/g.barLen*100).toFixed(2)}%" class="bg-blue-600 text-white text-[10px] flex items-center justify-center border-r border-white">${c}</div>`).join('')}
+            ${b.cuts.map(c=>`<div style="width:${(c/(b.fromStock?(b.used+b.chute):barLen)*100).toFixed(2)}%" class="bg-blue-600 text-white text-[10px] flex items-center justify-center border-r border-white">${c}</div>`).join('')}
           </div>
         </div>`).join('')}
       </div>
     </div>`;
   }
+
   document.getElementById('cutPlan').innerHTML=html;
   const avgRate=rates.length?rates.reduce((a,b)=>a+b,0)/rates.length:0;
   document.getElementById('cutRate').textContent=avgRate.toFixed(1).replace('.',',')+'% de chute';
   document.getElementById('cutTotalBars').textContent=totalBars;
   document.getElementById('cutReusable').textContent=Math.round(totalChuteReutil).toLocaleString('fr-FR')+' mm';
   document.getElementById('cutWaste').textContent=Math.round(totalDechet).toLocaleString('fr-FR')+' mm';
+  document.getElementById('cutTheorique').textContent=Math.round(theorique).toLocaleString('fr-FR')+' mm';
+  document.getElementById('cutConsommee').textContent=Math.round(consommeeNeuf).toLocaleString('fr-FR')+' mm';
+  document.getElementById('cutTauxUtil').textContent = consommeeNeuf? (theorique/consommeeNeuf*100).toFixed(1).replace('.',',')+' %' : '—';
   const barLens=[...new Set(Object.values(groups).map(g=>g.barLen))];
   document.getElementById('cutBarLen').textContent = barLens.length===1 ? barLens[0].toLocaleString('fr-FR')+' mm' : 'Variable par profil';
+
+  // Économie réalisée : barres évitées par imbrication (vs 1 pièce = 1 barre) + valeur des chutes stock réutilisées
+  const avgBarPrice=9000*((barLens[0]||6000)/1000);
+  const barresEvitees=Math.max(0,naiveBars-totalBars);
+  const economieImbrication=barresEvitees*avgBarPrice;
+  let economieTxt;
+  if(mode==='stock' && chuteStockUsedValue>0){
+    economieTxt = money(chuteStockUsedValue)+' (chutes réutilisées)'+(barresEvitees>0?' + '+barresEvitees+' barre(s) évitée(s)':'');
+  } else if(barresEvitees>0){
+    economieTxt = '≈ '+money(economieImbrication)+' ('+barresEvitees+' barre(s) évitée(s) par imbrication)';
+  } else {
+    economieTxt='—';
+  }
+  document.getElementById('cutEconomie').textContent=economieTxt;
+
+  noteEl.classList.remove('hidden');
+  const modeLabels={
+    economique:'Mode économique — minimisation de la chute par imbrication (first-fit décroissant).',
+    stock:`Mode stock — chutes réutilisables du stock consommées en priorité avant ouverture de barres neuves. ${Object.keys(chuteStock).length} référence(s) de chute disponible(s) exploitée(s).`,
+    fournisseur: unmatchedFournisseur.length ? `Mode fournisseur — ⚠ ${unmatchedFournisseur.length} référence(s) non trouvée(s) chez "${escapeHtml(fournisseurFilter)}", longueur de barre générique appliquée par défaut.` : `Mode fournisseur — toutes les références correspondent au fournisseur "${escapeHtml(fournisseurFilter)}".`,
+    chantier: proformaCart.length ? `Mode chantier — cuts consolidés sur les ${proformaCart.length} ouvrage(s) du devis en cours (plus d'imbrication possible qu'ouvrage par ouvrage).` : `Mode chantier — devis vide, calcul basé sur la configuration en cours uniquement. Ajoutez des ouvrages au devis (Proforma) pour consolider.`
+  };
+  noteEl.textContent=modeLabels[mode];
+
+  if(document.getElementById('costChart')) updateDashboard();
 }
 
 async function returnChutesToStock(){
@@ -3353,18 +4267,14 @@ document.querySelectorAll('#type,#width,#height,#leaves,#serie,#facCols,#facRows
 document.querySelectorAll('#type,#width,#height,#leaves,#serie,#facCols,#facRows,#gcSpacing,#bdLameWidth,#bdRailSpacing,#pgDepth,#pgFixation,#pgLameSpacing,#cwCols,#cwDoor,#vrCols,#vrRows,#vrDoor,#voCoffre,#voMotor,#auSaillie,#auCouverture,#auSpacing,#sbSaillie,#sbMotor,#kiDepth,#kiRoofType,#kiCouverture,#giSpacing,#giInfill,#esType,#esMarcheH,#esGardeCorps,#ftPente,#ftType').forEach(e=>e.addEventListener('change',()=>{toggleTypeFields();updateTechnicalDrawing();updateFabricationPlan();calculateBOM();}));
 toggleTypeFields();
 
-function initApp(){
-  const ctx=document.getElementById('costChart');
-  new Chart(ctx,{type:'line',data:{labels:['Lun','Mar','Mer','Jeu','Ven','Sam'],datasets:[
-   {label:'Coût prévu',data:[420,510,460,590,620,670],tension:.35},
-   {label:'Coût réel',data:[430,500,485,610,600,690],tension:.35}
-  ]},options:{responsive:true,plugins:{legend:{position:'bottom'}},scales:{y:{beginAtZero:true}}}});
-
+async function initApp(){
+  await loadParams();
   updateJointDetail();
   calculateBOM();
   updateTechnicalDrawing();
   updateFabricationPlan();
   refreshAllTables();
+  updateDashboard();
   showPage('dashboard');
   applyRoleGuards();
   syncNow();
