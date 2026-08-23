@@ -1444,6 +1444,7 @@ window.SANIX_CFG = {
           <button class="prod-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prodtab="liste" onclick="showProdTab('liste')">📋 Liste</button>
           <button class="prod-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prodtab="kanban" onclick="showProdTab('kanban')">🗂️ Kanban</button>
           <button class="prod-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prodtab="gantt" onclick="showProdTab('gantt')">📅 Planning Gantt</button>
+          <button class="prod-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prodtab="charge" onclick="showProdTab('charge')">📊 Charge postes</button>
           <button id="btnNewOF" onclick="openNewOFForm()" class="ml-auto bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">+ Nouvel OF</button>
         </div>
 
@@ -1478,6 +1479,26 @@ window.SANIX_CFG = {
             <button onclick="printGantt()" class="border px-3 py-2 rounded-lg text-sm font-semibold">🖨 Imprimer</button>
           </div>
           <div id="ganttBoard" class="overflow-x-auto"></div>
+        </div>
+        </div>
+
+        <div id="prodTabCharge" class="prod-tab hidden">
+        <div class="card bg-white rounded-2xl p-6">
+          <div class="flex flex-wrap justify-between gap-3 mb-4">
+            <div><h2 class="text-lg font-bold">Charge & capacité par poste</h2><p class="text-sm text-slate-500">Besoins (heures restantes des OF actifs) comparés à la capacité disponible du référentiel Postes de travail — détection automatique du goulot d'étranglement.</p></div>
+            <label class="text-sm font-semibold flex items-center gap-2">Horizon
+              <select id="chargeHorizon" onchange="renderChargePostes()" class="border rounded-lg px-2 py-1.5 text-sm">
+                <option value="5">5 jours</option>
+                <option value="10" selected>10 jours</option>
+                <option value="15">15 jours</option>
+                <option value="20">20 jours</option>
+                <option value="30">30 jours</option>
+              </select>
+            </label>
+          </div>
+          <div id="chargeGoulotBanner" class="mb-4"></div>
+          <div id="chargePostesBody" class="overflow-x-auto"></div>
+          <p class="text-xs text-slate-400 mt-4">ℹ️ Hypothèses : 1 OF = 1 unité d'ouvrage · capacité horaire = nombre d'opérateurs × 8h/jour ouvré (selon les jours ouvrés du poste) · besoin = somme des étapes de gamme non encore terminées de chaque OF actif (hors Terminé / Prêt à livrer / Livré / Annulé / Suspendu). Les étapes de gamme doivent respecter le format "… (CODE) 1,5h" pour être comptabilisées par poste.</p>
         </div>
         </div>
       </section>
@@ -2313,7 +2334,7 @@ async function checkSession(){
 document.addEventListener('DOMContentLoaded',checkSession);
 
 /* ---------- Ordres de Fabrication (OF) ---------- */
-async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable(),renderEnsemblesList(),renderPlansFacadeTable(),renderRevisionsTable(),populateAtelierSelect(),loadParams()]); renderUsersTable(); if(document.getElementById('costChart')) updateDashboard(); if(document.getElementById('prodTabKanban') && !document.getElementById('prodTabKanban').classList.contains('hidden')) renderKanban(); if(document.getElementById('atelierMobile') && !document.getElementById('atelierMobile').classList.contains('hidden')) renderAtelierMobile(); }
+async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable(),renderEnsemblesList(),renderPlansFacadeTable(),renderRevisionsTable(),populateAtelierSelect(),loadParams()]); renderUsersTable(); if(document.getElementById('costChart')) updateDashboard(); if(document.getElementById('prodTabKanban') && !document.getElementById('prodTabKanban').classList.contains('hidden')) renderKanban(); if(document.getElementById('prodTabGantt') && !document.getElementById('prodTabGantt').classList.contains('hidden')) renderGantt(); if(document.getElementById('prodTabCharge') && !document.getElementById('prodTabCharge').classList.contains('hidden')) renderChargePostes(); if(document.getElementById('atelierMobile') && !document.getElementById('atelierMobile').classList.contains('hidden')) renderAtelierMobile(); }
 
 function openNewOFForm(){
   if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
@@ -2406,13 +2427,18 @@ function ofNextStatut(rec){
   if(idx<0 || idx>=steps.length-1) return null;
   return steps[idx+1];
 }
+function splitEtapesSteps(etapesStr){
+  // Sépare les étapes de gamme sur les virgules de séparation, sans casser les
+  // virgules décimales des durées (ex. "... 1,5h, Étape suivante (POSTE) 0,3h").
+  return String(etapesStr||'').split(/,\s*(?=[A-ZÀ-Ý])/).map(s=>s.trim()).filter(Boolean);
+}
 async function resolveGammeSteps(typeOuvrage){
   if(!typeOuvrage) return OF_GAMME.slice();
   try{
     const rows=await idbGetAll('gammes');
     const match=rows.find(g=>g.statut!=='inactif' && (g.typeOuvrage||'').trim().toLowerCase()===typeOuvrage.trim().toLowerCase());
     if(match && match.etapes){
-      const steps=match.etapes.split(',').map(s=>s.trim()).filter(Boolean);
+      const steps=splitEtapesSteps(match.etapes);
       if(steps.length) return steps;
     }
   }catch(err){}
@@ -2730,8 +2756,104 @@ function showProdTab(tab){
   if(tab==='kanban') renderKanban();
   if(tab==='liste') renderNCList();
   if(tab==='gantt') renderGantt();
+  if(tab==='charge') renderChargePostes();
 }
 
+/* ---------- Charge & capacité par poste — goulot d'étranglement ---------- */
+const OF_STATUTS_TERMINES=['Terminé','Prêt à livrer','Livré','Annulé','Suspendu'];
+function parseGammeStep(stepText){
+  // Format attendu : "Description libre (CODEPOSTE) 1,5h"
+  const m=String(stepText||'').match(/\(([A-Za-zÀ-ÿ0-9_-]{1,10})\)\s*([\d]+(?:[.,]\d+)?)\s*h\b/i);
+  if(!m) return null;
+  return { poste:m[1].toUpperCase(), dureeH:parseFloat(m[2].replace(',','.'))||0 };
+}
+function joursOuvresMatch(joursOuvresLabel,dateObj){
+  const day=dateObj.getDay(); // 0=dimanche...6=samedi
+  if(joursOuvresLabel==='Lun-Dim') return true;
+  if(joursOuvresLabel==='Lun-Sam') return day!==0;
+  return day!==0 && day!==6; // 'Lun-Ven' par défaut
+}
+function compterJoursDispo(joursOuvresLabel,horizonJours){
+  let n=0;
+  for(let i=1;i<=horizonJours;i++){
+    const day=new Date(); day.setHours(0,0,0,0); day.setDate(day.getDate()+i);
+    if(joursOuvresMatch(joursOuvresLabel,day)) n++;
+  }
+  return n;
+}
+async function calculerBesoinsParPoste(){
+  const ofRows=(await idbGetAll('of')).filter(r=>!OF_STATUTS_TERMINES.includes(r.statut));
+  const besoins={}; let ofSansGammeDetaillee=0;
+  ofRows.forEach(r=>{
+    const steps=(r.gammeSteps&&r.gammeSteps.length)?r.gammeSteps:[];
+    if(!steps.length){ ofSansGammeDetaillee++; return; }
+    const idx=steps.indexOf(r.statut);
+    const remaining=idx>=0?steps.slice(idx):steps.slice();
+    let matched=false;
+    remaining.forEach(s=>{
+      const parsed=parseGammeStep(s);
+      if(parsed){ matched=true; besoins[parsed.poste]=(besoins[parsed.poste]||0)+parsed.dureeH; }
+    });
+    if(!matched) ofSansGammeDetaillee++;
+  });
+  return {besoins,ofActifs:ofRows.length,ofSansGammeDetaillee};
+}
+async function renderChargePostes(){
+  const bodyEl=document.getElementById('chargePostesBody');
+  const bannerEl=document.getElementById('chargeGoulotBanner');
+  if(!bodyEl) return;
+  const horizon=+document.getElementById('chargeHorizon')?.value||10;
+  const {besoins,ofActifs,ofSansGammeDetaillee}=await calculerBesoinsParPoste();
+  const postes=(await idbGetAll('postes')).filter(p=>p.statut!=='inactif').sort((a,b)=>(a.code||'').localeCompare(b.code||''));
+  const codesConnus=new Set(postes.map(p=>p.code));
+  const lignes=postes.map(p=>{
+    const indispo=p.disponibilite==='indisponible'||p.disponibilite==='maintenance';
+    const joursDispo=indispo?0:compterJoursDispo(p.joursOuvres||'Lun-Ven',horizon);
+    const capaciteH=indispo?0:joursDispo*8*(+p.nbOperateurs||1);
+    const besoinH=besoins[p.code]||0;
+    const taux=capaciteH>0?(besoinH/capaciteH*100):(besoinH>0?999:0);
+    return {code:p.code,nom:p.nom,indispo,joursDispo,capaciteH,besoinH,taux};
+  });
+  // Postes présents dans les besoins mais absents du référentiel (code inconnu)
+  Object.keys(besoins).filter(c=>!codesConnus.has(c)).forEach(c=>{
+    lignes.push({code:c,nom:'⚠️ Poste non défini dans le référentiel',indispo:false,joursDispo:0,capaciteH:0,besoinH:besoins[c],taux:999,inconnu:true});
+  });
+  if(!lignes.length){
+    bannerEl.innerHTML='';
+    bodyEl.innerHTML='<p class="text-sm text-slate-400 py-8 text-center">Aucun poste actif dans le référentiel, ou aucun OF en cours.</p>';
+    return;
+  }
+  const goulot=lignes.filter(l=>l.besoinH>0).sort((a,b)=>b.taux-a.taux)[0];
+  if(goulot && goulot.taux>=90){
+    bannerEl.innerHTML=`<div class="bg-red-50 text-red-700 border border-red-200 rounded-xl px-4 py-3 text-sm font-semibold">⚠️ Goulot d'étranglement détecté : <b>${escapeHtml(goulot.nom||goulot.code)} (${escapeHtml(goulot.code)})</b> — ${Math.round(goulot.taux)}% de charge sur ${horizon} jours. ${goulot.indispo?'Ce poste est actuellement indisponible.':''}</div>`;
+  } else {
+    bannerEl.innerHTML=`<div class="bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl px-4 py-3 text-sm font-semibold">✅ Aucun goulot critique détecté sur l'horizon de ${horizon} jours.</div>`;
+  }
+  const barColor=t=> t>=100?'bg-red-500': t>=70?'bg-amber-500':'bg-emerald-500';
+  const badgeFor=l=>{
+    if(l.inconnu) return '<span class="badge bg-slate-100 text-slate-500">Non défini</span>';
+    if(l.indispo) return '<span class="badge bg-slate-200 text-slate-600">Indisponible</span>';
+    if(l.taux>=100) return '<span class="badge bg-red-50 text-red-700">Goulot</span>';
+    if(l.taux>=70) return '<span class="badge bg-amber-50 text-amber-700">Tendu</span>';
+    return '<span class="badge bg-emerald-50 text-emerald-700">OK</span>';
+  };
+  bodyEl.innerHTML=`<table class="w-full text-sm">
+    <thead class="bg-slate-50"><tr><th class="text-left p-3">Poste</th><th class="text-right p-3">Besoin (h)</th><th class="text-right p-3">Capacité dispo. (h)</th><th class="text-left p-3" style="min-width:220px">Taux d'occupation</th><th class="text-left p-3">Statut</th></tr></thead>
+    <tbody>
+      ${lignes.sort((a,b)=>b.taux-a.taux).map(l=>`<tr class="border-b">
+        <td class="p-3 font-semibold">${escapeHtml(l.nom||l.code)}<span class="text-slate-400 font-normal ml-1">(${escapeHtml(l.code)})</span></td>
+        <td class="p-3 text-right">${l.besoinH.toFixed(1)} h</td>
+        <td class="p-3 text-right">${l.capaciteH.toFixed(1)} h</td>
+        <td class="p-3">
+          <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden"><div class="${barColor(l.taux)} h-3 rounded-full" style="width:${Math.min(100,l.taux)}%"></div></div>
+          <span class="text-xs text-slate-500">${Math.round(l.taux)}%</span>
+        </td>
+        <td class="p-3">${badgeFor(l)}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>
+  ${ofSansGammeDetaillee?`<p class="text-xs text-amber-600 mt-3">⚠️ ${ofSansGammeDetaillee} OF actif(s) sur ${ofActifs} n'a/n'ont pas de gamme détaillée exploitable (étapes au format attendu) et n'est/ne sont pas comptabilisé(s) dans les besoins ci-dessus.</p>`:''}`;
+}
 /* ---------- Planning Gantt (§19) ---------- */
 async function renderGantt(){
   const board=document.getElementById('ganttBoard'); if(!board) return;
