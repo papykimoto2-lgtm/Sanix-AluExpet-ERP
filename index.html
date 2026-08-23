@@ -1278,7 +1278,7 @@ window.SANIX_CFG = {
         <div class="card bg-white rounded-2xl p-6 mb-6">
           <div class="flex flex-wrap justify-between gap-3 mb-5">
             <div><h2 class="text-lg font-bold">Circuit Chantier</h2><p class="text-sm text-slate-500">Devis → Paiement → Dossier → Validation DG → Achats → Fabrication → Installation.</p></div>
-            <button id="btnNewChantier" onclick="createChantierFromProforma()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold">+ Dossier depuis proforma</button>
+            <button id="btnNewChantier" onclick="openDossierFromProformaModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold">+ Dossier depuis proforma</button>
           </div>
           <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Dossier</th><th class="text-left p-3">Client</th><th class="text-left p-3">Étape</th><th class="text-right p-3">Montant</th><th class="text-right p-3">Payé</th><th class="p-3"></th></tr></thead><tbody id="chantierBody"></tbody></table></div>
         </div>
@@ -1638,6 +1638,10 @@ window.SANIX_CFG = {
 
 <div id="editAchatModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 modal-overlay">
   <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" id="editAchatContent"></div>
+</div>
+
+<div id="dossierFromProformaModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 modal-overlay">
+  <div class="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[85vh] overflow-y-auto" id="dossierFromProformaContent"></div>
 </div>
 
 <script>
@@ -2840,6 +2844,55 @@ const CHANTIER_STAGE_COLOR={devis:'slate',paiement:'amber',dossier:'blue',valida
 let currentChantierId=null;
 
 function parseMoney(txt){ return +String(txt||'0').replace(/[^\d]/g,'')||0; }
+
+/* ---------- Sélection d'une proforma client existante pour créer/compléter un dossier ---------- */
+async function openDossierFromProformaModal(){
+  if(!hasRole('chantier:create')){ alert('Permission refusée.'); return; }
+  const all=await idbGetAll('proforma');
+  const nonLiees=all.filter(p=>!p.chantierId).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const modal=document.getElementById('dossierFromProformaModal');
+  const content=document.getElementById('dossierFromProformaContent');
+  content.innerHTML=`
+    <div class="flex justify-between items-start mb-4">
+      <div><h2 class="text-lg font-bold">🧾 Créer un dossier depuis une proforma client</h2><p class="text-sm text-slate-500">Sélectionnez la proforma acceptée par le client.</p></div>
+      <button onclick="closeDossierFromProformaModal()" class="text-slate-400 text-xl leading-none">×</button>
+    </div>
+    <input id="dfpSearch" oninput="filterDossierFromProformaList()" placeholder="Rechercher un client ou un numéro..." class="w-full border rounded-lg px-3 py-2 text-sm mb-3">
+    <div id="dfpList" class="space-y-2 max-h-96 overflow-y-auto"></div>
+    <div class="flex justify-between items-center mt-4 pt-4 border-t">
+      <p class="text-xs text-slate-400">Seules les proformas non déjà rattachées à un dossier sont listées.</p>
+      <button onclick="closeDossierFromProformaModal();showPage('config')" class="border border-blue-600 text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold">+ Nouvelle proforma</button>
+    </div>`;
+  window._dfpRows=nonLiees;
+  renderDossierFromProformaList(nonLiees);
+  modal.classList.remove('hidden');
+  setModalOpen(true);
+}
+function renderDossierFromProformaList(rows){
+  const el=document.getElementById('dfpList'); if(!el) return;
+  el.innerHTML = rows.length ? rows.map(p=>`
+    <div class="flex items-center justify-between border rounded-lg p-3 text-sm hover:bg-slate-50">
+      <div>
+        <div class="font-semibold">${escapeHtml(p.numero)} — ${escapeHtml(p.client||'Client à renseigner')}</div>
+        <div class="text-xs text-slate-400">${p.date?new Date(p.date).toLocaleDateString('fr-FR'):'—'} • ${escapeHtml(p.total||'')} • ${(p.lignes||[]).length} ouvrage(s)</div>
+      </div>
+      <button onclick="creerDossierDepuis('${p.id}')" class="border border-blue-600 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap">Créer dossier →</button>
+    </div>`).join('') : '<p class="text-sm text-slate-400">Aucune proforma disponible. Créez-en une depuis le Configurateur → Chiffrage → Proforma.</p>';
+}
+function filterDossierFromProformaList(){
+  const q=(document.getElementById('dfpSearch').value||'').trim().toLowerCase();
+  const rows=(window._dfpRows||[]).filter(p=>!q || (p.client||'').toLowerCase().includes(q) || (p.numero||'').toLowerCase().includes(q));
+  renderDossierFromProformaList(rows);
+}
+function closeDossierFromProformaModal(){
+  document.getElementById('dossierFromProformaModal').classList.add('hidden');
+  setModalOpen(false);
+}
+async function creerDossierDepuis(proformaId){
+  closeDossierFromProformaModal();
+  await loadProforma(proformaId);
+  await createChantierFromProforma();
+}
 
 async function createChantierFromProforma(){
   if(!hasRole('chantier:create')){ alert('Permission refusée.'); return; }
