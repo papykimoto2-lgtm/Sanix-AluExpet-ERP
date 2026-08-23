@@ -12,7 +12,7 @@
     theme: {
       extend: {
         colors: {
-          blue: {50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3',900:'#312e81'}
+          blue: {50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#1d4ed8',700:'#1e40af',800:'#1e3a8a',900:'#172554'}
         }
       }
     }
@@ -34,14 +34,14 @@ window.SANIX_CFG = {
   :root{
     --ds-ink:#0b1220; --ds-ink-2:#0f172a; --ds-slate-900:#0f172a; --ds-slate-700:#334155;
     --ds-slate-500:#64748b; --ds-slate-400:#94a3b8; --ds-slate-200:#e2e8f0; --ds-slate-100:#f1f5f9;
-    --ds-surface:#ffffff; --ds-canvas:#f6f7fc;
-    --ds-accent:#4f46e5; --ds-accent-ink:#4338ca; --ds-accent-soft:#eef2ff; --ds-accent-2:#7c3aed;
+    --ds-surface:#ffffff; --ds-canvas:#f5f6f8;
+    --ds-accent:#1d4ed8; --ds-accent-ink:#1e3a8a; --ds-accent-soft:#eff6ff; --ds-accent-2:#1d4ed8;
     --ds-ok:#059669; --ds-warn:#d97706; --ds-danger:#dc2626;
-    --ds-radius-sm:8px; --ds-radius:12px; --ds-radius-lg:16px;
-    --ds-border:#e8eaf3;
+    --ds-radius-sm:6px; --ds-radius:8px; --ds-radius-lg:10px;
+    --ds-border:#e3e6ec;
     --ds-shadow-sm:0 1px 2px rgba(15,23,42,.05);
-    --ds-shadow:0 1px 3px rgba(76,29,149,.04), 0 10px 28px -10px rgba(76,29,149,.14);
-    --ds-shadow-lg:0 16px 48px -16px rgba(76,29,149,.28);
+    --ds-shadow:0 1px 2px rgba(15,23,42,.04), 0 4px 14px -6px rgba(15,23,42,.10);
+    --ds-shadow-lg:0 10px 30px -12px rgba(15,23,42,.20);
     --ds-mono:ui-monospace,'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
     --ds-font:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   }
@@ -67,7 +67,7 @@ window.SANIX_CFG = {
   .glass{background:rgba(255,255,255,.88);backdrop-filter:blur(12px)}
 
   /* Sidebar */
-  .sidebar{background:linear-gradient(180deg,#0b1020 0%,#0f1230 55%,#151238 100%);border-right:1px solid rgba(255,255,255,.05)}
+  .sidebar{background:#0f172a;border-right:1px solid rgba(255,255,255,.05)}
   #sidebar{scrollbar-width:thin;scrollbar-color:#334155 transparent}
   #sidebar::-webkit-scrollbar{width:6px}
   #sidebar::-webkit-scrollbar-track{background:transparent}
@@ -75,24 +75,22 @@ window.SANIX_CFG = {
   #sidebar::-webkit-scrollbar-thumb:hover{background:#475569}
   .nav{color:#cbd5e1;transition:background .12s ease,color .12s ease}
   .nav:hover{background:rgba(255,255,255,.06);color:#fff}
-  .active{background:linear-gradient(90deg,rgba(79,70,229,.35),rgba(124,58,237,.18))!important;color:#fff!important;font-weight:600;box-shadow:inset 2px 0 0 var(--ds-accent-2)}
-  #authGate .text-blue-600{background:linear-gradient(135deg,var(--ds-accent),var(--ds-accent-2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .active{background:var(--ds-accent)!important;color:#fff!important;font-weight:600}
 
   /* Header */
-  header{border-bottom:1px solid var(--ds-border);background:rgba(255,255,255,.85);backdrop-filter:blur(10px) saturate(1.2)}
+  header{border-bottom:1px solid var(--ds-border);background:#ffffff}
 
-  /* Cards — SaaS hover-lift */
-  .card{background:var(--ds-surface);border:1px solid var(--ds-border);box-shadow:var(--ds-shadow-sm);border-radius:var(--ds-radius-lg);transition:box-shadow .18s ease,transform .18s ease,border-color .18s ease}
-  .card:hover{box-shadow:var(--ds-shadow);border-color:#dcdff0}
+  /* Cards — sobre, discret */
+  .card{background:var(--ds-surface);border:1px solid var(--ds-border);box-shadow:var(--ds-shadow-sm);border-radius:var(--ds-radius-lg);transition:box-shadow .15s ease}
+  .card:hover{box-shadow:var(--ds-shadow)}
 
   /* Inputs */
   input,select,textarea{outline:none;transition:border-color .12s ease,box-shadow .12s ease;font-family:var(--ds-font)}
   input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(37,99,235,.14);border-color:var(--ds-accent)!important}
   input::placeholder,textarea::placeholder{color:#a0aec0}
 
-  /* Badges — status pill SaaS (puce = currentColor, s'aligne auto sur bg-*-50 text-*-700) */
-  .badge{font-size:.7rem;font-weight:700;padding:.25rem .6rem .25rem .5rem;border-radius:999px;letter-spacing:.01em;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
-  .badge::before{content:'';display:inline-block;width:5px;height:5px;flex-shrink:0;border-radius:999px;background:currentColor;opacity:.85}
+  /* Badges — statuts discrets */
+  .badge{font-size:.7rem;font-weight:600;padding:.25rem .6rem;border-radius:5px;letter-spacing:.01em;white-space:nowrap}
 
   /* Buttons — universal interaction polish (colors/classes untouched) */
   button{transition:background-color .12s ease,color .12s ease,border-color .12s ease,transform .08s ease,box-shadow .12s ease;cursor:pointer}
@@ -109,15 +107,14 @@ window.SANIX_CFG = {
   .etude-tab-btn,.ref-tab-btn,.flux-view-btn,.cat-tab-btn,.stock-tab-btn,.prod-tab-btn{color:var(--ds-slate-500);background:transparent;border-radius:8px;font-weight:600;transition:background-color .12s ease,color .12s ease}
   .etude-tab-btn:hover,.ref-tab-btn:hover,.cat-tab-btn:hover,.stock-tab-btn:hover,.prod-tab-btn:hover{background:var(--ds-slate-100);color:var(--ds-slate-700)}
   .flux-view-btn:hover{background:#e2e8f0}
-  .etude-tab-btn.active,.ref-tab-btn.active,.cat-tab-btn.active,.stock-tab-btn.active,.prod-tab-btn.active{background:linear-gradient(135deg,var(--ds-accent),var(--ds-accent-2));color:#fff;box-shadow:0 4px 14px -4px rgba(79,70,229,.45)}
+  .etude-tab-btn.active,.ref-tab-btn.active,.cat-tab-btn.active,.stock-tab-btn.active,.prod-tab-btn.active{background:var(--ds-accent);color:#fff;box-shadow:var(--ds-shadow-sm)}
   .flux-view-btn.active{background:#fff;color:var(--ds-ink-2);box-shadow:0 1px 3px rgba(0,0,0,.1)}
 
-  /* Page transition */
-  .page:not(.hidden){animation:dsFadeUp .16s ease}
-  @keyframes dsFadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+  /* Page — pas d'animation, aspect statique robuste */
 
   /* KPI number emphasis */
   .text-3xl.font-black{letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .card:has(.text-3xl.font-black){border-left:3px solid var(--ds-accent)}
 
   @media (max-width:767px){
     .sidebar{position:fixed;inset:0 25% 0 0;z-index:40;transform:translateX(-100%);transition:transform .25s ease;overflow-y:auto;display:block!important}
