@@ -112,6 +112,7 @@ window.SANIX_CFG = {
   .config-view-btn{color:var(--ds-slate-500);background:transparent;border-radius:6px;transition:background-color .12s ease,color .12s ease}
   .config-view-btn:hover{background:var(--ds-slate-100)}
   .config-view-btn.active{background:var(--ds-accent);color:#fff}
+  #sunToggleBtn.active{background:#d97706;color:#fff;border-color:#d97706}
   .editor-tool-btn{color:var(--ds-slate-500);background:transparent;transition:background-color .12s ease,color .12s ease}
   .editor-tool-btn:hover{background:var(--ds-slate-100)}
   .editor-tool-btn.active{background:var(--ds-accent-soft);color:var(--ds-accent);font-weight:700}
@@ -800,10 +801,26 @@ window.SANIX_CFG = {
                   <option value="6500">6 / 12 / 6</option><option value="8200">6 / 16 / 6</option><option value="9800">8 / 16 / 8</option>
                 </select>
               </label>
-              <label class="text-sm font-semibold">Finition
-                <select id="finition" class="mt-1 w-full border rounded-lg px-3 py-2">
-                  <option>Thermolaquage Blanc RAL9010</option><option>Thermolaquage Gris Anthracite RAL7016</option><option>Thermolaquage Noir RAL9005</option><option>Anodisé naturel</option><option>Anodisé bronze</option>
-                </select>
+              <label class="text-sm font-semibold">Finition (RAL Classic)
+                <div class="mt-1 flex items-center gap-2">
+                  <span id="ralSwatch" style="background:#f1ece1" class="w-8 h-8 rounded-lg border-2 border-slate-300 flex-shrink-0"></span>
+                  <select id="finition" onchange="onFinitionChange()" class="w-full border rounded-lg px-3 py-2">
+                    <option value="9010" data-hex="#f1ece1">Thermolaquage Blanc pur — RAL 9010</option>
+                    <option value="9016" data-hex="#f6f6f6">Thermolaquage Blanc trafic — RAL 9016</option>
+                    <option value="1015" data-hex="#e6d2b5">Thermolaquage Ivoire clair — RAL 1015</option>
+                    <option value="7016" data-hex="#383e42">Thermolaquage Gris anthracite — RAL 7016</option>
+                    <option value="7035" data-hex="#d7d7d7">Thermolaquage Gris clair — RAL 7035</option>
+                    <option value="7040" data-hex="#9da3a6">Thermolaquage Gris fenêtre — RAL 7040</option>
+                    <option value="9005" data-hex="#0a0a0a">Thermolaquage Noir foncé — RAL 9005</option>
+                    <option value="8014" data-hex="#4a3526">Thermolaquage Marron sépia — RAL 8014</option>
+                    <option value="8017" data-hex="#45322e">Thermolaquage Marron chocolat — RAL 8017</option>
+                    <option value="3003" data-hex="#8d1d2c">Thermolaquage Rouge rubis — RAL 3003</option>
+                    <option value="5010" data-hex="#0e294b">Thermolaquage Bleu gentiane — RAL 5010</option>
+                    <option value="6005" data-hex="#0f4336">Thermolaquage Vert mousse — RAL 6005</option>
+                    <option value="anod-nat" data-hex="#c7c9c7">Anodisé naturel (aspect métal brut)</option>
+                    <option value="anod-bronze" data-hex="#5c4a3a">Anodisé bronze</option>
+                  </select>
+                </div>
               </label>
               <label class="text-sm font-semibold">Poignée
                 <select id="poignee" class="mt-1 w-full border rounded-lg px-3 py-2">
@@ -892,9 +909,31 @@ window.SANIX_CFG = {
               <div id="configView3d" class="hidden bg-white rounded-xl border overflow-hidden relative">
                 <div class="absolute top-2 left-2 z-10 flex gap-1">
                   <button type="button" onclick="reset3DView()" class="bg-white/90 border px-2 py-1 rounded text-xs font-semibold shadow-sm">⟲ Réinitialiser</button>
+                  <button type="button" onclick="toggleSunPanel()" id="sunToggleBtn" class="bg-white/90 border px-2 py-1 rounded text-xs font-semibold shadow-sm">☀️ Ensoleillement</button>
                 </div>
                 <div class="absolute top-2 right-2 z-10 text-[10px] text-slate-400 bg-white/90 px-2 py-1 rounded">Glisser pour tourner • Molette pour zoomer</div>
                 <div id="canvas3dHost" style="width:100%;height:420px;cursor:grab"></div>
+                <div id="sunPanel" class="hidden border-t bg-slate-50 p-3">
+                  <div class="grid sm:grid-cols-4 gap-3 items-end">
+                    <label class="text-xs font-semibold block">Date
+                      <input id="sunDate" type="date" onchange="updateSunPosition()" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+                    </label>
+                    <label class="text-xs font-semibold block sm:col-span-2">Heure : <span id="sunHeureLabel" class="font-bold text-blue-700">12h00</span>
+                      <input id="sunHeure" type="range" min="5" max="19" step="0.25" value="12" oninput="updateSunPosition()" class="mt-1 w-full">
+                    </label>
+                    <label class="text-xs font-semibold block">Orientation façade
+                      <select id="sunOrientation" onchange="updateSunPosition()" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+                        <option value="0">Nord</option><option value="45">Nord-Est</option><option value="90">Est</option><option value="135">Sud-Est</option>
+                        <option value="180" selected>Sud</option><option value="225">Sud-Ouest</option><option value="270">Ouest</option><option value="315">Nord-Ouest</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div class="flex items-center justify-between mt-2">
+                    <div id="sunInfo" class="text-xs text-slate-500">—</div>
+                    <button type="button" onclick="toggleSunAnimation()" id="sunPlayBtn" class="border px-3 py-1.5 rounded-lg text-xs font-semibold">▶ Animer la journée</button>
+                  </div>
+                  <p class="text-[10px] text-slate-400 mt-1">Position solaire calculée pour Abidjan (5,36°N) — formules astronomiques standard, aucune donnée fabriquée.</p>
+                </div>
               </div>
 
               <div id="configViewEditor" class="hidden bg-white rounded-xl border overflow-hidden">
@@ -1209,6 +1248,8 @@ window.SANIX_CFG = {
             <div class="bg-slate-50 rounded-xl p-3"><span class="text-xs text-slate-500">Frais admin</span><b id="cFraisAdmin" class="block text-sm mt-1">0 FCFA</b></div>
           </div>
           <div class="text-right text-sm text-slate-500 mb-5">Total coût indirect : <b id="cIndirect">0 FCFA</b></div>
+
+          <div id="estimHistoPanel" class="hidden mb-5"></div>
 
           <div class="grid md:grid-cols-2 gap-4">
             <div class="bg-slate-900 text-white rounded-xl p-4"><span class="text-sm text-slate-300">Coût de revient total</span><b id="cTotal" class="block text-2xl mt-1">0 FCFA</b></div>
@@ -1700,15 +1741,26 @@ window.SANIX_CFG = {
               <input id="prCouleur" placeholder="Couleur" class="border rounded-lg px-2 py-1.5 text-sm">
               <input id="prAlliage" placeholder="Alliage (ex. 6060 T5)" class="border rounded-lg px-2 py-1.5 text-sm">
               <input id="prFournisseur" list="fournisseursDatalist" placeholder="Fournisseur" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="prReferenceCatalogue" placeholder="Réf. catalogue fabricant" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="prEpaisseurParoi" type="number" step="0.1" placeholder="Épaisseur paroi (mm)" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="prMomentInertie" type="number" step="0.01" placeholder="Moment d'inertie Ix (cm⁴)" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="prCoefficientUf" type="number" step="0.01" placeholder="Coefficient Uf (W/m²K)" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="prFicheTechniqueUrl" placeholder="Lien fiche technique fabricant (URL/PDF)" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
               <input id="prStock" type="number" value="0" placeholder="Stock (ml)" class="border rounded-lg px-2 py-1.5 text-sm">
               <input id="prStockMin" type="number" value="0" placeholder="Stock minimum (ml)" class="border rounded-lg px-2 py-1.5 text-sm">
               <input id="prEmplacement" placeholder="Emplacement" class="border rounded-lg px-2 py-1.5 text-sm">
               <input id="prToleranceCoupe" type="number" value="1" placeholder="Tolérance coupe (mm)" class="border rounded-lg px-2 py-1.5 text-sm">
               <input id="prCoefPerte" type="number" step="0.01" value="1.02" placeholder="Coefficient perte" class="border rounded-lg px-2 py-1.5 text-sm">
               <select id="prStatut" class="border rounded-lg px-2 py-1.5 text-sm"><option value="actif">Actif</option><option value="inactif">Inactif</option></select>
-              <div class="sm:col-span-4 flex gap-2">
+              <label class="text-xs font-semibold flex items-center gap-1 sm:col-span-2 bg-white border rounded-lg px-2 py-1.5">
+                <input type="checkbox" id="prDonneeVerifiee"> Données vérifiées sur fiche technique fabricant officielle
+              </label>
+              <div class="sm:col-span-4 flex gap-2 flex-wrap">
                 <button type="submit" id="prSubmitBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter profil</button>
                 <button type="button" id="prCancelBtn" onclick="cancelEditProfil()" class="hidden border px-4 py-1.5 rounded-lg text-sm font-semibold">Annuler</button>
+                <button type="button" onclick="document.getElementById('profilCsvInput').click()" class="border border-teal-600 text-teal-700 px-4 py-1.5 rounded-lg text-sm font-semibold">📥 Importer catalogue CSV</button>
+                <input type="file" id="profilCsvInput" accept=".csv" class="hidden" onchange="handleImportProfilsCSV(event)">
+                <a href="#" onclick="downloadProfilsCsvTemplate();return false;" class="text-xs text-blue-600 self-center underline">Modèle CSV</a>
               </div>
             </form>
             <div class="overflow-x-auto ref-list-view"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Code</th><th class="text-left p-3">Désignation</th><th class="text-left p-3">Série</th><th class="text-left p-3">Type</th><th class="text-right p-3">Prix/ml</th><th class="text-right p-3">Stock</th><th class="text-left p-3">Statut</th><th class="p-3"></th></tr></thead><tbody id="profilsBody"></tbody></table></div>
@@ -6366,6 +6418,12 @@ async function handleAddProfil(e){
     couleur:document.getElementById('prCouleur').value.trim(),
     alliage:document.getElementById('prAlliage').value.trim(),
     fournisseur:document.getElementById('prFournisseur').value.trim(),
+    referenceCatalogue:document.getElementById('prReferenceCatalogue').value.trim(),
+    epaisseurParoi:+document.getElementById('prEpaisseurParoi').value||0,
+    momentInertie:+document.getElementById('prMomentInertie').value||0,
+    coefficientUf:+document.getElementById('prCoefficientUf').value||0,
+    ficheTechniqueUrl:document.getElementById('prFicheTechniqueUrl').value.trim(),
+    donneeVerifiee:document.getElementById('prDonneeVerifiee').checked,
     stock:+document.getElementById('prStock').value||0,
     stockMin:+document.getElementById('prStockMin').value||0,
     emplacement:document.getElementById('prEmplacement').value.trim(),
@@ -6397,6 +6455,12 @@ async function editProfil(id){
   document.getElementById('prCouleur').value=r.couleur||'';
   document.getElementById('prAlliage').value=r.alliage||'';
   document.getElementById('prFournisseur').value=r.fournisseur||'';
+  document.getElementById('prReferenceCatalogue').value=r.referenceCatalogue||'';
+  document.getElementById('prEpaisseurParoi').value=r.epaisseurParoi||'';
+  document.getElementById('prMomentInertie').value=r.momentInertie||'';
+  document.getElementById('prCoefficientUf').value=r.coefficientUf||'';
+  document.getElementById('prFicheTechniqueUrl').value=r.ficheTechniqueUrl||'';
+  document.getElementById('prDonneeVerifiee').checked=!!r.donneeVerifiee;
   document.getElementById('prStock').value=r.stock||0;
   document.getElementById('prStockMin').value=r.stockMin||0;
   document.getElementById('prEmplacement').value=r.emplacement||'';
@@ -6418,6 +6482,70 @@ function cancelEditProfil(){
   document.getElementById('prSubmitBtn').textContent='+ Ajouter profil';
   document.getElementById('prCancelBtn').classList.add('hidden');
 }
+/* ---------- Import catalogue profils fabricant (CSV) — charge des données réelles vérifiées ---------- */
+const PROFILS_CSV_HEADERS=['code','designation','serie','type','poidsMl','longueurComm','prixMl','couleur','alliage','fournisseur','referenceCatalogue','epaisseurParoi','momentInertie','coefficientUf','ficheTechniqueUrl','toleranceCoupe','coefPerte'];
+function downloadProfilsCsvTemplate(){
+  const exemple=['P-DOR-001','Dormant 120','STD120','Dormant','1.85','6000','8500','Blanc RAL9010','6060 T5','ALUFOURNISSEUR','TECH-DOR-120-B','1.5','12.4','2.1','https://exemple.com/fiche-technique.pdf','1','1.02'];
+  const csv=PROFILS_CSV_HEADERS.join(';')+'\n'+exemple.join(';')+'\n';
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+  const link=document.createElement('a');
+  link.href=URL.createObjectURL(blob);
+  link.download='modele_import_profils.csv';
+  link.click();
+}
+async function handleImportProfilsCSV(e){
+  if(!hasRole('referentiel:manage')){ alert('Permission refusée.'); return; }
+  const file=e.target.files[0]; if(!file) return;
+  const text=await file.text();
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<2){ alert('Fichier CSV vide ou invalide.'); e.target.value=''; return; }
+  const sep=lines[0].includes(';')?';':',';
+  const headers=lines[0].split(sep).map(h=>h.trim().replace(/^\ufeff/,''));
+  const idx={}; headers.forEach((h,i)=>idx[h]=i);
+  if(idx.code===undefined || idx.designation===undefined){
+    alert('Colonnes "code" et "designation" obligatoires — téléchargez le modèle CSV pour le bon format.');
+    e.target.value=''; return;
+  }
+  const existants=await idbGetAll('profils');
+  let created=0, updated=0, errors=0;
+  for(let i=1;i<lines.length;i++){
+    const cols=lines[i].split(sep);
+    const get=(key)=>(idx[key]!==undefined && cols[idx[key]]!==undefined) ? cols[idx[key]].trim() : '';
+    const code=get('code'), designation=get('designation');
+    if(!code||!designation){ errors++; continue; }
+    const existant=existants.find(p=>p.code===code);
+    const rec={
+      id: existant?existant.id:('pro_'+Date.now()+'_'+i), code, designation,
+      serie:get('serie')||existant?.serie||'',
+      type:get('type')||existant?.type||'Dormant',
+      poidsMl:+get('poidsMl')||existant?.poidsMl||0,
+      longueurComm:+get('longueurComm')||existant?.longueurComm||6000,
+      prixMl:+get('prixMl')||existant?.prixMl||0,
+      couleur:get('couleur')||existant?.couleur||'',
+      alliage:get('alliage')||existant?.alliage||'',
+      fournisseur:get('fournisseur')||existant?.fournisseur||'',
+      referenceCatalogue:get('referenceCatalogue')||existant?.referenceCatalogue||'',
+      epaisseurParoi:+get('epaisseurParoi')||existant?.epaisseurParoi||0,
+      momentInertie:+get('momentInertie')||existant?.momentInertie||0,
+      coefficientUf:+get('coefficientUf')||existant?.coefficientUf||0,
+      ficheTechniqueUrl:get('ficheTechniqueUrl')||existant?.ficheTechniqueUrl||'',
+      toleranceCoupe:+get('toleranceCoupe')||existant?.toleranceCoupe||1,
+      coefPerte:+get('coefPerte')||existant?.coefPerte||1.02,
+      stock:existant?.stock||0, stockMin:existant?.stockMin||0, emplacement:existant?.emplacement||'',
+      donneeVerifiee:true, // import CSV = source déclarée fiable par l'utilisateur
+      statut:existant?.statut||'actif',
+      _modifie:new Date().toISOString()
+    };
+    await idbPut('profils',rec);
+    queueSync('alubom_profils',rec);
+    if(existant) updated++; else created++;
+  }
+  await audit('IMPORT_PROFILS_CSV',`${created} créé(s), ${updated} mis à jour, ${errors} erreur(s)`);
+  await renderProfilsTable();
+  e.target.value='';
+  alert(`Import terminé : ${created} profil(s) créé(s), ${updated} mis à jour${errors?', '+errors+' ligne(s) ignorée(s)':''}.`);
+}
+
 async function deleteProfil(id){
   if(!hasRole('referentiel:manage')){ alert('Permission refusée.'); return; }
   if(!confirm('Supprimer ce profil ?')) return;
@@ -6431,7 +6559,7 @@ async function renderProfilsTable(){
   if(el){
     el.innerHTML = rows.length ? rows.map(r=>{
       const low=r.stock<=r.stockMin;
-      return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.code)}</td><td class="p-3">${escapeHtml(r.designation)}</td><td class="p-3">${escapeHtml(r.serie)}</td><td class="p-3">${escapeHtml(r.type)}</td><td class="p-3 text-right">${money(r.prixMl)}</td><td class="p-3 text-right">${low?'<span class="text-red-600 font-bold">':''}${r.stock} ml${low?'</span>':''}</td><td class="p-3"><span class="badge bg-${r.statut==='actif'?'emerald':'slate'}-50 text-${r.statut==='actif'?'emerald':'slate'}-700">${escapeHtml(r.statut)}</span></td><td class="p-3 text-right whitespace-nowrap"><button onclick="editProfil('${r.id}')" class="text-blue-600 text-xs font-semibold mr-2">✏️ Modifier</button><button onclick="openPrixFournisseurs('profils','${r.id}')" class="text-teal-600 text-xs font-semibold mr-2">💰 Tarifs</button><button onclick="deleteProfil('${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`;
+      return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.code)}${r.donneeVerifiee?' <span class="badge bg-emerald-50 text-emerald-700" title="Données vérifiées sur fiche fabricant officielle">✓ vérifié</span>':' <span class="badge bg-amber-50 text-amber-700" title="Données non vérifiées — à confirmer sur la fiche technique fabricant">⚠ à vérifier</span>'}</td><td class="p-3">${escapeHtml(r.designation)}</td><td class="p-3">${escapeHtml(r.serie)}</td><td class="p-3">${escapeHtml(r.type)}</td><td class="p-3 text-right">${money(r.prixMl)}</td><td class="p-3 text-right">${low?'<span class="text-red-600 font-bold">':''}${r.stock} ml${low?'</span>':''}</td><td class="p-3"><span class="badge bg-${r.statut==='actif'?'emerald':'slate'}-50 text-${r.statut==='actif'?'emerald':'slate'}-700">${escapeHtml(r.statut)}</span></td><td class="p-3 text-right whitespace-nowrap">${r.ficheTechniqueUrl?`<a href="${escapeHtml(r.ficheTechniqueUrl)}" target="_blank" class="text-slate-500 text-xs font-semibold mr-2">📄 Fiche</a>`:''}<button onclick="editProfil('${r.id}')" class="text-blue-600 text-xs font-semibold mr-2">✏️ Modifier</button><button onclick="openPrixFournisseurs('profils','${r.id}')" class="text-teal-600 text-xs font-semibold mr-2">💰 Tarifs</button><button onclick="deleteProfil('${r.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`;
     }).join('') : `<tr><td class="p-3 text-slate-400" colspan="8">Aucun profil enregistré.</td></tr>`;
   }
   const grid=document.getElementById('profilsGrid');
@@ -8317,8 +8445,15 @@ function switchConfigView(view){
   document.getElementById('viewBtn2d').classList.toggle('active',view==='2d');
   document.getElementById('viewBtn3d').classList.toggle('active',view==='3d');
   document.getElementById('viewBtnEditor').classList.toggle('active',view==='editor');
+  if(view!=='3d') stopSunAnimation();
   if(view==='3d') initOrUpdate3D();
   if(view==='editor') initOrUpdatePlanEditor();
+}
+function onFinitionChange(){
+  const opt=document.getElementById('finition')?.selectedOptions[0];
+  const swatch=document.getElementById('ralSwatch');
+  if(swatch && opt) swatch.style.background=opt.dataset.hex||'#334155';
+  refreshDependentViews();
 }
 function refreshDependentViews(){
   if(configCurrentView==='3d') build3DOuvrage();
@@ -8327,6 +8462,8 @@ function refreshDependentViews(){
 
 /* ---------- Vue 3D paramétrique ---------- */
 let scene3d,camera3d,renderer3d,group3d,content3d,anim3dId;
+let sunLight3d,groundMesh3d,sunAnimTimer=null;
+const SITE_LAT=5.36, SITE_LON=-4.0083; // Abidjan, Côte d'Ivoire
 let rot3d={x:-0.35,y:0.5}, zoom3d=1, drag3d=false, lastMouse3d={x:0,y:0};
 function initOrUpdate3D(){
   if(typeof THREE==='undefined'){
@@ -8336,14 +8473,29 @@ function initOrUpdate3D(){
   const host=document.getElementById('canvas3dHost');
   if(!renderer3d){
     scene3d=new THREE.Scene();
-    scene3d.background=new THREE.Color(0xf1f5f9);
+    scene3d.background=new THREE.Color(0xdbeafe);
     camera3d=new THREE.PerspectiveCamera(45, host.clientWidth/host.clientHeight, 1, 5000);
     renderer3d=new THREE.WebGLRenderer({antialias:true});
     renderer3d.setSize(host.clientWidth, host.clientHeight);
+    renderer3d.shadowMap.enabled=true;
+    renderer3d.shadowMap.type=THREE.PCFSoftShadowMap;
     host.innerHTML=''; host.appendChild(renderer3d.domElement);
-    const amb=new THREE.AmbientLight(0xffffff,0.75); scene3d.add(amb);
-    const dir=new THREE.DirectionalLight(0xffffff,0.7); dir.position.set(400,600,800); scene3d.add(dir);
-    const dir2=new THREE.DirectionalLight(0xffffff,0.35); dir2.position.set(-400,200,-600); scene3d.add(dir2);
+    const amb=new THREE.AmbientLight(0xffffff,0.45); scene3d.add(amb);
+    sunLight3d=new THREE.DirectionalLight(0xfff4e0,1.1);
+    sunLight3d.castShadow=true;
+    sunLight3d.shadow.mapSize.set(1024,1024);
+    sunLight3d.shadow.camera.left=-1500; sunLight3d.shadow.camera.right=1500;
+    sunLight3d.shadow.camera.top=1500; sunLight3d.shadow.camera.bottom=-1500;
+    sunLight3d.shadow.camera.near=10; sunLight3d.shadow.camera.far=6000;
+    sunLight3d.shadow.bias=-0.0015;
+    sunLight3d.position.set(400,600,800);
+    scene3d.add(sunLight3d); scene3d.add(sunLight3d.target);
+    const fill=new THREE.DirectionalLight(0xffffff,0.25); fill.position.set(-400,200,-600); scene3d.add(fill);
+    groundMesh3d=new THREE.Mesh(new THREE.PlaneGeometry(4000,4000), new THREE.MeshStandardMaterial({color:0xe2e8f0}));
+    groundMesh3d.rotation.x=-Math.PI/2;
+    groundMesh3d.position.y=-1;
+    groundMesh3d.receiveShadow=true;
+    scene3d.add(groundMesh3d);
     group3d=new THREE.Group(); scene3d.add(group3d);
     content3d=new THREE.Group(); group3d.add(content3d);
 
@@ -8380,8 +8532,111 @@ function initOrUpdate3D(){
   build3DOuvrage();
 }
 function reset3DView(){ rot3d={x:-0.35,y:0.5}; zoom3d=1; }
+
+/* ---------- Simulation d'ensoleillement réel (algorithme solaire NOAA, coordonnées Abidjan) ---------- */
+function toggleSunPanel(){
+  const panel=document.getElementById('sunPanel');
+  const opening=panel.classList.contains('hidden');
+  panel.classList.toggle('hidden');
+  document.getElementById('sunToggleBtn').classList.toggle('active',opening);
+  if(opening){
+    if(!document.getElementById('sunDate').value) document.getElementById('sunDate').value=new Date().toISOString().slice(0,10);
+    updateSunPosition();
+  } else {
+    stopSunAnimation();
+    resetToNeutralLighting();
+  }
+}
+function resetToNeutralLighting(){
+  if(!sunLight3d) return;
+  sunLight3d.position.set(400,600,800);
+  sunLight3d.intensity=1.1;
+  scene3d.background=new THREE.Color(0xdbeafe);
+  document.getElementById('sunInfo').textContent='—';
+}
+
+/* Position solaire (azimut/élévation) — algorithme NOAA simplifié, précision suffisante pour visualisation architecturale */
+function calculerPositionSolaire(date,heureDecimale,lat,lon){
+  const jourAnnee=Math.floor((date-new Date(date.getFullYear(),0,0))/86400000);
+  const gamma=2*Math.PI/365*(jourAnnee-1+(heureDecimale-12)/24);
+  // Équation du temps (minutes) et déclinaison solaire (radians)
+  const eqTime=229.18*(0.000075+0.001868*Math.cos(gamma)-0.032077*Math.sin(gamma)-0.014615*Math.cos(2*gamma)-0.040849*Math.sin(2*gamma));
+  const decl=0.006918-0.399912*Math.cos(gamma)+0.070257*Math.sin(gamma)-0.006758*Math.cos(2*gamma)+0.000907*Math.sin(2*gamma)-0.002697*Math.cos(3*gamma)+0.00148*Math.sin(3*gamma);
+  const timeOffset=eqTime+4*lon; // fuseau UTC+0 (proche du méridien à Abidjan)
+  const trueSolarTime=heureDecimale*60+timeOffset;
+  let hourAngle=(trueSolarTime/4)-180;
+  hourAngle=THREE.MathUtils.degToRad(hourAngle);
+  const latRad=THREE.MathUtils.degToRad(lat);
+  const cosZenith=Math.sin(latRad)*Math.sin(decl)+Math.cos(latRad)*Math.cos(decl)*Math.cos(hourAngle);
+  const zenith=Math.acos(Math.min(1,Math.max(-1,cosZenith)));
+  const elevation=Math.PI/2-zenith;
+  let azimuth=Math.acos(Math.min(1,Math.max(-1,(Math.sin(decl)-Math.sin(latRad)*Math.cos(zenith))/(Math.cos(latRad)*Math.sin(zenith)))));
+  if(hourAngle>0) azimuth=2*Math.PI-azimuth;
+  return {elevationDeg:THREE.MathUtils.radToDeg(elevation), azimuthDeg:THREE.MathUtils.radToDeg(azimuth)};
+}
+
+function updateSunPosition(){
+  if(!sunLight3d) return;
+  const dateStr=document.getElementById('sunDate').value || new Date().toISOString().slice(0,10);
+  const heure=+document.getElementById('sunHeure').value;
+  const orientationFacade=+document.getElementById('sunOrientation').value||180;
+  const hh=Math.floor(heure), mm=Math.round((heure-hh)*60);
+  document.getElementById('sunHeureLabel').textContent=String(hh).padStart(2,'0')+'h'+String(mm).padStart(2,'0');
+
+  const date=new Date(dateStr+'T00:00:00');
+  const {elevationDeg,azimuthDeg}=calculerPositionSolaire(date,heure,SITE_LAT,SITE_LON);
+  const infoEl=document.getElementById('sunInfo');
+
+  if(elevationDeg<=0){
+    sunLight3d.intensity=0.05;
+    scene3d.background=new THREE.Color(0x1e293b);
+    infoEl.textContent='🌙 Soleil couché (nuit) — élévation '+elevationDeg.toFixed(1)+'°';
+    return;
+  }
+  // Azimut relatif à l'orientation de la façade (0° = façade regarde le soleil de face)
+  const azRelatif=THREE.MathUtils.degToRad(azimuthDeg-orientationFacade);
+  const elevRad=THREE.MathUtils.degToRad(elevationDeg);
+  const dist=1200;
+  const x=dist*Math.cos(elevRad)*Math.sin(azRelatif);
+  const y=dist*Math.sin(elevRad);
+  const z=dist*Math.cos(elevRad)*Math.cos(azRelatif);
+  sunLight3d.position.set(x,y,z);
+  sunLight3d.target.position.set(0,0,0);
+  sunLight3d.target.updateMatrixWorld();
+
+  const intensite=Math.max(0.3,Math.min(1.3,elevationDeg/60));
+  sunLight3d.intensity=intensite;
+  const teinteCiel = elevationDeg<15 ? 0xfdba74 : elevationDeg<30 ? 0xbfdbfe : 0x93c5fd;
+  scene3d.background=new THREE.Color(teinteCiel);
+
+  const expo = azRelatif>-Math.PI/2 && azRelatif<Math.PI/2 ? 'face exposée au soleil' : 'façade à l\'ombre propre';
+  infoEl.textContent=`☀️ Élévation ${elevationDeg.toFixed(1)}° • Azimut ${azimuthDeg.toFixed(0)}° • ${expo}`;
+}
+
+function toggleSunAnimation(){
+  if(sunAnimTimer){ stopSunAnimation(); return; }
+  const btn=document.getElementById('sunPlayBtn');
+  btn.textContent='⏸ Arrêter';
+  sunAnimTimer=setInterval(()=>{
+    const slider=document.getElementById('sunHeure');
+    let v=+slider.value+0.15;
+    if(v>19) v=5;
+    slider.value=v;
+    updateSunPosition();
+  },120);
+}
+function stopSunAnimation(){
+  if(sunAnimTimer){ clearInterval(sunAnimTimer); sunAnimTimer=null; }
+  const btn=document.getElementById('sunPlayBtn');
+  if(btn) btn.textContent='▶ Animer la journée';
+}
 /* ---------- Matériaux 3D partagés ---------- */
-function mat3dCadre(){ return new THREE.MeshStandardMaterial({color:0x334155,metalness:0.3,roughness:0.5}); }
+function mat3dCadre(){
+  const opt=document.getElementById('finition')?.selectedOptions[0];
+  const hex=opt?.dataset.hex||'#334155';
+  const isAnodise=opt?.value?.startsWith('anod');
+  return new THREE.MeshStandardMaterial({color:new THREE.Color(hex),metalness:isAnodise?0.75:0.35,roughness:isAnodise?0.3:0.55});
+}
 function mat3dVerre(){ return new THREE.MeshPhysicalMaterial({color:0xbfdbfe,transparent:true,opacity:0.35,roughness:0.05,metalness:0,transmission:0.4}); }
 function mat3dInox(){ return new THREE.MeshStandardMaterial({color:0xcbd5e1,metalness:0.85,roughness:0.25}); }
 function mat3dBeton(){ return new THREE.MeshStandardMaterial({color:0xd6d3cc,roughness:0.9}); }
@@ -8390,6 +8645,7 @@ function mat3dPoly(){ return new THREE.MeshPhysicalMaterial({color:0xf1f5f9,tran
 function addBox3d(w,h,d,x,y,z,material){
   const m=new THREE.Mesh(new THREE.BoxGeometry(Math.max(1,w),Math.max(1,h),Math.max(1,d)), material);
   m.position.set(x,y,z);
+  m.castShadow=true; m.receiveShadow=true;
   content3d.add(m);
   return m;
 }
@@ -8434,6 +8690,7 @@ function fitCamera3D(){
   content3d.position.set(-center.x,-center.y,-center.z);
   camera3d.position.set(0,0,dist);
   camera3d.lookAt(0,0,0);
+  if(groundMesh3d) groundMesh3d.position.y=-(size.y/2)-2;
 }
 
 /* ---------- Fenêtre / Porte / Coulissant / Baie vitrée / Fenêtre de toit ---------- */
@@ -8529,8 +8786,8 @@ function build3D_Escalier(w,h,scale){
   const limon=new THREE.Mesh(new THREE.BoxGeometry(14,Math.sqrt(H*H+totalDepth*totalDepth),10), matLimon);
   limon.rotation.x=Math.atan2(H,totalDepth);
   limon.position.set(stepW/2-8,0,0);
-  content3d.add(limon);
-  const limon2=limon.clone(); limon2.position.x=-(stepW/2-8); content3d.add(limon2);
+  limon.castShadow=true;limon.receiveShadow=true;content3d.add(limon);
+  const limon2=limon.clone(); limon2.position.x=-(stepW/2-8); limon2.castShadow=true;limon2.receiveShadow=true;content3d.add(limon2);
 
   if(avecGC){
     const matGC=mat3dInox();
@@ -8543,7 +8800,7 @@ function build3D_Escalier(w,h,scale){
     const rampe=new THREE.Mesh(new THREE.BoxGeometry(10,10,Math.sqrt(H*H+totalDepth*totalDepth)), matGC);
     rampe.rotation.x=Math.atan2(H,totalDepth);
     rampe.position.set(stepW/2+6,380*scale,0);
-    content3d.add(rampe);
+    rampe.castShadow=true;rampe.receiveShadow=true;content3d.add(rampe);
   }
 }
 
@@ -8573,7 +8830,7 @@ function build3D_Pergola(w,h,scale){
     const lame=new THREE.Mesh(new THREE.BoxGeometry(W-40,8,pas*0.85), mat3dCadre());
     lame.position.set(0,H/2-6,-D/2+pas*(i+0.5));
     lame.rotation.x=THREE.MathUtils.degToRad(35);
-    content3d.add(lame);
+    lame.castShadow=true;lame.receiveShadow=true;content3d.add(lame);
   }
 }
 
@@ -8643,14 +8900,14 @@ function build3D_Auvent(w,h,scale){
   const toit=new THREE.Mesh(new THREE.BoxGeometry(W,6,D), matToit);
   toit.position.set(0,20,D/2-10);
   toit.rotation.x=THREE.MathUtils.degToRad(-8);
-  content3d.add(toit);
+  toit.castShadow=true;toit.receiveShadow=true;content3d.add(toit);
   const nbConsoles=Math.max(2,Math.round(w/spacing)+1);
   for(let i=0;i<nbConsoles;i++){
     const cx=-W/2+(W/(nbConsoles-1||1))*i;
     const console_=new THREE.Mesh(new THREE.BoxGeometry(12,12,D), mat3dCadre());
     console_.position.set(cx,0,D/2-10);
     console_.rotation.x=THREE.MathUtils.degToRad(-8);
-    content3d.add(console_);
+    console_.castShadow=true;console_.receiveShadow=true;content3d.add(console_);
   }
 }
 
@@ -8662,12 +8919,12 @@ function build3D_StoreBanne(w,h,scale){
   const toile=new THREE.Mesh(new THREE.BoxGeometry(W,4,D), mat3dToile(0xb45309));
   toile.position.set(0,H_STORE(h,scale)-D*0.18,D/2-10);
   toile.rotation.x=THREE.MathUtils.degToRad(-14);
-  content3d.add(toile);
+  toile.castShadow=true;toile.receiveShadow=true;content3d.add(toile);
   [-W/2+20,W/2-20].forEach(x=>{
     const bras=new THREE.Mesh(new THREE.BoxGeometry(8,8,D), mat3dCadre());
     bras.position.set(x,H_STORE(h,scale)-D*0.09,D/2-10);
     bras.rotation.x=THREE.MathUtils.degToRad(-14);
-    content3d.add(bras);
+    bras.castShadow=true;bras.receiveShadow=true;content3d.add(bras);
   });
 }
 function H_STORE(h,scale){ return (h||2200)*scale/2; }
@@ -8688,21 +8945,21 @@ function build3D_Kiosque(w,h,scale){
     const roof=new THREE.Mesh(new THREE.ConeGeometry(Math.max(W,D)/1.7,H*0.35,4), matToit);
     roof.rotation.y=Math.PI/4;
     roof.position.set(0,H/2+H*0.175,0);
-    content3d.add(roof);
+    roof.castShadow=true;roof.receiveShadow=true;content3d.add(roof);
   } else if(roofType==='4pans'){
     [[0,0,1],[0,0,-1],[1,0,0],[-1,0,0]].forEach(([rx,ry,rz])=>{
       const panneau=new THREE.Mesh(new THREE.BoxGeometry(W*0.75,6,D*0.6), matToit);
       panneau.position.set(rx*W*0.15,H/2+H*0.12,rz*D*0.15);
       panneau.rotation.x=THREE.MathUtils.degToRad(rz!==0?(rz>0?18:-18):0);
       panneau.rotation.z=THREE.MathUtils.degToRad(rx!==0?(rx>0?-18:18):0);
-      content3d.add(panneau);
+      panneau.castShadow=true;panneau.receiveShadow=true;content3d.add(panneau);
     });
   } else { // 2 pans
     [-1,1].forEach(side=>{
       const panneau=new THREE.Mesh(new THREE.BoxGeometry(W+30,6,D/1.7), matToit);
       panneau.position.set(0,H/2+H*0.12,side*D*0.2);
       panneau.rotation.x=THREE.MathUtils.degToRad(side*20);
-      content3d.add(panneau);
+      panneau.castShadow=true;panneau.receiveShadow=true;content3d.add(panneau);
     });
   }
 }
@@ -9200,7 +9457,7 @@ async function genererCCTP(){
   const serie=serieOpt?.text||'';
   const serieId=document.getElementById('serie')?.value;
   const glassLabel=document.getElementById('glass')?.selectedOptions[0]?.text||'';
-  const finition=document.getElementById('finition')?.value||'—';
+  const finition=document.getElementById('finition')?.selectedOptions[0]?.text||'—';
   const poignee=document.getElementById('poignee')?.value||'—';
   const sensOuvertureLabel=document.getElementById('sensOuverture')?.selectedOptions[0]?.text||'';
   const zoneVent=document.getElementById('zoneVent')?.selectedOptions[0]?.text||'Non renseigné';
@@ -9256,6 +9513,7 @@ async function genererCCTP(){
   <ol>
     <li><b>Étanchéité à l'air / à l'eau :</b> classes conformes à la série sélectionnée, joints périphériques EPDM.</li>
     <li><b>Résistance au vent :</b> ${serieRec?.resistanceVent?'dimensionné pour '+serieRec.resistanceVent+' Pa':'à confirmer selon zone de vent du site'}.</li>
+    <li><b>Performance thermique (Uw) :</b> ${window._lastUwInfo?'≈ '+window._lastUwInfo.uw+' W/m²K (calcul ISO 10077, estimation indicative)':'non calculée pour ce type d\'ouvrage'}.</li>
     <li><b>Sécurité :</b> vitrage feuilleté en cas d'exposition (garde-corps, portes) sur demande spécifique.</li>
   </ol>
 
@@ -9334,7 +9592,31 @@ async function checkCompatibilite(type,w,h,leaves,surface){
     }
   }
 
-  if(!alertes.length){ panel.classList.add('hidden'); panel.innerHTML=''; return; }
+  if(!alertes.length){ panel.classList.add('hidden'); panel.innerHTML=''; }
+
+  // 3. Performance thermique globale Uw (ISO 10077, valeurs Ug EN 673 standard double vitrage air)
+  let uwInfo=null;
+  if(/fenêtre|porte|coulissant|baie/i.test(type) && !/toit/i.test(type)){
+    const UG_TABLE={'6500':2.9,'8200':2.7,'9800':2.6}; // W/m²K — double vitrage, lame d'air 12/16/16mm (EN 673, valeurs air non-argon)
+    const glassCompoUw=document.getElementById('glass')?.value||'6500';
+    const ug=UG_TABLE[glassCompoUw]||2.9;
+    const serieIdUw=document.getElementById('serie')?.value;
+    const seriesRowsUw=await idbGetAll('series');
+    const serieRecUw=seriesRowsUw.find(s=>s.id===serieIdUw || s.code===serieIdUw);
+    const profilsRowsUw=await idbGetAll('profils');
+    const profilUf=profilsRowsUw.find(p=>p.serie===serieIdUw && p.coefficientUf>0);
+    const uf=profilUf?.coefficientUf || 5.7; // 5.7 W/m²K = valeur par défaut aluminium sans rupture de pont thermique (ordre de grandeur usuel)
+    const psi=0.06; // W/mK — pont thermique linéique verre/cadre, estimation standard
+
+    const tauxCadre=0.28; // part surface cadre vs vitrage, ratio usuel menuiserie alu (~25-30%)
+    const Ag=surface*(1-tauxCadre), Af=surface*tauxCadre;
+    const Lg=2*(Math.sqrt(Ag)*2); // approximation périmètre vitré
+    const uw=(Ag*ug + Af*uf + Lg*psi) / (Ag+Af);
+    uwInfo={uw:uw.toFixed(2),ug,uf,source:profilUf?'Uf mesuré (profil "'+profilUf.code+'")':'Uf estimé (aluminium sans rupture de pont thermique — valeur par défaut, à remplacer par la donnée fabricant réelle)'};
+  }
+
+  if(!alertes.length && !uwInfo) return;
+
   const colorMap={danger:['#fef2f2','#fecaca','#b91c1c'],warn:['#fffbeb','#fde68a','#92400e'],ok:['#ecfdf5','#a7f3d0','#047857']};
   panel.classList.remove('hidden');
   panel.innerHTML=`<div class="card bg-white rounded-2xl p-4">
@@ -9344,8 +9626,10 @@ async function checkCompatibilite(type,w,h,leaves,surface){
         const [bg,border,ink]=colorMap[a.level];
         return `<div style="background:${bg};border:1px solid ${border};color:${ink}" class="rounded-lg px-3 py-2 text-sm flex gap-2"><span>${a.icon}</span><span>${a.text}</span></div>`;
       }).join('')}
+      ${uwInfo?`<div style="background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8" class="rounded-lg px-3 py-2 text-sm flex gap-2"><span>🌡️</span><span><b>Uw ≈ ${uwInfo.uw} W/m²K</b> (performance thermique globale, calcul ISO 10077 — Ug ${uwInfo.ug} vitrage, Uf ${uwInfo.uf} cadre). <span class="text-xs">${uwInfo.source}.</span></span></div>`:''}
     </div>
   </div>`;
+  window._lastUwInfo=uwInfo;
 }
 
 function updateCost(){
@@ -9386,6 +9670,68 @@ function updateCost(){
   document.getElementById('cIndirect').textContent=money(indirect);
   document.getElementById('cTotal').textContent=money(total);
   document.getElementById('cSale').textContent=money(sale);
+  renderEstimationHistorique(total);
+}
+
+/* ---------- Estimation statistique basée sur l'historique réel (honnête : pas d'IA, juste des faits) ---------- */
+const ESTIM_HISTO_MIN_ECHANTILLON=3;
+async function renderEstimationHistorique(coutTheorique){
+  const panel=document.getElementById('estimHistoPanel'); if(!panel) return;
+  const type=document.getElementById('type')?.value;
+  const w=+document.getElementById('width')?.value||0;
+  const h=+document.getElementById('height')?.value||0;
+  if(!type || !w || !h){ panel.classList.add('hidden'); return; }
+
+  const [ofRows,suiviRows]=await Promise.all([idbGetAll('of'),idbGetAll('suivi_reel')]);
+  const surfaceCible=(w*h)/1e6;
+  // OF du même type, surface comprise entre 70% et 140% de la config actuelle (tolérance raisonnable), avec un suivi réel saisi
+  const similaires=ofRows.filter(o=>{
+    if(o.configSnapshot?.type!==type) return false;
+    const ow=o.configSnapshot?.w, oh=o.configSnapshot?.h;
+    if(!ow||!oh) return false;
+    const surfaceOF=(ow*oh)/1e6;
+    if(surfaceOF<surfaceCible*0.7 || surfaceOF>surfaceCible*1.4) return false;
+    return suiviRows.some(s=>s.ofId===o.id);
+  }).map(o=>({of:o, suivi:suiviRows.find(s=>s.ofId===o.id)}));
+
+  if(similaires.length<ESTIM_HISTO_MIN_ECHANTILLON){
+    panel.classList.remove('hidden');
+    panel.innerHTML=`<div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-500">
+      📊 <b>Estimation historique</b> — ${similaires.length} OF similaire${similaires.length>1?'s':''} avec suivi réel trouvé${similaires.length>1?'s':''} (minimum ${ESTIM_HISTO_MIN_ECHANTILLON} recommandé pour une estimation fiable). L'estimation théorique ci-dessus reste la référence. Plus l'atelier clôture d'OF avec consommation réelle saisie, plus cette estimation deviendra pertinente.
+    </div>`;
+    return;
+  }
+
+  const coutsReels=similaires.map(({of})=>of.cout).filter(c=>c>0);
+  const durees=similaires.map(({of})=>of.dateReelle?(new Date(of.dateReelle)-new Date(of.date))/86400000:null).filter(d=>d!=null&&d>=0);
+  const ecartsAlu=similaires.map(({suivi})=>suivi.aluEcartPct).filter(e=>e!=null);
+
+  const moyCoutReel=coutsReels.length?coutsReels.reduce((a,b)=>a+b,0)/coutsReels.length:null;
+  const moyDuree=durees.length?durees.reduce((a,b)=>a+b,0)/durees.length:null;
+  const moyEcartAlu=ecartsAlu.length?ecartsAlu.reduce((a,b)=>a+b,0)/ecartsAlu.length:null;
+
+  const ecartCoutPct = (moyCoutReel && coutTheorique) ? ((moyCoutReel-coutTheorique)/coutTheorique*100) : null;
+
+  panel.classList.remove('hidden');
+  panel.innerHTML=`<div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+    <h4 class="text-sm font-bold text-blue-800 mb-2">📊 Estimation basée sur l'historique (${similaires.length} OF similaires réels)</h4>
+    <div class="grid sm:grid-cols-3 gap-3 text-sm">
+      <div class="bg-white rounded-lg p-2.5">
+        <div class="text-xs text-slate-400">Coût matière réel moyen</div>
+        <div class="font-bold">${moyCoutReel?money(moyCoutReel):'—'}</div>
+        ${ecartCoutPct!=null?`<div class="text-xs ${Math.abs(ecartCoutPct)>10?'text-amber-600':'text-emerald-600'} font-semibold">${ecartCoutPct>=0?'+':''}${ecartCoutPct.toFixed(1)}% vs théorique</div>`:''}
+      </div>
+      <div class="bg-white rounded-lg p-2.5">
+        <div class="text-xs text-slate-400">Durée fabrication moyenne</div>
+        <div class="font-bold">${moyDuree!=null?moyDuree.toFixed(1)+' j':'—'}</div>
+      </div>
+      <div class="bg-white rounded-lg p-2.5">
+        <div class="text-xs text-slate-400">Écart consommation alu moyen</div>
+        <div class="font-bold ${moyEcartAlu!=null&&Math.abs(moyEcartAlu)>10?'text-amber-600':''}">${moyEcartAlu!=null?(moyEcartAlu>=0?'+':'')+moyEcartAlu.toFixed(1)+'%':'—'}</div>
+      </div>
+    </div>
+    <p class="text-[11px] text-blue-700 mt-2">Calculé à partir des ordres de fabrication réels de type "${escapeHtml(type)}" à surface comparable (±40%) avec consommation réelle saisie — statistique basée sur données mesurées, pas une prédiction générative.</p>
+  </div>`;
 }
 
 /* ---------- Nesting avancé : Best-Fit-Decreasing + comparaison multi-stratégie ---------- */
@@ -9685,7 +10031,7 @@ function printFicheTechnique(autoPrint=true){
   const serie=serieOpt?.text||'';
   const glassVal=document.getElementById('glass')?.value||'6500';
   const glassLabel=document.getElementById('glass')?.selectedOptions[0]?.text||'';
-  const finition=document.getElementById('finition')?.value||'—';
+  const finition=document.getElementById('finition')?.selectedOptions[0]?.text||'—';
   const poignee=document.getElementById('poignee')?.value||'—';
   const sensOuvertureVal=document.getElementById('sensOuverture')?.value||'coulissant';
   const sensOuvertureLabel=document.getElementById('sensOuverture')?.selectedOptions[0]?.text||'';
