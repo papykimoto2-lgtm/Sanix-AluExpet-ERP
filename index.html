@@ -183,6 +183,9 @@ window.SANIX_CFG = {
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="atelierMobile">📱 Vue atelier (mobile)</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="stock">📦 Stock</button>
 
+      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">6 · Après-vente</div>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="sav">🛠️ SAV & Garantie</button>
+
       <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">5 · Administration</div>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="utilisateurs">👥 Utilisateurs</button>
     </nav>
@@ -815,6 +818,18 @@ window.SANIX_CFG = {
               <label class="text-sm font-semibold">Jeu périphérique (mm)
                 <input id="gap" type="number" value="5" class="mt-1 w-full border rounded-lg px-3 py-2">
               </label>
+              <label class="text-sm font-semibold">Zone de vent (pression, Pa)
+                <select id="zoneVent" onchange="calculateBOM()" class="mt-1 w-full border rounded-lg px-3 py-2">
+                  <option value="0">Non renseigné</option>
+                  <option value="600">Zone I — abritée (600 Pa)</option>
+                  <option value="900">Zone II — normale (900 Pa)</option>
+                  <option value="1200">Zone III — exposée / côtière (1200 Pa)</option>
+                  <option value="1600">Zone IV — très exposée / hauteur (1600 Pa)</option>
+                </select>
+              </label>
+              <label class="text-sm font-semibold">Hauteur bâtiment (m)
+                <input id="hauteurBatiment" type="number" value="0" placeholder="Ex. 12" onchange="calculateBOM()" class="mt-1 w-full border rounded-lg px-3 py-2">
+              </label>
               <label class="text-sm font-semibold">Quantité
                 <input id="qty" type="number" min="1" value="1" class="mt-1 w-full border rounded-lg px-3 py-2">
               </label>
@@ -829,6 +844,7 @@ window.SANIX_CFG = {
                 <span class="badge bg-white text-slate-600 border">Vue façade</span>
                 <button type="button" onclick="previewPlanTechnique()" class="border px-3 py-1.5 rounded-lg text-xs font-semibold">👁️ Aperçu</button>
                 <button type="button" onclick="printPlanTechnique()" class="border px-3 py-1.5 rounded-lg text-xs font-semibold">🖨️ Imprimer plan</button>
+                <button type="button" onclick="genererCCTP()" class="border border-blue-600 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-semibold">📄 CCTP / Devis descriptif</button>
               </div>
 
               <div class="flex gap-1 mb-3 bg-white border rounded-lg p-1 w-fit">
@@ -903,6 +919,8 @@ window.SANIX_CFG = {
                 <canvas id="planEditorCanvas" width="900" height="440" style="width:100%;height:440px;display:block;cursor:grab"></canvas>
               </div>
             </div>
+
+            <div id="compatibilitePanel" class="mt-6 hidden"></div>
 
             <div class="mt-6 border border-slate-200 rounded-2xl p-4 bg-slate-50">
               <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
@@ -1504,6 +1522,23 @@ window.SANIX_CFG = {
         </div>
       </section>
 
+      <section id="sav" class="page hidden">
+        <div class="card bg-white rounded-2xl p-6 mb-6">
+          <div class="flex flex-wrap justify-between gap-3 mb-5">
+            <div><h2 class="text-lg font-bold">SAV & Garantie</h2><p class="text-sm text-slate-500">Tickets après-vente liés à un OF/client — suivi garantie, résolution, historique.</p></div>
+            <button onclick="openNewSAVForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">+ Nouveau ticket SAV</button>
+          </div>
+          <div class="grid sm:grid-cols-4 gap-3 mb-5">
+            <div class="bg-slate-50 rounded-xl p-4"><div class="text-xs text-slate-500">Tickets ouverts</div><div id="savKpiOuverts" class="text-2xl font-black mt-1">—</div></div>
+            <div class="bg-slate-50 rounded-xl p-4"><div class="text-xs text-slate-500">En cours</div><div id="savKpiEnCours" class="text-2xl font-black mt-1">—</div></div>
+            <div class="bg-slate-50 rounded-xl p-4"><div class="text-xs text-slate-500">Résolus (mois)</div><div id="savKpiResolus" class="text-2xl font-black mt-1">—</div></div>
+            <div class="bg-slate-50 rounded-xl p-4"><div class="text-xs text-slate-500">Sous garantie</div><div id="savKpiGarantie" class="text-2xl font-black mt-1">—</div></div>
+          </div>
+          <div id="savForm" class="hidden mb-5"></div>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">N°</th><th class="text-left p-3">Client</th><th class="text-left p-3">OF / Ouvrage</th><th class="text-left p-3">Problème</th><th class="text-left p-3">Garantie</th><th class="text-left p-3">Statut</th><th class="text-left p-3">Date</th><th class="p-3"></th></tr></thead><tbody id="savBody"></tbody></table></div>
+        </div>
+      </section>
+
       <section id="chantier" class="page hidden">
         <div class="card bg-white rounded-2xl p-6 mb-6">
           <div class="flex flex-wrap justify-between gap-3 mb-5">
@@ -1629,6 +1664,8 @@ window.SANIX_CFG = {
               <input id="seLongueurBarre" type="number" value="6000" placeholder="Longueur barre (mm)" class="border rounded-lg px-2 py-1.5 text-sm">
               <input id="seCouleur" placeholder="Couleur" class="border rounded-lg px-2 py-1.5 text-sm">
               <input id="sePrixRef" type="number" placeholder="Prix référence (FCFA/ml)" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="seResistanceVent" type="number" placeholder="Résistance au vent (Pa) — ex. 1200" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="sePorteeMax" type="number" placeholder="Portée max sans renfort (mm)" class="border rounded-lg px-2 py-1.5 text-sm">
               <select id="seStatut" class="border rounded-lg px-2 py-1.5 text-sm"><option value="actif">Actif</option><option value="inactif">Inactif</option></select>
               <div class="sm:col-span-4 flex gap-2">
                 <button type="submit" id="seSubmitBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter série</button>
@@ -1912,10 +1949,10 @@ function escapeHtml(s){
 /* ---------- IndexedDB ---------- */
 function openDB(){
   return new Promise((resolve,reject)=>{
-    const req=indexedDB.open('alubom_db',16);
+    const req=indexedDB.open('alubom_db',17);
     req.onupgradeneeded=e=>{
       const d=e.target.result;
-      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers','depots','pointages','nonconformites','chutes','postes','gammes'].forEach(s=>{
+      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers','depots','pointages','nonconformites','chutes','postes','gammes','sav'].forEach(s=>{
         if(!d.objectStoreNames.contains(s)) d.createObjectStore(s,{keyPath:'id'});
       });
     };
@@ -3064,6 +3101,7 @@ async function imprimerEtiquetteOF(ofId){
       .ctrl{font-size:11px;font-weight:700;margin-top:6px}
       .ctrl.ok{color:#059669}
       .ctrl.nok{color:#dc2626}
+      .lots{font-size:8px;color:#94a3b8;margin-top:6px;border-top:1px dashed #cbd5e1;padding-top:5px}
     </style></head><body>
     <div class="label">
       <div class="logo">SANIX FACTORY</div>
@@ -3074,6 +3112,7 @@ async function imprimerEtiquetteOF(ofId){
       <div class="dims">${c.type?escapeHtml(c.type)+' — ':''}${c.serie?escapeHtml(c.serie):''}</div>
       <div class="qr">${qrSvg}</div>
       <div class="ctrl ${qc?(qc.statut==='conforme'?'ok':'nok'):''}">${qc?(qc.statut==='conforme'?'✓ CONTRÔLE OK':'✕ NON CONFORME'):'Contrôle : en attente'}</div>
+      ${(rec.lotsMatiere&&rec.lotsMatiere.length)?`<div class="lots">Traçabilité matière : ${rec.lotsMatiere.flatMap(lm=>lm.lots.map(l=>l.lot)).filter(Boolean).join(', ')||'—'}</div>`:''}
     </div>
     <script>window.onload=()=>window.print()<\/script>
     </body></html>`);
@@ -3123,6 +3162,177 @@ async function renderAtelierMobile(){
       <button onclick="openNCForm('${r.id}','')" class="w-full border-2 border-red-500 text-red-600 text-base font-bold py-3.5 rounded-2xl active:scale-95 transition">⚠ DÉCLARER UN PROBLÈME</button>
     </div>`;
   }).join('');
+}
+
+/* ---------- SAV & Garantie ---------- */
+const SAV_TYPES=['Défaut fonctionnement','Fuite / infiltration','Vitrage cassé','Quincaillerie défectueuse','Défaut esthétique','Problème étanchéité','Autre'];
+const SAV_STATUTS=['ouvert','en_cours','resolu','clos'];
+const SAV_STATUT_LABEL={ouvert:'Ouvert',en_cours:'En cours',resolu:'Résolu',clos:'Clos'};
+const SAV_STATUT_COLOR={ouvert:'red',en_cours:'amber',resolu:'emerald',clos:'slate'};
+const GARANTIE_DUREE_MOIS=24;
+
+function savGarantieInfo(dateInstallation){
+  if(!dateInstallation) return {sousGarantie:null,label:'Date installation inconnue'};
+  const debut=new Date(dateInstallation);
+  const fin=new Date(debut); fin.setMonth(fin.getMonth()+GARANTIE_DUREE_MOIS);
+  const sousGarantie=new Date()<=fin;
+  return {sousGarantie, dateFin:fin.toISOString().slice(0,10), label: sousGarantie ? 'Sous garantie (jusqu\'au '+fin.toLocaleDateString('fr-FR')+')' : 'Garantie expirée le '+fin.toLocaleDateString('fr-FR')};
+}
+
+async function renderSAVList(){
+  const el=document.getElementById('savBody'); if(!el) return;
+  const rows=(await idbGetAll('sav')).sort((a,b)=>(b.dateCreation||'').localeCompare(a.dateCreation||''));
+  const ofRows=await idbGetAll('of');
+  const today=new Date().toISOString().slice(0,10);
+  const moisActuel=today.slice(0,7);
+
+  document.getElementById('savKpiOuverts').textContent=rows.filter(r=>r.statut==='ouvert').length;
+  document.getElementById('savKpiEnCours').textContent=rows.filter(r=>r.statut==='en_cours').length;
+  document.getElementById('savKpiResolus').textContent=rows.filter(r=>(r.statut==='resolu'||r.statut==='clos') && r.dateResolution && r.dateResolution.slice(0,7)===moisActuel).length;
+  document.getElementById('savKpiGarantie').textContent=rows.filter(r=>savGarantieInfo(r.dateInstallation).sousGarantie===true && r.statut!=='clos').length;
+
+  el.innerHTML = rows.length ? rows.map(r=>{
+    const g=savGarantieInfo(r.dateInstallation);
+    const c=SAV_STATUT_COLOR[r.statut]||'slate';
+    return `<tr class="border-b">
+      <td class="p-3 font-semibold">${escapeHtml(r.numero)}</td>
+      <td class="p-3">${escapeHtml(r.client)}</td>
+      <td class="p-3 text-xs text-slate-500">${escapeHtml(r.ofNumero||'—')}${r.ouvrage?' — '+escapeHtml(r.ouvrage):''}</td>
+      <td class="p-3 text-xs">${escapeHtml(r.type)}</td>
+      <td class="p-3 text-xs">${g.sousGarantie===null?'<span class="text-slate-400">—</span>':g.sousGarantie?'<span class="text-emerald-600 font-semibold">✓ Sous garantie</span>':'<span class="text-red-500">Expirée</span>'}</td>
+      <td class="p-3"><span class="badge bg-${c}-50 text-${c}-700">${SAV_STATUT_LABEL[r.statut]||r.statut}</span></td>
+      <td class="p-3 text-xs text-slate-400">${r.dateCreation?new Date(r.dateCreation).toLocaleDateString('fr-FR'):'—'}</td>
+      <td class="p-3 text-right whitespace-nowrap">
+        <button onclick="openSAVDetail('${r.id}')" class="text-blue-600 text-xs font-semibold">Ouvrir →</button>
+      </td>
+    </tr>`;
+  }).join('') : `<tr><td class="p-3 text-slate-400" colspan="8">Aucun ticket SAV enregistré.</td></tr>`;
+}
+
+async function openNewSAVForm(){
+  if(!hasRole('qc:validate')){ alert('Permission refusée.'); return; }
+  const ofRows=(await idbGetAll('of')).filter(o=>o.statut==='Terminé'||o.statut==='Prêt à livrer'||o.statut==='Livré').sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const formEl=document.getElementById('savForm');
+  formEl.classList.remove('hidden');
+  formEl.innerHTML=`
+    <form onsubmit="return handleCreateSAV(event)" class="bg-slate-50 border rounded-xl p-4 space-y-3">
+      <div class="flex justify-between items-center">
+        <h3 class="font-bold text-sm">Nouveau ticket SAV</h3>
+        <button type="button" onclick="document.getElementById('savForm').classList.add('hidden')" class="text-slate-400 text-lg leading-none">×</button>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <label class="text-xs font-semibold block">OF concerné (optionnel)
+          <select id="savOfId" onchange="onSavOfChange()" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+            <option value="">— Aucun / non rattaché —</option>
+            ${ofRows.map(o=>`<option value="${o.id}" data-client="${escapeHtml(o.client)}" data-ouvrage="${escapeHtml(o.ouvrage)}" data-install="${o.dateReelle||''}">${escapeHtml(o.numero)} — ${escapeHtml(o.client)} — ${escapeHtml(o.ouvrage)}</option>`).join('')}
+          </select>
+        </label>
+        <label class="text-xs font-semibold block">Client
+          <input id="savClient" list="clientsDatalist" required class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <label class="text-xs font-semibold block">Type de problème
+          <select id="savType" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">${SAV_TYPES.map(t=>`<option>${escapeHtml(t)}</option>`).join('')}</select>
+        </label>
+        <label class="text-xs font-semibold block">Date d'installation (garantie)
+          <input id="savDateInstallation" type="date" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+      </div>
+      <label class="text-xs font-semibold block">Description du problème
+        <textarea id="savDescription" rows="3" required class="mt-1 w-full border rounded-lg p-2 text-sm"></textarea>
+      </label>
+      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">✓ Créer le ticket</button>
+    </form>`;
+  formEl.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function onSavOfChange(){
+  const sel=document.getElementById('savOfId');
+  const opt=sel?.selectedOptions[0];
+  if(!opt || !opt.value) return;
+  document.getElementById('savClient').value=opt.dataset.client||'';
+  if(opt.dataset.install) document.getElementById('savDateInstallation').value=opt.dataset.install;
+}
+async function handleCreateSAV(e){
+  e.preventDefault();
+  if(!hasRole('qc:validate')){ alert('Permission refusée.'); return false; }
+  const ofId=document.getElementById('savOfId').value||null;
+  let ofNumero=null, ouvrage=null;
+  if(ofId){
+    const ofRows=await idbGetAll('of');
+    const ofRec=ofRows.find(o=>o.id===ofId);
+    if(ofRec){ ofNumero=ofRec.numero; ouvrage=ofRec.ouvrage; }
+  }
+  const seq=nextSeq('sav');
+  const numero='SAV-'+seq.year+'-'+String(seq.n).padStart(4,'0');
+  const rec={
+    id:numero, numero, ofId, ofNumero, ouvrage,
+    client:document.getElementById('savClient').value.trim(),
+    type:document.getElementById('savType').value,
+    description:document.getElementById('savDescription').value.trim(),
+    dateInstallation:document.getElementById('savDateInstallation').value||null,
+    statut:'ouvert',
+    historique:[{date:new Date().toISOString(),action:'Ticket créé',user:currentUser?currentUser.email:'—'}],
+    dateCreation:new Date().toISOString(), _modifie:new Date().toISOString()
+  };
+  await idbPut('sav',rec);
+  queueSync('alubom_sav',rec);
+  await audit('CREATE_SAV',numero+' — '+rec.client+' — '+rec.type);
+  document.getElementById('savForm').classList.add('hidden');
+  await renderSAVList();
+  return false;
+}
+async function openSAVDetail(savId){
+  const rows=await idbGetAll('sav');
+  const rec=rows.find(r=>r.id===savId); if(!rec) return;
+  const g=savGarantieInfo(rec.dateInstallation);
+  const formEl=document.getElementById('savForm');
+  formEl.classList.remove('hidden');
+  formEl.innerHTML=`
+    <div class="bg-slate-50 border rounded-xl p-4">
+      <div class="flex justify-between items-start mb-3">
+        <div><h3 class="font-bold text-sm">${escapeHtml(rec.numero)} — ${escapeHtml(rec.client)}</h3><p class="text-xs text-slate-500">${escapeHtml(rec.ofNumero||'Non rattaché')}${rec.ouvrage?' — '+escapeHtml(rec.ouvrage):''}</p></div>
+        <button onclick="document.getElementById('savForm').classList.add('hidden')" class="text-slate-400 text-lg leading-none">×</button>
+      </div>
+      <div class="grid sm:grid-cols-3 gap-3 mb-3 text-xs">
+        <div class="bg-white border rounded-lg p-2"><b class="block text-slate-400">Type</b>${escapeHtml(rec.type)}</div>
+        <div class="bg-white border rounded-lg p-2"><b class="block text-slate-400">Garantie</b>${g.label}</div>
+        <div class="bg-white border rounded-lg p-2"><b class="block text-slate-400">Créé le</b>${new Date(rec.dateCreation).toLocaleDateString('fr-FR')}</div>
+      </div>
+      <div class="bg-white border rounded-lg p-3 mb-3 text-sm">${escapeHtml(rec.description)}</div>
+      <div class="flex flex-wrap gap-2 mb-3">
+        <select id="savNewStatut" class="border rounded-lg px-2 py-1.5 text-sm">${SAV_STATUTS.map(s=>`<option value="${s}" ${rec.statut===s?'selected':''}>${SAV_STATUT_LABEL[s]}</option>`).join('')}</select>
+        <input id="savCommentaire" placeholder="Commentaire / action réalisée..." class="border rounded-lg px-2 py-1.5 text-sm flex-1 min-w-[200px]">
+        <button onclick="handleUpdateSAV('${savId}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-semibold">✓ Mettre à jour</button>
+      </div>
+      <h4 class="text-xs font-bold text-slate-500 mb-2">Historique</h4>
+      <div class="space-y-1 max-h-40 overflow-y-auto">
+        ${(rec.historique||[]).slice().reverse().map(h=>`<div class="text-xs border-l-2 border-slate-200 pl-2"><b>${new Date(h.date).toLocaleString('fr-FR')}</b> — ${escapeHtml(h.action)} (${escapeHtml(h.user||'—')})</div>`).join('')}
+      </div>
+    </div>`;
+  formEl.scrollIntoView({behavior:'smooth',block:'center'});
+}
+async function handleUpdateSAV(savId){
+  if(!hasRole('qc:validate')){ alert('Permission refusée.'); return; }
+  const rows=await idbGetAll('sav');
+  const rec=rows.find(r=>r.id===savId); if(!rec) return;
+  const nouveauStatut=document.getElementById('savNewStatut').value;
+  const commentaire=document.getElementById('savCommentaire').value.trim();
+  const changements=[];
+  if(nouveauStatut!==rec.statut){
+    changements.push('statut → '+SAV_STATUT_LABEL[nouveauStatut]);
+    rec.statut=nouveauStatut;
+    if(nouveauStatut==='resolu'||nouveauStatut==='clos') rec.dateResolution=new Date().toISOString();
+  }
+  if(commentaire) changements.push(commentaire);
+  if(!changements.length){ alert('Aucune modification à enregistrer.'); return; }
+  rec.historique=(rec.historique||[]).concat([{date:new Date().toISOString(),action:changements.join(' — '),user:currentUser?currentUser.email:'—'}]);
+  rec._modifie=new Date().toISOString();
+  await idbPut('sav',rec);
+  queueSync('alubom_sav',rec);
+  await audit('MAJ_SAV',rec.numero+' — '+changements.join(', '));
+  await openSAVDetail(savId);
+  await renderSAVList();
 }
 
 async function renderNCList(){
@@ -4035,17 +4245,34 @@ async function emettreBonRequisition(ofId){
 
   const stockRows=await idbGetAll('stock');
   const labelByRef={}; stockRows.forEach(s=>labelByRef[s.ref]=s.label);
+  const lotsConsommes=[];
   for(const r of reservations){
     const match=stockRows.find(s=>s.ref===r.ref && (s.depot||'PRINC')==='PRINC');
+    let lotsUtilises=[];
     if(match){
       match.reserve=Math.max(0,(match.reserve||0)-r.qty);
+      // Consommation FIFO des lots tracés pour traçabilité (n° coulée/lot fournisseur remonté jusqu'à l'ouvrage)
+      if(match.lots && match.lots.length){
+        let qteRestante=r.qty;
+        match.lots=match.lots.map(l=>({...l})).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+        for(const lotEntry of match.lots){
+          if(qteRestante<=0) break;
+          if((lotEntry.qty||0)<=0) continue;
+          const pris=Math.min(lotEntry.qty,qteRestante);
+          lotEntry.qty-=pris; qteRestante-=pris;
+          lotsUtilises.push({lot:lotEntry.lot,qty:pris,fournisseur:lotEntry.fournisseur});
+        }
+        match.lots=match.lots.filter(l=>l.qty>0.001);
+      }
       match._modifie=new Date().toISOString();
       await idbPut('stock',match); queueSync('alubom_stock',match);
     }
-    const mv={id:'m_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),ref:r.ref,depot:'PRINC',type:'sortie',qty:r.qty,prixUnitaire:0,ts:new Date().toISOString(),user:currentUser?currentUser.email:undefined,refOF:rec.numero};
+    if(lotsUtilises.length) lotsConsommes.push({ref:r.ref,lots:lotsUtilises});
+    const mv={id:'m_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),ref:r.ref,depot:'PRINC',type:'sortie',qty:r.qty,prixUnitaire:0,lots:lotsUtilises.length?lotsUtilises:null,ts:new Date().toISOString(),user:currentUser?currentUser.email:undefined,refOF:rec.numero};
     await idbPut('stock_mouvements',mv);
     queueSync('alubom_stock_mouvements',mv);
   }
+  rec.lotsMatiere=lotsConsommes;
   const seq=nextSeq('req');
   const numero='REQ-'+seq.year+'-'+String(seq.n).padStart(4,'0');
   rec.requisitionNumero=numero;
@@ -5146,9 +5373,13 @@ function renderReceptionLignes(){
         <div class="font-semibold">${escapeHtml(l.code?l.code+' — ':'')}${escapeHtml(l.designation)}</div>
         <div class="text-slate-400">Commandé ${l.qte} — déjà reçu ${l.qteRecue||0} — restant ${restant.toFixed(2)}</div>
       </div>
+      <label>N° lot / coulée <input type="text" placeholder="LOT-..." value="${escapeHtml(l._lot||'')}" oninput="updateReceptionLigneLot(${i},this.value)" class="w-28 border rounded px-1 py-1"></label>
       <label>Reçu maintenant <input type="number" min="0" max="${restant}" value="${l._recuMaintenant}" oninput="updateReceptionLigne(${i},this.value)" class="w-20 border rounded px-1 py-1"></label>
     </div>`;
   }).join('');
+}
+function updateReceptionLigneLot(i,value){
+  receptionLignes[i]._lot=value.trim();
 }
 function updateReceptionLigne(i,value){
   receptionLignes[i]._recuMaintenant=Math.max(0,+value||0);
@@ -5166,7 +5397,8 @@ async function validerReceptionAchat(){
   const EPS=0.001;
   const nouvellesLignes=receptionLignes.map(l=>({
     code:l.code, designation:l.designation, qte:l.qte, prix:l.prix, montant:l.montant,
-    qteRecue:Math.min(l.qte,(l.qteRecue||0)+(l._recuMaintenant||0))
+    qteRecue:Math.min(l.qte,(l.qteRecue||0)+(l._recuMaintenant||0)),
+    lot:l._lot||null
   }));
   // Incrémentation du stock réel pour chaque quantité reçue lors de cette réception
   if(recues.length){
@@ -5174,14 +5406,19 @@ async function validerReceptionAchat(){
     for(const l of recues){
       if(!l.code) continue;
       let stockRec=stockRows.find(s=>s.ref===l.code && (s.depot||'PRINC')==='PRINC');
-      if(!stockRec){ stockRec={id:stockRowId(l.code,'PRINC'),ref:l.code,label:l.designation,dispo:0,reserve:0,prix:l.prix||0,depot:'PRINC'}; }
+      if(!stockRec){ stockRec={id:stockRowId(l.code,'PRINC'),ref:l.code,label:l.designation,dispo:0,reserve:0,prix:l.prix||0,depot:'PRINC',lots:[]}; }
       stockRec.dispo=(stockRec.dispo||0)+l._recuMaintenant;
       if(l.prix) stockRec.prix=l.prix;
       stockRec.depot='PRINC';
+      if(l._lot){
+        stockRec.lots=(stockRec.lots||[]);
+        stockRec.lots.push({lot:l._lot,qty:l._recuMaintenant,date:new Date().toISOString(),refDA:rec.numero,fournisseur:rec.fournisseur});
+        if(stockRec.lots.length>100) stockRec.lots=stockRec.lots.slice(-100);
+      }
       stockRec._modifie=new Date().toISOString();
       await idbPut('stock',stockRec);
       queueSync('alubom_stock',stockRec);
-      const mv={id:'m_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),ref:l.code,depot:'PRINC',type:'entree',qty:l._recuMaintenant,prixUnitaire:l.prix||0,ts:new Date().toISOString(),user:currentUser?currentUser.email:undefined,refDA:rec.numero};
+      const mv={id:'m_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),ref:l.code,depot:'PRINC',type:'entree',qty:l._recuMaintenant,prixUnitaire:l.prix||0,lot:l._lot||null,ts:new Date().toISOString(),user:currentUser?currentUser.email:undefined,refDA:rec.numero};
       await idbPut('stock_mouvements',mv);
       queueSync('alubom_stock_mouvements',mv);
     }
@@ -5863,6 +6100,8 @@ async function handleAddSerie(e){
     longueurBarre:+document.getElementById('seLongueurBarre').value||6000,
     couleur:document.getElementById('seCouleur').value.trim(),
     prixRef:+document.getElementById('sePrixRef').value||0,
+    resistanceVent:+document.getElementById('seResistanceVent').value||0,
+    porteeMax:+document.getElementById('sePorteeMax').value||0,
     statut:document.getElementById('seStatut').value,
     _modifie:new Date().toISOString()
   };
@@ -5888,6 +6127,8 @@ async function editSerie(id){
   document.getElementById('seLongueurBarre').value=r.longueurBarre||6000;
   document.getElementById('seCouleur').value=r.couleur||'';
   document.getElementById('sePrixRef').value=r.prixRef||'';
+  document.getElementById('seResistanceVent').value=r.resistanceVent||'';
+  document.getElementById('sePorteeMax').value=r.porteeMax||'';
   document.getElementById('seStatut').value=r.statut||'actif';
   document.getElementById('seSubmitBtn').textContent='✓ Enregistrer les modifications';
   document.getElementById('seCancelBtn').classList.remove('hidden');
@@ -6218,11 +6459,12 @@ const REF_DEFS={
       {id:'designation',label:'Désignation',required:true,span:2},
       {id:'categorie',label:'Catégorie',type:'select',options:['Poignée','Serrure','Roulette','Paumelle','Gâche','Verrou','Charnière','Butée','Renvoi d\'angle','Autre']},
       {id:'prixUnitaire',label:'Prix unitaire (FCFA)',type:'number'},
+      {id:'poidsMaxVantail',label:'Poids max vantail supporté (kg) — si charnière/paumelle',type:'number'},
       {id:'fournisseur',label:'Fournisseur',datalist:'fournisseursDatalist'},
       {id:'stock',label:'Stock (unité)',type:'number'},
       {id:'statut',label:'Statut',type:'select',options:['actif','inactif']}
     ],
-    cols:[['code','Code'],['designation','Désignation'],['categorie','Catégorie'],['prixUnitaire','Prix unit.','money'],['statut','Statut','badge']]
+    cols:[['code','Code'],['designation','Désignation'],['categorie','Catégorie'],['poidsMaxVantail','Poids max (kg)'],['prixUnitaire','Prix unit.','money'],['statut','Statut','badge']]
   },
   joints:{store:'joints',label:'Joints',prefix:'jt',
     fields:[
@@ -6939,7 +7181,7 @@ const ETUDE_TABS=['config','bom','cut','cost','proforma'];
 function showPage(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
   document.querySelectorAll('.nav').forEach(b=>b.classList.remove('active'));
-  const titles={dashboard:'Tableau de bord',flux:'Schéma des flux',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',atelierMobile:'Vue atelier',stock:'Stock',chantier:'Circuit Chantier',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs',catalogue:'Catalogue technique'};
+  const titles={dashboard:'Tableau de bord',flux:'Schéma des flux',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',atelierMobile:'Vue atelier',stock:'Stock',sav:'SAV & Garantie',chantier:'Circuit Chantier',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs',catalogue:'Catalogue technique'};
 
   if(ETUDE_TABS.includes(page)){
     document.getElementById('etude').classList.remove('hidden');
@@ -6962,6 +7204,7 @@ function showPage(page){
     if(page==='stock') showStockTab('liste');
     if(page==='production') showProdTab('liste');
     if(page==='atelierMobile') renderAtelierMobile();
+    if(page==='sav') renderSAVList();
   } else {
     document.getElementById(page).classList.remove('hidden');
     document.querySelectorAll('.nav').forEach(b=>{if(b.dataset.page===page)b.classList.add('active')});
@@ -8509,7 +8752,166 @@ function calculateBOM(){
   updateCost();
   optimize();
   renderBOMTree(type,w,h,rows);
+  checkCompatibilite(type,w,h,leaves,surface);
   showPage('bom');
+}
+
+/* ---------- CCTP / Devis descriptif normalisé (appels d'offres) ---------- */
+async function genererCCTP(){
+  const type=document.getElementById('type')?.value||'Ouvrage';
+  const w=+document.getElementById('width')?.value||0, h=+document.getElementById('height')?.value||0;
+  const leaves=+document.getElementById('leaves')?.value||1;
+  const qty=+document.getElementById('qty')?.value||1;
+  const serieOpt=document.getElementById('serie')?.selectedOptions[0];
+  const serie=serieOpt?.text||'';
+  const serieId=document.getElementById('serie')?.value;
+  const glassLabel=document.getElementById('glass')?.selectedOptions[0]?.text||'';
+  const finition=document.getElementById('finition')?.value||'—';
+  const poignee=document.getElementById('poignee')?.value||'—';
+  const sensOuvertureLabel=document.getElementById('sensOuverture')?.selectedOptions[0]?.text||'';
+  const zoneVent=document.getElementById('zoneVent')?.selectedOptions[0]?.text||'Non renseigné';
+  const seriesRows=await idbGetAll('series');
+  const serieRec=seriesRows.find(s=>s.id===serieId || s.code===serieId);
+
+  const win=window.open('','_blank','width=900,height=1100');
+  if(!win) return;
+  const dateStr=new Date().toLocaleDateString('fr-FR');
+  const ref='CCTP-'+type.toUpperCase().slice(0,4).replace(/\s/g,'')+'-'+Date.now().toString().slice(-5);
+
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>CCTP — ${escapeHtml(type)}</title>
+  <style>
+    body{font-family:'Georgia',serif;padding:40px;color:#1a1a1a;font-size:13px;line-height:1.6;max-width:800px;margin:0 auto}
+    h1{font-family:Arial,sans-serif;font-size:20px;border-bottom:3px solid #0f172a;padding-bottom:10px}
+    h2{font-family:Arial,sans-serif;font-size:14px;text-transform:uppercase;letter-spacing:.03em;color:#1d4ed8;border-bottom:1px solid #cbd5e1;padding-bottom:4px;margin-top:26px}
+    .meta{font-family:Arial,sans-serif;font-size:11px;color:#64748b;margin-bottom:20px}
+    table{width:100%;border-collapse:collapse;margin:10px 0;font-family:Arial,sans-serif;font-size:12px}
+    td,th{border:1px solid #cbd5e1;padding:7px 10px;text-align:left}
+    th{background:#f1f5f9}
+    ol{padding-left:20px}
+    li{margin-bottom:6px}
+    .clause{background:#f8fafc;border-left:3px solid #1d4ed8;padding:10px 14px;margin:10px 0;font-size:12.5px}
+    @media print{button{display:none}}
+  </style></head><body>
+  <button onclick="window.print()" style="position:fixed;top:20px;right:20px;background:#1d4ed8;color:#fff;border:0;padding:10px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-family:Arial">🖨 Imprimer / PDF</button>
+
+  <h1>CAHIER DES CHARGES TECHNIQUES PARTICULIER (CCTP)</h1>
+  <div class="meta">Réf. ${escapeHtml(ref)} — SANIX AFRICA, Division Technologies — Édité le ${dateStr}</div>
+
+  <h2>1. Objet</h2>
+  <p>Le présent document décrit les spécifications techniques de fourniture et pose de menuiserie aluminium de type <b>${escapeHtml(type)}</b>, conformément aux règles de l'art et aux normes en vigueur (OHADA/UEMOA, DTU applicables).</p>
+
+  <h2>2. Caractéristiques de l'ouvrage</h2>
+  <table>
+    <tr><th style="width:35%">Type d'ouvrage</th><td>${escapeHtml(type)}</td></tr>
+    <tr><th>Dimensions (L × H)</th><td>${w} × ${h} mm</td></tr>
+    <tr><th>Nombre de vantaux</th><td>${leaves}</td></tr>
+    <tr><th>Quantité</th><td>${qty}</td></tr>
+    <tr><th>Série aluminium</th><td>${escapeHtml(serie)}${serieRec?.fabricant?' — '+escapeHtml(serieRec.fabricant):''}</td></tr>
+    <tr><th>Épaisseur profil</th><td>${serieRec?.epaisseur?serieRec.epaisseur+' mm':'Selon série'}</td></tr>
+    <tr><th>Vitrage</th><td>Double vitrage ${escapeHtml(glassLabel)}</td></tr>
+    <tr><th>Finition</th><td>${escapeHtml(finition)}</td></tr>
+    <tr><th>Quincaillerie / poignée</th><td>${escapeHtml(poignee)}</td></tr>
+    <tr><th>Sens d'ouverture</th><td>${escapeHtml(sensOuvertureLabel)}</td></tr>
+    <tr><th>Zone de vent de calcul</th><td>${escapeHtml(zoneVent)}${serieRec?.resistanceVent?' — résistance série '+serieRec.resistanceVent+' Pa':''}</td></tr>
+  </table>
+
+  <h2>3. Matériaux et provenance</h2>
+  <div class="clause">L'aluminium utilisé est de qualité menuiserie, extrudé, thermolaqué en usine selon la teinte RAL spécifiée. Les profils sont conformes aux tolérances dimensionnelles standard du fabricant${serieRec?.fabricant?' ('+escapeHtml(serieRec.fabricant)+')':''}. Le vitrage est un double vitrage isolant, intercalaire aluminium, avec joint EPDM d'étanchéité.</div>
+
+  <h2>4. Performances techniques</h2>
+  <ol>
+    <li><b>Étanchéité à l'air / à l'eau :</b> classes conformes à la série sélectionnée, joints périphériques EPDM.</li>
+    <li><b>Résistance au vent :</b> ${serieRec?.resistanceVent?'dimensionné pour '+serieRec.resistanceVent+' Pa':'à confirmer selon zone de vent du site'}.</li>
+    <li><b>Sécurité :</b> vitrage feuilleté en cas d'exposition (garde-corps, portes) sur demande spécifique.</li>
+  </ol>
+
+  <h2>5. Mise en œuvre</h2>
+  <div class="clause">La pose est réalisée par une équipe qualifiée, avec calfeutrement mousse polyuréthane et joint silicone d'étanchéité en périphérie. Un procès-verbal de réception contradictoire est établi à la livraison, incluant contrôle dimensionnel, fonctionnel (ouverture/fermeture) et esthétique (finition, absence de rayures).</div>
+
+  <h2>6. Garantie</h2>
+  <p>L'ouvrage est garanti contre tout défaut de fabrication et de pose pendant une durée de <b>2 ans</b> à compter de la réception, hors dommages liés à un usage non conforme ou à un défaut d'entretien.</p>
+
+  <h2>7. Contrôle qualité</h2>
+  <p>Chaque ouvrage fait l'objet d'un contrôle qualité en atelier avant expédition (dimensions, équerrage, fonctionnement, aspect) selon la procédure interne SANIX AFRICA, tracé par ordre de fabrication numéroté.</p>
+
+  <p style="margin-top:40px;font-size:11px;color:#94a3b8;font-family:Arial,sans-serif">Document généré automatiquement à partir de la configuration technique — SANIX AFRICA Division Technologies. Les valeurs de résistance mécanique sont indicatives et doivent être validées par un bureau d'études structure pour tout projet soumis à un contrôle technique obligatoire.</p>
+  </body></html>`);
+  win.document.close();
+  win.focus();
+  await audit('GENERER_CCTP',ref+' — '+type);
+}
+
+/* ---------- Moteur de compatibilité technique (résistance vent + poids vantail) ---------- */
+async function checkCompatibilite(type,w,h,leaves,surface){
+  const panel=document.getElementById('compatibilitePanel'); if(!panel) return;
+  const alertes=[];
+
+  // 1. Résistance au vent
+  const zoneVent=+document.getElementById('zoneVent')?.value||0;
+  const hauteurBat=+document.getElementById('hauteurBatiment')?.value||0;
+  if(zoneVent>0){
+    // Majoration simplifiée de la pression selon la hauteur du bâtiment (effet de site, approximation ingénierie courante)
+    let coeffHauteur=1;
+    if(hauteurBat>30) coeffHauteur=1.35;
+    else if(hauteurBat>18) coeffHauteur=1.2;
+    else if(hauteurBat>9) coeffHauteur=1.1;
+    const pressionCalculee=Math.round(zoneVent*coeffHauteur);
+
+    const serieId=document.getElementById('serie')?.value;
+    const seriesRows=await idbGetAll('series');
+    const serieRec=seriesRows.find(s=>s.id===serieId || s.code===serieId);
+    const resistanceSerie=serieRec?.resistanceVent||0;
+
+    if(resistanceSerie>0){
+      if(pressionCalculee>resistanceSerie){
+        alertes.push({level:'danger',icon:'💨',text:`Résistance au vent insuffisante : pression calculée ${pressionCalculee} Pa (zone ${zoneVent} Pa${hauteurBat>9?' × coeff. hauteur '+coeffHauteur:''}) > résistance de la série "${escapeHtml(serieRec.designation||'')}" (${resistanceSerie} Pa). Renfort acier ou série supérieure requis.`});
+      } else {
+        alertes.push({level:'ok',icon:'💨',text:`Résistance au vent conforme : ${pressionCalculee} Pa requis ≤ ${resistanceSerie} Pa (série "${escapeHtml(serieRec.designation||'')}").`});
+      }
+    } else {
+      alertes.push({level:'warn',icon:'💨',text:`Zone de vent renseignée (${pressionCalculee} Pa calculé) mais la série sélectionnée n'a pas de résistance au vent définie — complétez le référentiel Séries pour valider.`});
+    }
+
+    const porteeMax=serieRec?.porteeMax||0;
+    if(porteeMax>0 && w>porteeMax){
+      alertes.push({level:'warn',icon:'📏',text:`Largeur ${w} mm > portée max sans renfort de la série (${porteeMax} mm) — prévoir un meneau intermédiaire.`});
+    }
+  }
+
+  // 2. Poids vantail vs capacité quincaillerie (charnières/paumelles)
+  const glassCompo=document.getElementById('glass')?.value||'6500';
+  const epaisseurVerreTotal={'6500':12,'8200':14,'9800':16}[glassCompo]||12; // mm cumulés verre (hors lame d'air)
+  const densiteVerre=2.5; // kg/m²/mm
+  const leafSurface = leaves>0 ? surface/leaves : surface;
+  const poidsVerreVantail=leafSurface*epaisseurVerreTotal*densiteVerre;
+  const poidsCadreEstime=leafSurface*8; // estimation cadre alu ~8kg/m²
+  const poidsVantailTotal=Math.round(poidsVerreVantail+poidsCadreEstime);
+
+  if(/porte|fenêtre|coulissant/i.test(type)){
+    const quincRows=await idbGetAll('quincaillerie');
+    const charnieres=quincRows.filter(q=>['Charnière','Paumelle'].includes(q.categorie) && q.statut!=='inactif' && q.poidsMaxVantail>0);
+    if(charnieres.length){
+      const meilleure=charnieres.reduce((a,b)=>(b.poidsMaxVantail>a.poidsMaxVantail?b:a));
+      if(poidsVantailTotal>meilleure.poidsMaxVantail){
+        alertes.push({level:'danger',icon:'⚖️',text:`Poids vantail estimé ${poidsVantailTotal} kg > capacité max référentiel quincaillerie (${meilleure.poidsMaxVantail} kg — ${escapeHtml(meilleure.designation)}). Renforcer paumelles ou réduire la surface du vantail.`});
+      } else {
+        alertes.push({level:'ok',icon:'⚖️',text:`Poids vantail estimé ${poidsVantailTotal} kg — compatible quincaillerie disponible (max ${meilleure.poidsMaxVantail} kg).`});
+      }
+    }
+  }
+
+  if(!alertes.length){ panel.classList.add('hidden'); panel.innerHTML=''; return; }
+  const colorMap={danger:['#fef2f2','#fecaca','#b91c1c'],warn:['#fffbeb','#fde68a','#92400e'],ok:['#ecfdf5','#a7f3d0','#047857']};
+  panel.classList.remove('hidden');
+  panel.innerHTML=`<div class="card bg-white rounded-2xl p-4">
+    <h3 class="font-bold text-sm text-slate-700 mb-3">🛡️ Compatibilité technique & résistance</h3>
+    <div class="space-y-2">
+      ${alertes.map(a=>{
+        const [bg,border,ink]=colorMap[a.level];
+        return `<div style="background:${bg};border:1px solid ${border};color:${ink}" class="rounded-lg px-3 py-2 text-sm flex gap-2"><span>${a.icon}</span><span>${a.text}</span></div>`;
+      }).join('')}
+    </div>
+  </div>`;
 }
 
 function updateCost(){
@@ -8552,20 +8954,43 @@ function updateCost(){
   document.getElementById('cSale').textContent=money(sale);
 }
 
-function binPackCuts(cuts,barLen,kerf,seedRemaining){
-  const sorted=[...cuts].sort((a,b)=>b-a);
+/* ---------- Nesting avancé : Best-Fit-Decreasing + comparaison multi-stratégie ---------- */
+function packStrategy(sorted,barLen,kerf,seedRemaining,mode){
   let remaining=[], seeded=[], barCuts=[];
   (seedRemaining||[]).forEach(len=>{ remaining.push(len); seeded.push(true); barCuts.push([]); });
   sorted.forEach(c=>{
-    let i=remaining.findIndex(r=>r>=c+kerf);
+    let i=-1;
+    if(mode==='best'){
+      // Best-Fit : choisit la barre dont la place restante après coupe sera la plus petite (minimise la chute dispersée)
+      let bestSlack=Infinity;
+      remaining.forEach((r,idx)=>{
+        if(r>=c+kerf){ const slack=r-(c+kerf); if(slack<bestSlack){ bestSlack=slack; i=idx; } }
+      });
+    } else {
+      // First-Fit : première barre qui convient
+      i=remaining.findIndex(r=>r>=c+kerf);
+    }
     if(i<0){ remaining.push(barLen-c-kerf); seeded.push(false); barCuts.push([c]); }
     else{ barCuts[i].push(c); remaining[i]-=c+kerf; }
   });
-  return barCuts.map((cuts,i)=>({
+  const bars=barCuts.map((cuts,i)=>({
     cuts, fromStock:seeded[i]===true,
     used:cuts.reduce((a,b)=>a+b+kerf,0),
     chute:remaining[i]
   })).filter(b=>b.cuts.length>0);
+  const nbBarresNeuves=bars.filter(b=>!b.fromStock).length;
+  const chuteTotale=bars.filter(b=>!b.fromStock).reduce((s,b)=>s+b.chute,0);
+  return {bars,nbBarresNeuves,chuteTotale};
+}
+function binPackCuts(cuts,barLen,kerf,seedRemaining){
+  const sorted=[...cuts].sort((a,b)=>b-a);
+  const resultBest=packStrategy(sorted,barLen,kerf,seedRemaining,'best');
+  const resultFirst=packStrategy(sorted,barLen,kerf,seedRemaining,'first');
+  // Choisit la meilleure stratégie : moins de barres neuves, puis moins de chute totale
+  const winner = (resultBest.nbBarresNeuves<resultFirst.nbBarresNeuves) ? resultBest
+    : (resultFirst.nbBarresNeuves<resultBest.nbBarresNeuves) ? resultFirst
+    : (resultBest.chuteTotale<=resultFirst.chuteTotale ? resultBest : resultFirst);
+  return winner.bars;
 }
 
 async function getBarLengthForCode(code,fournisseurFilter){
