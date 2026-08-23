@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SanixFactory — Plateforme SaaS Menuiserie Aluminium</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+// === CONFIG SUPABASE — projet dédié SanixFactory SaaS (à renseigner) ===
+window.SAAS_CFG = {
+  SUPABASE_URL: 'https://VOTRE-PROJET.supabase.co',
+  SUPABASE_ANON_KEY: 'VOTRE_ANON_KEY'
+};
+</script>
+<style>
+  :root{
+    --ink:#0b1220; --ink-2:#0f172a; --slate-700:#334155; --slate-500:#64748b; --slate-400:#94a3b8;
+    --slate-200:#e2e8f0; --slate-100:#f1f5f9; --surface:#ffffff; --canvas:#f5f6f8;
+    --accent:#1d4ed8; --accent-ink:#1e3a8a; --accent-soft:#eff6ff;
+    --ok:#059669; --warn:#d97706; --danger:#dc2626;
+  }
+  body{background:var(--canvas);color:var(--ink-2);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif}
+  .card{background:var(--surface);border:1px solid var(--slate-200);box-shadow:0 1px 2px rgba(15,23,42,.04)}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:hover{background:var(--accent-ink)}
+  .btn-primary:disabled{opacity:.5;cursor:not-allowed}
+  input{outline:none}
+  input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .badge{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700}
+  .hidden{display:none!important}
+  .nav-item{transition:background .12s}
+  .nav-item:hover{background:rgba(255,255,255,.06)}
+  .nav-item.disabled{opacity:.35;cursor:not-allowed}
+  @media (max-width:767px){
+    #appSidebar{position:fixed;inset:0 20% 0 0;z-index:40;transform:translateX(-100%);transition:transform .22s ease;max-width:280px}
+    #appSidebar.open{transform:translateX(0)}
+    #sidebarOverlay{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:30;opacity:0;pointer-events:none;transition:opacity .2s ease}
+    #sidebarOverlay.open{opacity:1;pointer-events:auto}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ ÉCRAN AUTH (landing + login + signup) ============ -->
+<div id="authScreen" class="min-h-screen flex flex-col">
+  <header class="px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between gap-2">
+    <div class="text-lg sm:text-xl font-black">Sanix<span style="color:var(--accent)">Factory</span></div>
+    <a href="Sanix_AluExpert_ERP_fix.html" class="text-[11px] sm:text-xs text-slate-500 hover:text-slate-700 underline whitespace-nowrap">↩ AluExpert</a>
+  </header>
+
+  <main class="flex-1 flex items-center justify-center px-4 pb-10 sm:pb-16">
+    <div class="w-full max-w-md">
+      <div class="mb-6 text-center">
+        <h1 class="text-xl sm:text-2xl font-black mb-1">Pilotez votre menuiserie aluminium</h1>
+        <p class="text-sm text-slate-500">Devis, BOM, production, stock, contrôle de gestion — une seule plateforme, votre entreprise, vos données isolées.</p>
+      </div>
+
+      <div class="card rounded-2xl p-4 sm:p-6">
+        <div class="flex gap-2 mb-5 bg-slate-100 rounded-lg p-1">
+          <button id="tabLoginBtn" onclick="setAuthTab('login')" class="flex-1 py-2 rounded-md text-sm font-semibold">Connexion</button>
+          <button id="tabSignupBtn" onclick="setAuthTab('signup')" class="flex-1 py-2 rounded-md text-sm font-semibold">Créer mon entreprise</button>
+        </div>
+
+        <div id="authError" class="hidden text-sm bg-red-50 text-red-700 rounded-lg px-3 py-2 mb-4"></div>
+        <div id="authInfo" class="hidden text-sm bg-blue-50 text-blue-700 rounded-lg px-3 py-2 mb-4"></div>
+
+        <!-- Connexion -->
+        <form id="loginForm" onsubmit="return handleLogin(event)" class="space-y-3">
+          <input id="liEmail" type="email" required placeholder="Email professionnel" class="w-full border rounded-lg px-3 py-2.5 text-sm">
+          <input id="liPassword" type="password" required placeholder="Mot de passe" class="w-full border rounded-lg px-3 py-2.5 text-sm">
+          <button type="submit" id="liSubmit" class="btn-primary w-full rounded-lg py-2.5 text-sm font-bold">Se connecter</button>
+        </form>
+
+        <!-- Création entreprise (signup) -->
+        <form id="signupForm" onsubmit="return handleSignup(event)" class="space-y-3 hidden">
+          <input id="suEntreprise" required placeholder="Nom de votre entreprise" class="w-full border rounded-lg px-3 py-2.5 text-sm">
+          <input id="suNom" required placeholder="Votre nom complet" class="w-full border rounded-lg px-3 py-2.5 text-sm">
+          <input id="suEmail" type="email" required placeholder="Email professionnel" class="w-full border rounded-lg px-3 py-2.5 text-sm">
+          <input id="suPassword" type="password" required minlength="8" placeholder="Mot de passe (8 caractères min.)" class="w-full border rounded-lg px-3 py-2.5 text-sm">
+          <button type="submit" id="suSubmit" class="btn-primary w-full rounded-lg py-2.5 text-sm font-bold">Créer mon compte — essai gratuit 14 jours</button>
+          <p class="text-[11px] text-slate-400 text-center">Aucune carte bancaire requise pour l'essai.</p>
+        </form>
+
+        <div id="devQuickAccess" class="hidden mt-4 pt-4 border-t text-center">
+          <button onclick="quickAccesTest()" class="text-sm font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg px-4 py-2 w-full">⚡ Accès test (mode développement) — entreprise "Test"</button>
+          <p class="text-[11px] text-slate-400 mt-1">admin@test.local — visible tant que le backend Supabase n'est pas configuré.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ ÉCRAN APPLICATION (post-auth) ============ -->
+<div id="appScreen" class="hidden min-h-screen flex">
+  <div id="sidebarOverlay" onclick="closeSidebar()"></div>
+  <aside id="appSidebar" class="w-64 shrink-0 text-slate-300 flex flex-col md:sticky md:top-0 md:h-screen" style="background:var(--ink-2)">
+    <div class="px-5 py-5 flex items-center justify-between">
+      <div>
+        <div class="text-white text-lg font-black">Sanix<span style="color:#60a5fa">Factory</span></div>
+        <div id="sbTenantNom" class="text-xs text-slate-400 mt-1 truncate"></div>
+      </div>
+      <button onclick="closeSidebar()" class="md:hidden text-slate-400 text-2xl leading-none px-2">×</button>
+    </div>
+    <nav class="flex-1 px-3 space-y-1 overflow-y-auto">
+      <div class="nav-item px-3 py-2.5 rounded-lg text-sm font-semibold cursor-pointer" data-page="dashboard" onclick="setPage('dashboard');closeSidebar()">📊 Dashboard</div>
+      <div class="nav-item disabled px-3 py-2.5 rounded-lg text-sm">🧲 CRM <span class="text-[10px] ml-1">Phase 2</span></div>
+      <div class="nav-item disabled px-3 py-2.5 rounded-lg text-sm">📄 Devis / Proforma <span class="text-[10px] ml-1">Phase 2</span></div>
+      <div class="nav-item disabled px-3 py-2.5 rounded-lg text-sm">🧩 Configurateur / BOM <span class="text-[10px] ml-1">Phase 3</span></div>
+      <div class="nav-item disabled px-3 py-2.5 rounded-lg text-sm">📦 Stock <span class="text-[10px] ml-1">Phase 4</span></div>
+      <div class="nav-item disabled px-3 py-2.5 rounded-lg text-sm">🏭 Production / OF <span class="text-[10px] ml-1">Phase 4</span></div>
+      <div class="nav-item disabled px-3 py-2.5 rounded-lg text-sm">✅ Qualité <span class="text-[10px] ml-1">Phase 4</span></div>
+      <div class="nav-item disabled px-3 py-2.5 rounded-lg text-sm">📈 Contrôle de gestion <span class="text-[10px] ml-1">Phase 5</span></div>
+      <div class="nav-item disabled px-3 py-2.5 rounded-lg text-sm">🧾 Facturation <span class="text-[10px] ml-1">Phase 2</span></div>
+      <div class="nav-item px-3 py-2.5 rounded-lg text-sm font-semibold cursor-pointer" data-page="utilisateurs" onclick="setPage('utilisateurs');closeSidebar()">👥 Utilisateurs</div>
+    </nav>
+    <div class="px-4 py-4 border-t border-white/10">
+      <a href="Sanix_AluExpert_ERP_fix.html" class="block text-xs text-slate-400 hover:text-white mb-3">↩ Continuer sur AluExpert (produit actuel)</a>
+      <div id="sbUserEmail" class="text-xs text-slate-400 truncate mb-2"></div>
+      <button onclick="handleLogout()" class="w-full text-left text-sm text-slate-300 hover:text-white">⏻ Déconnexion</button>
+    </div>
+  </aside>
+
+  <main class="flex-1 min-w-0">
+    <header class="bg-white border-b px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2 min-w-0">
+        <button onclick="openSidebar()" class="md:hidden text-slate-700 border rounded-lg px-2.5 py-1.5 shrink-0" aria-label="Menu">☰</button>
+        <h1 id="pageTitle" class="text-base sm:text-lg font-bold truncate">Tableau de bord</h1>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <span id="planBadge" class="badge"></span>
+        <span id="statutBadge" class="badge hidden sm:inline-flex"></span>
+      </div>
+    </header>
+
+    <div id="pageDashboard" class="p-4 sm:p-6">
+      <div class="card rounded-2xl p-6 mb-6" style="background:linear-gradient(135deg,var(--accent-soft),#fff)">
+        <h2 class="font-bold text-lg mb-1">Bienvenue, <span id="welcomeNom"></span> 👋</h2>
+        <p class="text-sm text-slate-600">Les fondations sont prêtes : authentification multi-tenant, isolation des données par entreprise, et structure de la plateforme. Les modules métier (CRM, devis, BOM, production…) arrivent dans les phases suivantes de la feuille de route.</p>
+      </div>
+
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="card rounded-2xl p-5"><div class="text-slate-500 text-sm">Chiffre d'affaires du mois</div><div class="text-2xl font-black mt-2 text-slate-300">—</div><div class="text-xs text-slate-400 mt-2">Disponible en Phase 2</div></div>
+        <div class="card rounded-2xl p-5"><div class="text-slate-500 text-sm">Devis en cours</div><div class="text-2xl font-black mt-2 text-slate-300">—</div><div class="text-xs text-slate-400 mt-2">Disponible en Phase 2</div></div>
+        <div class="card rounded-2xl p-5"><div class="text-slate-500 text-sm">OF en production</div><div class="text-2xl font-black mt-2 text-slate-300">—</div><div class="text-xs text-slate-400 mt-2">Disponible en Phase 4</div></div>
+        <div class="card rounded-2xl p-5"><div class="text-slate-500 text-sm">Marge moyenne</div><div class="text-2xl font-black mt-2 text-slate-300">—</div><div class="text-xs text-slate-400 mt-2">Disponible en Phase 5</div></div>
+      </div>
+
+      <div class="card rounded-2xl p-6">
+        <h2 class="font-bold mb-3">Votre entreprise</h2>
+        <div class="grid sm:grid-cols-2 gap-4 text-sm">
+          <div><div class="text-slate-400 text-xs mb-0.5">Nom</div><div id="infoTenantNom" class="font-semibold">—</div></div>
+          <div><div class="text-slate-400 text-xs mb-0.5">Identifiant (slug)</div><div id="infoTenantSlug" class="font-mono text-xs">—</div></div>
+          <div><div class="text-slate-400 text-xs mb-0.5">Plan</div><div id="infoTenantPlan" class="font-semibold">—</div></div>
+          <div><div class="text-slate-400 text-xs mb-0.5">Essai gratuit jusqu'au</div><div id="infoTenantTrial" class="font-semibold">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="pageUtilisateurs" class="p-4 sm:p-6 hidden">
+      <div class="card rounded-2xl p-6 mb-6">
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-1">
+          <h2 class="font-bold text-lg">Inviter un collaborateur</h2>
+          <span id="uQuota" class="text-xs text-slate-400"></span>
+        </div>
+        <p class="text-sm text-slate-500 mb-4">Le collaborateur pourra se connecter immédiatement avec l'email et le mot de passe temporaire ci-dessous.</p>
+        <div id="uInviteError" class="hidden text-sm bg-red-50 text-red-700 rounded-lg px-3 py-2 mb-3"></div>
+        <div id="uInviteOk" class="hidden text-sm bg-emerald-50 text-emerald-700 rounded-lg px-3 py-2 mb-3"></div>
+        <form onsubmit="return handleInviteMember(event)" class="grid grid-cols-1 sm:grid-cols-5 gap-2">
+          <input id="uNom" placeholder="Nom complet" required class="border rounded-lg px-3 py-2 text-sm sm:col-span-1">
+          <input id="uEmail" type="email" placeholder="Email" required class="border rounded-lg px-3 py-2 text-sm sm:col-span-1">
+          <input id="uPassword" type="text" placeholder="Mot de passe temporaire" required minlength="8" class="border rounded-lg px-3 py-2 text-sm sm:col-span-1">
+          <select id="uRole" class="border rounded-lg px-3 py-2 text-sm sm:col-span-1">
+            <option value="commercial">Commercial</option>
+            <option value="bureau_etudes">Bureau d'études</option>
+            <option value="magasinier">Magasinier</option>
+            <option value="production">Production</option>
+            <option value="qualite">Qualité</option>
+            <option value="direction">Direction</option>
+            <option value="admin_entreprise">Administrateur entreprise</option>
+          </select>
+          <button type="submit" id="uInviteSubmit" class="btn-primary rounded-lg py-2 text-sm font-bold sm:col-span-1">+ Inviter</button>
+        </form>
+      </div>
+
+      <div class="card rounded-2xl p-6">
+        <h2 class="font-bold text-lg mb-4">Membres de l'entreprise</h2>
+        <div class="overflow-x-auto"><table class="w-full text-sm">
+          <thead class="bg-slate-50"><tr><th class="text-left p-2">Nom</th><th class="text-left p-2">Email</th><th class="text-left p-2">Rôle</th><th class="text-left p-2">Statut</th><th class="p-2"></th></tr></thead>
+          <tbody id="uMembersBody"></tbody>
+        </table></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const CFG = window.SAAS_CFG;
+function isConfigured(){ return !CFG.SUPABASE_URL.includes('VOTRE-PROJET') && !!CFG.SUPABASE_ANON_KEY && CFG.SUPABASE_ANON_KEY!=='VOTRE_ANON_KEY'; }
+
+function xhrJSON(method,url,body,extraHeaders,accessToken){
+  return new Promise((resolve,reject)=>{
+    const x=new XMLHttpRequest();
+    x.open(method,url,true);
+    x.setRequestHeader('Content-Type','application/json');
+    x.setRequestHeader('apikey',CFG.SUPABASE_ANON_KEY);
+    x.setRequestHeader('Authorization','Bearer '+(accessToken||CFG.SUPABASE_ANON_KEY));
+    if(extraHeaders) Object.entries(extraHeaders).forEach(([k,v])=>x.setRequestHeader(k,v));
+    x.onload=()=>{
+      if(x.status>=200&&x.status<300){ try{resolve(x.responseText?JSON.parse(x.responseText):null)}catch{resolve(null)} }
+      else { try{reject(JSON.parse(x.responseText))}catch{reject({message:'HTTP '+x.status})} }
+    };
+    x.onerror=()=>reject({message:'Réseau indisponible'});
+    x.send(body?JSON.stringify(body):null);
+  });
+}
+let CURRENT_PROFILE=null, CURRENT_SESSION=null;
+const ROLE_LABELS={admin_entreprise:'Administrateur entreprise',commercial:'Commercial',bureau_etudes:"Bureau d'études",magasinier:'Magasinier',production:'Production',qualite:'Qualité',direction:'Direction',super_admin_saas:'Super admin SaaS'};
+
+function authUrl(path){ return CFG.SUPABASE_URL.replace(/\/$/,'')+'/auth/v1'+path; }
+function restUrl(path){ return CFG.SUPABASE_URL.replace(/\/$/,'')+'/rest/v1'+path; }
+
+function openSidebar(){ document.getElementById('appSidebar').classList.add('open'); document.getElementById('sidebarOverlay').classList.add('open'); }
+function closeSidebar(){ document.getElementById('appSidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); }
+
+function setPage(page){
+  document.querySelectorAll('#appScreen aside [data-page]').forEach(el=>el.classList.toggle('bg-white/10',el.dataset.page===page));
+  document.querySelectorAll('#appScreen aside [data-page]').forEach(el=>el.classList.toggle('text-white',el.dataset.page===page));
+  document.getElementById('pageDashboard').classList.toggle('hidden',page!=='dashboard');
+  document.getElementById('pageUtilisateurs').classList.toggle('hidden',page!=='utilisateurs');
+  document.getElementById('pageTitle').textContent = page==='utilisateurs' ? 'Utilisateurs' : 'Tableau de bord';
+  if(page==='utilisateurs') renderMembersPage();
+}
+
+/* ---------- Mode développement local (aucun backend requis) ---------- */
+async function pbkdf2Hash(password,saltB64){
+  const enc=new TextEncoder();
+  const salt = saltB64 ? Uint8Array.from(atob(saltB64),c=>c.charCodeAt(0)) : crypto.getRandomValues(new Uint8Array(16));
+  const keyMaterial = await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:100000,hash:'SHA-256'},keyMaterial,256);
+  return {salt:btoa(String.fromCharCode(...salt)),hash:btoa(String.fromCharCode(...new Uint8Array(bits)))};
+}
+async function verifyPassword(password,saltB64,hashB64){ const r=await pbkdf2Hash(password,saltB64); return r.hash===hashB64; }
+function localDb(){ try{return JSON.parse(localStorage.getItem('saas_local_db')||'{"tenants":[],"profiles":[],"users":[]}')}catch{return {tenants:[],profiles:[],users:[]}} }
+function saveLocalDb(db){ localStorage.setItem('saas_local_db',JSON.stringify(db)); }
+function uuid(){ return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c==='x'?r:(r&0x3|0x8)).toString(16)}); }
+
+async function localSignup(entreprise,nomComplet,email,password){
+  const db=localDb();
+  if(db.users.some(u=>u.email===email)) throw new Error('Cet email existe déjà (mode développement local).');
+  const tenantId=uuid(), userId=uuid();
+  const slug=entreprise.trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')+'-'+userId.slice(0,6);
+  const trial=new Date(Date.now()+14*86400000).toISOString();
+  db.tenants.push({id:tenantId,nom:entreprise,slug,plan:'trial',statut:'TRIAL',trial_expire_le:trial});
+  db.profiles.push({id:userId,tenant_id:tenantId,email,nom_complet:nomComplet,role:'admin_entreprise'});
+  const {salt,hash}=await pbkdf2Hash(password);
+  db.users.push({id:userId,email,salt,hash});
+  saveLocalDb(db);
+  return {mode:'local',access_token:'local',user:{id:userId}};
+}
+async function localLogin(email,password){
+  const db=localDb();
+  const u=db.users.find(x=>x.email===email);
+  if(!u || !(await verifyPassword(password,u.salt,u.hash))) throw new Error('Identifiants invalides (mode développement local).');
+  return {mode:'local',access_token:'local',user:{id:u.id}};
+}
+function localGetProfileWithTenant(uid){
+  const db=localDb();
+  const profil=db.profiles.find(p=>p.id===uid); if(!profil) return null;
+  const tenant=db.tenants.find(t=>t.id===profil.tenant_id);
+  return {...profil,tenants:tenant};
+}
+async function quickAccesTest(){
+  clearAuthMsg();
+  const db=localDb();
+  let tenant=db.tenants.find(t=>t.nom==='Test');
+  let session;
+  if(tenant){
+    const profil=db.profiles.find(p=>p.tenant_id===tenant.id);
+    session={mode:'local',access_token:'local',user:{id:profil.id}};
+  } else {
+    session=await localSignup('Test','Compte de développement','admin@test.local','test1234');
+  }
+  await enterAppWithSession(session);
+}
+
+function getSession(){ try{return JSON.parse(localStorage.getItem('saas_session'))}catch{return null} }
+function setSession(s){ localStorage.setItem('saas_session',JSON.stringify(s)); }
+function clearSession(){ localStorage.removeItem('saas_session'); }
+
+function showAuthError(msg){
+  const el=document.getElementById('authError');
+  el.textContent=msg; el.classList.remove('hidden');
+  document.getElementById('authInfo').classList.add('hidden');
+}
+function showAuthInfo(msg){
+  const el=document.getElementById('authInfo');
+  el.textContent=msg; el.classList.remove('hidden');
+  document.getElementById('authError').classList.add('hidden');
+}
+function clearAuthMsg(){
+  document.getElementById('authError').classList.add('hidden');
+  document.getElementById('authInfo').classList.add('hidden');
+}
+
+function setAuthTab(tab){
+  clearAuthMsg();
+  const isLogin=tab==='login';
+  document.getElementById('loginForm').classList.toggle('hidden',!isLogin);
+  document.getElementById('signupForm').classList.toggle('hidden',isLogin);
+  document.getElementById('tabLoginBtn').style.background=isLogin?'#fff':'';
+  document.getElementById('tabSignupBtn').style.background=isLogin?'':'#fff';
+}
+setAuthTab('login');
+
+async function handleSignup(e){
+  e.preventDefault();
+  clearAuthMsg();
+  const entreprise=document.getElementById('suEntreprise').value.trim();
+  const nomComplet=document.getElementById('suNom').value.trim();
+  const email=document.getElementById('suEmail').value.trim().toLowerCase();
+  const password=document.getElementById('suPassword').value;
+  const btn=document.getElementById('suSubmit'); btn.disabled=true; btn.textContent='Création en cours…';
+  try{
+    if(!isConfigured()){
+      const session=await localSignup(entreprise,nomComplet,email,password);
+      await enterAppWithSession(session);
+      return false;
+    }
+    const res=await xhrJSON('POST',authUrl('/signup'),{email,password});
+    if(res && res.access_token){
+      // Confirmation email désactivée sur le projet → session immédiate, on crée le tenant tout de suite.
+      await createTenantAndEnter(res,entreprise,nomComplet);
+    } else {
+      // Confirmation email activée → l'utilisateur doit valider son email avant 1ère connexion.
+      localStorage.setItem('saas_pending_entreprise',JSON.stringify({entreprise,nomComplet}));
+      showAuthInfo('Compte créé. Vérifiez votre boîte mail pour confirmer votre adresse, puis connectez-vous.');
+      setAuthTab('login');
+    }
+  }catch(err){
+    showAuthError(err.msg||err.message||"Erreur lors de la création du compte (email déjà utilisé ?).");
+  }finally{
+    btn.disabled=false; btn.textContent='Créer mon compte — essai gratuit 14 jours';
+  }
+  return false;
+}
+
+async function handleLogin(e){
+  e.preventDefault();
+  clearAuthMsg();
+  const email=document.getElementById('liEmail').value.trim().toLowerCase();
+  const password=document.getElementById('liPassword').value;
+  const btn=document.getElementById('liSubmit'); btn.disabled=true; btn.textContent='Connexion…';
+  try{
+    if(!isConfigured()){
+      const session=await localLogin(email,password);
+      await enterAppWithSession(session);
+      return false;
+    }
+    const res=await xhrJSON('POST',authUrl('/token?grant_type=password'),{email,password});
+    if(!res || !res.access_token) throw new Error('Identifiants invalides.');
+    await enterAppWithSession(res);
+  }catch(err){
+    showAuthError(err.error_description||err.msg||err.message||'Identifiants invalides.');
+  }finally{
+    btn.disabled=false; btn.textContent='Se connecter';
+  }
+  return false;
+}
+
+async function createTenantAndEnter(session,entreprise,nomComplet){
+  await xhrJSON('POST',restUrl('/rpc/signup_tenant'),{p_nom_entreprise:entreprise,p_nom_complet:nomComplet},null,session.access_token);
+  localStorage.removeItem('saas_pending_entreprise');
+  await enterAppWithSession(session);
+}
+
+async function enterAppWithSession(session){
+  setSession(session);
+  const uid=session.user?.id;
+  if(session.mode==='local'){
+    const profil=localGetProfileWithTenant(uid);
+    if(!profil){ showAuthError('Profil local introuvable.'); return; }
+    renderApp(profil,true);
+    return;
+  }
+  let profils=await xhrJSON('GET',restUrl('/profiles?select=*,tenants(*)&id=eq.'+uid),null,null,session.access_token);
+  if(!profils || !profils.length){
+    // Profil absent (ex : confirmation email requise avant l'appel signup_tenant) → on le crée maintenant.
+    let pending={}; try{ pending=JSON.parse(localStorage.getItem('saas_pending_entreprise')||'{}'); }catch{}
+    if(!pending.entreprise){ showAuthError("Aucune entreprise associée à ce compte. Contactez l'administrateur."); return; }
+    await xhrJSON('POST',restUrl('/rpc/signup_tenant'),{p_nom_entreprise:pending.entreprise,p_nom_complet:pending.nomComplet},null,session.access_token);
+    localStorage.removeItem('saas_pending_entreprise');
+    profils=await xhrJSON('GET',restUrl('/profiles?select=*,tenants(*)&id=eq.'+uid),null,null,session.access_token);
+  }
+  const profil=profils && profils[0];
+  if(!profil){ showAuthError('Profil introuvable.'); return; }
+  renderApp(profil,false);
+}
+
+function renderApp(profil,isLocal){
+  CURRENT_PROFILE=profil; CURRENT_SESSION=getSession();
+  const tenant=profil.tenants;
+  document.getElementById('authScreen').classList.add('hidden');
+  document.getElementById('appScreen').classList.remove('hidden');
+  document.getElementById('sbTenantNom').textContent=tenant?.nom||'—';
+  document.getElementById('sbUserEmail').textContent=profil.email;
+  document.getElementById('welcomeNom').textContent=profil.nom_complet||profil.email;
+  document.getElementById('infoTenantNom').textContent=tenant?.nom||'—';
+  document.getElementById('infoTenantSlug').textContent=tenant?.slug||'—';
+  const planLabel={trial:'Essai gratuit',starter:'Starter',business:'Business',industrial:'Industrial',enterprise:'Enterprise'};
+  document.getElementById('infoTenantPlan').textContent=planLabel[tenant?.plan]||tenant?.plan||'—';
+  document.getElementById('infoTenantTrial').textContent=tenant?.trial_expire_le?new Date(tenant.trial_expire_le).toLocaleDateString('fr-FR'):'—';
+  const planBadge=document.getElementById('planBadge');
+  planBadge.textContent=planLabel[tenant?.plan]||tenant?.plan||'—';
+  planBadge.className='badge bg-blue-50 text-blue-700';
+  const statutColor={TRIAL:'amber',ACTIVE:'emerald',PAST_DUE:'red',SUSPENDED:'red',CANCELLED:'slate',EXPIRED:'slate'};
+  const sc=statutColor[tenant?.statut]||'slate';
+  const statutBadge=document.getElementById('statutBadge');
+  statutBadge.textContent=tenant?.statut||'—';
+  statutBadge.className='badge bg-'+sc+'-50 text-'+sc+'-700';
+  let devBadge=document.getElementById('devModeBadge');
+  if(isLocal){
+    if(!devBadge){
+      devBadge=document.createElement('span');
+      devBadge.id='devModeBadge';
+      devBadge.className='badge bg-amber-50 text-amber-700';
+      devBadge.textContent='🛠 Mode développement (local, sans backend)';
+      document.querySelector('#appScreen header .flex.items-center.gap-2').prepend(devBadge);
+    }
+  } else if(devBadge) devBadge.remove();
+  setPage('dashboard');
+}
+
+function handleLogout(){
+  clearSession();
+  CURRENT_PROFILE=null; CURRENT_SESSION=null;
+  document.getElementById('appScreen').classList.add('hidden');
+  document.getElementById('authScreen').classList.remove('hidden');
+  document.getElementById('loginForm').reset();
+}
+
+/* ---------- Utilisateurs & rôles (Phase 1b) ---------- */
+function clearInviteMsg(){
+  document.getElementById('uInviteError').classList.add('hidden');
+  document.getElementById('uInviteOk').classList.add('hidden');
+}
+function showInviteError(msg){ const el=document.getElementById('uInviteError'); el.textContent=msg; el.classList.remove('hidden'); document.getElementById('uInviteOk').classList.add('hidden'); }
+function showInviteOk(msg){ const el=document.getElementById('uInviteOk'); el.textContent=msg; el.classList.remove('hidden'); document.getElementById('uInviteError').classList.add('hidden'); }
+
+async function renderMembersPage(){
+  if(!CURRENT_PROFILE) return;
+  const isAdmin = CURRENT_PROFILE.role==='admin_entreprise' || CURRENT_PROFILE.role==='super_admin_saas';
+  document.querySelector('#pageUtilisateurs form').closest('.card').classList.toggle('hidden',!isAdmin);
+
+  let members, limite;
+  if(CURRENT_SESSION.mode==='local'){
+    const db=localDb();
+    members=db.profiles.filter(p=>p.tenant_id===CURRENT_PROFILE.tenant_id);
+    limite=3;
+  } else {
+    members=await xhrJSON('GET',restUrl('/profiles?select=*&order=created_at.asc'),null,null,CURRENT_SESSION.access_token) || [];
+    limite=(CURRENT_PROFILE.tenants?.limites?.utilisateurs)||3;
+  }
+  document.getElementById('uQuota').textContent=members.length+' / '+limite+' utilisateur(s) — plan '+(CURRENT_PROFILE.tenants?.plan||'trial');
+
+  document.getElementById('uMembersBody').innerHTML=members.map(m=>{
+    const soi=m.id===CURRENT_PROFILE.id;
+    return `<tr class="border-b">
+      <td class="p-2 font-semibold">${escapeHtmlSaas(m.nom_complet||'—')}${soi?' <span class="text-[10px] text-slate-400">(vous)</span>':''}</td>
+      <td class="p-2 text-xs">${escapeHtmlSaas(m.email)}</td>
+      <td class="p-2 text-xs">${isAdmin&&!soi?`<select onchange="changeMemberRole('${m.id}',this.value)" class="border rounded px-1.5 py-1 text-xs">${Object.entries(ROLE_LABELS).filter(([k])=>k!=='super_admin_saas').map(([k,l])=>`<option value="${k}" ${m.role===k?'selected':''}>${l}</option>`).join('')}</select>`:escapeHtmlSaas(ROLE_LABELS[m.role]||m.role)}</td>
+      <td class="p-2"><span class="badge ${m.actif===false?'bg-red-50 text-red-700':'bg-emerald-50 text-emerald-700'}">${m.actif===false?'Désactivé':'Actif'}</span></td>
+      <td class="p-2 text-right">${isAdmin&&!soi?`<button onclick="toggleMemberActif('${m.id}',${m.actif===false})" class="text-xs font-semibold ${m.actif===false?'text-emerald-600':'text-red-500'}">${m.actif===false?'Réactiver':'Désactiver'}</button>`:''}</td>
+    </tr>`;
+  }).join('') || '<tr><td class="p-3 text-slate-400" colspan="5">Aucun membre.</td></tr>';
+}
+function escapeHtmlSaas(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function handleInviteMember(e){
+  e.preventDefault();
+  clearInviteMsg();
+  const nom=document.getElementById('uNom').value.trim();
+  const email=document.getElementById('uEmail').value.trim().toLowerCase();
+  const password=document.getElementById('uPassword').value;
+  const role=document.getElementById('uRole').value;
+  const btn=document.getElementById('uInviteSubmit'); btn.disabled=true; btn.textContent='Invitation…';
+  try{
+    if(CURRENT_SESSION.mode==='local'){
+      const db=localDb();
+      if(db.users.some(u=>u.email===email)) throw new Error('Cet email existe déjà.');
+      const membresActuels=db.profiles.filter(p=>p.tenant_id===CURRENT_PROFILE.tenant_id).length;
+      if(membresActuels>=3) throw new Error('Limite de 3 utilisateurs atteinte (plan essai, mode local).');
+      const newId=uuid();
+      const {salt,hash}=await pbkdf2Hash(password);
+      db.users.push({id:newId,email,salt,hash});
+      db.profiles.push({id:newId,tenant_id:CURRENT_PROFILE.tenant_id,email,nom_complet:nom,role,actif:true});
+      saveLocalDb(db);
+    } else {
+      // 1) Création du compte Auth du collaborateur — SANS changer la session admin en cours.
+      const res=await xhrJSON('POST',authUrl('/signup'),{email,password});
+      const newUserId=res?.id || res?.user?.id;
+      if(!newUserId) throw new Error("Compte créé mais confirmation email requise avant rattachement — demandez au collaborateur de confirmer, puis relancez l'invitation depuis Supabase si besoin.");
+      // 2) Rattachement au tenant (RPC exécutée avec le JWT de l'ADMIN, pas celui du nouvel utilisateur).
+      await xhrJSON('POST',restUrl('/rpc/invite_member'),{p_new_user_id:newUserId,p_email:email,p_role:role,p_nom_complet:nom},null,CURRENT_SESSION.access_token);
+    }
+    showInviteOk('Collaborateur créé : '+email+' — communiquez-lui son mot de passe temporaire.');
+    document.getElementById('uNom').value=''; document.getElementById('uEmail').value=''; document.getElementById('uPassword').value='';
+    await renderMembersPage();
+  }catch(err){
+    showInviteError(err.message||err.msg||"Erreur lors de l'invitation.");
+  }finally{
+    btn.disabled=false; btn.textContent='+ Inviter';
+  }
+  return false;
+}
+
+async function changeMemberRole(userId,newRole){
+  if(CURRENT_SESSION.mode==='local'){
+    const db=localDb();
+    const p=db.profiles.find(x=>x.id===userId); if(p){ p.role=newRole; saveLocalDb(db); }
+  } else {
+    try{ await xhrJSON('POST',restUrl('/rpc/update_member'),{p_user_id:userId,p_role:newRole},null,CURRENT_SESSION.access_token); }
+    catch(err){ alert(err.message||"Impossible de modifier le rôle."); }
+  }
+  await renderMembersPage();
+}
+async function toggleMemberActif(userId,setActif){
+  if(CURRENT_SESSION.mode==='local'){
+    const db=localDb();
+    const p=db.profiles.find(x=>x.id===userId); if(p){ p.actif=setActif; saveLocalDb(db); }
+  } else {
+    try{ await xhrJSON('POST',restUrl('/rpc/update_member'),{p_user_id:userId,p_actif:setActif},null,CURRENT_SESSION.access_token); }
+    catch(err){ alert(err.message||"Impossible de modifier le statut."); }
+  }
+  await renderMembersPage();
+}
+
+(async function boot(){
+  if(!isConfigured()){
+    showAuthInfo('⚠️ Backend non connecté — vous êtes en mode développement local (données stockées dans ce navigateur uniquement, non partagées). Configurez SAAS_CFG dès que le projet Supabase est prêt.');
+    document.getElementById('devQuickAccess').classList.remove('hidden');
+  }
+  const s=getSession();
+  if(s && s.access_token){ await enterAppWithSession(s); }
+})();
+</script>
+</body>
+</html>
