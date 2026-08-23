@@ -4558,6 +4558,25 @@ async function openChantierDetail(id){
       </tbody><tfoot><tr class="border-t font-bold"><td class="p-2">Total</td><td class="p-2 text-right">${Object.values(groupesAtelier).reduce((s,g)=>s+g.nb,0)}</td><td class="p-2 text-right">${money(totalConsolide)}</td><td class="p-2 text-right">100%</td></tr></tfoot></table></div>
     </div>` : '';
 
+  const montantAchatsTotal=achats.reduce((s,a)=>s+(a.montant||0),0);
+  const achatsRecap={demande:0,validee:0,commandee:0,partielle:0,recue:0};
+  achats.forEach(a=>{ achatsRecap[a.statut]=(achatsRecap[a.statut]||0)+1; });
+  const achatsLiesHtml = achats.length ? `
+    <div class="border-t pt-5 mt-5">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="font-bold text-sm text-slate-700">🧾 Achats liés à ce dossier (${achats.length}) — ${money(montantAchatsTotal)}</h3>
+        <div class="text-xs text-slate-400">${Object.entries(achatsRecap).filter(([,n])=>n>0).map(([s,n])=>n+' '+s).join(' · ')}</div>
+      </div>
+      <p class="text-xs text-slate-400 mb-2">Les demandes d'achat peuvent continuer d'être passées progressivement (réapprovisionnement) même après l'étape "Achats" du circuit.</p>
+      <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">N°</th><th class="text-left p-2">Fournisseur</th><th class="text-left p-2">Références</th><th class="text-right p-2">Montant</th><th class="text-left p-2">Statut</th><th class="text-left p-2">Date</th></tr></thead><tbody>
+        ${achats.slice().sort((a,b)=>(b.dateCreation||'').localeCompare(a.dateCreation||'')).map(a=>{
+          const lignes=normalizeAchatLignes(a);
+          const c2=a.statut==='recue'?'emerald':a.statut==='partielle'?'orange':a.statut==='commandee'?'blue':a.statut==='validee'?'amber':'slate';
+          return `<tr class="border-b"><td class="p-2 font-semibold">${escapeHtml(a.numero)}</td><td class="p-2">${escapeHtml(a.fournisseur)}</td><td class="p-2 text-xs text-slate-500">${lignes.length} réf.${a.origineMRP?' <span class="text-blue-600">(MRP)</span>':''}</td><td class="p-2 text-right">${money(a.montant)}</td><td class="p-2"><span class="badge bg-${c2}-50 text-${c2}-700">${escapeHtml(a.statut)}</span></td><td class="p-2 text-xs text-slate-400">${a.dateCreation?new Date(a.dateCreation).toLocaleDateString('fr-FR'):'—'}</td></tr>`;
+        }).join('')}
+      </tbody></table></div>
+    </div>` : '';
+
   const proformasHtml=`
     <div class="border-t pt-5 mt-5">
       <h3 class="font-bold text-sm text-slate-700 mb-2">🧾 Proformas liées (${proformasLiees.length})</h3>
@@ -4717,6 +4736,7 @@ async function openChantierDetail(id){
       <div class="flex mb-6">${stepperHtml}</div>
       <div class="border-t pt-5">${actionPanel}</div>
       ${consolidationHtml}
+      ${rec.etape!=='achats'?achatsLiesHtml:''}
       ${proformasHtml}
     </div>`;
   wrap.scrollIntoView({behavior:'smooth',block:'start'});
