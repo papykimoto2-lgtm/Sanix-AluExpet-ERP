@@ -108,7 +108,7 @@ window.SANIX_CFG = {
   .etude-tab-btn,.ref-tab-btn,.flux-view-btn,.cat-tab-btn,.stock-tab-btn,.prod-tab-btn{color:var(--ds-slate-500);background:transparent;border-radius:8px;font-weight:600;transition:background-color .12s ease,color .12s ease}
   .etude-tab-btn:hover,.ref-tab-btn:hover,.cat-tab-btn:hover,.stock-tab-btn:hover,.prod-tab-btn:hover{background:var(--ds-slate-100);color:var(--ds-slate-700)}
   .flux-view-btn:hover{background:#e2e8f0}
-  .etude-tab-btn.active,.ref-tab-btn.active,.cat-tab-btn.active,.stock-tab-btn.active,.prod-tab-btn.active{background:var(--ds-accent);color:#fff;box-shadow:var(--ds-shadow-sm)}
+  .etude-tab-btn.active,.ref-tab-btn.active,.cat-tab-btn.active,.stock-tab-btn.active,.prod-tab-btn.active,.gmao-tab-btn.active{background:var(--ds-accent);color:#fff;box-shadow:var(--ds-shadow-sm)}
   .config-view-btn{color:var(--ds-slate-500);background:transparent;border-radius:6px;transition:background-color .12s ease,color .12s ease}
   .config-view-btn:hover{background:var(--ds-slate-100)}
   .config-view-btn.active{background:var(--ds-accent);color:#fff}
@@ -183,15 +183,22 @@ window.SANIX_CFG = {
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="production">🏭 Production</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="atelierMobile">📱 Vue atelier (mobile)</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="stock">📦 Stock</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="gmao">🔧 GMAO <span id="gmaoBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
 
       <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">6 · Après-vente</div>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="sav">🛠️ SAV & Garantie</button>
+
+      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">7 · Pilotage</div>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="controlegestion">📈 Contrôle de gestion</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="validations">✅ Validations <span id="validationsBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="etatpa">📋 État proforma & achats</button>
 
       <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">5 · Administration</div>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="utilisateurs">👥 Utilisateurs</button>
     </nav>
     <div class="mt-8 border-t border-slate-700 pt-4 text-xs text-slate-500">
-      Version prototype<br>Module BOM Menuiserie Aluminium
+      Version prototype<br>Module BOM Menuiserie Aluminium<br>
+      <a href="sanixfactory-saas.html" class="text-slate-400 hover:text-white underline mt-1 inline-block">🧪 SanixFactory SaaS (Phase 1 — dev)</a>
     </div>
   </aside>
 
@@ -1446,6 +1453,7 @@ window.SANIX_CFG = {
           <button class="prod-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prodtab="gantt" onclick="showProdTab('gantt')">📅 Planning Gantt</button>
           <button class="prod-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prodtab="charge" onclick="showProdTab('charge')">📊 Charge postes</button>
           <button class="prod-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prodtab="journalier" onclick="showProdTab('journalier')">📅 Suivi journalier</button>
+          <button class="prod-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prodtab="dossiers" onclick="showProdTab('dossiers')">🗂️ Dossiers fabrication</button>
           <button class="prod-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prodtab="bilan" onclick="showProdTab('bilan')">📦 Bilan composants</button>
           <button id="btnNewOF" onclick="openNewOFForm()" class="ml-auto bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">+ Nouvel OF</button>
         </div>
@@ -1525,6 +1533,16 @@ window.SANIX_CFG = {
             </div>
           </div>
           <div id="sjContent"></div>
+        </div>
+        </div>
+
+        <div id="prodTabDossiers" class="prod-tab hidden">
+        <div class="card bg-white rounded-2xl p-6">
+          <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+            <div><h2 class="text-lg font-bold">Dossiers de fabrication par chantier</h2><p class="text-sm text-slate-500">Feuille de route atelier — infos techniques uniquement, sans prix.</p></div>
+            <input id="dfSearch" oninput="renderDossiersFabrication()" placeholder="Rechercher un chantier / client…" class="border rounded-lg px-3 py-2 text-sm w-64 max-w-full">
+          </div>
+          <div id="dfBody" class="space-y-3"></div>
         </div>
         </div>
 
@@ -1624,6 +1642,56 @@ window.SANIX_CFG = {
           <datalist id="stockRefsDatalist"></datalist>
           <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Date</th><th class="text-left p-3">Référence</th><th class="text-left p-3">De</th><th class="text-left p-3">Vers</th><th class="text-right p-3">Qté</th><th class="text-left p-3">Par</th></tr></thead><tbody id="transfertHistoBody"></tbody></table></div>
         </div>
+        </div>
+      </section>
+
+      <section id="gmao" class="page hidden">
+        <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1 items-center">
+          <button class="gmao-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-gmaotab="machines" onclick="showGmaoTab('machines')">🛠️ Machines</button>
+          <button class="gmao-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-gmaotab="planning" onclick="showGmaoTab('planning')">📅 Planning préventif</button>
+          <button class="gmao-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-gmaotab="interventions" onclick="showGmaoTab('interventions')">🔧 Interventions</button>
+          <button class="gmao-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-gmaotab="indicateurs" onclick="showGmaoTab('indicateurs')">📊 Indicateurs</button>
+          <button onclick="openMaintenanceForm(null)" class="ml-auto bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">+ Nouvelle intervention</button>
+        </div>
+
+        <div id="gmaoTabMachines" class="gmao-tab">
+          <div class="card bg-white rounded-2xl p-6">
+            <h2 class="text-lg font-bold mb-1">État des machines</h2>
+            <p class="text-sm text-slate-500 mb-4">Statut en temps réel, dernière intervention, prochaine échéance préventive.</p>
+            <div id="gmaoMachinesGrid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3"></div>
+          </div>
+        </div>
+
+        <div id="gmaoTabPlanning" class="gmao-tab hidden">
+          <div class="card bg-white rounded-2xl p-6">
+            <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
+              <div><h2 class="text-lg font-bold">Planning de maintenance préventive</h2><p class="text-sm text-slate-500">Interventions planifiées, triées par échéance.</p></div>
+            </div>
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Machine</th><th class="text-left p-3">Description</th><th class="text-left p-3">Échéance</th><th class="text-left p-3">Périodicité</th><th class="text-left p-3">Statut</th><th class="p-3"></th></tr></thead><tbody id="gmaoPlanningBody"></tbody></table></div>
+          </div>
+        </div>
+
+        <div id="gmaoTabInterventions" class="gmao-tab hidden">
+          <div class="card bg-white rounded-2xl p-6">
+            <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
+              <h2 class="text-lg font-bold">Historique des interventions</h2>
+              <input id="gmaoSearch" oninput="renderGmaoInterventions()" placeholder="Rechercher une machine…" class="border rounded-lg px-3 py-2 text-sm w-56 max-w-full">
+            </div>
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">N°</th><th class="text-left p-3">Machine</th><th class="text-left p-3">Type</th><th class="text-left p-3">Motif</th><th class="text-left p-3">Technicien</th><th class="text-left p-3">Durée</th><th class="text-right p-3">Coût</th><th class="text-left p-3">Statut</th><th class="p-3"></th></tr></thead><tbody id="gmaoInterventionsBody"></tbody></table></div>
+          </div>
+        </div>
+
+        <div id="gmaoTabIndicateurs" class="gmao-tab hidden">
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">MTBF moyen</div><div id="gmaoKpiMTBF" class="text-2xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">temps moyen entre pannes</div></div>
+            <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">MTTR moyen</div><div id="gmaoKpiMTTR" class="text-2xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">temps moyen de réparation</div></div>
+            <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Disponibilité parc</div><div id="gmaoKpiDispo" class="text-2xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">machines disponibles / total</div></div>
+            <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Coût maintenance (an)</div><div id="gmaoKpiCout" class="text-2xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">pièces + main-d'œuvre</div></div>
+          </div>
+          <div class="card bg-white rounded-2xl p-6">
+            <h2 class="font-bold text-lg mb-4">Machines les plus critiques (nb pannes, 12 derniers mois)</h2>
+            <div id="gmaoTopPannes" class="space-y-2"></div>
+          </div>
         </div>
       </section>
 
@@ -1892,6 +1960,102 @@ window.SANIX_CFG = {
         </div>
       </section>
 
+      <section id="etatpa" class="page hidden">
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+          <div><h2 class="text-lg font-bold">État des proforma & achats</h2><p class="text-sm text-slate-500">Vue consolidée, groupée par client puis par chantier.</p></div>
+          <div class="flex gap-2">
+            <input id="epaSearch" oninput="renderEtatProformaAchats()" placeholder="Rechercher un client / chantier…" class="border rounded-lg px-3 py-2 text-sm w-64 max-w-full">
+            <button onclick="renderEtatProformaAchats()" class="border px-3 py-2 rounded-lg text-sm font-semibold">🔄 Actualiser</button>
+            <button onclick="apercuEtatProformaAchats()" class="border border-blue-600 text-blue-600 px-3 py-2 rounded-lg text-sm font-semibold">🖨 Aperçu avant impression</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Clients</div><div id="epaKpiClients" class="text-3xl font-black mt-2">—</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Proforma émises</div><div id="epaKpiProforma" class="text-3xl font-black mt-2">—</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Achats en attente/validation</div><div id="epaKpiAchatsAttente" class="text-3xl font-black mt-2">—</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Total achats validés/reçus</div><div id="epaKpiAchatsMontant" class="text-3xl font-black mt-2">—</div></div>
+        </div>
+        <div id="epaBody" class="space-y-4"></div>
+      </section>
+
+      <section id="controlegestion" class="page hidden">
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+          <div><h2 class="text-lg font-bold">Contrôle de gestion — temps réel</h2><p class="text-sm text-slate-500">Budget vs réel par chantier, marge réelle, trésorerie. Recalcul à chaque ouverture et action.</p></div>
+          <div class="flex gap-2">
+            <select id="cgPeriode" onchange="renderControleGestion()" class="border rounded-lg px-3 py-2 text-sm">
+              <option value="mois">Ce mois-ci</option><option value="tout" selected>Depuis le début</option>
+            </select>
+            <button onclick="renderControleGestion()" class="border px-3 py-2 rounded-lg text-sm font-semibold">🔄 Actualiser</button>
+            <button onclick="exportControleGestionExcel()" class="border px-3 py-2 rounded-lg text-sm font-semibold">📊 Excel</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">CA engagé (devis validés)</div><div id="cgKpiCA" class="text-3xl font-black mt-2">—</div><div id="cgKpiCASub" class="text-xs text-slate-400 mt-2">&nbsp;</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Encaissé</div><div id="cgKpiEncaisse" class="text-3xl font-black mt-2">—</div><div id="cgKpiEncaisseSub" class="text-xs text-slate-400 mt-2">&nbsp;</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Créances (reste à encaisser)</div><div id="cgKpiCreances" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">clients</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Achats engagés non reçus</div><div id="cgKpiAchatsEngages" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">sortie trésorerie prévisionnelle</div></div>
+        </div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Coût de production réel</div><div id="cgKpiCoutReel" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">matière + main-d'œuvre</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Marge réelle globale</div><div id="cgKpiMargeReelle" class="text-3xl font-black mt-2">—</div><div id="cgKpiMargeSub" class="text-xs text-slate-400 mt-2">&nbsp;</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Marge théorique (devis)</div><div id="cgKpiMargeTheo" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">au chiffrage</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Chantiers en alerte marge</div><div id="cgKpiAlerte" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">marge réelle &lt; 15%</div></div>
+        </div>
+        <div id="cgAlertesPanel" class="mb-6 hidden"></div>
+
+        <div class="grid lg:grid-cols-3 gap-6 mb-6">
+          <div class="card bg-white rounded-2xl p-6 lg:col-span-2">
+            <h2 class="font-bold text-lg mb-4">CA · Coût réel · Marge par chantier</h2>
+            <canvas id="cgChart" height="110"></canvas>
+          </div>
+          <div class="card bg-white rounded-2xl p-6">
+            <h2 class="font-bold text-lg mb-4">Top 5 dérives budgétaires</h2>
+            <div id="cgTopDerives" class="space-y-3 text-sm"></div>
+          </div>
+        </div>
+
+        <div class="card bg-white rounded-2xl p-6">
+          <div class="flex flex-wrap justify-between items-center gap-3 mb-3">
+            <h2 class="font-bold text-lg">Chantiers — budget vs réel</h2>
+            <input id="cgSearch" oninput="renderControleGestion()" placeholder="Rechercher un chantier / client…" class="border rounded-lg px-3 py-2 text-sm w-64 max-w-full">
+          </div>
+          <div class="overflow-x-auto"><table class="w-full text-sm bg-white rounded-xl overflow-hidden">
+            <thead class="bg-slate-50"><tr>
+              <th class="text-left p-3">Chantier</th><th class="text-left p-3">Client</th><th class="text-left p-3">Étape</th>
+              <th class="text-right p-3">Budget HT</th><th class="text-right p-3">Coût réel</th>
+              <th class="text-right p-3">Marge théo.</th><th class="text-right p-3">Marge réelle</th><th class="text-right p-3">Écart</th>
+              <th class="text-right p-3">Encaissé</th><th class="text-right p-3">Reste à encaisser</th>
+            </tr></thead>
+            <tbody id="cgChantierBody"></tbody>
+          </table></div>
+        </div>
+
+        <div class="card bg-white rounded-2xl p-6 mt-6">
+          <div class="flex flex-wrap justify-between items-center gap-3 mb-3">
+            <h2 class="font-bold text-lg">Bilan OF — coût prévu vs réel</h2>
+            <span class="text-xs text-slate-400">Triés par écart le plus défavorable</span>
+          </div>
+          <div class="overflow-x-auto"><table class="w-full text-sm bg-white rounded-xl overflow-hidden">
+            <thead class="bg-slate-50"><tr>
+              <th class="text-left p-3">OF</th><th class="text-left p-3">Ouvrage</th><th class="text-left p-3">Chantier</th><th class="text-left p-3">Statut</th>
+              <th class="text-right p-3">Coût prévu</th><th class="text-right p-3">Coût réel</th><th class="text-right p-3">Écart</th>
+              <th class="text-right p-3">Temps prévu</th><th class="text-right p-3">Temps réel</th><th class="text-center p-3">NC</th>
+            </tr></thead>
+            <tbody id="cgOFBody"></tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <section id="validations" class="page hidden">
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+          <div><h2 class="text-lg font-bold">Validations en attente</h2><p class="text-sm text-slate-500">Dossiers chantier et demandes d'achat nécessitant la validation hiérarchique (DG / Administrateur).</p></div>
+          <button onclick="renderValidationsQueue()" class="border px-3 py-2 rounded-lg text-sm font-semibold">🔄 Actualiser</button>
+        </div>
+        <div id="validationsGate"></div>
+        <div id="validationsContent"></div>
+      </section>
+
       <section id="utilisateurs" class="page hidden">
         <div class="card bg-white rounded-2xl p-6">
           <div class="flex flex-wrap justify-between gap-3 mb-2">
@@ -1914,6 +2078,11 @@ window.SANIX_CFG = {
             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Créer utilisateur</button>
           </form>
           <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Email</th><th class="text-left p-3">Rôle</th><th class="p-3"></th></tr></thead><tbody id="usersBody"></tbody></table></div>
+        </div>
+        <div class="card bg-white rounded-2xl p-6 mt-6">
+          <h2 class="text-lg font-bold mb-1">Matrice des rôles & permissions</h2>
+          <p class="text-sm text-slate-500 mb-4">🔑 = pouvoir de validation hiérarchique (module Validations). Rôles fixes du prototype — pour un rôle sur mesure, créez l'utilisateur puis ajustez ses droits via Supabase si activé.</p>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Rôle</th><th class="text-left p-2">Permissions</th></tr></thead><tbody id="roleMatrixBody"></tbody></table></div>
         </div>
       </section>
 
@@ -2046,6 +2215,14 @@ window.SANIX_CFG = {
   <div class="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto" id="rapportProdContent"></div>
 </div>
 
+<div id="bilanOFModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 modal-overlay">
+  <div class="bg-white rounded-2xl p-6 max-w-3xl w-full max-h-[92vh] overflow-y-auto" id="bilanOFContent"></div>
+</div>
+
+<div id="maintenanceModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 modal-overlay">
+  <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[92vh] overflow-y-auto" id="maintenanceContent"></div>
+</div>
+
 <script>
 /* =========================================================
    Sanix AluExpert ERP — Couche ERP (Auth Supabase, IndexedDB offline,
@@ -2065,10 +2242,10 @@ function escapeHtml(s){
 /* ---------- IndexedDB ---------- */
 function openDB(){
   return new Promise((resolve,reject)=>{
-    const req=indexedDB.open('alubom_db',17);
+    const req=indexedDB.open('alubom_db',18);
     req.onupgradeneeded=e=>{
       const d=e.target.result;
-      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers','depots','pointages','nonconformites','chutes','postes','gammes','sav'].forEach(s=>{
+      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers','depots','pointages','nonconformites','chutes','postes','gammes','sav','maintenances'].forEach(s=>{
         if(!d.objectStoreNames.contains(s)) d.createObjectStore(s,{keyPath:'id'});
       });
     };
@@ -2321,6 +2498,20 @@ function deleteLocalUser(email){
   audit('DELETE_USER',email);
   renderUsersTable();
 }
+const PERMISSION_LABELS={
+  '*':'Accès total',
+  'referentiel:manage':'Gérer le référentiel technique',
+  'ouvrage:create':"Créer/configurer un ouvrage",
+  'chantier:create':'Créer/gérer un dossier chantier',
+  'chantier:validate':'🔑 Validation hiérarchique (DG)',
+  'of:create':"Créer/piloter les OF",
+  'stock:write':'Mouvementer le stock',
+  'qc:validate':'Contrôle qualité',
+  'achat:manage':"Gérer les demandes d'achat (hors seuil DG)",
+  'achat:create':"Créer des demandes d'achat",
+  'installation:manage':'Gérer les poses/installations'
+};
+function roleIsValidateur(role){ const p=ROLE_PRESETS[role]?.permissions||[]; return p.includes('*')||p.includes('chantier:validate'); }
 function renderUsersTable(){
   const el=document.getElementById('usersBody'); if(!el) return;
   const hint=document.getElementById('usersSupabaseHint');
@@ -2328,8 +2519,46 @@ function renderUsersTable(){
   const users=getLocalUsers();
   el.innerHTML = users.length ? users.map(u=>{
     const preset=ROLE_PRESETS[u.role]||{label:u.role};
-    return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(u.email)}</td><td class="p-3">${escapeHtml(preset.label)}</td><td class="p-3 text-right"><button onclick="deleteLocalUser('${escapeHtml(u.email)}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`;
+    const valideur=roleIsValidateur(u.role);
+    return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(u.email)}</td><td class="p-3">${escapeHtml(preset.label)}${valideur?' <span class="badge bg-blue-50 text-blue-700 ml-1">🔑 Valideur DG</span>':''}</td><td class="p-3 text-right whitespace-nowrap"><button onclick="openEditUserRole('${escapeHtml(u.email)}')" class="text-blue-600 text-xs font-semibold mr-2">✏️ Rôle</button><button onclick="deleteLocalUser('${escapeHtml(u.email)}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`;
   }).join('') : '<tr><td class="p-3 text-slate-400" colspan="3">Aucun utilisateur.</td></tr>';
+  renderRoleMatrix();
+}
+function renderRoleMatrix(){
+  const el=document.getElementById('roleMatrixBody'); if(!el) return;
+  el.innerHTML=Object.entries(ROLE_PRESETS).map(([key,r])=>`<tr class="border-b"><td class="p-2 font-semibold">${escapeHtml(r.label)}${roleIsValidateur(key)?' <span class="badge bg-blue-50 text-blue-700 ml-1">🔑</span>':''}</td><td class="p-2 text-xs text-slate-500">${r.permissions.map(p=>escapeHtml(PERMISSION_LABELS[p]||p)).join(' · ')}</td></tr>`).join('');
+}
+function openEditUserRole(email){
+  if(currentUser?.role!=='admin'){ alert('Réservé à l\'administrateur.'); return; }
+  const users=getLocalUsers();
+  const u=users.find(x=>x.email===email); if(!u) return;
+  const options=Object.entries(ROLE_PRESETS).map(([k,r])=>`<option value="${k}" ${u.role===k?'selected':''}>${escapeHtml(r.label)}</option>`).join('');
+  const html=`<div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" id="editRoleOverlay">
+    <div class="bg-white rounded-2xl p-6 max-w-sm w-full">
+      <h3 class="font-bold text-lg mb-3">Modifier le rôle</h3>
+      <p class="text-sm text-slate-500 mb-3">${escapeHtml(email)}</p>
+      <select id="editRoleSelect" class="border rounded-lg px-3 py-2 text-sm w-full mb-4">${options}</select>
+      <div class="flex gap-2">
+        <button onclick="saveEditUserRole('${escapeHtml(email)}')" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 text-sm font-semibold">Enregistrer</button>
+        <button onclick="document.getElementById('editRoleOverlay').remove()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Annuler</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend',html);
+}
+function saveEditUserRole(email){
+  const users=getLocalUsers();
+  const u=users.find(x=>x.email===email); if(!u) return;
+  const newRole=document.getElementById('editRoleSelect').value;
+  const admins=users.filter(x=>x.role==='admin');
+  if(u.role==='admin' && newRole!=='admin' && admins.length<=1){ alert('Impossible de retirer le dernier administrateur.'); return; }
+  const oldRole=u.role;
+  u.role=newRole;
+  u.permissions=(ROLE_PRESETS[newRole]||ROLE_PRESETS.commercial).permissions;
+  setLocalUsers(users);
+  audit('CHANGE_ROLE_USER',email+' : '+(ROLE_PRESETS[oldRole]?.label||oldRole)+' → '+(ROLE_PRESETS[newRole]?.label||newRole));
+  document.getElementById('editRoleOverlay')?.remove();
+  renderUsersTable();
 }
 
 async function logout(){
@@ -2373,7 +2602,7 @@ async function checkSession(){
 document.addEventListener('DOMContentLoaded',checkSession);
 
 /* ---------- Ordres de Fabrication (OF) ---------- */
-async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable(),renderEnsemblesList(),renderPlansFacadeTable(),renderRevisionsTable(),populateAtelierSelect(),loadParams()]); renderUsersTable(); if(document.getElementById('costChart')) updateDashboard(); if(document.getElementById('prodTabKanban') && !document.getElementById('prodTabKanban').classList.contains('hidden')) renderKanban(); if(document.getElementById('prodTabGantt') && !document.getElementById('prodTabGantt').classList.contains('hidden')) renderGantt(); if(document.getElementById('prodTabCharge') && !document.getElementById('prodTabCharge').classList.contains('hidden')) renderChargePostes(); if(document.getElementById('atelierMobile') && !document.getElementById('atelierMobile').classList.contains('hidden')) renderAtelierMobile(); }
+async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable(),renderEnsemblesList(),renderPlansFacadeTable(),renderRevisionsTable(),populateAtelierSelect(),loadParams()]); renderUsersTable(); if(document.getElementById('costChart')) updateDashboard(); if(document.getElementById('prodTabKanban') && !document.getElementById('prodTabKanban').classList.contains('hidden')) renderKanban(); if(document.getElementById('prodTabGantt') && !document.getElementById('prodTabGantt').classList.contains('hidden')) renderGantt(); if(document.getElementById('prodTabCharge') && !document.getElementById('prodTabCharge').classList.contains('hidden')) renderChargePostes(); if(document.getElementById('atelierMobile') && !document.getElementById('atelierMobile').classList.contains('hidden')) renderAtelierMobile(); if(document.getElementById('controlegestion') && !document.getElementById('controlegestion').classList.contains('hidden')) renderControleGestion(); if(document.getElementById('validations') && !document.getElementById('validations').classList.contains('hidden')) renderValidationsQueue(); if(document.getElementById('etatpa') && !document.getElementById('etatpa').classList.contains('hidden')) renderEtatProformaAchats(); if(document.getElementById('gmao') && !document.getElementById('gmao').classList.contains('hidden')) showGmaoTab(document.querySelector('.gmao-tab-btn.active')?.dataset.gmaotab||'machines'); updateGmaoBadge(); updateValidationsBadge(); }
 
 function openNewOFForm(){
   if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
@@ -2434,7 +2663,7 @@ async function handleCreateOF(e){
   const rec={
     id:numero,numero,ouvrage:`${type} ${w}×${h}`,client,operateur,poste,
     datePrevue,dateReelle:null,statut:gammeSteps[0]||'Découpe',priorite:'normale',gammeSteps,
-    marge:(margin*100).toFixed(0)+'%',cout:lastCost,date:new Date().toISOString(),
+    marge:(margin*100).toFixed(0)+'%',cout:lastCost,prixVenteHT:Math.round(lastCost*(1+margin)),date:new Date().toISOString(),
     reservations,bomVersion,configSnapshot,bomSnapshot:window.lastBOMRows||[],
     aluMlTheorique:window.lastAluMl||0,glassM2Theorique:window.lastGlassM2||0,moHeuresTheorique:1.8,
     evenements:[{ts:new Date().toISOString(),statut:gammeSteps[0]||'Découpe',user:currentUser?currentUser.email:'—'}],
@@ -2525,6 +2754,7 @@ function viewOFBom(id){
 
 /* ---------- Dashboard — données réelles ---------- */
 let dashboardChart=null;
+let cgChart=null;
 /* ---------- Rapport de production périodique (§22/§24) ---------- */
 function openRapportProductionModal(){
   const today=new Date().toISOString().slice(0,10);
@@ -2739,6 +2969,979 @@ async function updateDashboard(){
   }
 }
 
+/* ---------- Contrôle de gestion — calcul coût réel OF (factorisé, réutilisé par voirCoutReelOF et le cockpit) ---------- */
+function computeCoutReelOF(rec,suiviRows,pointages,postes){
+  const tauxHoraireDefaut=1500;
+  const tauxHoraire=(code)=>{ const p=postes.find(x=>x.code===code||x.nom===code); return p?.tauxHoraire||tauxHoraireDefaut; };
+  const suivi=suiviRows.find(s=>s.ofId===rec.id);
+  const aluT=rec.aluMlTheorique||0, aluR=suivi?.aluMlReel ?? aluT;
+  const moT=rec.moHeuresTheorique||1.8, moR=suivi?.moHeuresReel ?? moT;
+  const matierePrevu=rec.cout||0;
+  const ecartAluPct=aluT ? ((aluR-aluT)/aluT) : 0;
+  const matiereReel=matierePrevu*(1+ecartAluPct);
+  const ofPointages=pointages.filter(p=>p.ofId===rec.id);
+  let moReelFCFA=0,tempsReelMin=0;
+  if(ofPointages.length){
+    ofPointages.forEach(p=>{
+      if(p.debut&&p.fin){ const min=(new Date(p.fin)-new Date(p.debut))/60000; tempsReelMin+=min; moReelFCFA+=(min/60)*tauxHoraire(p.operation); }
+    });
+  }
+  if(!moReelFCFA) moReelFCFA=moR*tauxHoraire(rec.poste);
+  const moPrevuFCFA=moT*tauxHoraire(rec.poste);
+  return {matierePrevu,matiereReel,moPrevuFCFA,moReelFCFA,tempsReelMin,totalPrevu:matierePrevu+moPrevuFCFA,totalReel:matiereReel+moReelFCFA};
+}
+
+/* ---------- Bilan OF — fiche complète (synthèse, écarts, matière, MO, qualité, score) ---------- */
+function scoreClamp(n){ return Math.max(0,Math.min(10,n)); }
+async function computeBilanOF(ofId){
+  const [ofRows,suiviRows,pointagesAll,postes,mouvRows,stockRows,ncAll]=await Promise.all(
+    ['of','suivi_reel','pointages','postes','stock_mouvements','stock','nonconformites'].map(idbGetAll));
+  const rec=ofRows.find(r=>r.id===ofId); if(!rec) return null;
+  const pointages=pointagesAll.filter(p=>p.ofId===ofId);
+  const nc=ncAll.filter(n=>n.ofId===ofId);
+  const c=computeCoutReelOF(rec,suiviRows,pointages,postes);
+  const prixVente=rec.prixVenteHT ?? rec.cout ?? 0;
+
+  // Décomposition matière par composant (réservé vs sorti, valorisé au CUMP)
+  const labelByRef={},uniteByRef={}; stockRows.forEach(s=>{ labelByRef[s.ref]=s.label; uniteByRef[s.ref]=s.unite||''; });
+  const sortiParRef={};
+  mouvRows.filter(m=>m.type==='sortie'&&m.refOF===rec.numero).forEach(m=>{ sortiParRef[m.ref]=(sortiParRef[m.ref]||0)+(m.qty||0); });
+  const composants=await Promise.all((rec.reservations||[]).map(async r=>{
+    const cump=await computeCUMP(r.ref);
+    const pu=cump!=null?cump:( (stockRows.find(s=>s.ref===r.ref)||{}).prix||0 );
+    const reel=sortiParRef[r.ref] ?? r.qty;
+    return {ref:r.ref,label:labelByRef[r.ref]||r.ref,unite:uniteByRef[r.ref]||'',prevu:r.qty,reel,pu,ecart:reel-r.qty,ecartPct:r.qty?((reel-r.qty)/r.qty*100):0,ecartFCFA:(reel-r.qty)*pu};
+  }));
+  composants.sort((a,b)=>Math.abs(b.ecartFCFA)-Math.abs(a.ecartFCFA));
+
+  // Bilan MO par opération (réel pointé vs théorique réparti sur les étapes de la gamme)
+  const steps=rec.gammeSteps&&rec.gammeSteps.length?rec.gammeSteps:['Débit','Usinage','Assemblage','Vitrage','Contrôle'];
+  const moTheoTotal=rec.moHeuresTheorique||1.8;
+  const moTheoParEtape=moTheoTotal/steps.length;
+  const tauxHoraire=(code)=>{ const p=postes.find(x=>x.code===code||x.nom===code); return p?.tauxHoraire||1500; };
+  const moParOp={};
+  pointages.forEach(p=>{
+    const op=p.operation||'Autre';
+    moParOp[op]=moParOp[op]||{min:0};
+    if(p.debut&&p.fin) moParOp[op].min+=(new Date(p.fin)-new Date(p.debut))/60000;
+  });
+  const operations=steps.map(op=>({operation:op,prevuH:moTheoParEtape,reelH:(moParOp[op]?.min||0)/60}))
+    .concat(Object.keys(moParOp).filter(op=>!steps.includes(op)).map(op=>({operation:op,prevuH:0,reelH:moParOp[op].min/60})));
+  const moPrevuTotalH=operations.reduce((s,o)=>s+o.prevuH,0);
+  const moReelTotalH=operations.reduce((s,o)=>s+o.reelH,0);
+
+  // Qualité
+  const production=pointages.reduce((s,p)=>s+(+p.qteConforme||0)+(+p.qteRebut||0),0);
+  const conformes=pointages.reduce((s,p)=>s+(+p.qteConforme||0),0);
+  const rebuts=pointages.reduce((s,p)=>s+(+p.qteRebut||0),0);
+  const reprises=pointages.reduce((s,p)=>s+(+p.qteReprise||0),0);
+  const tauxQualite=production?(conformes/production*100):100;
+  const tauxRebut=production?(rebuts/production*100):0;
+  const coutReprise=reprises*((c.moReelFCFA||c.moPrevuFCFA)/Math.max(1,production||1));
+  const coutRebut=rebuts*(c.matierePrevu/Math.max(1,production||1));
+
+  const coutProdPrevu=c.totalPrevu;
+  const coutProdReel=c.totalReel+coutReprise+coutRebut;
+  const margeBrutePrevu=prixVente-coutProdPrevu;
+  const margeBruteReel=prixVente-coutProdReel;
+  const margePctPrevu=prixVente?margeBrutePrevu/prixVente*100:0;
+  const margePctReel=prixVente?margeBruteReel/prixVente*100:0;
+  const ecartTotal=coutProdReel-coutProdPrevu;
+
+  // Score de performance (0-10 chaque axe)
+  const objectifMarge=30;
+  const scoreRentabilite=scoreClamp(margePctReel/objectifMarge*10);
+  const ecartAluPct=c.matierePrevu?((c.matiereReel-c.matierePrevu)/c.matierePrevu*100):0;
+  const scoreMatiere=scoreClamp(10-Math.abs(ecartAluPct)*0.6);
+  const ecartTempsPct=moPrevuTotalH?((moReelTotalH-moPrevuTotalH)/moPrevuTotalH*100):0;
+  const scoreProductivite=scoreClamp(10-Math.abs(ecartTempsPct)*0.5);
+  const scoreQualite=scoreClamp(tauxQualite/10);
+  const enRetard=rec.dateReelle&&rec.datePrevue&&rec.dateReelle>rec.datePrevue;
+  const joursRetard=enRetard?Math.round((new Date(rec.dateReelle)-new Date(rec.datePrevue))/86400000):0;
+  const scoreDelai=scoreClamp(10-joursRetard*1.5);
+  const scoreGlobal=(scoreRentabilite+scoreMatiere+scoreProductivite+scoreQualite+scoreDelai)/5;
+
+  const alertes=[];
+  if(coutProdPrevu && ecartTotal/coutProdPrevu*100>10) alertes.push('🔴 Dépassement coût de production > 10%');
+  if(Math.abs(ecartAluPct)>8) alertes.push('🔴 Consommation aluminium hors tolérance (±8%)');
+  if(Math.abs(ecartTempsPct)>10) alertes.push('🟠 Temps de fabrication hors tolérance (±10%)');
+  if(tauxRebut>3) alertes.push('🔴 Taux de rebut > 3%');
+  if(margePctReel<objectifMarge) alertes.push('🟠 Marge réelle sous l\'objectif ('+objectifMarge+'%)');
+  if(enRetard) alertes.push('🔴 OF livré en retard ('+joursRetard+' j)');
+
+  return {rec,prixVente,c,composants,operations,moPrevuTotalH,moReelTotalH,
+    production,conformes,rebuts,reprises,tauxQualite,tauxRebut,coutReprise,coutRebut,
+    coutProdPrevu,coutProdReel,margeBrutePrevu,margeBruteReel,margePctPrevu,margePctReel,ecartTotal,
+    scoreRentabilite,scoreMatiere,scoreProductivite,scoreQualite,scoreDelai,scoreGlobal,alertes};
+}
+
+function bilanScoreBar(label,score){
+  const color=score>=8?'emerald':score>=6?'amber':'red';
+  return `<div class="flex items-center gap-3"><div class="w-32 text-xs text-slate-500">${label}</div><div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-${color}-500" style="width:${score*10}%"></div></div><div class="w-12 text-right text-xs font-bold text-${color}-600">${score.toFixed(1)}/10</div></div>`;
+}
+
+async function openBilanOF(ofId){
+  const b=await computeBilanOF(ofId); if(!b) return;
+  const {rec}=b;
+  const ecartRow=(label,prevu,reel)=>{
+    const e=reel-prevu;
+    const c=Math.abs(e)<1?'text-slate-400':e>0?'text-red-600':'text-emerald-600';
+    return `<tr class="border-b"><td class="p-2 font-semibold">${label}</td><td class="p-2 text-right">${money(prevu)}</td><td class="p-2 text-right">${money(reel)}</td><td class="p-2 text-right font-bold ${c}">${e>=0?'+':''}${money(e)}</td></tr>`;
+  };
+  const html=`
+    <div class="flex flex-wrap justify-between items-start gap-3 mb-5">
+      <div><h2 class="text-lg font-bold">Bilan OF — ${escapeHtml(rec.numero)}</h2><p class="text-sm text-slate-500">${escapeHtml(rec.ouvrage||'')} — ${escapeHtml(rec.client||'')}</p></div>
+      <div class="flex gap-2"><button onclick="printBilanOF('${ofId}')" class="border px-3 py-2 rounded-lg text-sm font-semibold">🖨 Imprimer</button><button onclick="document.getElementById('bilanOFModal').classList.add('hidden')" class="border px-3 py-2 rounded-lg text-sm font-semibold">Fermer</button></div>
+    </div>
+
+    ${b.alertes.length?`<div class="mb-5 space-y-1.5">${b.alertes.map(a=>`<div class="text-sm bg-red-50 text-red-700 rounded-lg px-3 py-2">${a}</div>`).join('')}</div>`:''}
+
+    <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">1 · Synthèse</h3>
+    <table class="w-full text-sm mb-6"><thead class="bg-slate-50"><tr><th class="text-left p-2">Indicateur</th><th class="text-right p-2">Prévisionnel</th><th class="text-right p-2">Réel</th><th class="text-right p-2">Écart</th></tr></thead><tbody>
+      ${ecartRow('Prix de vente HT',b.prixVente,b.prixVente)}
+      ${ecartRow('Matières',b.c.matierePrevu,b.c.matiereReel)}
+      ${ecartRow('Main-d\'œuvre',b.c.moPrevuFCFA,b.c.moReelFCFA)}
+      ${ecartRow('Coût rebut / reprise',0,b.coutRebut+b.coutReprise)}
+      <tr class="border-b bg-slate-50 font-bold"><td class="p-2">Coût de production</td><td class="p-2 text-right">${money(b.coutProdPrevu)}</td><td class="p-2 text-right">${money(b.coutProdReel)}</td><td class="p-2 text-right ${b.ecartTotal>0?'text-red-600':'text-emerald-600'}">${b.ecartTotal>=0?'+':''}${money(b.ecartTotal)}</td></tr>
+      ${ecartRow('Marge brute',b.margeBrutePrevu,b.margeBruteReel)}
+      <tr><td class="p-2">Marge %</td><td class="p-2 text-right">${b.margePctPrevu.toFixed(1).replace('.',',')}%</td><td class="p-2 text-right font-bold ${b.margePctReel<30?'text-red-600':'text-emerald-600'}">${b.margePctReel.toFixed(1).replace('.',',')}%</td><td class="p-2 text-right ${b.margePctReel<b.margePctPrevu?'text-red-600':'text-emerald-600'}">${(b.margePctReel-b.margePctPrevu>=0?'+':'')+(b.margePctReel-b.margePctPrevu).toFixed(1).replace('.',',')} pts</td></tr>
+    </tbody></table>
+
+    <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">2 · Bilan matière (par composant, écarts les plus significatifs)</h3>
+    <table class="w-full text-sm mb-6"><thead class="bg-slate-50"><tr><th class="text-left p-2">Réf.</th><th class="text-left p-2">Désignation</th><th class="text-right p-2">Prévu</th><th class="text-right p-2">Réel</th><th class="text-right p-2">Écart</th><th class="text-right p-2">Impact FCFA</th></tr></thead><tbody>
+      ${b.composants.slice(0,8).map(x=>`<tr class="border-b"><td class="p-2 font-mono text-xs">${escapeHtml(x.ref)}</td><td class="p-2 text-xs">${escapeHtml(x.label)}</td><td class="p-2 text-right">${x.prevu.toFixed(2)} ${escapeHtml(x.unite)}</td><td class="p-2 text-right">${x.reel.toFixed(2)} ${escapeHtml(x.unite)}</td><td class="p-2 text-right ${x.ecart>0?'text-red-600':x.ecart<0?'text-emerald-600':'text-slate-400'}">${x.ecart>=0?'+':''}${x.ecart.toFixed(2)} (${x.ecartPct>=0?'+':''}${x.ecartPct.toFixed(1).replace('.',',')}%)</td><td class="p-2 text-right ${x.ecartFCFA>0?'text-red-600':'text-emerald-600'}">${x.ecartFCFA>=0?'+':''}${money(x.ecartFCFA)}</td></tr>`).join('') || '<tr><td class="p-2 text-slate-400" colspan="6">Aucune réservation BOM sur cet OF.</td></tr>'}
+    </tbody></table>
+
+    <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">3 · Bilan main-d'œuvre (par opération)</h3>
+    <table class="w-full text-sm mb-6"><thead class="bg-slate-50"><tr><th class="text-left p-2">Opération</th><th class="text-right p-2">Temps prévu</th><th class="text-right p-2">Temps réel</th><th class="text-right p-2">Écart</th></tr></thead><tbody>
+      ${b.operations.map(o=>`<tr class="border-b"><td class="p-2">${escapeHtml(o.operation)}</td><td class="p-2 text-right">${o.prevuH.toFixed(1).replace('.',',')} h</td><td class="p-2 text-right">${o.reelH.toFixed(1).replace('.',',')} h</td><td class="p-2 text-right ${o.reelH>o.prevuH?'text-red-600':'text-emerald-600'}">${(o.reelH-o.prevuH>=0?'+':'')+(o.reelH-o.prevuH).toFixed(1).replace('.',',')} h</td></tr>`).join('')}
+      <tr class="font-bold bg-slate-50"><td class="p-2">Total</td><td class="p-2 text-right">${b.moPrevuTotalH.toFixed(1).replace('.',',')} h</td><td class="p-2 text-right">${b.moReelTotalH.toFixed(1).replace('.',',')} h</td><td class="p-2 text-right ${b.moReelTotalH>b.moPrevuTotalH?'text-red-600':'text-emerald-600'}">${(b.moReelTotalH-b.moPrevuTotalH>=0?'+':'')+(b.moReelTotalH-b.moPrevuTotalH).toFixed(1).replace('.',',')} h</td></tr>
+    </tbody></table>
+
+    <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">4 · Bilan qualité</h3>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 text-sm">
+      <div class="border rounded-lg p-3"><div class="text-slate-400 text-xs">Production</div><div class="font-bold text-lg">${b.production}</div></div>
+      <div class="border rounded-lg p-3"><div class="text-slate-400 text-xs">Conformes</div><div class="font-bold text-lg text-emerald-600">${b.conformes}</div></div>
+      <div class="border rounded-lg p-3"><div class="text-slate-400 text-xs">Rebut / Reprise</div><div class="font-bold text-lg text-red-600">${b.rebuts} / ${b.reprises}</div></div>
+      <div class="border rounded-lg p-3"><div class="text-slate-400 text-xs">Taux qualité</div><div class="font-bold text-lg ${b.tauxQualite<95?'text-amber-600':'text-emerald-600'}">${b.tauxQualite.toFixed(1).replace('.',',')}%</div></div>
+    </div>
+    ${b.production ? '' : '<p class="text-xs text-slate-400 mb-6">Aucun pointage qualité saisi sur cet OF — taux estimé à 100%.</p>'}
+    ${(await (async()=>{ const ncAll=await idbGetAll('nonconformites'); const nc=ncAll.filter(n=>n.ofId===ofId); return nc.length?`<div class="mb-6"><div class="text-xs font-semibold text-slate-500 mb-1">Fiches NC (${nc.length})</div>${nc.map(n=>`<div class="text-sm border-l-4 border-red-400 bg-red-50 rounded-r-lg px-3 py-1.5 mb-1">${escapeHtml(n.numero)} — ${escapeHtml(n.type||'')} — ${escapeHtml(n.probleme||'')} <span class="text-xs text-slate-400">(${escapeHtml(n.statut)})</span></div>`).join('')}</div>`:''; })())}
+
+    <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">5 · Score de performance</h3>
+    <div class="space-y-2.5 mb-3">
+      ${bilanScoreBar('Rentabilité',b.scoreRentabilite)}
+      ${bilanScoreBar('Matière',b.scoreMatiere)}
+      ${bilanScoreBar('Productivité',b.scoreProductivite)}
+      ${bilanScoreBar('Qualité',b.scoreQualite)}
+      ${bilanScoreBar('Respect délai',b.scoreDelai)}
+    </div>
+    <div class="flex items-center gap-3 border-t pt-3"><div class="font-bold">Score global</div><div class="text-2xl font-black ${b.scoreGlobal>=8?'text-emerald-600':b.scoreGlobal>=6?'text-amber-600':'text-red-600'}">${b.scoreGlobal.toFixed(1)} / 10</div><div class="text-sm text-slate-500">${b.scoreGlobal>=8?'— Excellent OF':b.scoreGlobal>=6?'— OF correct':'— OF à surveiller'}</div></div>
+  `;
+  document.getElementById('bilanOFContent').innerHTML=html;
+  document.getElementById('bilanOFModal').classList.remove('hidden');
+  setModalOpen(true);
+}
+async function printBilanOF(ofId){
+  const content=document.getElementById('bilanOFContent').innerHTML;
+  const win=window.open('','_blank','width=1000,height=1200');
+  if(!win) return;
+  win.document.write(`<html><head><title>Bilan OF</title><script src="https://cdn.tailwindcss.com"><`+`/script>
+    <style>body{font-family:Arial,sans-serif;padding:24px;color:#0f172a}button{display:none}</style></head>
+    <body>${content}</body></html>`);
+  win.document.close();
+  setTimeout(()=>{ win.focus(); win.print(); },500);
+}
+
+/* ---------- Contrôle de gestion — cockpit temps réel (budget vs réel, marge, trésorerie) ---------- */
+/* ---------- Validations hiérarchiques (DG / Admin) — file d'attente + WhatsApp ---------- */
+function waOpen(tel,texte){
+  const t=formatTelWhatsApp(tel||'');
+  window.open(t?('https://wa.me/'+t+'?text='+encodeURIComponent(texte)):('https://wa.me/?text='+encodeURIComponent(texte)),'_blank');
+}
+async function updateValidationsBadge(){
+  const badge=document.getElementById('validationsBadge'); if(!badge) return;
+  if(!hasRole('chantier:validate')){ badge.classList.add('hidden'); return; }
+  const [chantiers,achats,ofs]=await Promise.all(['chantiers','achats','of'].map(idbGetAll));
+  const seuil=getCompanyInfo().seuilValidationAchat||500000;
+  const n=chantiers.filter(c=>!c.annule&&c.etape==='validation').length
+    + chantiers.filter(c=>!c.annule&&c.etape==='achats').length
+    + chantiers.filter(c=>!c.annule&&c.margeValidationRequise&&c.margeValidationDG?.statut!=='validee').length
+    + achats.filter(a=>a.statut==='demande'&&(a.montant||0)>=seuil).length
+    + ofs.filter(o=>o.statut==='Prêt à livrer').length;
+  if(n){ badge.textContent=n; badge.classList.remove('hidden'); } else badge.classList.add('hidden');
+}
+
+async function renderValidationsQueue(){
+  const gate=document.getElementById('validationsGate'), content=document.getElementById('validationsContent');
+  if(!gate||!content) return;
+  if(!hasRole('chantier:validate')){
+    gate.innerHTML=`<div class="card bg-white rounded-2xl p-6 text-center text-slate-500">🔒 Réservé à l'administrateur / à la direction (rôle de validation hiérarchique).</div>`;
+    content.innerHTML=''; return;
+  }
+  gate.innerHTML='';
+  const [chantiers,achats,ofs]=await Promise.all(['chantiers','achats','of'].map(idbGetAll));
+  const seuilAchat=getCompanyInfo().seuilValidationAchat||500000;
+  const seuilMarge=getCompanyInfo().seuilMargeCommerciale||25;
+  const margeEnAttente=chantiers.filter(c=>!c.annule&&c.margeValidationRequise&&c.margeValidationDG?.statut!=='validee').sort((a,b)=>(a.dateCreation||'').localeCompare(b.dateCreation||''));
+  const chEnAttente=chantiers.filter(c=>!c.annule&&c.etape==='validation').sort((a,b)=>(a.dateCreation||'').localeCompare(b.dateCreation||''));
+  const fabEnAttente=chantiers.filter(c=>!c.annule&&c.etape==='achats').sort((a,b)=>(a.dateCreation||'').localeCompare(b.dateCreation||''));
+  const daEnAttente=achats.filter(a=>a.statut==='demande'&&(a.montant||0)>=seuilAchat).sort((a,b)=>(a.dateCreation||'').localeCompare(b.dateCreation||''));
+  const ofEnAttente=ofs.filter(o=>o.statut==='Prêt à livrer').sort((a,b)=>(a.datePrevue||'').localeCompare(b.datePrevue||''));
+
+  const margeBlock=`<div class="card bg-white rounded-2xl p-6 mb-6">
+    <h3 class="font-bold text-lg mb-1">💹 Cotations / Proforma — marge sous seuil (${seuilMarge}%)</h3>
+    <p class="text-xs text-slate-400 mb-4">Blocage de l'envoi du devis client tant que non validé.</p>
+    ${margeEnAttente.length ? margeEnAttente.map(c=>`
+      <div class="border rounded-xl p-4 mb-3 flex flex-wrap justify-between items-center gap-3">
+        <div><div class="font-bold">${escapeHtml(c.numero)} — ${escapeHtml(c.client||'—')}</div>
+        <div class="text-xs text-slate-400">Montant ${money(c.montantTotal||0)} • marge estimée <b class="text-red-600">${(c.margeEstimeePct||0).toFixed(1).replace('.',',')}%</b></div></div>
+        <div class="flex gap-2 flex-wrap">
+          <button onclick="apercuDossierChantier('${c.id}')" class="border px-3 py-1.5 rounded-lg text-xs font-semibold">👁 Aperçu</button>
+          <button onclick="validerMargeDG('${c.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">✅ Valider</button>
+          <button onclick="rejeterMargeDG('${c.id}')" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">❌ Rejeter</button>
+        </div>
+      </div>`).join('') : '<p class="text-sm text-slate-400">Aucune cotation sous le seuil de marge en attente.</p>'}
+  </div>`;
+
+  const chBlock=`<div class="card bg-white rounded-2xl p-6 mb-6">
+    <h3 class="font-bold text-lg mb-1">🏗️ Dossiers chantier — Validation DG (→ Demandes d'achats)</h3>
+    ${chEnAttente.length ? chEnAttente.map(c=>`
+      <div class="border rounded-xl p-4 mb-3 flex flex-wrap justify-between items-center gap-3">
+        <div><div class="font-bold">${escapeHtml(c.numero)} — ${escapeHtml(c.client||'—')}</div>
+        <div class="text-xs text-slate-400">Budget ${money(c.montantTotal||0)} • Encaissé ${money(c.montantPaye||0)} • demandé le ${c.dateCreation?new Date(c.dateCreation).toLocaleDateString('fr-FR'):'—'}</div></div>
+        <div class="flex gap-2 flex-wrap">
+          <button onclick="apercuDossierChantier('${c.id}')" class="border px-3 py-1.5 rounded-lg text-xs font-semibold">👁 Aperçu</button>
+          <button onclick="validerChantierDG('${c.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">✅ Valider</button>
+          <button onclick="rejeterChantierDG('${c.id}')" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">❌ Rejeter</button>
+        </div>
+      </div>`).join('') : '<p class="text-sm text-slate-400">Aucun dossier en attente de validation DG.</p>'}
+  </div>`;
+
+  const fabBlock=`<div class="card bg-white rounded-2xl p-6 mb-6">
+    <h3 class="font-bold text-lg mb-1">📁 Dossiers de fabrication — Lancement production</h3>
+    <p class="text-xs text-slate-400 mb-4">Passage de « Demandes d'achats » à « Dossier de fabrication ».</p>
+    ${fabEnAttente.length ? fabEnAttente.map(c=>`
+      <div class="border rounded-xl p-4 mb-3 flex flex-wrap justify-between items-center gap-3">
+        <div><div class="font-bold">${escapeHtml(c.numero)} — ${escapeHtml(c.client||'—')}</div>
+        <div class="text-xs text-slate-400">Budget ${money(c.montantTotal||0)}</div></div>
+        <div class="flex gap-2 flex-wrap">
+          <button onclick="openChantierDetail('${c.id}');showPage('chantier')" class="border px-3 py-1.5 rounded-lg text-xs font-semibold">👁 Détail</button>
+          <button onclick="validerFabricationDG('${c.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">✅ Lancer fabrication</button>
+          <button onclick="rejeterFabricationDG('${c.id}')" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">❌ Bloquer</button>
+        </div>
+      </div>`).join('') : '<p class="text-sm text-slate-400">Aucun dossier en attente de lancement fabrication.</p>'}
+  </div>`;
+
+  const daBlock=`<div class="card bg-white rounded-2xl p-6 mb-6">
+    <h3 class="font-bold text-lg mb-1">🧾 Demandes d'achat — montant ≥ ${money(seuilAchat)}</h3>
+    <p class="text-xs text-slate-400 mb-4">Seuil modifiable dans Entête entreprise (⚙️ paramètres société).</p>
+    ${daEnAttente.length ? daEnAttente.map(a=>`
+      <div class="border rounded-xl p-4 mb-3 flex flex-wrap justify-between items-center gap-3">
+        <div><div class="font-bold">${escapeHtml(a.numero)} — ${escapeHtml(a.fournisseur||'—')}</div>
+        <div class="text-xs text-slate-400">Montant <b class="text-slate-700">${money(a.montant||0)}</b> • ${(a.lignes||[]).length} ligne(s) • demandé par ${escapeHtml(a.demandeur||'—')} le ${a.dateCreation?new Date(a.dateCreation).toLocaleDateString('fr-FR'):'—'}</div></div>
+        <div class="flex gap-2 flex-wrap">
+          <button onclick="validerAchatDG('${a.id}','${a.chantierId||''}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">✅ Valider</button>
+          <button onclick="rejeterAchatDG('${a.id}','${a.chantierId||''}')" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">❌ Rejeter</button>
+        </div>
+      </div>`).join('') : '<p class="text-sm text-slate-400">Aucune demande d\'achat au-dessus du seuil en attente.</p>'}
+  </div>`;
+
+  const ofBlock=`<div class="card bg-white rounded-2xl p-6">
+    <h3 class="font-bold text-lg mb-1">🚚 Ordres de fabrication — Autorisation de livraison</h3>
+    <p class="text-xs text-slate-400 mb-4">Passage de « Prêt à livrer » à « Livré ».</p>
+    ${ofEnAttente.length ? ofEnAttente.map(o=>`
+      <div class="border rounded-xl p-4 mb-3 flex flex-wrap justify-between items-center gap-3">
+        <div><div class="font-bold">${escapeHtml(o.numero)} — ${escapeHtml(o.ouvrage||'')}</div>
+        <div class="text-xs text-slate-400">${escapeHtml(o.client||'—')} • coût ${money(o.cout||0)}</div></div>
+        <div class="flex gap-2 flex-wrap">
+          <button onclick="openBilanOF('${o.id}')" class="border px-3 py-1.5 rounded-lg text-xs font-semibold">📋 Bilan OF</button>
+          <button onclick="validerLivraisonOF('${o.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">✅ Autoriser livraison</button>
+          <button onclick="rejeterLivraisonOF('${o.id}')" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">❌ Bloquer</button>
+        </div>
+      </div>`).join('') : '<p class="text-sm text-slate-400">Aucun OF en attente d\'autorisation de livraison.</p>'}
+  </div>`;
+
+  content.innerHTML=margeBlock+chBlock+fabBlock+daBlock+ofBlock;
+  await updateValidationsBadge();
+}
+
+async function validerMargeDG(id){
+  if(!hasRole('chantier:validate')){ alert('Permission refusée.'); return; }
+  if(!confirm('Valider cette cotation malgré la marge sous le seuil ?')) return;
+  const rec=await getChantier(id); if(!rec) return;
+  rec.margeValidationDG={statut:'validee',par:currentUser?currentUser.email:'—',date:new Date().toISOString()};
+  await saveChantier(rec);
+  await audit('VALIDATION_DG_MARGE',rec.numero+' — marge '+(rec.margeEstimeePct||0).toFixed(1)+'%');
+  waOpen('',`✅ Marge validée — ${rec.numero}\nDossier "${rec.client}" (${(rec.margeEstimeePct||0).toFixed(1)}%) autorisé à l'envoi par ${currentUser?.email||'DG'}.`);
+  await renderValidationsQueue();
+  await renderChantierList();
+}
+async function rejeterMargeDG(id){
+  if(!hasRole('chantier:validate')){ alert('Permission refusée.'); return; }
+  const motif=prompt('Motif du rejet (ex : revoir le prix) :',''); if(motif===null) return;
+  const rec=await getChantier(id); if(!rec) return;
+  rec.margeValidationDG={statut:'rejetee',par:currentUser?currentUser.email:'—',date:new Date().toISOString(),motif};
+  await saveChantier(rec);
+  await audit('REJET_DG_MARGE',rec.numero+' — '+motif);
+  waOpen('',`❌ Marge rejetée — ${rec.numero}\nDossier "${rec.client}" — envoi bloqué.\nMotif : ${motif||'—'}`);
+  await renderValidationsQueue();
+}
+async function validerFabricationDG(id){
+  if(!hasRole('chantier:validate')){ alert('Permission refusée.'); return; }
+  if(!confirm('Lancer le dossier de fabrication ?')) return;
+  await advanceChantierStage(id,'fabrication');
+  const rec=await getChantier(id);
+  await audit('VALIDATION_DG_FABRICATION',rec.numero);
+  waOpen(getCompanyInfo().telDG,`✅ Fabrication lancée — ${rec.numero}\nDossier "${rec.client}" validé par ${currentUser?.email||'DG'}.`);
+  await renderValidationsQueue();
+}
+async function rejeterFabricationDG(id){
+  if(!hasRole('chantier:validate')){ alert('Permission refusée.'); return; }
+  const motif=prompt('Motif du blocage :',''); if(motif===null) return;
+  const rec=await getChantier(id); if(!rec) return;
+  rec.historique=rec.historique||[];
+  rec.historique.push({etape:rec.etape,date:new Date().toISOString(),user:currentUser?currentUser.email:'—',note:'Blocage fabrication DG : '+motif});
+  await saveChantier(rec);
+  await audit('BLOCAGE_DG_FABRICATION',rec.numero+' — '+motif);
+  waOpen(getCompanyInfo().telDG,`❌ Fabrication bloquée — ${rec.numero}\nMotif : ${motif||'—'}`);
+  await renderValidationsQueue();
+}
+async function validerLivraisonOF(ofId){
+  if(!hasRole('chantier:validate')){ alert('Permission refusée.'); return; }
+  if(!confirm('Autoriser la livraison de cet OF ?')) return;
+  await advanceOFStatusInterne(ofId,'Livré');
+  const rows=await idbGetAll('of'); const rec=rows.find(o=>o.id===ofId);
+  waOpen(getCompanyInfo().telDG,`✅ Livraison autorisée — ${rec?.numero}\nAutorisé par ${currentUser?.email||'DG'}.`);
+  await renderValidationsQueue();
+}
+async function rejeterLivraisonOF(ofId){
+  if(!hasRole('chantier:validate')){ alert('Permission refusée.'); return; }
+  const motif=prompt('Motif du blocage de livraison :',''); if(motif===null) return;
+  const rows=await idbGetAll('of'); const rec=rows.find(o=>o.id===ofId); if(!rec) return;
+  rec.evenements=(rec.evenements||[]).concat([{ts:new Date().toISOString(),statut:'Blocage livraison',user:currentUser?currentUser.email:'—',note:motif}]);
+  await idbPut('of',rec); queueSync('alubom_of',rec);
+  await audit('BLOCAGE_DG_LIVRAISON',rec.numero+' — '+motif);
+  waOpen(getCompanyInfo().telDG,`❌ Livraison bloquée — ${rec.numero}\nMotif : ${motif||'—'}`);
+  await renderValidationsQueue();
+}
+/* Passage interne du statut OF sans re-vérifier la permission DG (déjà vérifiée par l'appelant) */
+async function advanceOFStatusInterne(id,newStatut){
+  const rows=await idbGetAll('of');
+  const rec=rows.find(r=>r.id===id); if(!rec) return;
+  rec.statut=newStatut;
+  rec.poste=OF_STATUS_POSTE[newStatut]||rec.poste;
+  rec.evenements=(rec.evenements||[]).concat([{ts:new Date().toISOString(),statut:newStatut,user:currentUser?currentUser.email:'—'}]);
+  rec._modifie=new Date().toISOString();
+  await idbPut('of',rec);
+  queueSync('alubom_of',rec);
+  await audit('OF_'+newStatut.toUpperCase(),rec.numero);
+  await refreshAllTables();
+}
+
+async function validerChantierDG(id){
+  if(!hasRole('chantier:validate')){ alert('Permission refusée.'); return; }
+  if(!confirm('Valider ce dossier et autoriser le passage en demandes d\'achats ?')) return;
+  const rec=await getChantier(id); if(!rec) return;
+  await advanceChantierStage(id,'achats');
+  rec.validationDG={statut:'validee',par:currentUser?currentUser.email:'—',date:new Date().toISOString()};
+  await saveChantier(rec);
+  const client=await getClientRecord(rec.clientId);
+  const texte=`✅ Validation DG — ${rec.numero}\nDossier "${rec.client}" validé par ${currentUser?.email||'DG'}.\nLe dossier passe en phase Demandes d'achats.`;
+  waOpen(client?.tel||rec.contact,texte);
+  await renderValidationsQueue();
+}
+async function rejeterChantierDG(id){
+  if(!hasRole('chantier:validate')){ alert('Permission refusée.'); return; }
+  const motif=prompt('Motif du rejet (envoyé au commercial) :',''); if(motif===null) return;
+  const rec=await getChantier(id); if(!rec) return;
+  rec.etape='dossier';
+  rec.historique=rec.historique||[];
+  rec.historique.push({etape:'dossier',date:new Date().toISOString(),user:currentUser?currentUser.email:'—',note:'Rejet DG : '+motif});
+  rec.validationDG={statut:'rejetee',par:currentUser?currentUser.email:'—',date:new Date().toISOString(),motif};
+  await saveChantier(rec);
+  await audit('CHANTIER_REJET_DG',rec.numero+' — '+motif);
+  const texte=`❌ Validation DG refusée — ${rec.numero}\nDossier "${rec.client}" renvoyé au dossier chantier.\nMotif : ${motif||'—'}`;
+  waOpen('',texte);
+  await renderValidationsQueue();
+  await renderChantierList();
+}
+async function validerAchatDG(achatId,chantierId){
+  if(!hasRole('chantier:validate')){ alert('Permission refusée.'); return; }
+  if(!confirm('Valider cette demande d\'achat ?')) return;
+  const rows=await idbGetAll('achats');
+  const rec=rows.find(a=>a.id===achatId); if(!rec) return;
+  rec.statut='validee';
+  rec.validationDG={statut:'validee',par:currentUser?currentUser.email:'—',date:new Date().toISOString()};
+  await idbPut('achats',rec);
+  queueSync('alubom_achats',rec);
+  await audit('VALIDATION_DG_ACHAT',rec.numero+' — '+money(rec.montant||0));
+  const texte=`✅ Achat validé — ${rec.numero}\nFournisseur : ${rec.fournisseur}\nMontant : ${money(rec.montant||0)}\nValidé par ${currentUser?.email||'DG'}.`;
+  waOpen(getCompanyInfo().telDG,texte);
+  await renderValidationsQueue();
+  if(chantierId) await renderChantierList();
+}
+async function rejeterAchatDG(achatId,chantierId){
+  if(!hasRole('chantier:validate')){ alert('Permission refusée.'); return; }
+  const motif=prompt('Motif du rejet :',''); if(motif===null) return;
+  const rows=await idbGetAll('achats');
+  const rec=rows.find(a=>a.id===achatId); if(!rec) return;
+  rec.statut='rejetee';
+  rec.validationDG={statut:'rejetee',par:currentUser?currentUser.email:'—',date:new Date().toISOString(),motif};
+  await idbPut('achats',rec);
+  queueSync('alubom_achats',rec);
+  await audit('REJET_DG_ACHAT',rec.numero+' — '+motif);
+  const texte=`❌ Achat rejeté — ${rec.numero}\nFournisseur : ${rec.fournisseur}\nMontant : ${money(rec.montant||0)}\nMotif : ${motif||'—'}`;
+  waOpen(getCompanyInfo().telDG,texte);
+  await renderValidationsQueue();
+  if(chantierId) await renderChantierList();
+}
+
+/* ---------- État proforma & achats — vue consolidée par client / chantier ---------- */
+const ACHAT_STATUT_STYLE={
+  demande:{label:'Demande',c:'amber'}, validee:{label:'Validé',c:'blue'},
+  commandee:{label:'Commandé',c:'blue'}, partielle:{label:'Reçu partiel',c:'amber'},
+  recue:{label:'Reçu',c:'emerald'}, rejetee:{label:'Rejeté',c:'red'}
+};
+async function computeEtatProformaAchatsGroups(search){
+  const [chantiers,proformas,achats]=await Promise.all(['chantiers','proforma','achats'].map(idbGetAll));
+  const parClient={};
+  const getGroup=nom=>{
+    const key=(nom||'Client non renseigné').trim()||'Client non renseigné';
+    if(!parClient[key]) parClient[key]={nom:key,chantiers:{},proformasOrphelines:[]};
+    return parClient[key];
+  };
+  chantiers.forEach(ch=>{
+    if(ch.annule) return;
+    const g=getGroup(ch.client);
+    g.chantiers[ch.id]={ch,proformas:[],achats:[]};
+  });
+  proformas.forEach(p=>{
+    const g=getGroup(p.client);
+    if(p.chantierId && g.chantiers[p.chantierId]) g.chantiers[p.chantierId].proformas.push(p);
+    else g.proformasOrphelines.push(p);
+  });
+  achats.forEach(a=>{
+    const ch=chantiers.find(c=>c.id===a.chantierId);
+    if(!ch) return;
+    const g=getGroup(ch.client);
+    if(g.chantiers[ch.id]) g.chantiers[ch.id].achats.push(a);
+  });
+  let groups=Object.values(parClient);
+  if(search) groups=groups.filter(g=>g.nom.toLowerCase().includes(search) || Object.values(g.chantiers).some(c=>c.ch.numero.toLowerCase().includes(search)));
+  groups.sort((a,b)=>a.nom.localeCompare(b.nom));
+  return {groups,proformas,achats};
+}
+
+async function renderEtatProformaAchats(){
+  if(!document.getElementById('etatpa')) return;
+  const search=(document.getElementById('epaSearch')?.value||'').toLowerCase().trim();
+  const {groups,proformas,achats}=await computeEtatProformaAchatsGroups(search);
+
+  document.getElementById('epaKpiClients').textContent=groups.length;
+  document.getElementById('epaKpiProforma').textContent=proformas.length;
+  const achatsAttente=achats.filter(a=>a.statut==='demande'||a.statut==='validee').length;
+  document.getElementById('epaKpiAchatsAttente').textContent=achatsAttente;
+  const achatsMontant=achats.filter(a=>['validee','commandee','partielle','recue'].includes(a.statut)).reduce((s,a)=>s+(a.montant||0),0);
+  document.getElementById('epaKpiAchatsMontant').textContent=money(achatsMontant);
+
+  const etapeLabel=key=>CHANTIER_STAGES.find(s=>s.key===key)?.label||key;
+  document.getElementById('epaBody').innerHTML = groups.length ? groups.map(g=>{
+    const chantiersArr=Object.values(g.chantiers);
+    const nbProforma=chantiersArr.reduce((s,c)=>s+c.proformas.length,0)+g.proformasOrphelines.length;
+    const nbAchats=chantiersArr.reduce((s,c)=>s+c.achats.length,0);
+    return `<div class="card bg-white rounded-2xl p-5">
+      <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
+        <h3 class="font-bold">${escapeHtml(g.nom)}</h3>
+        <span class="text-xs text-slate-400">${chantiersArr.length} chantier(s) • ${nbProforma} proforma • ${nbAchats} achat(s)</span>
+      </div>
+      ${chantiersArr.length ? chantiersArr.map(c=>`
+        <div class="border rounded-xl p-3 mb-2">
+          <div class="flex flex-wrap justify-between items-center gap-2 mb-2">
+            <button onclick="showPage('chantier');openChantierDetail('${c.ch.id}')" class="font-semibold text-blue-700 hover:underline text-sm">🏗️ ${escapeHtml(c.ch.numero)}</button>
+            <span class="badge bg-slate-100 text-slate-600">${escapeHtml(etapeLabel(c.ch.etape))}</span>
+          </div>
+          ${c.proformas.length?`<div class="text-xs mb-1.5"><span class="text-slate-400">Proforma :</span> ${c.proformas.map(p=>`<span class="inline-block bg-blue-50 text-blue-700 rounded px-2 py-0.5 mr-1 mb-1">${escapeHtml(p.numero)} · ${escapeHtml(p.total||'')}</span>`).join('')}</div>`:''}
+          ${c.achats.length?`<div class="text-xs"><span class="text-slate-400">Achats :</span> ${c.achats.map(a=>{const st=ACHAT_STATUT_STYLE[a.statut]||{label:a.statut,c:'slate'};return `<span class="inline-block bg-${st.c}-50 text-${st.c}-700 rounded px-2 py-0.5 mr-1 mb-1">${escapeHtml(a.numero)} · ${escapeHtml(a.fournisseur||'')} · ${money(a.montant||0)} · ${st.label}</span>`;}).join('')}</div>`:''}
+          ${!c.proformas.length && !c.achats.length?'<p class="text-xs text-slate-300">Aucun devis ni achat rattaché.</p>':''}
+        </div>`).join('') : ''}
+      ${g.proformasOrphelines.length?`<div class="border rounded-xl p-3 mb-2 bg-amber-50/40">
+        <div class="text-xs font-semibold text-amber-700 mb-1">⚠️ Proforma non rattachées à un dossier chantier</div>
+        <div class="text-xs">${g.proformasOrphelines.map(p=>`<span class="inline-block bg-amber-50 text-amber-700 rounded px-2 py-0.5 mr-1 mb-1">${escapeHtml(p.numero)} · ${escapeHtml(p.total||'')} · ${new Date(p.date).toLocaleDateString('fr-FR')}</span>`).join('')}</div>
+      </div>`:''}
+      ${!chantiersArr.length && !g.proformasOrphelines.length?'<p class="text-sm text-slate-400">Aucun dossier.</p>':''}
+    </div>`;
+  }).join('') : '<div class="card bg-white rounded-2xl p-6 text-center text-slate-400">Aucun résultat.</div>';
+}
+
+async function apercuEtatProformaAchats(){
+  const search=(document.getElementById('epaSearch')?.value||'').toLowerCase().trim();
+  const {groups}=await computeEtatProformaAchatsGroups(search);
+  const etapeLabel=key=>CHANTIER_STAGES.find(s=>s.key===key)?.label||key;
+  const c=getCompanyInfo();
+  const dateStr=new Date().toLocaleDateString('fr-FR');
+
+  const corps=groups.length ? groups.map(g=>{
+    const chantiersArr=Object.values(g.chantiers);
+    return `<div class="client-block">
+      <h2>${escapeHtml(g.nom)}</h2>
+      ${chantiersArr.length?chantiersArr.map(cc=>`
+        <div class="chantier-block">
+          <div class="chantier-head"><b>🏗️ ${escapeHtml(cc.ch.numero)}</b><span>${escapeHtml(etapeLabel(cc.ch.etape))}</span></div>
+          ${cc.proformas.length?`<table><thead><tr><th>Proforma</th><th class="right">Date</th><th class="right">Montant</th></tr></thead><tbody>${cc.proformas.map(p=>`<tr><td>${escapeHtml(p.numero)}</td><td class="right">${new Date(p.date).toLocaleDateString('fr-FR')}</td><td class="right">${escapeHtml(p.total||'')}</td></tr>`).join('')}</tbody></table>`:'<p class="empty">Aucune proforma.</p>'}
+          ${cc.achats.length?`<table><thead><tr><th>Achat</th><th>Fournisseur</th><th class="right">Montant</th><th class="right">Statut</th></tr></thead><tbody>${cc.achats.map(a=>{const st=ACHAT_STATUT_STYLE[a.statut]||{label:a.statut};return `<tr><td>${escapeHtml(a.numero)}</td><td>${escapeHtml(a.fournisseur||'')}</td><td class="right">${money(a.montant||0)}</td><td class="right">${escapeHtml(st.label)}</td></tr>`;}).join('')}</tbody></table>`:'<p class="empty">Aucun achat.</p>'}
+        </div>`).join(''):''}
+      ${g.proformasOrphelines.length?`<div class="chantier-block orphan">
+        <div class="chantier-head"><b>⚠️ Proforma non rattachées</b></div>
+        <table><thead><tr><th>Proforma</th><th class="right">Date</th><th class="right">Montant</th></tr></thead><tbody>${g.proformasOrphelines.map(p=>`<tr><td>${escapeHtml(p.numero)}</td><td class="right">${new Date(p.date).toLocaleDateString('fr-FR')}</td><td class="right">${escapeHtml(p.total||'')}</td></tr>`).join('')}</tbody></table>
+      </div>`:''}
+    </div>`;
+  }).join('') : '<p class="empty">Aucun résultat pour ce filtre.</p>';
+
+  const win=window.open('','_blank','width=1000,height=1200');
+  if(!win) return;
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>État proforma & achats</title>
+  <style>
+    *{box-sizing:border-box}
+    body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#e2e8f0;margin:0}
+    .toolbar{position:sticky;top:0;z-index:10;background:#0f172a;color:#fff;padding:12px 24px;display:flex;justify-content:space-between;align-items:center}
+    .toolbar button{background:#2563eb;color:#fff;border:0;padding:9px 18px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;margin-left:8px}
+    .toolbar button.secondary{background:transparent;border:1px solid #475569}
+    .sheet{max-width:900px;margin:24px auto;background:#fff;padding:40px 44px;box-shadow:0 10px 40px rgba(15,23,42,.25);border-radius:4px}
+    .head{display:flex;justify-content:space-between;border-bottom:2px solid #0f172a;padding-bottom:12px;margin-bottom:20px}
+    .head h1{font-size:20px;margin:0}
+    .head .sub{color:#64748b;font-size:12px;margin-top:4px}
+    .client-block{margin-bottom:26px;page-break-inside:avoid}
+    .client-block h2{font-size:15px;background:#f1f5f9;padding:8px 12px;border-radius:6px;margin:0 0 10px}
+    .chantier-block{margin-bottom:14px;padding-left:8px;border-left:3px solid #cbd5e1}
+    .chantier-block.orphan{border-left-color:#f59e0b}
+    .chantier-head{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;padding:0 8px}
+    table{width:100%;border-collapse:collapse;font-size:11.5px;margin:4px 0 10px}
+    th{background:#f8fafc;text-align:left;padding:5px 8px;border-bottom:1px solid #e2e8f0;font-weight:700}
+    td{padding:5px 8px;border-bottom:1px solid #f1f5f9}
+    .right{text-align:right}
+    .empty{font-size:11.5px;color:#94a3b8;padding:0 8px;margin:2px 0 10px}
+    @media print{.toolbar{display:none}body{background:#fff}.sheet{box-shadow:none;margin:0;max-width:none}}
+  </style></head><body>
+  <div class="toolbar"><span>Aperçu avant impression</span><div><button onclick="window.print()">🖨 Imprimer</button><button class="secondary" onclick="window.close()">Fermer</button></div></div>
+  <div class="sheet">
+    <div class="head"><div><h1>${escapeHtml(c.nom)}</h1><div class="sub">${escapeHtml(c.tagline||'')}</div></div><div class="sub" style="text-align:right">État proforma &amp; achats<br>Édité le ${dateStr}</div></div>
+    ${corps}
+  </div>
+  </body></html>`);
+  win.document.close();
+}
+
+/* ---------- GMAO — Gestion de Maintenance Assistée par Ordinateur ---------- */
+const GMAO_MOTIFS={panne_mecanique:'Panne mécanique',panne_electrique:'Panne électrique',usure:'Usure pièce',casse_outil:'Casse outil',reglage:'Réglage / calibrage',preventif:'Contrôle préventif',autre:'Autre'};
+const GMAO_STATUTS={planifiee:{label:'Planifiée',c:'slate'},en_cours:{label:'En cours',c:'amber'},terminee:{label:'Terminée',c:'emerald'},annulee:{label:'Annulée',c:'red'}};
+
+function showGmaoTab(tab){
+  document.querySelectorAll('.gmao-tab').forEach(t=>t.classList.add('hidden'));
+  const el=document.getElementById('gmaoTab'+tab.charAt(0).toUpperCase()+tab.slice(1)); if(el) el.classList.remove('hidden');
+  document.querySelectorAll('.gmao-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.gmaotab===tab));
+  if(tab==='machines') renderGmaoMachines();
+  if(tab==='planning') renderGmaoPlanning();
+  if(tab==='interventions') renderGmaoInterventions();
+  if(tab==='indicateurs') renderGmaoIndicateurs();
+}
+
+async function updateGmaoBadge(){
+  const badge=document.getElementById('gmaoBadge'); if(!badge) return;
+  const maints=await idbGetAll('maintenances');
+  const today=new Date().toISOString().slice(0,10);
+  const n=maints.filter(m=>(m.statut==='planifiee' && m.datePlanifiee && m.datePlanifiee<=today) || m.statut==='en_cours').length;
+  if(n){ badge.textContent=n; badge.classList.remove('hidden'); } else badge.classList.add('hidden');
+}
+
+async function renderGmaoMachines(){
+  const el=document.getElementById('gmaoMachinesGrid'); if(!el) return;
+  const [machines,maints]=await Promise.all(['machines','maintenances'].map(idbGetAll));
+  const today=new Date().toISOString().slice(0,10);
+  const statutColor={disponible:'emerald','en maintenance':'amber','hors service':'red'};
+  el.innerHTML = machines.length ? machines.map(m=>{
+    const histo=maints.filter(x=>x.machineId===m.id).sort((a,b)=>(b.dateFin||b.dateDebut||b.datePlanifiee||'').localeCompare(a.dateFin||a.dateDebut||a.datePlanifiee||''));
+    const derniere=histo.find(x=>x.statut==='terminee');
+    const prochaine=maints.filter(x=>x.machineId===m.id && x.type==='preventive' && x.statut==='planifiee').sort((a,b)=>(a.datePlanifiee||'').localeCompare(b.datePlanifiee||''))[0];
+    const enRetard=prochaine && prochaine.datePlanifiee && prochaine.datePlanifiee<today;
+    const c=statutColor[m.statut]||'slate';
+    return `<div class="border rounded-xl p-4">
+      <div class="flex justify-between items-start mb-2">
+        <div><div class="font-bold">${escapeHtml(m.code)}</div><div class="text-xs text-slate-500">${escapeHtml(m.designation||'')}</div></div>
+        <span class="badge bg-${c}-50 text-${c}-700">${escapeHtml(m.statut||'—')}</span>
+      </div>
+      <div class="text-xs text-slate-500 space-y-1">
+        <div>Poste : ${escapeHtml(m.poste||'—')}</div>
+        <div>Dernière intervention : ${derniere?new Date(derniere.dateFin||derniere.dateDebut).toLocaleDateString('fr-FR')+' — '+escapeHtml(GMAO_MOTIFS[derniere.motif]||derniere.motif||''):'—'}</div>
+        <div class="${enRetard?'text-red-600 font-semibold':''}">Prochain préventif : ${prochaine?new Date(prochaine.datePlanifiee).toLocaleDateString('fr-FR')+(enRetard?' ⚠️ en retard':''):'—'}</div>
+      </div>
+      <button onclick="openMaintenanceForm(null,'${m.id}')" class="mt-3 w-full border border-blue-600 text-blue-600 rounded-lg px-3 py-1.5 text-xs font-semibold">+ Intervention</button>
+    </div>`;
+  }).join('') : '<p class="text-sm text-slate-400 col-span-3">Aucune machine référencée — ajoutez-les dans Référentiel → Machines.</p>';
+}
+
+async function renderGmaoPlanning(){
+  const el=document.getElementById('gmaoPlanningBody'); if(!el) return;
+  const [maints,machines]=await Promise.all(['maintenances','machines'].map(idbGetAll));
+  const today=new Date().toISOString().slice(0,10);
+  const rows=maints.filter(m=>m.type==='preventive' && m.statut!=='terminee' && m.statut!=='annulee').sort((a,b)=>(a.datePlanifiee||'').localeCompare(b.datePlanifiee||''));
+  el.innerHTML = rows.length ? rows.map(m=>{
+    const machine=machines.find(x=>x.id===m.machineId);
+    const st=GMAO_STATUTS[m.statut]||{label:m.statut,c:'slate'};
+    const enRetard=m.datePlanifiee && m.datePlanifiee<today && m.statut==='planifiee';
+    return `<tr class="border-b ${enRetard?'bg-red-50':''}">
+      <td class="p-3 font-semibold">${escapeHtml(machine?.code||m.machineCode||'—')}</td>
+      <td class="p-3 text-xs">${escapeHtml(m.description||'')}</td>
+      <td class="p-3 text-xs ${enRetard?'text-red-600 font-bold':''}">${m.datePlanifiee?new Date(m.datePlanifiee).toLocaleDateString('fr-FR'):'—'}${enRetard?' ⚠️':''}</td>
+      <td class="p-3 text-xs">${m.periodiciteJours?'Tous les '+m.periodiciteJours+' j':'Ponctuel'}</td>
+      <td class="p-3"><span class="badge bg-${st.c}-50 text-${st.c}-700">${st.label}</span></td>
+      <td class="p-3 text-right whitespace-nowrap">
+        ${m.statut==='planifiee'?`<button onclick="demarrerMaintenance('${m.id}')" class="text-blue-600 text-xs font-semibold mr-2">▶ Démarrer</button>`:''}
+        <button onclick="openMaintenanceForm('${m.id}')" class="text-slate-500 text-xs font-semibold">✏️</button>
+      </td>
+    </tr>`;
+  }).join('') : '<tr><td class="p-3 text-slate-400" colspan="6">Aucune maintenance préventive planifiée.</td></tr>';
+}
+
+async function renderGmaoInterventions(){
+  const el=document.getElementById('gmaoInterventionsBody'); if(!el) return;
+  const [maints,machines]=await Promise.all(['maintenances','machines'].map(idbGetAll));
+  const search=(document.getElementById('gmaoSearch')?.value||'').toLowerCase().trim();
+  let rows=maints.slice().sort((a,b)=>(b.dateDebut||b.datePlanifiee||'').localeCompare(a.dateDebut||a.datePlanifiee||''));
+  if(search) rows=rows.filter(m=>{ const machine=machines.find(x=>x.id===m.machineId); return (machine?.code||m.machineCode||'').toLowerCase().includes(search); });
+  el.innerHTML = rows.length ? rows.map(m=>{
+    const machine=machines.find(x=>x.id===m.machineId);
+    const st=GMAO_STATUTS[m.statut]||{label:m.statut,c:'slate'};
+    const dureeH = m.dateDebut&&m.dateFin ? ((new Date(m.dateFin)-new Date(m.dateDebut))/3600000).toFixed(1)+' h' : '—';
+    const cout=(m.coutPieces||0)+(m.coutMO||0);
+    return `<tr class="border-b">
+      <td class="p-3 font-semibold">${escapeHtml(m.numero)}${m.origineAuto?' <span class="badge bg-orange-50 text-orange-700 text-[10px]">Auto</span>':''}</td>
+      <td class="p-3">${escapeHtml(machine?.code||m.machineCode||'—')}</td>
+      <td class="p-3 text-xs">${m.type==='preventive'?'🔵 Préventif':'🔴 Curatif'}</td>
+      <td class="p-3 text-xs">${escapeHtml(GMAO_MOTIFS[m.motif]||m.motif||'—')}</td>
+      <td class="p-3 text-xs">${escapeHtml(m.technicien||'—')}</td>
+      <td class="p-3 text-xs">${dureeH}</td>
+      <td class="p-3 text-right">${cout?money(cout):'—'}</td>
+      <td class="p-3"><span class="badge bg-${st.c}-50 text-${st.c}-700">${st.label}</span></td>
+      <td class="p-3 text-right"><button onclick="openMaintenanceForm('${m.id}')" class="text-blue-600 text-xs font-semibold">✏️ Ouvrir</button></td>
+    </tr>`;
+  }).join('') : '<tr><td class="p-3 text-slate-400" colspan="9">Aucune intervention enregistrée.</td></tr>';
+}
+
+async function renderGmaoIndicateurs(){
+  const [maints,machines]=await Promise.all(['maintenances','machines'].map(idbGetAll));
+  const depuis=new Date(); depuis.setMonth(depuis.getMonth()-12);
+  const depuisStr=depuis.toISOString().slice(0,10);
+  const curativesTerminees=maints.filter(m=>m.type==='curative' && m.statut==='terminee' && m.dateDebut && m.dateFin && m.dateDebut>=depuisStr);
+
+  const mttrH = curativesTerminees.length ? curativesTerminees.reduce((s,m)=>s+((new Date(m.dateFin)-new Date(m.dateDebut))/3600000),0)/curativesTerminees.length : null;
+  document.getElementById('gmaoKpiMTTR').textContent = mttrH!=null ? mttrH.toFixed(1)+' h' : '—';
+
+  const parMachine={};
+  curativesTerminees.forEach(m=>{ (parMachine[m.machineId]=parMachine[m.machineId]||[]).push(m); });
+  const periodeH=365*24;
+  const mtbfValues=Object.entries(parMachine).map(([mid,list])=>{
+    const arretH=list.reduce((s,m)=>s+((new Date(m.dateFin)-new Date(m.dateDebut))/3600000),0);
+    return list.length ? (periodeH-arretH)/list.length : null;
+  }).filter(v=>v!=null);
+  const mtbfMoyen = mtbfValues.length ? mtbfValues.reduce((a,b)=>a+b,0)/mtbfValues.length : null;
+  document.getElementById('gmaoKpiMTBF').textContent = mtbfMoyen!=null ? Math.round(mtbfMoyen)+' h' : '—';
+
+  const dispo = machines.length ? (machines.filter(m=>m.statut==='disponible').length/machines.length*100) : null;
+  document.getElementById('gmaoKpiDispo').textContent = dispo!=null ? dispo.toFixed(0)+'%' : '—';
+
+  const coutAn = maints.filter(m=>(m.dateFin||m.dateDebut||'')>=depuisStr).reduce((s,m)=>s+(m.coutPieces||0)+(m.coutMO||0),0);
+  document.getElementById('gmaoKpiCout').textContent = money(coutAn);
+
+  const top=Object.entries(parMachine).map(([mid,list])=>({machine:machines.find(m=>m.id===mid),nb:list.length})).filter(x=>x.machine).sort((a,b)=>b.nb-a.nb).slice(0,8);
+  document.getElementById('gmaoTopPannes').innerHTML = top.length ? top.map(x=>`
+    <div class="flex items-center justify-between text-sm border-b pb-2">
+      <span class="font-semibold">${escapeHtml(x.machine.code)} — ${escapeHtml(x.machine.designation||'')}</span>
+      <span class="badge ${x.nb>=3?'bg-red-50 text-red-700':'bg-amber-50 text-amber-700'}">${x.nb} panne${x.nb>1?'s':''}</span>
+    </div>`).join('') : '<p class="text-sm text-slate-400">Aucune panne curative sur les 12 derniers mois.</p>';
+}
+
+async function openMaintenanceForm(id,presetMachineId){
+  if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
+  const machines=await idbGetAll('machines');
+  let rec=null;
+  if(id){ const rows=await idbGetAll('maintenances'); rec=rows.find(m=>m.id===id); }
+  const machineOptions=machines.map(m=>`<option value="${m.id}" ${(rec?.machineId||presetMachineId)===m.id?'selected':''}>${escapeHtml(m.code)} — ${escapeHtml(m.designation||'')}</option>`).join('');
+  const motifOptions=Object.entries(GMAO_MOTIFS).map(([k,l])=>`<option value="${k}" ${rec?.motif===k?'selected':''}>${l}</option>`).join('');
+  const html=`
+    <div class="flex justify-between items-start mb-4">
+      <h2 class="text-lg font-bold">${rec?'Intervention '+escapeHtml(rec.numero):'Nouvelle intervention'}</h2>
+      <button onclick="document.getElementById('maintenanceModal').classList.add('hidden');setModalOpen(false)" class="text-slate-400 text-xl leading-none">×</button>
+    </div>
+    <form onsubmit="return saveMaintenance(event,'${id||''}')" class="space-y-3">
+      <div class="flex gap-3 text-sm">
+        <label class="flex items-center gap-1.5"><input type="radio" name="mtType" value="curative" ${(!rec||rec.type==='curative')?'checked':''}> Curatif (panne)</label>
+        <label class="flex items-center gap-1.5"><input type="radio" name="mtType" value="preventive" ${rec?.type==='preventive'?'checked':''}> Préventif (planifié)</label>
+      </div>
+      <label class="text-xs font-semibold block">Machine
+        <select id="mtMachine" required class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">${machineOptions}</select>
+      </label>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <label class="text-xs font-semibold block">Motif
+          <select id="mtMotif" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">${motifOptions}</select>
+        </label>
+        <label class="text-xs font-semibold block">Technicien
+          <input id="mtTechnicien" value="${escapeHtml(rec?.technicien||'')}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+      </div>
+      <label class="text-xs font-semibold block">Description
+        <textarea id="mtDescription" rows="2" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">${escapeHtml(rec?.description||'')}</textarea>
+      </label>
+      <div id="mtPreventifWrap" class="grid sm:grid-cols-2 gap-3 ${(!rec||rec.type==='curative')?'hidden':''}">
+        <label class="text-xs font-semibold block">Date planifiée
+          <input id="mtDatePlanifiee" type="date" value="${rec?.datePlanifiee||''}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+        <label class="text-xs font-semibold block">Périodicité (jours, 0=ponctuel)
+          <input id="mtPeriodicite" type="number" min="0" value="${rec?.periodiciteJours||0}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <label class="text-xs font-semibold block">Début réel
+          <input id="mtDebut" type="datetime-local" value="${rec?.dateDebut?rec.dateDebut.slice(0,16):''}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+        <label class="text-xs font-semibold block">Fin réelle
+          <input id="mtFin" type="datetime-local" value="${rec?.dateFin?rec.dateFin.slice(0,16):''}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <label class="text-xs font-semibold block">Coût pièces (FCFA)
+          <input id="mtCoutPieces" type="number" min="0" value="${rec?.coutPieces||0}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+        <label class="text-xs font-semibold block">Coût main-d'œuvre (FCFA)
+          <input id="mtCoutMO" type="number" min="0" value="${rec?.coutMO||0}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+      </div>
+      <label class="text-xs font-semibold block">Statut
+        <select id="mtStatut" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+          ${Object.entries(GMAO_STATUTS).map(([k,v])=>`<option value="${k}" ${(rec?.statut||'planifiee')===k?'selected':''}>${v.label}</option>`).join('')}
+        </select>
+      </label>
+      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold">✓ Enregistrer</button>
+    </form>`;
+  document.getElementById('maintenanceContent').innerHTML=html;
+  document.querySelectorAll('input[name="mtType"]').forEach(r=>r.onchange=()=>document.getElementById('mtPreventifWrap').classList.toggle('hidden',document.querySelector('input[name="mtType"]:checked').value!=='preventive'));
+  document.getElementById('maintenanceModal').classList.remove('hidden');
+  setModalOpen(true);
+}
+
+async function saveMaintenance(e,id){
+  e.preventDefault();
+  if(!hasRole('of:create')){ alert('Permission refusée.'); return false; }
+  const machines=await idbGetAll('machines');
+  const machineId=document.getElementById('mtMachine').value;
+  const machine=machines.find(m=>m.id===machineId);
+  const type=document.querySelector('input[name="mtType"]:checked').value;
+  const statut=document.getElementById('mtStatut').value;
+  let rec;
+  if(id){ const rows=await idbGetAll('maintenances'); rec=rows.find(m=>m.id===id); }
+  if(!rec){ const seq=nextSeq('maintenance'); rec={id:'mt_'+seq.year+'_'+seq.n,numero:'MT-'+seq.year+'-'+String(seq.n).padStart(4,'0'),createdAt:new Date().toISOString()}; }
+  Object.assign(rec,{
+    machineId, machineCode:machine?.code||'', type,
+    motif:document.getElementById('mtMotif').value,
+    description:document.getElementById('mtDescription').value.trim(),
+    technicien:document.getElementById('mtTechnicien').value.trim(),
+    datePlanifiee:document.getElementById('mtDatePlanifiee').value||null,
+    periodiciteJours:+document.getElementById('mtPeriodicite').value||0,
+    dateDebut:document.getElementById('mtDebut').value||null,
+    dateFin:document.getElementById('mtFin').value||null,
+    coutPieces:+document.getElementById('mtCoutPieces').value||0,
+    coutMO:+document.getElementById('mtCoutMO').value||0,
+    statut,
+    _modifie:new Date().toISOString()
+  });
+  await idbPut('maintenances',rec);
+  queueSync('alubom_maintenances',rec);
+  if(machine){
+    machine.statut = statut==='en_cours' ? 'en maintenance' : (statut==='terminee' ? 'disponible' : machine.statut);
+    machine._modifie=new Date().toISOString();
+    await idbPut('machines',machine); queueSync('alubom_machines',machine);
+  }
+  // Reconduction automatique du préventif périodique une fois clôturé
+  if(type==='preventive' && statut==='terminee' && rec.periodiciteJours>0){
+    const base=rec.dateFin?rec.dateFin.slice(0,10):new Date().toISOString().slice(0,10);
+    const prochaine=new Date(base); prochaine.setDate(prochaine.getDate()+rec.periodiciteJours);
+    const seq=nextSeq('maintenance');
+    const suivant={id:'mt_'+seq.year+'_'+seq.n,numero:'MT-'+seq.year+'-'+String(seq.n).padStart(4,'0'),
+      machineId,machineCode:machine?.code||'',type:'preventive',motif:'preventif',description:rec.description,
+      datePlanifiee:prochaine.toISOString().slice(0,10),periodiciteJours:rec.periodiciteJours,statut:'planifiee',
+      createdAt:new Date().toISOString()};
+    await idbPut('maintenances',suivant); queueSync('alubom_maintenances',suivant);
+  }
+  await audit('MAINTENANCE_'+statut.toUpperCase(),rec.numero+' — '+(machine?.code||'')+' — '+(GMAO_MOTIFS[rec.motif]||rec.motif));
+  document.getElementById('maintenanceModal').classList.add('hidden');
+  setModalOpen(false);
+  showGmaoTab(document.querySelector('.gmao-tab-btn.active')?.dataset.gmaotab||'machines');
+  await updateGmaoBadge();
+  return false;
+}
+
+async function demarrerMaintenance(id){
+  const rows=await idbGetAll('maintenances');
+  const rec=rows.find(m=>m.id===id); if(!rec) return;
+  rec.statut='en_cours';
+  rec.dateDebut=rec.dateDebut||new Date().toISOString().slice(0,16);
+  await idbPut('maintenances',rec); queueSync('alubom_maintenances',rec);
+  const machines=await idbGetAll('machines');
+  const machine=machines.find(m=>m.id===rec.machineId);
+  if(machine){ machine.statut='en maintenance'; await idbPut('machines',machine); queueSync('alubom_machines',machine); }
+  await audit('MAINTENANCE_DEMARREE',rec.numero);
+  showGmaoTab('planning');
+  await updateGmaoBadge();
+}
+
+async function renderControleGestion(){
+  if(!document.getElementById('controlegestion')) return;
+
+  const [chantiers,ofs,suiviRows,pointages,postes,achats,nc]=await Promise.all(
+    ['chantiers','of','suivi_reel','pointages','postes','achats','nonconformites'].map(idbGetAll));
+  const periode=document.getElementById('cgPeriode')?.value||'tout';
+  const moisStr=new Date().toISOString().slice(0,7);
+  const search=(document.getElementById('cgSearch')?.value||'').toLowerCase().trim();
+  const seuil=15;
+
+  let actifs=chantiers.filter(c=>!c.annule && c.etape!=='devis');
+  if(periode==='mois') actifs=actifs.filter(c=>(c.dateCreation||'').slice(0,7)===moisStr);
+  if(search) actifs=actifs.filter(c=>(c.numero||'').toLowerCase().includes(search)||(c.client||'').toLowerCase().includes(search));
+
+  const rows=actifs.map(ch=>{
+    const ofsCh=ofs.filter(o=>o.chantierId===ch.id);
+    let coutTheo=0,coutReel=0;
+    ofsCh.forEach(o=>{ const c=computeCoutReelOF(o,suiviRows,pointages,postes); coutTheo+=c.totalPrevu; coutReel+=c.totalReel; });
+    const budget=ch.montantTotal||0;
+    const margeTheo=budget?(budget-coutTheo)/budget*100:0;
+    const margeReelle=budget?(budget-coutReel)/budget*100:0;
+    const encaisse=ch.montantPaye||0;
+    return {ch,budget,coutTheo,coutReel,margeTheo,margeReelle,ecartPts:margeReelle-margeTheo,encaisse,resteAEncaisser:Math.max(0,budget-encaisse)};
+  });
+
+  const totalBudget=rows.reduce((s,r)=>s+r.budget,0);
+  const totalEncaisse=rows.reduce((s,r)=>s+r.encaisse,0);
+  const totalCreances=rows.reduce((s,r)=>s+r.resteAEncaisser,0);
+  const totalCoutReel=rows.reduce((s,r)=>s+r.coutReel,0);
+  const totalCoutTheo=rows.reduce((s,r)=>s+r.coutTheo,0);
+  const margeReelleGlobale=totalBudget?(totalBudget-totalCoutReel)/totalBudget*100:0;
+  const margeTheoGlobale=totalBudget?(totalBudget-totalCoutTheo)/totalBudget*100:0;
+  const statutsRecus=['recu','reçu','livre','livré'];
+  const achatsEngagesNonRecus=achats.filter(a=>a.statut && a.statut.toLowerCase()!=='annule' && !statutsRecus.includes((a.statut||'').toLowerCase())).reduce((s,a)=>s+(a.montant||0),0);
+  const enAlerte=rows.filter(r=>r.margeReelle<seuil);
+
+  document.getElementById('cgKpiCA').textContent=money(totalBudget);
+  document.getElementById('cgKpiCASub').textContent=rows.length+' chantier'+(rows.length>1?'s':'')+' actif'+(rows.length>1?'s':'');
+  document.getElementById('cgKpiEncaisse').textContent=money(totalEncaisse);
+  document.getElementById('cgKpiEncaisseSub').textContent=totalBudget?((totalEncaisse/totalBudget*100).toFixed(0)+'% du CA'):'—';
+  document.getElementById('cgKpiCreances').textContent=money(totalCreances);
+  document.getElementById('cgKpiAchatsEngages').textContent=money(achatsEngagesNonRecus);
+  document.getElementById('cgKpiCoutReel').textContent=money(totalCoutReel);
+  const elMR=document.getElementById('cgKpiMargeReelle');
+  elMR.textContent=margeReelleGlobale.toFixed(1).replace('.',',')+'%';
+  elMR.className='text-3xl font-black mt-2 '+(margeReelleGlobale<seuil?'text-red-600':'text-emerald-600');
+  document.getElementById('cgKpiMargeSub').textContent='théorique '+margeTheoGlobale.toFixed(1).replace('.',',')+'%';
+  document.getElementById('cgKpiMargeTheo').textContent=margeTheoGlobale.toFixed(1).replace('.',',')+'%';
+  const elAl=document.getElementById('cgKpiAlerte');
+  elAl.textContent=enAlerte.length;
+  elAl.className='text-3xl font-black mt-2 '+(enAlerte.length?'text-red-600':'');
+
+  const alertes=[];
+  enAlerte.forEach(r=>alertes.push({icon:'📉',color:'red',text:escapeHtml(r.ch.numero)+' ('+escapeHtml(r.ch.client||'—')+') — marge réelle '+r.margeReelle.toFixed(1).replace('.',',')+'% ('+r.ecartPts.toFixed(1).replace('.',',')+' pts vs théorique)'}));
+  if(totalEncaisse>0 && achatsEngagesNonRecus>totalEncaisse*0.5) alertes.push({icon:'💸',color:'amber',text:'Achats engagés non reçus élevés ('+money(achatsEngagesNonRecus)+') vs trésorerie encaissée'});
+  const panel=document.getElementById('cgAlertesPanel');
+  if(alertes.length){
+    panel.classList.remove('hidden');
+    panel.innerHTML=`<div class="card bg-white rounded-2xl p-5"><h3 class="font-bold text-sm text-slate-700 mb-3">⚠️ Alertes contrôle de gestion</h3><div class="space-y-2">${alertes.slice(0,8).map(a=>`<div class="flex items-center gap-2 text-sm bg-${a.color}-50 text-${a.color}-700 rounded-lg px-3 py-2"><span>${a.icon}</span><span>${a.text}</span></div>`).join('')}</div></div>`;
+  } else panel.classList.add('hidden');
+
+  const sorted=[...rows].sort((a,b)=>a.margeReelle-b.margeReelle);
+  document.getElementById('cgChantierBody').innerHTML = sorted.length ? sorted.map(r=>`
+    <tr class="border-b ${r.margeReelle<seuil?'bg-red-50':''}">
+      <td class="p-3 font-semibold">${escapeHtml(r.ch.numero)}</td>
+      <td class="p-3">${escapeHtml(r.ch.client||'—')}</td>
+      <td class="p-3 text-xs">${escapeHtml(CHANTIER_STAGES.find(s=>s.key===r.ch.etape)?.label||r.ch.etape||'—')}</td>
+      <td class="p-3 text-right">${money(r.budget)}</td>
+      <td class="p-3 text-right">${money(r.coutReel)}</td>
+      <td class="p-3 text-right text-slate-500">${r.margeTheo.toFixed(1).replace('.',',')}%</td>
+      <td class="p-3 text-right font-bold ${r.margeReelle<seuil?'text-red-600':'text-emerald-600'}">${r.margeReelle.toFixed(1).replace('.',',')}%</td>
+      <td class="p-3 text-right ${r.ecartPts<0?'text-red-600':'text-emerald-600'}">${r.ecartPts>=0?'+':''}${r.ecartPts.toFixed(1).replace('.',',')} pts</td>
+      <td class="p-3 text-right">${money(r.encaisse)}</td>
+      <td class="p-3 text-right ${r.resteAEncaisser>0?'text-amber-600':''}">${money(r.resteAEncaisser)}</td>
+    </tr>`).join('') : '<tr><td colspan="10" class="p-4 text-center text-slate-400">Aucun chantier actif sur la période.</td></tr>';
+
+  const derives=[...rows].filter(r=>r.ecartPts<0).sort((a,b)=>a.ecartPts-b.ecartPts).slice(0,5);
+  document.getElementById('cgTopDerives').innerHTML = derives.length ? derives.map(r=>`
+    <div class="border rounded-lg p-3">
+      <div class="flex justify-between font-semibold"><span>${escapeHtml(r.ch.numero)}</span><span class="text-red-600">${r.ecartPts.toFixed(1).replace('.',',')} pts</span></div>
+      <div class="text-xs text-slate-500 mt-1">${escapeHtml(r.ch.client||'—')} — coût réel ${money(r.coutReel)} / budget ${money(r.budget)}</div>
+    </div>`).join('') : '<p class="text-slate-400">Aucune dérive détectée.</p>';
+
+  const top=[...rows].sort((a,b)=>b.budget-a.budget).slice(0,10);
+  const ctx=document.getElementById('cgChart');
+  if(ctx){
+    if(cgChart) cgChart.destroy();
+    cgChart=new Chart(ctx,{
+      type:'bar',
+      data:{labels:top.map(r=>r.ch.numero),datasets:[
+        {label:'Budget HT',data:top.map(r=>r.budget),backgroundColor:'#2563eb'},
+        {label:'Coût réel',data:top.map(r=>r.coutReel),backgroundColor:'#ef4444'}
+      ]},
+      options:{responsive:true,plugins:{legend:{position:'top'}},scales:{y:{beginAtZero:true,ticks:{callback:v=>(v/1000)+'k'}}}}
+    });
+  }
+
+  let ofsListe=ofs.filter(o=>o.statut!=='Annulé');
+  if(periode==='mois') ofsListe=ofsListe.filter(o=>(o.date||'').slice(0,7)===moisStr);
+  if(search) ofsListe=ofsListe.filter(o=>(o.numero||'').toLowerCase().includes(search)||(o.ouvrage||'').toLowerCase().includes(search)||(o.chantierNumero||'').toLowerCase().includes(search)||(o.client||'').toLowerCase().includes(search));
+  const ofRows=ofsListe.map(o=>{
+    const c=computeCoutReelOF(o,suiviRows,pointages,postes);
+    const ecart=c.totalReel-c.totalPrevu;
+    const ecartPct=c.totalPrevu?ecart/c.totalPrevu*100:0;
+    const ncCount=nc.filter(n=>n.ofId===o.id).length;
+    const chRef=chantiers.find(ch=>ch.id===o.chantierId);
+    const tempsPrevuH=o.moHeuresTheorique||1.8;
+    const tempsReelH=c.tempsReelMin?c.tempsReelMin/60:(suiviRows.find(s=>s.ofId===o.id)?.moHeuresReel ?? tempsPrevuH);
+    return {o,chRef,coutPrevu:c.totalPrevu,coutReel:c.totalReel,ecart,ecartPct,tempsPrevuH,tempsReelH,ncCount};
+  }).sort((a,b)=>b.ecartPct-a.ecartPct);
+  document.getElementById('cgOFBody').innerHTML = ofRows.length ? ofRows.map(r=>`
+    <tr class="border-b ${r.ecartPct>15?'bg-red-50':''}">
+      <td class="p-3 font-semibold"><button onclick="openBilanOF('${r.o.id}')" class="text-blue-700 hover:underline">${escapeHtml(r.o.numero)}</button></td>
+      <td class="p-3 text-xs">${escapeHtml(r.o.ouvrage||'—')}</td>
+      <td class="p-3 text-xs">${escapeHtml(r.chRef?.numero||'—')}</td>
+      <td class="p-3 text-xs">${escapeHtml(r.o.statut||'—')}</td>
+      <td class="p-3 text-right">${money(r.coutPrevu)}</td>
+      <td class="p-3 text-right">${money(r.coutReel)}</td>
+      <td class="p-3 text-right font-bold ${r.ecart>0?'text-red-600':'text-emerald-600'}">${r.ecart>=0?'+':''}${money(r.ecart)} (${r.ecartPct>=0?'+':''}${r.ecartPct.toFixed(1).replace('.',',')}%)</td>
+      <td class="p-3 text-right">${r.tempsPrevuH.toFixed(1).replace('.',',')} h</td>
+      <td class="p-3 text-right ${r.tempsReelH>r.tempsPrevuH?'text-amber-600':''}">${r.tempsReelH.toFixed(1).replace('.',',')} h</td>
+      <td class="p-3 text-center ${r.ncCount?'text-red-600 font-bold':'text-slate-300'}">${r.ncCount||'—'}</td>
+    </tr>`).join('') : '<tr><td colspan="10" class="p-4 text-center text-slate-400">Aucun OF sur la période.</td></tr>';
+}
+
+function exportControleGestionExcel(){
+  const lines=[];
+  const chRows=[...document.querySelectorAll('#cgChantierBody tr')];
+  if(chRows.length && chRows[0].children.length>1){
+    lines.push('CHANTIERS — BUDGET VS REEL');
+    lines.push(['Chantier','Client','Étape','Budget HT','Coût réel','Marge théo.','Marge réelle','Écart','Encaissé','Reste à encaisser'].join(';'));
+    chRows.forEach(tr=>lines.push([...tr.children].map(td=>'"'+td.textContent.trim().replace(/"/g,'""')+'"').join(';')));
+    lines.push('');
+  }
+  const ofRows=[...document.querySelectorAll('#cgOFBody tr')];
+  if(ofRows.length && ofRows[0].children.length>1){
+    lines.push('BILAN OF — COUT PREVU VS REEL');
+    lines.push(['OF','Ouvrage','Chantier','Statut','Coût prévu','Coût réel','Écart','Temps prévu','Temps réel','NC'].join(';'));
+    ofRows.forEach(tr=>lines.push([...tr.children].map(td=>'"'+td.textContent.trim().replace(/"/g,'""')+'"').join(';')));
+  }
+  if(!lines.length) return;
+  const blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='controle_gestion_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
 async function renderOFTable(){
   const el=document.getElementById('ofBody'); if(!el) return;
   const elGrid=document.getElementById('ofGrid');
@@ -2764,6 +3967,7 @@ async function renderOFTable(){
     const suivi=suiviRows.find(s=>s.ofId===r.id);
     const suiviBtn = r.statut==='Terminé' ? `<button onclick="openSuiviReelForm('${r.id}')" class="text-teal-600 text-xs font-semibold mr-2">${suivi?'✓ Réel saisi':'📊 Saisir le réel'}</button>` : '';
     const coutBtn = (r.statut==='Terminé'||r.statut==='Prêt à livrer'||r.statut==='Livré') ? `<button onclick="voirCoutReelOF('${r.id}')" class="text-orange-600 text-xs font-semibold mr-2">💰 Coût réel</button>` : '';
+    const bilanBtn = `<button onclick="openBilanOF('${r.id}')" class="text-blue-700 text-xs font-semibold mr-2">📋 Bilan OF</button>`;
     const reqBtn = r.requisitionNumero
       ? `<button onclick="imprimerBonRequisition('${r.id}')" title="Réimprimer" class="text-emerald-600 text-xs font-semibold mr-2">✓ ${escapeHtml(r.requisitionNumero)}</button>`
       : `<button onclick="emettreBonRequisition('${r.id}')" title="Émettre le bon de réquisition et mouvementer le stock" class="text-purple-600 text-xs font-semibold mr-2">📋 Bon de réquisition</button>`;
@@ -2771,7 +3975,7 @@ async function renderOFTable(){
     const pointageBtn = (r.statut!=='Terminé'&&r.statut!=='Annulé'&&r.statut!=='Livré') ? `<button onclick="openPointageModal('${r.id}')" class="text-cyan-600 text-xs font-semibold mr-2">⏱ Pointage${nbPointages?' ('+nbPointages+')':''}</button>` : '';
     const ncBtn = (r.statut!=='Livré') ? `<button onclick="openNCForm('${r.id}','')" class="text-red-500 text-xs font-semibold mr-2">🚫 NC</button>` : '';
     const etiquetteBtn = (r.statut==='Terminé'||r.statut==='Prêt à livrer'||r.statut==='Livré') ? `<button onclick="imprimerEtiquetteOF('${r.id}')" class="text-slate-700 text-xs font-semibold mr-2">🏷️ Étiquette</button>` : '';
-    const actions = (r.statut==='Terminé'||r.statut==='Annulé'||r.statut==='Livré') ? planBtn+suiviBtn+ncBtn+etiquetteBtn+coutBtn : `
+    const actions = (r.statut==='Terminé'||r.statut==='Annulé'||r.statut==='Livré') ? planBtn+suiviBtn+ncBtn+etiquetteBtn+coutBtn+bilanBtn : `
       ${pointageBtn}
       ${reqBtn}
       ${next?`<button onclick="advanceOFStatus('${r.id}','${next}')" class="text-blue-600 text-xs font-semibold mr-2">→ ${escapeHtml(next)}</button>`:''}
@@ -2779,6 +3983,7 @@ async function renderOFTable(){
       ${ncBtn}
       ${etiquetteBtn}
       ${planBtn}
+      ${bilanBtn}
       <button onclick="viewOFBom('${r.id}')" class="text-slate-500 text-xs font-semibold mr-2">BOM figée</button>
       <button onclick="advanceOFStatus('${r.id}','Annulé')" class="text-red-500 text-xs font-semibold">Annuler</button>`;
     const prio=OF_PRIORITES[r.priorite||'normale'];
@@ -2826,7 +4031,106 @@ function showProdTab(tab){
   if(tab==='gantt') renderGantt();
   if(tab==='charge') renderChargePostes();
   if(tab==='journalier') renderSuiviJournalier();
+  if(tab==='dossiers') renderDossiersFabrication();
   if(tab==='bilan'){ populateBilanChantierSelect().then(renderBilanComposants); }
+}
+
+/* ---------- Dossiers de fabrication par chantier — feuille de route atelier (sans prix) ---------- */
+async function renderDossiersFabrication(){
+  const el=document.getElementById('dfBody'); if(!el) return;
+  const [chantiers,ofs]=await Promise.all(['chantiers','of'].map(idbGetAll));
+  const search=(document.getElementById('dfSearch')?.value||'').toLowerCase().trim();
+  const etapeLabel=key=>CHANTIER_STAGES.find(s=>s.key===key)?.label||key;
+
+  let groups=chantiers.filter(c=>!c.annule).map(c=>({ch:c,ofs:ofs.filter(o=>o.chantierId===c.id)})).filter(g=>g.ofs.length);
+  if(search) groups=groups.filter(g=>g.ch.numero.toLowerCase().includes(search)||(g.ch.client||'').toLowerCase().includes(search));
+  groups.sort((a,b)=>(b.ch.dateCreation||'').localeCompare(a.ch.dateCreation||''));
+
+  el.innerHTML = groups.length ? groups.map(g=>{
+    const enCours=g.ofs.filter(o=>!['Terminé','Prêt à livrer','Livré','Annulé'].includes(o.statut)).length;
+    const termines=g.ofs.length-enCours;
+    return `<div class="border rounded-xl p-4">
+      <div class="flex flex-wrap justify-between items-center gap-2">
+        <div>
+          <button onclick="showPage('chantier');openChantierDetail('${g.ch.id}')" class="font-bold text-blue-700 hover:underline">🏗️ ${escapeHtml(g.ch.numero)}</button>
+          <span class="text-sm text-slate-500 ml-1">${escapeHtml(g.ch.client||'—')}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="badge bg-slate-100 text-slate-600">${escapeHtml(etapeLabel(g.ch.etape))}</span>
+          <span class="text-xs text-slate-400">${g.ofs.length} OF — ${termines} terminé(s), ${enCours} en cours</span>
+          <button onclick="apercuDossierFabrication('${g.ch.id}')" class="border border-blue-600 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-semibold">🖨 Feuille de route</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('') : '<p class="text-sm text-slate-400">Aucun dossier de fabrication (aucun OF rattaché à un chantier actif).</p>';
+}
+
+async function apercuDossierFabrication(chantierId){
+  const [chantiers,ofs,postes]=await Promise.all(['chantiers','of','postes'].map(idbGetAll));
+  const ch=chantiers.find(c=>c.id===chantierId); if(!ch) return;
+  const ofsCh=ofs.filter(o=>o.chantierId===chantierId);
+  const etapeLabel=key=>CHANTIER_STAGES.find(s=>s.key===key)?.label||key;
+  const dateStr=new Date().toLocaleDateString('fr-FR');
+  const c=getCompanyInfo();
+
+  const ofHtml=ofsCh.map(o=>{
+    const schema=(ch.lignes||[]).find(l=>l.detail===o.ouvrage);
+    const bom=o.bomSnapshot||[];
+    const gammeHtml=(o.gammeSteps||[]).map((s,i)=>{
+      const atteint = o.evenements && o.evenements.some(e=>e.statut===s);
+      return `<span class="step ${atteint?'done':''}">${i+1}. ${escapeHtml(s)}</span>`;
+    }).join(' → ');
+    return `<div class="of-block">
+      <div class="of-head">
+        <div><b>${escapeHtml(o.numero)}</b> — ${escapeHtml(o.ouvrage||'')}</div>
+        <div class="tag">${escapeHtml(o.statut||'')}</div>
+      </div>
+      <div class="of-meta">Poste actuel : <b>${escapeHtml(o.poste||'—')}</b> • Date prévue : <b>${o.datePrevue?new Date(o.datePrevue).toLocaleDateString('fr-FR'):'—'}</b> • Priorité : <b>${escapeHtml(o.priorite||'normale')}</b></div>
+      <div class="gamme">${gammeHtml||'<span class="empty">Gamme non définie</span>'}</div>
+      ${schema&&schema.schemaSVG?`<div class="schema">${schema.schemaSVG}</div>`:''}
+      <table><thead><tr><th>Réf.</th><th>Désignation</th><th class="right">Qté</th><th class="right">Longueur</th></tr></thead>
+      <tbody>${bom.length?bom.map(r=>`<tr><td>${escapeHtml(r[0])}</td><td>${escapeHtml(r[1])}</td><td class="right">${Number(r[2]).toFixed(2)}</td><td class="right">${r[3]?Number(r[3]).toFixed(0)+' mm':'—'}</td></tr>`).join(''):'<tr><td colspan="4" class="empty">Aucune donnée BOM.</td></tr>'}</tbody></table>
+    </div>`;
+  }).join('') || '<p class="empty">Aucun OF pour ce dossier.</p>';
+
+  const win=window.open('','_blank','width=1000,height=1200');
+  if(!win) return;
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Feuille de route — ${escapeHtml(ch.numero)}</title>
+  <style>
+    *{box-sizing:border-box}
+    body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#e2e8f0;margin:0}
+    .toolbar{position:sticky;top:0;z-index:10;background:#0f172a;color:#fff;padding:12px 24px;display:flex;justify-content:space-between;align-items:center}
+    .toolbar button{background:#2563eb;color:#fff;border:0;padding:9px 18px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;margin-left:8px}
+    .toolbar button.secondary{background:transparent;border:1px solid #475569}
+    .sheet{max-width:900px;margin:24px auto;background:#fff;padding:40px 44px;box-shadow:0 10px 40px rgba(15,23,42,.25);border-radius:4px}
+    .head{display:flex;justify-content:space-between;border-bottom:2px solid #0f172a;padding-bottom:12px;margin-bottom:8px}
+    .head h1{font-size:20px;margin:0}
+    .head .sub{color:#64748b;font-size:12px;margin-top:4px}
+    .warn{background:#fef3c7;color:#92400e;font-size:11px;padding:6px 10px;border-radius:6px;margin-bottom:20px;display:inline-block}
+    .of-block{margin-bottom:24px;padding-bottom:16px;border-bottom:1px dashed #cbd5e1;page-break-inside:avoid}
+    .of-head{display:flex;justify-content:space-between;font-size:14px;margin-bottom:4px}
+    .of-head .tag{background:#eff6ff;color:#1d4ed8;font-size:11px;padding:2px 8px;border-radius:999px;font-weight:700}
+    .of-meta{font-size:11.5px;color:#475569;margin-bottom:8px}
+    .gamme{font-size:11.5px;margin-bottom:10px}
+    .gamme .step{color:#94a3b8}
+    .gamme .step.done{color:#059669;font-weight:700}
+    .schema{margin:8px 0;text-align:center}
+    .schema svg{max-width:100%;max-height:260px}
+    table{width:100%;border-collapse:collapse;font-size:11px}
+    th{background:#f8fafc;text-align:left;padding:5px 8px;border-bottom:1px solid #e2e8f0;font-weight:700}
+    td{padding:5px 8px;border-bottom:1px solid #f1f5f9}
+    .right{text-align:right}
+    .empty{font-size:11px;color:#94a3b8}
+    @media print{.toolbar{display:none}body{background:#fff}.sheet{box-shadow:none;margin:0;max-width:none}}
+  </style></head><body>
+  <div class="toolbar"><span>Feuille de route — ${escapeHtml(ch.numero)}</span><div><button onclick="window.print()">🖨 Imprimer</button><button class="secondary" onclick="window.close()">Fermer</button></div></div>
+  <div class="sheet">
+    <div class="head"><div><h1>${escapeHtml(c.nom)}</h1><div class="sub">Feuille de route — Chef d'atelier</div></div><div class="sub" style="text-align:right">Dossier ${escapeHtml(ch.numero)} — ${escapeHtml(etapeLabel(ch.etape))}<br>Édité le ${dateStr}</div></div>
+    <div class="warn">Document technique atelier — informations de prix volontairement absentes.</div>
+    ${ofHtml}
+  </div>
+  </body></html>`);
+  win.document.close();
 }
 
 /* ---------- Charge & capacité par poste — goulot d'étranglement ---------- */
@@ -3034,6 +4338,25 @@ async function renderSuiviJournalier(){
   const ofDistinct=new Set(pointages.map(p=>p.ofId)).size;
   const operateursDistinct=new Set(pointages.map(p=>p.operateur).filter(Boolean)).size;
 
+  // ---- TRS / OEE : Disponibilité × Performance × Qualité ----
+  const pointagesProd=pointages.filter(p=>p.type!=='arret');
+  const pointagesArret=pointages.filter(p=>p.type==='arret');
+  const tempsProdMin=pointagesProd.reduce((s,p)=>s+dureeMin(p),0);
+  const tempsArretMin=pointagesArret.reduce((s,p)=>s+dureeMin(p),0);
+  const tempsRequisMin=tempsProdMin+tempsArretMin;
+  const disponibilite=tempsRequisMin?(tempsProdMin/tempsRequisMin*100):100;
+  let tempsTheoriqueMin=0;
+  pointagesProd.forEach(p=>{
+    const of=ofById[p.ofId]; if(!of||!of.moHeuresTheorique||!of.qteCible) return;
+    tempsTheoriqueMin += (of.moHeuresTheorique/of.qteCible)*60*(+p.qteConforme||0);
+  });
+  const performance=tempsProdMin?Math.min(999,(tempsTheoriqueMin/tempsProdMin*100)):0;
+  const qualiteOEE=(totalConforme+totalRebut)?(totalConforme/(totalConforme+totalRebut)*100):100;
+  const trs=(disponibilite/100)*(performance/100)*(qualiteOEE/100)*100;
+  const motifsArret={};
+  pointagesArret.forEach(p=>{ const k=PT_MOTIF_LABELS[p.motifArret]||p.motifArret||'Autre'; motifsArret[k]=(motifsArret[k]||0)+dureeMin(p); });
+  const trsColor=trs>=85?'emerald':trs>=65?'amber':'red';
+
   const agreger=keyFn=>{
     const m={};
     pointages.forEach(p=>{
@@ -3058,6 +4381,17 @@ async function renderSuiviJournalier(){
 
   const el=document.getElementById('sjContent'); if(!el) return;
   el.innerHTML=`
+    <div class="border-2 border-${trsColor}-200 bg-${trsColor}-50 rounded-2xl p-4 mb-5">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div><div class="text-xs font-bold uppercase text-${trsColor}-700">TRS / OEE de la journée</div><div class="text-3xl font-black text-${trsColor}-700">${trs.toFixed(1)}%</div></div>
+        <div class="flex gap-4 text-xs text-slate-600">
+          <div class="text-center"><div class="font-bold text-sm">${disponibilite.toFixed(0)}%</div>Disponibilité<br><span class="text-slate-400">${(tempsProdMin/60).toFixed(1)}h prod. / ${(tempsRequisMin/60).toFixed(1)}h requis</span></div>
+          <div class="text-center"><div class="font-bold text-sm">${performance.toFixed(0)}%</div>Performance<br><span class="text-slate-400">${(tempsTheoriqueMin/60).toFixed(1)}h théo. / ${(tempsProdMin/60).toFixed(1)}h réel</span></div>
+          <div class="text-center"><div class="font-bold text-sm">${qualiteOEE.toFixed(0)}%</div>Qualité<br><span class="text-slate-400">${totalConforme} conf. / ${totalConforme+totalRebut} produites</span></div>
+        </div>
+      </div>
+      ${Object.keys(motifsArret).length?`<div class="mt-3 pt-3 border-t border-${trsColor}-200 flex flex-wrap gap-2 text-xs">${Object.entries(motifsArret).sort((a,b)=>b[1]-a[1]).map(([m,min])=>`<span class="bg-white rounded-full px-2.5 py-1 border">⏸ ${escapeHtml(m)} : ${(min/60).toFixed(1)}h</span>`).join('')}</div>`:''}
+    </div>
     <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
       <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3"><div class="text-xs text-emerald-700 font-semibold">Qté conforme</div><div class="text-2xl font-bold text-emerald-700">${totalConforme}</div></div>
       <div class="bg-red-50 border border-red-200 rounded-xl p-3"><div class="text-xs text-red-700 font-semibold">Qté rebut</div><div class="text-2xl font-bold text-red-700">${totalRebut}</div></div>
@@ -3267,21 +4601,66 @@ async function openPointageModal(ofId){
   const rec=rows.find(r=>r.id===ofId); if(!rec) return;
   pointageOFId=ofId;
   const pointages=(await idbGetAll('pointages')).filter(p=>p.ofId===ofId).sort((a,b)=>(b.debut||'').localeCompare(a.debut||''));
+  const qteCible=rec.qteCible||1;
+  const qteProduite=pointages.reduce((s,p)=>s+(+p.qteConforme||0),0);
+  const users=getLocalUsers().map(u=>u.email);
+  const operateursConnus=Array.from(new Set([...users,...pointages.map(p=>p.operateur).filter(Boolean)]));
+  const machinesAll=await idbGetAll('machines');
+  const machinesTriees=[...machinesAll].sort((a,b)=>{
+    const aMatch=(a.poste||'').toLowerCase()===(rec.poste||'').toLowerCase();
+    const bMatch=(b.poste||'').toLowerCase()===(rec.poste||'').toLowerCase();
+    return (bMatch?1:0)-(aMatch?1:0);
+  });
+  const machinesOptions=machinesTriees.map(m=>`<option value="${m.id}">${escapeHtml(m.code)} — ${escapeHtml(m.designation||'')}${(m.poste||'').toLowerCase()===(rec.poste||'').toLowerCase()?' (poste actuel)':''}</option>`).join('');
+  const gammeOptions=(rec.gammeSteps||[]).map(s=>`<option value="${escapeHtml(s)}" ${s===(rec.poste||'')?'selected':''}>${escapeHtml(s)}</option>`).join('');
   const modal=document.getElementById('pointageModal');
   const content=document.getElementById('pointageContent');
   content.innerHTML=`
-    <div class="flex justify-between items-start mb-4">
-      <div><h2 class="text-lg font-bold">⏱ Pointage — ${escapeHtml(rec.numero)}</h2><p class="text-sm text-slate-500">${escapeHtml(rec.ouvrage)} — poste actuel : ${escapeHtml(rec.poste||OF_STATUS_POSTE[rec.statut]||'—')}</p></div>
+    <div class="flex justify-between items-start mb-3">
+      <div><h2 class="text-lg font-bold">⏱ Pointage — ${escapeHtml(rec.numero)}</h2><p class="text-sm text-slate-500">${escapeHtml(rec.ouvrage)} — étape actuelle : <b>${escapeHtml(rec.poste||OF_STATUS_POSTE[rec.statut]||'—')}</b></p></div>
       <button onclick="closePointageModal()" class="text-slate-400 text-xl leading-none">×</button>
     </div>
+    <div class="flex items-center gap-3 mb-4 text-sm bg-blue-50 rounded-lg px-3 py-2">
+      <span>🎯 Quantité cible : <b>${qteCible}</b></span>
+      <span>✓ Produites (conformes) : <b class="${qteProduite>=qteCible?'text-emerald-600':'text-slate-700'}">${qteProduite}</b></span>
+      ${qteProduite>=qteCible?'<span class="badge bg-emerald-50 text-emerald-700">Quantité atteinte</span>':`<span class="text-slate-400">Reste ${qteCible-qteProduite}</span>`}
+    </div>
     <form onsubmit="return handleSubmitPointage(event,'${ofId}')" class="space-y-3 bg-slate-50 border rounded-xl p-3 mb-4">
+      <div class="flex gap-2 mb-1">
+        <label class="text-xs font-semibold flex items-center gap-1.5"><input type="radio" name="ptType" value="production" checked onchange="togglePtType()"> Production</label>
+        <label class="text-xs font-semibold flex items-center gap-1.5"><input type="radio" name="ptType" value="arret" onchange="togglePtType()"> Arrêt</label>
+      </div>
       <div class="grid sm:grid-cols-2 gap-3">
         <label class="text-xs font-semibold block">Opérateur
-          <input id="ptOperateur" value="${escapeHtml(rec.operateur||'')}" required class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+          <input id="ptOperateur" list="ptOperateursList" value="${escapeHtml(rec.operateur||'')}" required class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+          <datalist id="ptOperateursList">${operateursConnus.map(o=>`<option value="${escapeHtml(o)}">`).join('')}</datalist>
         </label>
-        <label class="text-xs font-semibold block">Opération / poste
-          <input id="ptOperation" value="${escapeHtml(rec.poste||OF_STATUS_POSTE[rec.statut]||'')}" required class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        <label class="text-xs font-semibold block" id="ptOperationWrap">Opération / étape de gamme
+          ${gammeOptions?`<select id="ptOperation" required class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">${gammeOptions}<option value="__autre__">Autre (préciser)…</option></select>
+          <input id="ptOperationAutre" placeholder="Préciser l'opération" class="mt-1.5 w-full border rounded-lg px-2 py-1.5 text-sm hidden">`
+          :`<input id="ptOperation" value="${escapeHtml(rec.poste||'')}" required class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">`}
         </label>
+      </div>
+      <div id="ptMotifArretWrap" class="hidden space-y-3">
+        <label class="text-xs font-semibold block">Motif d'arrêt
+          <select id="ptMotifArret" onchange="togglePtMachineField()" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+            <option value="panne">Panne machine</option>
+            <option value="manque_matiere">Manque de matière</option>
+            <option value="attente_qualite">Attente contrôle qualité</option>
+            <option value="attente_plan">Attente plan / validation technique</option>
+            <option value="pause">Pause / changement d'équipe</option>
+            <option value="reglage">Réglage / changement d'outillage</option>
+            <option value="autre">Autre</option>
+          </select>
+        </label>
+        <div id="ptMachineWrap" class="hidden">
+          <label class="text-xs font-semibold block">Machine concernée <span class="text-slate-400 font-normal">(crée automatiquement une intervention GMAO)</span>
+            <select id="ptMachine" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+              <option value="">— Aucune / non applicable —</option>
+              ${machinesOptions}
+            </select>
+          </label>
+        </div>
       </div>
       <div class="grid sm:grid-cols-2 gap-3">
         <label class="text-xs font-semibold block">Début
@@ -3291,7 +4670,7 @@ async function openPointageModal(ofId){
           <input id="ptFin" type="datetime-local" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
         </label>
       </div>
-      <div class="grid sm:grid-cols-3 gap-3">
+      <div id="ptQuantitesWrap" class="grid sm:grid-cols-3 gap-3">
         <label class="text-xs font-semibold block">Qté conforme
           <input id="ptQteConforme" type="number" min="0" value="1" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
         </label>
@@ -3311,17 +4690,32 @@ async function openPointageModal(ofId){
     <div class="space-y-2 max-h-60 overflow-y-auto">
       ${pointages.length?pointages.map(p=>{
         const tempsMin = p.fin&&p.debut ? Math.round((new Date(p.fin)-new Date(p.debut))/60000) : null;
-        return `<div class="border rounded-lg p-2 text-xs">
-          <div class="flex justify-between"><b>${escapeHtml(p.operation)}</b><span class="text-slate-400">${escapeHtml(p.operateur)}</span></div>
+        const isArret = p.type==='arret';
+        return `<div class="border rounded-lg p-2 text-xs ${isArret?'bg-amber-50 border-amber-200':''}">
+          <div class="flex justify-between"><b>${isArret?'⏸ Arrêt — ':''}${escapeHtml(p.operation)}</b><span class="text-slate-400">${escapeHtml(p.operateur)}</span></div>
           <div class="text-slate-500">${p.debut?new Date(p.debut).toLocaleString('fr-FR'):'—'}${p.fin?' → '+new Date(p.fin).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):''}${tempsMin!=null?' ('+tempsMin+' min)':''}</div>
-          <div class="mt-1">Conforme <b class="text-emerald-600">${p.qteConforme||0}</b> · Rebut <b class="text-red-600">${p.qteRebut||0}</b> · Reprise <b class="text-amber-600">${p.qteReprise||0}</b></div>
+          ${isArret?`<div class="mt-1 text-amber-700">Motif : <b>${escapeHtml(PT_MOTIF_LABELS[p.motifArret]||p.motifArret||'—')}</b></div>`:`<div class="mt-1">Conforme <b class="text-emerald-600">${p.qteConforme||0}</b> · Rebut <b class="text-red-600">${p.qteRebut||0}</b> · Reprise <b class="text-amber-600">${p.qteReprise||0}</b></div>`}
           ${p.commentaire?`<div class="text-slate-500 italic mt-1">${escapeHtml(p.commentaire)}</div>`:''}
         </div>`;
       }).join(''):'<p class="text-xs text-slate-400">Aucun pointage enregistré.</p>'}
     </div>`;
   document.getElementById('ptDebut').value=new Date().toISOString().slice(0,16);
+  const ptOp=document.getElementById('ptOperation');
+  if(ptOp && ptOp.tagName==='SELECT') ptOp.onchange=()=>document.getElementById('ptOperationAutre').classList.toggle('hidden',ptOp.value!=='__autre__');
   modal.classList.remove('hidden');
   setModalOpen(true);
+}
+const PT_MOTIF_LABELS={panne:'Panne machine',manque_matiere:'Manque de matière',attente_qualite:'Attente contrôle qualité',attente_plan:'Attente plan / validation technique',pause:"Pause / changement d'équipe",reglage:"Réglage / changement d'outillage",autre:'Autre'};
+function togglePtType(){
+  const isArret=document.querySelector('input[name="ptType"]:checked').value==='arret';
+  document.getElementById('ptMotifArretWrap').classList.toggle('hidden',!isArret);
+  document.getElementById('ptQuantitesWrap').classList.toggle('hidden',isArret);
+  if(isArret) togglePtMachineField();
+}
+function togglePtMachineField(){
+  const motif=document.getElementById('ptMotifArret')?.value;
+  const wrap=document.getElementById('ptMachineWrap');
+  if(wrap) wrap.classList.toggle('hidden', !['panne','reglage'].includes(motif));
 }
 function closePointageModal(){
   document.getElementById('pointageModal').classList.add('hidden');
@@ -3332,25 +4726,95 @@ async function handleSubmitPointage(e,ofId){
   if(!hasRole('of:create')){ alert('Permission refusée.'); return false; }
   const rows=await idbGetAll('of');
   const rec=rows.find(r=>r.id===ofId); if(!rec) return false;
+  const type=document.querySelector('input[name="ptType"]:checked')?.value||'production';
+  const opEl=document.getElementById('ptOperation');
+  let operation = opEl?.value||'';
+  if(operation==='__autre__') operation=(document.getElementById('ptOperationAutre')?.value||'').trim();
+  const machineId = type==='arret' ? (document.getElementById('ptMachine')?.value||null) : null;
   const pt={
-    id:'pt_'+Date.now(), ofId, ofNumero:rec.numero,
+    id:'pt_'+Date.now(), ofId, ofNumero:rec.numero, type,
     operateur:document.getElementById('ptOperateur').value.trim(),
-    operation:document.getElementById('ptOperation').value.trim(),
+    operation,
     debut:document.getElementById('ptDebut').value,
     fin:document.getElementById('ptFin').value||null,
-    qteConforme:+document.getElementById('ptQteConforme').value||0,
-    qteRebut:+document.getElementById('ptQteRebut').value||0,
-    qteReprise:+document.getElementById('ptQteReprise').value||0,
+    motifArret: type==='arret' ? document.getElementById('ptMotifArret').value : null,
+    machineId,
+    qteConforme: type==='arret' ? 0 : (+document.getElementById('ptQteConforme').value||0),
+    qteRebut: type==='arret' ? 0 : (+document.getElementById('ptQteRebut').value||0),
+    qteReprise: type==='arret' ? 0 : (+document.getElementById('ptQteReprise').value||0),
     commentaire:document.getElementById('ptCommentaire').value.trim(),
     saisiPar:currentUser?currentUser.email:'—',
     _modifie:new Date().toISOString()
   };
   await idbPut('pointages',pt);
   queueSync('alubom_pointages',pt);
-  await audit('POINTAGE_OF',rec.numero+' — '+pt.operation+' — conforme '+pt.qteConforme+' / rebut '+pt.qteRebut);
+  if(type==='arret') await audit('POINTAGE_ARRET',rec.numero+' — '+(PT_MOTIF_LABELS[pt.motifArret]||pt.motifArret));
+  else await audit('POINTAGE_OF',rec.numero+' — '+pt.operation+' — conforme '+pt.qteConforme+' / rebut '+pt.qteRebut);
+
+  // Synchronisation GMAO : un arrêt "panne" ou "réglage" avec machine identifiée
+  // crée automatiquement une intervention de maintenance (curative), liée au pointage.
+  let gmaoMsg=null;
+  if(type==='arret' && machineId && ['panne','reglage'].includes(pt.motifArret)){
+    gmaoMsg=await creerInterventionDepuisPointage(pt);
+  }
+
+  // Avancement automatique de gamme : uniquement si le pointage clôt l'étape ACTUELLE de l'OF
+  // (fin renseignée, quantité cible de l'OF atteinte sur cette opération), et jamais vers
+  // 'Terminé'/'Prêt à livrer'/'Livré' qui restent des étapes contrôlées (QC, validation DG).
+  let avanceMsg=null;
+  if(type==='production' && pt.fin && pt.operation===rec.statut){
+    const pointagesEtape=(await idbGetAll('pointages')).filter(p=>p.ofId===ofId && p.operation===rec.statut && p.type!=='arret');
+    const qteFaite=pointagesEtape.reduce((s,p)=>s+(+p.qteConforme||0),0);
+    if(qteFaite>=(rec.qteCible||1)){
+      const next=ofNextStatut(rec);
+      if(next && !['Terminé','Prêt à livrer','Livré'].includes(next)){
+        await advanceOFStatus(ofId,next);
+        avanceMsg=`✓ Étape « ${rec.statut} » terminée (${qteFaite}/${rec.qteCible}) — OF avancé automatiquement à « ${next} ».`;
+      }
+    }
+  }
   await openPointageModal(ofId);
+  if(avanceMsg){
+    const banner=document.createElement('div');
+    banner.className='text-xs bg-emerald-50 text-emerald-700 rounded-lg px-3 py-2 mb-3';
+    banner.textContent=avanceMsg;
+    document.getElementById('pointageContent')?.prepend(banner);
+  }
+  if(gmaoMsg){
+    const banner=document.createElement('div');
+    banner.className='text-xs bg-orange-50 text-orange-700 rounded-lg px-3 py-2 mb-3';
+    banner.textContent=gmaoMsg;
+    document.getElementById('pointageContent')?.prepend(banner);
+  }
   await renderOFTable();
   return false;
+}
+
+/* ---------- Synchronisation Pointage ↔ GMAO ---------- */
+async function creerInterventionDepuisPointage(pt){
+  const machines=await idbGetAll('machines');
+  const machine=machines.find(m=>m.id===pt.machineId); if(!machine) return null;
+  const seq=nextSeq('maintenance');
+  const enCours = !pt.fin;
+  const rec={
+    id:'mt_'+seq.year+'_'+seq.n, numero:'MT-'+seq.year+'-'+String(seq.n).padStart(4,'0'),
+    machineId:machine.id, machineCode:machine.code, type:'curative',
+    motif: pt.motifArret==='reglage' ? 'reglage' : 'panne_mecanique',
+    description:'Créée automatiquement depuis un pointage d\'arrêt — OF '+(pt.ofNumero||'')+(pt.commentaire?' — '+pt.commentaire:''),
+    technicien:'', dateDebut:pt.debut, dateFin:pt.fin||null,
+    coutPieces:0, coutMO:0,
+    statut: enCours ? 'en_cours' : 'terminee',
+    pointageId:pt.id, origineAuto:true,
+    createdAt:new Date().toISOString()
+  };
+  await idbPut('maintenances',rec);
+  queueSync('alubom_maintenances',rec);
+  machine.statut = enCours ? 'en maintenance' : machine.statut;
+  machine._modifie=new Date().toISOString();
+  await idbPut('machines',machine); queueSync('alubom_machines',machine);
+  await audit('MAINTENANCE_AUTO_POINTAGE',rec.numero+' — '+machine.code+' — depuis pointage '+(pt.ofNumero||''));
+  await updateGmaoBadge();
+  return `🔧 Intervention GMAO ${rec.numero} créée automatiquement sur ${machine.code} (${enCours?'en cours':'clôturée'}) — à compléter dans le module GMAO.`;
 }
 
 
@@ -3358,6 +4822,7 @@ async function advanceOFStatus(id,newStatut){
   if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
   const rows=await idbGetAll('of');
   const rec=rows.find(r=>r.id===id); if(!rec) return;
+  if(newStatut==='Livré' && !hasRole('chantier:validate')){ alert('Validation DG requise avant livraison (module Validations).'); return; }
   if(newStatut==='Terminé'){
     const qcRows=await idbGetAll('controles_qualite');
     const qc=qcRows.filter(q=>q.ofId===id).sort((a,b)=>b.date.localeCompare(a.date))[0];
@@ -3938,28 +5403,9 @@ async function voirCoutReelOF(ofId){
   const suivi=suiviRows.find(s=>s.ofId===ofId);
   const pointages=(await idbGetAll('pointages')).filter(p=>p.ofId===ofId);
   const postes=await idbGetAll('postes');
-  const tauxHoraireDefaut=1500;
-  const tauxHoraire = (postesCode)=>{
-    const p=postes.find(x=>x.code===postesCode||x.nom===postesCode);
-    return p?.tauxHoraire || tauxHoraireDefaut;
-  };
-  const aluT=rec.aluMlTheorique||0, aluR=suivi?.aluMlReel ?? aluT;
-  const moT=rec.moHeuresTheorique||1.8, moR=suivi?.moHeuresReel ?? moT;
-  const matierePrevu=rec.cout||0;
-  const ecartAluPct=aluT ? ((aluR-aluT)/aluT) : 0;
-  const matiereReel=Math.round(matierePrevu*(1+ecartAluPct));
-  let moReelFCFA=0, tempsReelMin=0;
-  if(pointages.length){
-    pointages.forEach(p=>{
-      if(p.debut&&p.fin){
-        const min=(new Date(p.fin)-new Date(p.debut))/60000;
-        tempsReelMin+=min;
-        moReelFCFA+=(min/60)*tauxHoraire(p.operation);
-      }
-    });
-  }
-  if(!moReelFCFA) moReelFCFA=moR*tauxHoraire(rec.poste);
-  const moPrevuFCFA=moT*tauxHoraire(rec.poste);
+  const c=computeCoutReelOF(rec,suiviRows,pointages,postes);
+  const matierePrevu=c.matierePrevu, matiereReel=Math.round(c.matiereReel);
+  const moPrevuFCFA=c.moPrevuFCFA, moReelFCFA=c.moReelFCFA, tempsReelMin=c.tempsReelMin;
   const totalPrevu=matierePrevu+moPrevuFCFA;
   const totalReel=matiereReel+moReelFCFA;
   const dateStr=new Date().toLocaleDateString('fr-FR');
@@ -4569,7 +6015,11 @@ async function reserveStockForBOM(){
 async function createOFFromLine(line,client,chantierId){
   const seq=nextSeq('of');
   const numero='OF-'+seq.year+'-'+String(seq.n).padStart(4,'0');
+  const qte=Math.max(1,+line.qty||1);
+  // NB : line.bom est déjà calculé pour la quantité totale de la ligne (le configurateur
+  // intègre qty dans chaque quantité de matière) — ne PAS multiplier à nouveau ici.
   const bomArray=(line.bom||[]).map(b=>[b.code,b.designation,b.qte,b.longueur||0,b.montant]);
+  const coutMatiereBOM=bomArray.reduce((s,r)=>s+(r[4]||0),0);
   const reservations=await reserveStockForBOMArray(bomArray);
   const bomVersion='v'+new Date().toISOString().replace(/[-:T.]/g,'').slice(0,14);
   const aluMlApprox=bomArray.filter(r=>r[3]>0).reduce((s,r)=>s+(r[2]*r[3])/1000,0);
@@ -4580,17 +6030,18 @@ async function createOFFromLine(line,client,chantierId){
   const rec={
     id:numero,numero,ouvrage:line.detail,client,
     operateur:'',poste:'Débit',
+    qteCible:qte,
     datePrevue,dateReelle:null,
-    statut:gammeSteps[0]||'Découpe',priorite:'normale',gammeSteps,marge:'—',cout:line.subtotal||0,date:new Date().toISOString(),
+    statut:gammeSteps[0]||'Découpe',priorite:'normale',gammeSteps,marge:'—',cout:coutMatiereBOM,prixVenteHT:line.subtotal||0,date:new Date().toISOString(),
     reservations,bomVersion,configSnapshot:{type:line.type,detail:line.detail},bomSnapshot:bomArray,
-    aluMlTheorique:aluMlApprox,glassM2Theorique:null,moHeuresTheorique:1.8,
+    aluMlTheorique:aluMlApprox,glassM2Theorique:null,moHeuresTheorique:1.8*qte,
     chantierId,origineAuto:true,
     evenements:[{ts:new Date().toISOString(),statut:gammeSteps[0]||'Découpe',user:currentUser?currentUser.email:'—'}],
     _modifie:new Date().toISOString()
   };
   await idbPut('of',rec);
   queueSync('alubom_of',rec);
-  await audit('CREATE_OF_AUTO',numero+' / '+client+' — généré automatiquement depuis devis');
+  await audit('CREATE_OF_AUTO',numero+' / '+client+' — généré automatiquement depuis devis'+(qte>1?' ('+qte+' unités)':''));
   return rec;
 }
 
@@ -4648,9 +6099,10 @@ async function estimerDateFabrication(lignes,besoinsMRP){
 async function calculerBesoinsMRPPourLignes(lignes){
   const besoins={};
   (lignes||[]).forEach(l=>{
-    const qtyLigne=l.qty||1;
+    // l.bom est déjà calculé pour la quantité totale de la ligne (qty intégré en amont
+    // par le configurateur) — ne pas multiplier une seconde fois par qtyLigne ici.
     (l.bom||[]).forEach(b=>{
-      const qte=(b.qte||0)*0.001*qtyLigne;
+      const qte=(b.qte||0)*0.001;
       if(!besoins[b.code]) besoins[b.code]={code:b.code,designation:b.designation,qte:0};
       besoins[b.code].qte+=qte;
     });
@@ -4895,6 +6347,11 @@ async function creerDossierDepuis(proformaId){
   await createChantierFromProforma();
 }
 
+function computeMargeLignes(lignes,montantHT){
+  const coutTotal=(lignes||[]).reduce((s,l)=>s+((l.bom||[]).reduce((s2,b)=>s2+(b.montant||0),0)),0);
+  const margePct=montantHT?((montantHT-coutTotal)/montantHT*100):0;
+  return {coutTotal,margePct};
+}
 async function createChantierFromProforma(){
   if(!hasRole('chantier:create')){ alert('Permission refusée.'); return; }
   const numeroDevis=document.getElementById('proNumber')?.textContent||'';
@@ -4934,6 +6391,10 @@ async function createChantierFromProforma(){
       existant.dateFabricationEstimee=estimPlanning.dateFabricationEstimee;
       existant.dureeFabricationJours=estimPlanning.dureeFabricationJours;
       existant.delaiApproJours=estimPlanning.delaiApproJours;
+      const margeExist=computeMargeLignes(existant.lignes,montantTotal);
+      existant.margeEstimeePct=margeExist.margePct;
+      existant.margeValidationRequise=margeExist.margePct<(getCompanyInfo().seuilMargeCommerciale||25);
+      existant.margeValidationDG=existant.margeValidationRequise?null:existant.margeValidationDG;
       await saveChantier(existant);
       if(currentProformaId){
         const proRows=await idbGetAll('proforma');
@@ -4951,10 +6412,12 @@ async function createChantierFromProforma(){
 
   const seq=nextSeq('chantier');
   const numero='CH-'+seq.year+'-'+String(seq.n).padStart(4,'0');
+  const margeNv=computeMargeLignes(proformaCart,montantTotal);
   const rec={
     id:numero, numero, devisNumero:numeroDevis, proformaId:currentProformaId||null,
     proformaIds:currentProformaId?[currentProformaId]:[], client, clientId, contact,
     montantTotal, montantPaye:0, etape:'devis', facturation,
+    margeEstimeePct:margeNv.margePct, margeValidationRequise:margeNv.margePct<(getCompanyInfo().seuilMargeCommerciale||25), margeValidationDG:null,
     lignes:JSON.parse(JSON.stringify(proformaCart)),
     dateMiseADispositionSouhaitee, dateFabricationEstimee:estimPlanning.dateFabricationEstimee,
     dureeFabricationJours:estimPlanning.dureeFabricationJours, delaiApproJours:estimPlanning.delaiApproJours,
@@ -5118,17 +6581,18 @@ function removeEcLigne(i){
 function ajouterConfigActuelleAuChantier(){
   if(isEditChantierLocked()){ alert('Composants verrouillés — déverrouillez (DG) avant d\'ajouter un ouvrage.'); return; }
   const type=document.getElementById('type')?.value;
-  const unit=parseMoney(document.getElementById('cSale')?.textContent);
-  if(!type || !unit){ alert("Ouvrez le Configurateur, chiffrez un ouvrage, puis revenez ici pour l'ajouter."); return; }
+  const batchTotal=parseMoney(document.getElementById('cSale')?.textContent);
+  if(!type || !batchTotal){ alert("Ouvrez le Configurateur, chiffrez un ouvrage, puis revenez ici pour l'ajouter."); return; }
   const atelierSel=document.getElementById('atelier');
   const atelier=atelierSel?.value||'', atelierNom=atelierSel?.selectedOptions[0]?.dataset.nom||atelier;
   const w=+document.getElementById('width')?.value||0, h=+document.getElementById('height')?.value||0;
   const leaves=+document.getElementById('leaves')?.value||1;
   const qty=Math.max(1,+document.getElementById('qty')?.value||1);
+  const unit=qty?batchTotal/qty:batchTotal;
   const bom=(window.lastBOMRows||[]).map(r=>({code:r[0],designation:r[1],qte:r[2],longueur:r[3]||0,montant:r[4]}));
   const schemaLabel=document.getElementById('schemaLabel')?.textContent||`${type} ${w}×${h}`;
   const schemaSVG=document.getElementById('technicalDrawing')?.outerHTML||'';
-  editChantierLignes.push({id:'ln_'+Date.now(),type,atelier,atelierNom,detail:`${type} ${w}×${h} mm • ${leaves} vantail${leaves>1?'s':''}`,qty,unit,subtotal:unit*qty,bom,schemaLabel,schemaSVG});
+  editChantierLignes.push({id:'ln_'+Date.now(),type,atelier,atelierNom,detail:`${type} ${w}×${h} mm • ${leaves} vantail${leaves>1?'s':''}`,qty,unit,subtotal:batchTotal,bom,schemaLabel,schemaSVG});
   renderEcLignes();
 }
 function closeEditChantierModal(){
@@ -5197,7 +6661,7 @@ async function deleteChantier(id){
   await renderProformaList();
 }
 async function advanceChantierStage(id,stage,label){
-  const sensitiveStage = stage==='achats'; // passage en achats = validation DG
+  const sensitiveStage = stage==='achats' || stage==='fabrication'; // passage en achats/fabrication = validation DG
   if(sensitiveStage && !hasRole('chantier:validate')){ alert('Permission refusée (validation DG requise).'); return; }
   if(!sensitiveStage && !hasRole('chantier:create')){ alert('Permission refusée.'); return; }
   const rec=await getChantier(id); if(!rec) return;
@@ -5338,6 +6802,7 @@ function buildDevisMessageTexte(rec){
 async function envoyerDevisWhatsApp(chantierId){
   const rec=await getChantier(chantierId); if(!rec) return;
   if(!(rec.lignes||[]).length || !rec.montantTotal){ alert('Dossier vide — impossible d\'envoyer.'); return; }
+  if(rec.margeValidationRequise && rec.margeValidationDG?.statut!=='validee'){ alert('Marge sous le seuil commercial — validation DG requise avant envoi (module Validations).'); return; }
   const client=await getClientRecord(rec.clientId);
   let tel=formatTelWhatsApp(client?.tel || rec.contact || '');
   if(!tel){
@@ -5355,6 +6820,7 @@ async function envoyerDevisWhatsApp(chantierId){
 async function envoyerDevisEmail(chantierId){
   const rec=await getChantier(chantierId); if(!rec) return;
   if(!(rec.lignes||[]).length || !rec.montantTotal){ alert('Dossier vide — impossible d\'envoyer.'); return; }
+  if(rec.margeValidationRequise && rec.margeValidationDG?.statut!=='validee'){ alert('Marge sous le seuil commercial — validation DG requise avant envoi (module Validations).'); return; }
   const client=await getClientRecord(rec.clientId);
   let email=(client?.email||'').trim();
   if(!email){
@@ -5727,16 +7193,19 @@ async function openChantierDetail(id){
     actionPanel=`<p class="text-sm text-red-700 font-semibold">✕ Dossier annulé le ${new Date(rec.dateAnnulation).toLocaleDateString('fr-FR')}.</p><p class="text-sm text-slate-600 mt-1">Motif : ${escapeHtml(rec.raisonAnnulation||'—')}</p>`;
   } else if(rec.etape==='devis'){
     const devisVide = !(rec.lignes||[]).length || !rec.montantTotal;
+    const margeBloquee = rec.margeValidationRequise && rec.margeValidationDG?.statut!=='validee';
+    const bloque = devisVide || margeBloquee;
     actionPanel=`
-      <p class="text-sm text-slate-600 mb-3">Devis <b>${escapeHtml(rec.devisNumero)}</b> — Montant total <b>${money(rec.montantTotal)}</b>${(rec.lignes||[]).length?' — '+(rec.lignes||[]).length+' ouvrage(s)':''}.</p>
+      <p class="text-sm text-slate-600 mb-3">Devis <b>${escapeHtml(rec.devisNumero)}</b> — Montant total <b>${money(rec.montantTotal)}</b>${(rec.lignes||[]).length?' — '+(rec.lignes||[]).length+' ouvrage(s)':''}${rec.margeEstimeePct!=null?' — marge estimée <b>'+rec.margeEstimeePct.toFixed(1).replace('.',',')+'%</b>':''}.</p>
       ${devisVide?`<p class="text-xs text-red-600 mb-2">⚠️ Dossier vide ou montant nul — ajoutez au moins un ouvrage (Configurateur → Chiffrage → Proforma) avant d'envoyer le devis.</p>`:''}
+      ${margeBloquee?`<p class="text-xs text-red-600 mb-2">🔒 Marge sous le seuil commercial (${getCompanyInfo().seuilMargeCommerciale||25}%) — validation DG requise avant envoi. ${hasRole('chantier:validate')?`<button onclick="showPage('validations')" class="underline font-semibold">Aller à la file de validation</button>`:'Voir avec l\'administrateur.'}</p>`:''}
       <div class="flex flex-wrap gap-2 mb-2">
-        <button ${devisVide?'disabled class="opacity-50 cursor-not-allowed"':''} onclick="envoyerDevisWhatsApp('${id}')" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold">📱 Envoyer via WhatsApp</button>
-        <button ${devisVide?'disabled class="opacity-50 cursor-not-allowed"':''} onclick="envoyerDevisEmail('${id}')" class="bg-slate-700 text-white px-4 py-2 rounded-lg font-semibold">✉️ Envoyer par Email</button>
+        <button ${bloque?'disabled class="opacity-50 cursor-not-allowed"':''} onclick="envoyerDevisWhatsApp('${id}')" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold">📱 Envoyer via WhatsApp</button>
+        <button ${bloque?'disabled class="opacity-50 cursor-not-allowed"':''} onclick="envoyerDevisEmail('${id}')" class="bg-slate-700 text-white px-4 py-2 rounded-lg font-semibold">✉️ Envoyer par Email</button>
         <button ${devisVide?'disabled class="opacity-50 cursor-not-allowed"':''} onclick="apercuDossierChantier('${id}')" class="border border-slate-400 text-slate-700 px-4 py-2 rounded-lg font-semibold">👁️ Aperçu du devis</button>
       </div>
       <p class="text-xs text-slate-400 mb-2">📎 Le PDF n'est pas joint automatiquement — ouvrez « Aperçu du devis » → Imprimer → Enregistrer en PDF, puis joignez-le manuellement dans WhatsApp/Email avant l'envoi.</p>
-      <button ${devisVide?'disabled class="opacity-50 cursor-not-allowed"':''} onclick="advanceChantierStage('${id}','paiement')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">Marquer devis envoyé au client →</button>`;
+      <button ${bloque?'disabled class="opacity-50 cursor-not-allowed"':''} onclick="advanceChantierStage('${id}','paiement')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">Marquer devis envoyé au client →</button>`;
   } else if(rec.etape==='paiement'){
     const restant=Math.max(0,rec.montantTotal-rec.montantPaye);
     const acompteMin=Math.round(rec.montantTotal*0.3);
@@ -5945,7 +7414,7 @@ async function handleAddAchat(chantierId){
   const numero='DA-'+seq.year+'-'+String(seq.n).padStart(4,'0');
   const lignes=achatCart.map(l=>({...l}));
   const montant=lignes.reduce((s,l)=>s+l.montant,0);
-  const rec={id:numero,numero,chantierId,fournisseur,lignes,montant,statut:'demande',dateCreation:new Date().toISOString()};
+  const rec={id:numero,numero,chantierId,fournisseur,lignes,montant,statut:'demande',dateCreation:new Date().toISOString(),demandeur:currentUser?currentUser.email:'—'};
   await idbPut('achats',rec);
   queueSync('alubom_achats',rec);
   await audit('CREATE_DEMANDE_ACHAT',numero+' — '+fournisseur+' — '+lignes.length+' référence(s)');
@@ -5984,6 +7453,8 @@ async function advanceAchatStatut(achatId,chantierId){
     return;
   }
   if(rec.statut==='demande'){
+    const seuil=getCompanyInfo().seuilValidationAchat||500000;
+    if(rec.montant>=seuil && !hasRole('chantier:validate')){ alert('Montant ≥ '+money(seuil)+' — validation hiérarchique requise. Voir le module « Validations ».'); return; }
     const lignes=normalizeAchatLignes(rec);
     const stockRows=await idbGetAll('stock');
     const couvertes=lignes.filter(l=>{
@@ -6198,7 +7669,7 @@ function imprimerBonReception(brNumero,rec,recues){
 
 /* ---------- Suppression d'une DA entière ou d'une ligne au sein d'une DA ---------- */
 /* ---------- Édition d'une DA existante (fournisseur, statut) ---------- */
-const ACHAT_STATUTS=['demande','validee','commandee','partielle','recue'];
+const ACHAT_STATUTS=['demande','validee','commandee','partielle','recue','rejetee'];
 async function openEditAchatModal(achatId,chantierId){
   if(!hasRole('achat:manage')){ alert('Permission refusée.'); return; }
   const rows=await idbGetAll('achats');
@@ -7600,12 +9071,17 @@ function csvImportFormHtml(activeKey,defs){
         <input id="csvFileInput" type="file" accept=".csv,text/csv" onchange="handleCsvFileSelected(event)" class="mt-1 w-full border rounded-lg px-3 py-1.5 text-sm bg-white">
       </label>
     </div>
+    <div class="mb-3">
+      <label class="text-sm font-semibold block mb-1">— ou collez le contenu CSV directement —</label>
+      <textarea id="csvPasteArea" rows="4" placeholder="Collez ici les lignes CSV (avec en-têtes de colonnes)…" class="w-full border rounded-lg px-3 py-2 text-xs font-mono"></textarea>
+      <button type="button" onclick="handleCsvPasted()" class="mt-1.5 text-xs font-semibold border border-blue-600 text-blue-600 px-3 py-1.5 rounded-lg">📋 Analyser le texte collé</button>
+    </div>
     <div class="flex flex-wrap items-center gap-3 mb-4">
       <label class="text-sm flex items-center gap-2"><input id="csvUpdateExisting" type="checkbox" class="rounded"> Mettre à jour les fiches existantes (même identifiant : code, type d'ouvrage, etc. selon le référentiel)</label>
       <button type="button" onclick="downloadCsvTemplate()" class="ml-auto text-xs font-semibold border border-teal-600 text-teal-600 px-3 py-1.5 rounded-lg">⬇️ Télécharger le modèle CSV</button>
     </div>
     <p class="text-xs text-slate-400 mb-3">Astuce : téléchargez le modèle pour le référentiel choisi — les en-têtes de colonnes sont alors automatiquement reconnus à l'import. Séparateur accepté : virgule ou point-virgule.</p>
-    <div id="csvPreviewZone" class="text-sm text-slate-500">Sélectionnez un fichier CSV pour prévisualiser l'import.</div>
+    <div id="csvPreviewZone" class="text-sm text-slate-500">Sélectionnez un fichier CSV, ou collez son contenu, pour prévisualiser l'import.</div>
     <div class="flex justify-end gap-2 mt-5">
       <button type="button" onclick="closeCsvImport()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Annuler</button>
       <button type="button" id="btnConfirmCsvImport" onclick="confirmCsvImport()" disabled class="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-semibold">Importer</button>
@@ -7614,9 +9090,10 @@ function csvImportFormHtml(activeKey,defs){
 function onCsvTargetChange(){
   csvImportState=null;
   const zone=document.getElementById('csvPreviewZone');
-  if(zone) zone.innerHTML='Sélectionnez un fichier CSV pour prévisualiser l\'import.';
+  if(zone) zone.innerHTML='Sélectionnez un fichier CSV, ou collez son contenu, pour prévisualiser l\'import.';
   const btn=document.getElementById('btnConfirmCsvImport');
   if(btn) btn.disabled=true;
+  const pa=document.getElementById('csvPasteArea'); if(pa) pa.value='';
   const fi=document.getElementById('csvFileInput'); if(fi) fi.value='';
 }
 function downloadCsvTemplate(){
@@ -7644,16 +9121,31 @@ function downloadCsvTemplate(){
 }
 async function handleCsvFileSelected(e){
   const file=e.target.files[0];
+  if(!file){ resetCsvPreview(); return; }
+  let text;
+  try{ text=await file.text(); }catch(err){ document.getElementById('csvPreviewZone').innerHTML='<p class="text-red-600">Impossible de lire le fichier.</p>'; return; }
+  const pa=document.getElementById('csvPasteArea'); if(pa) pa.value='';
+  await processCsvText(text);
+}
+async function handleCsvPasted(){
+  const text=(document.getElementById('csvPasteArea')?.value||'').trim();
+  if(!text){ document.getElementById('csvPreviewZone').innerHTML='<p class="text-red-600">Collez d\'abord du contenu CSV dans la zone de texte.</p>'; return; }
+  const fi=document.getElementById('csvFileInput'); if(fi) fi.value='';
+  await processCsvText(text);
+}
+function resetCsvPreview(){
+  document.getElementById('csvPreviewZone').textContent='Sélectionnez un fichier CSV, ou collez son contenu, pour prévisualiser l\'import.';
+  document.getElementById('btnConfirmCsvImport').disabled=true;
+  csvImportState=null;
+}
+async function processCsvText(text){
   const zone=document.getElementById('csvPreviewZone');
   document.getElementById('btnConfirmCsvImport').disabled=true;
   csvImportState=null;
-  if(!file){ zone.textContent='Sélectionnez un fichier CSV pour prévisualiser l\'import.'; return; }
   const key=document.getElementById('csvTargetKey').value;
   const defs=csvImportableDefs(); const def=defs[key];
   const requiredFields=def.fields.filter(f=>f.required);
   const keyField=(requiredFields[0]||def.fields[0]).id;
-  let text;
-  try{ text=await file.text(); }catch(err){ zone.innerHTML='<p class="text-red-600">Impossible de lire le fichier.</p>'; return; }
   const rows=parseCsvText(text);
   if(rows.length<2){ zone.innerHTML='<p class="text-red-600">Fichier vide ou sans ligne de données.</p>'; return; }
   const header=rows[0];
@@ -7998,7 +9490,7 @@ const ETUDE_TABS=['config','bom','cut','cost','proforma'];
 function showPage(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
   document.querySelectorAll('.nav').forEach(b=>b.classList.remove('active'));
-  const titles={dashboard:'Tableau de bord',flux:'Schéma des flux',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',atelierMobile:'Vue atelier',stock:'Stock',sav:'SAV & Garantie',chantier:'Circuit Chantier',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs',catalogue:'Catalogue technique'};
+  const titles={dashboard:'Tableau de bord',flux:'Schéma des flux',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',atelierMobile:'Vue atelier',stock:'Stock',sav:'SAV & Garantie',chantier:'Circuit Chantier',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs',catalogue:'Catalogue technique',controlegestion:'Contrôle de gestion',validations:'Validations en attente',etatpa:'État proforma & achats',gmao:'GMAO — Maintenance'};
 
   if(ETUDE_TABS.includes(page)){
     document.getElementById('etude').classList.remove('hidden');
@@ -8026,6 +9518,10 @@ function showPage(page){
     document.getElementById(page).classList.remove('hidden');
     document.querySelectorAll('.nav').forEach(b=>{if(b.dataset.page===page)b.classList.add('active')});
     if(page==='catalogue') renderCatalogue();
+    if(page==='controlegestion') renderControleGestion();
+    if(page==='validations') renderValidationsQueue();
+    if(page==='etatpa') renderEtatProformaAchats();
+    if(page==='gmao') showGmaoTab('machines');
   }
   document.getElementById('pageTitle').textContent=titles[page];
 }
@@ -8145,14 +9641,18 @@ function addToProformaCart(){
   const h=+document.getElementById('height').value||0;
   const leaves=+document.getElementById('leaves').value||1;
   const qty=Math.max(1,+document.getElementById('qty').value||1);
-  const unit=parseMoney(document.getElementById('cSale')?.textContent);
-  if(!unit){ alert("Calculez d'abord le chiffrage (BOM non vide)."); return; }
+  const batchTotal=parseMoney(document.getElementById('cSale')?.textContent);
+  if(!batchTotal){ alert("Calculez d'abord le chiffrage (BOM non vide)."); return; }
+  // cSale/BOM sont déjà calculés pour la quantité qty (configurateur) : batchTotal est le
+  // prix total du lot. "unit" ci-dessous n'est qu'un prix par pièce dérivé pour l'affichage
+  // (devis imprimé Qté × PU = Sous-total) — ne pas re-multiplier par qty ailleurs.
+  const unit=qty?batchTotal/qty:batchTotal;
   const isSpecial=['Façade','Garde-corps alu/verre','Bardage alu','Pergola bioclimatique','Cloison vitrée',"Verrière d'intérieur",'Garde-corps inox'].includes(type);
   const detail = isSpecial ? `${type} • ${w}×${h} mm` : `${type} aluminium ${w} × ${h} mm • ${leaves} vantail${leaves>1?'s':''}`;
   const bom = (window.lastBOMRows||[]).map(r=>({code:r[0],designation:r[1],qte:r[2],longueur:r[3]||0,montant:r[4]}));
   const schemaLabel = document.getElementById('schemaLabel')?.textContent || detail;
   const schemaSVG = document.getElementById('technicalDrawing')?.outerHTML || '';
-  proformaCart.push({id:'ln_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),type,atelier,atelierNom,detail,qty,unit,subtotal:unit*qty,bom,schemaLabel,schemaSVG});
+  proformaCart.push({id:'ln_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),type,atelier,atelierNom,detail,qty,unit,subtotal:batchTotal,bom,schemaLabel,schemaSVG});
   saveProformaCartLocal();
   const hint=document.getElementById('cartHint');
   if(hint){ hint.textContent=`${proformaCart.length} ouvrage${proformaCart.length>1?'s':''} dans le devis en cours.`; hint.classList.remove('hidden'); }
@@ -8208,11 +9708,12 @@ function updateProforma(){
     const h = +document.getElementById('height').value || 0;
     const leaves = +document.getElementById('leaves').value || 1;
     const qty = Math.max(1, +document.getElementById('qty').value || 1);
-    const unit = parseMoney(document.getElementById('cSale')?.textContent) || (lastCost||0)*1.30;
+    const batchTotal = parseMoney(document.getElementById('cSale')?.textContent) || (lastCost||0)*1.30;
+    const unit = qty?batchTotal/qty:batchTotal;
     const bom = (window.lastBOMRows||[]).map(r=>({code:r[0],designation:r[1],qte:r[2],longueur:r[3]||0,montant:r[4]}));
     const schemaLabel = document.getElementById('schemaLabel')?.textContent || '';
     const schemaSVG = document.getElementById('technicalDrawing')?.outerHTML || '';
-    lines = [{id:'current',type,atelier,atelierNom,detail:`${type} aluminium ${w} × ${h} mm • ${leaves} vantail${leaves>1?'s':''} • configuration en cours`,qty,unit,subtotal:unit*qty,bom,schemaLabel,schemaSVG}];
+    lines = [{id:'current',type,atelier,atelierNom,detail:`${type} aluminium ${w} × ${h} mm • ${leaves} vantail${leaves>1?'s':''} • configuration en cours`,qty,unit,subtotal:batchTotal,bom,schemaLabel,schemaSVG}];
   }
 
   const subtotal = lines.reduce((s,l)=>s+l.subtotal,0);
@@ -8265,7 +9766,7 @@ async function sha256Hex(str){
 
 /* ---------- Entête entreprise & pied de page sécurisé (impressions) ---------- */
 function getCompanyInfo(){
-  const def={nom:'SANIX AluExpert',tagline:'SANIX Africa • Division Technologies',adresse:'',tel:'',email:'',rccm:'',ncc:''};
+  const def={nom:'SANIX AluExpert',tagline:'SANIX Africa • Division Technologies',adresse:'',tel:'',email:'',rccm:'',ncc:'',seuilValidationAchat:500000,telDG:'',seuilMargeCommerciale:25};
   try{
     const raw=localStorage.getItem('alubom_company_info');
     return raw ? {...def,...JSON.parse(raw)} : def;
@@ -8286,6 +9787,9 @@ function openCompanyInfoModal(){
       <input id="ciEmail" type="email" value="${escapeHtml(c.email)}" placeholder="Email" class="border rounded-lg px-2 py-1.5 text-sm">
       <input id="ciRccm" value="${escapeHtml(c.rccm)}" placeholder="RCCM" class="border rounded-lg px-2 py-1.5 text-sm">
       <input id="ciNcc" value="${escapeHtml(c.ncc)}" placeholder="NCC (compte contribuable)" class="border rounded-lg px-2 py-1.5 text-sm">
+      <input id="ciSeuil" type="number" value="${c.seuilValidationAchat}" placeholder="Seuil validation DG achats (FCFA)" class="border rounded-lg px-2 py-1.5 text-sm">
+      <input id="ciTelDG" value="${escapeHtml(c.telDG)}" placeholder="Téléphone WhatsApp du valideur (DG)" class="border rounded-lg px-2 py-1.5 text-sm">
+      <input id="ciSeuilMarge" type="number" step="0.1" value="${c.seuilMargeCommerciale}" placeholder="Marge mini sans validation DG (%)" class="border rounded-lg px-2 py-1.5 text-sm">
       <div class="sm:col-span-2 flex gap-2 mt-2">
         <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">Enregistrer</button>
         <button type="button" onclick="document.getElementById('companyInfoModal').classList.add('hidden');setModalOpen(false)" class="border px-4 py-1.5 rounded-lg text-sm font-semibold">Fermer</button>
@@ -8303,7 +9807,10 @@ function handleSaveCompanyInfo(e){
     tel:document.getElementById('ciTel').value.trim(),
     email:document.getElementById('ciEmail').value.trim(),
     rccm:document.getElementById('ciRccm').value.trim(),
-    ncc:document.getElementById('ciNcc').value.trim()
+    ncc:document.getElementById('ciNcc').value.trim(),
+    seuilValidationAchat:+document.getElementById('ciSeuil').value||500000,
+    telDG:document.getElementById('ciTelDG').value.trim(),
+    seuilMargeCommerciale:+document.getElementById('ciSeuilMarge').value||25
   });
   document.getElementById('companyInfoModal').classList.add('hidden');
   setModalOpen(false);
