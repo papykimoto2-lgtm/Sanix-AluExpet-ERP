@@ -3304,6 +3304,88 @@ function apercuDossierChantier(chantierId){
   });
 }
 
+/* ---------- Visualisation complète du dossier de fabrication (schémas + BOM par ouvrage) ---------- */
+function visualiserDossierFabrication(chantierId){
+  idbGetAll('chantiers').then(rows=>{
+    const rec=rows.find(c=>c.id===chantierId); if(!rec) return;
+    const lignes=rec.lignes||[];
+    const dateStr=new Date().toLocaleDateString('fr-FR');
+    const groupes={};
+    lignes.forEach(l=>{ const key=l.atelierNom||'Sans atelier'; (groupes[key]=groupes[key]||[]).push(l); });
+
+    const sommaireHtml=`<div class="sheet">
+      <div class="cover-title">DOSSIER DE FABRICATION</div>
+      <div class="cover-sub">${escapeHtml(rec.numero)} — ${escapeHtml(rec.client)}</div>
+      <table class="cover-meta">
+        <tr><td><b>Devis lié</b></td><td>${escapeHtml(rec.devisNumero||'—')}</td><td><b>Date</b></td><td>${dateStr}</td></tr>
+        <tr><td><b>Contact</b></td><td>${escapeHtml(rec.contact||'—')}</td><td><b>Nombre d'ouvrages</b></td><td>${lignes.length}</td></tr>
+      </table>
+      <h3>Sommaire par atelier</h3>
+      <table><thead><tr><th>Atelier</th><th class="right">Ouvrages</th><th class="right">Montant</th></tr></thead>
+      <tbody>${Object.entries(groupes).map(([atelier,items])=>`<tr><td>🏭 ${escapeHtml(atelier)}</td><td class="right">${items.length}</td><td class="right">${money(items.reduce((s,l)=>s+(l.subtotal||0),0))}</td></tr>`).join('')}</tbody></table>
+      ${rec.ofGeneres&&rec.ofGeneres.length?`<p class="of-status">✓ OF déjà générés : ${rec.ofGeneres.map(escapeHtml).join(', ')}</p>`:'<p class="of-status pending">⏳ OF non encore générés</p>'}
+    </div>`;
+
+    const ouvragesHtml=lignes.map((l,i)=>{
+      const bomRows=(l.bom||[]).map(b=>`<tr><td>${escapeHtml(b.code||'—')}</td><td>${escapeHtml(b.designation)}</td><td class="right">${Number(b.qte||0).toFixed(2)}</td><td class="right">${b.longueur?Number(b.longueur).toFixed(0)+' mm':'—'}</td><td class="right">${money(b.montant||0)}</td></tr>`).join('');
+      return `<div class="sheet dossier-page">
+        <div class="ouvrage-head">
+          <div><div class="ouvrage-title">Ouvrage ${i+1} / ${lignes.length}</div><div class="ouvrage-sub">${escapeHtml(l.detail||l.type||'Ouvrage')}</div></div>
+          <div class="badge">🏭 ${escapeHtml(l.atelierNom||'Sans atelier')}</div>
+        </div>
+        <table class="cover-meta"><tr><td><b>Quantité</b></td><td>${l.qty||1}</td><td><b>Prix unitaire</b></td><td>${money(l.unit||0)}</td><td><b>Sous-total</b></td><td>${money(l.subtotal||0)}</td></tr></table>
+        ${l.schemaSVG?`<div class="schema-box">${l.schemaSVG}</div>`:'<p class="empty">Aucun schéma technique disponible pour cet ouvrage.</p>'}
+        <h3>Nomenclature (BOM)</h3>
+        ${bomRows?`<table><thead><tr><th>Code</th><th>Désignation</th><th class="right">Qté</th><th class="right">Longueur</th><th class="right">Montant</th></tr></thead><tbody>${bomRows}</tbody></table>`:'<p class="empty">Aucune BOM enregistrée pour cet ouvrage.</p>'}
+      </div>`;
+    }).join('');
+
+    const win=window.open('','_blank','width=1000,height=1100');
+    if(!win) return;
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Dossier de fabrication — ${escapeHtml(rec.numero)}</title>
+    <style>
+      *{box-sizing:border-box}
+      body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#e2e8f0;margin:0}
+      .toolbar{position:sticky;top:0;z-index:10;background:#0f172a;color:#fff;padding:12px 24px;display:flex;justify-content:space-between;align-items:center}
+      .toolbar button{background:#2563eb;color:#fff;border:0;padding:9px 18px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;margin-left:8px}
+      .toolbar button.secondary{background:transparent;border:1px solid #475569}
+      .sheet{max-width:900px;margin:24px auto;background:#fff;padding:40px 44px;box-shadow:0 10px 40px rgba(15,23,42,.25);border-radius:4px}
+      .dossier-page{page-break-before:always}
+      .cover-title{font-size:26px;font-weight:900;letter-spacing:1px;text-align:center;margin-top:40px}
+      .cover-sub{text-align:center;color:#1d4ed8;font-weight:700;font-size:15px;margin:6px 0 24px}
+      .cover-meta{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:12.5px}
+      .cover-meta td{border:0;border-bottom:1px solid #e2e8f0;padding:5px 8px}
+      table{width:100%;border-collapse:collapse;margin:8px 0 16px;font-size:12px}
+      th,td{border:1px solid #cbd5e1;padding:6px 10px;text-align:left}
+      th{background:#f1f5f9;font-size:10.5px;text-transform:uppercase;color:#475569}
+      .right{text-align:right}
+      h3{font-size:13px;text-transform:uppercase;color:#475569;border-bottom:1px solid #e2e8f0;padding-bottom:6px;margin-top:20px}
+      .of-status{margin-top:20px;font-size:13px;font-weight:700;color:#059669}
+      .of-status.pending{color:#d97706}
+      .ouvrage-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0f172a;padding-bottom:10px;margin-bottom:14px}
+      .ouvrage-title{font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px}
+      .ouvrage-sub{font-size:18px;font-weight:800;margin-top:2px}
+      .badge{background:#dbeafe;color:#1d4ed8;font-weight:700;font-size:12px;padding:6px 12px;border-radius:999px;white-space:nowrap}
+      .schema-box{border:1px solid #cbd5e1;border-radius:8px;padding:10px;margin:10px 0}
+      .schema-box svg{width:100%;height:auto;max-height:500px}
+      .empty{color:#94a3b8;font-size:12.5px;font-style:italic}
+      @media print{.toolbar{display:none}.sheet{box-shadow:none;margin:0;max-width:none}}
+    </style></head><body>
+    <div class="toolbar">
+      <b>👁️ Dossier de fabrication complet — ${escapeHtml(rec.numero)}</b>
+      <div>
+        <button class="secondary" onclick="window.close()">Fermer</button>
+        <button onclick="window.print()">🖨 Imprimer tout</button>
+      </div>
+    </div>
+    ${sommaireHtml}
+    ${ouvragesHtml}
+    </body></html>`);
+    win.document.close();
+    win.focus();
+  });
+}
+
 async function annulerChantier(id){
   if(!hasRole('chantier:validate')){ alert('Permission refusée (validation DG requise pour annuler un dossier).'); return; }
   const rec=await getChantier(id); if(!rec) return;
@@ -3504,6 +3586,7 @@ async function openChantierDetail(id){
     actionPanel=`
       <p class="text-sm text-slate-600 mb-3">${nLignes?`Génère automatiquement <b>${nLignes} ordre${nLignes>1?'s':''} de fabrication</b> — un par ouvrage du devis, BOM figée et stock réservé pour chacun.`:'Aucune ligne de devis rattachée — passage direct à l\'installation.'}</p>
       ${rec.ofGeneres&&rec.ofGeneres.length?`<p class="text-xs text-emerald-600 mb-3">Déjà générés : ${rec.ofGeneres.map(escapeHtml).join(', ')}</p>`:''}
+      ${nLignes?`<button onclick="visualiserDossierFabrication('${id}')" class="border-2 border-blue-600 text-blue-700 px-4 py-2 rounded-lg font-bold mr-2">👁️ Visualiser dossier de fabrication</button>`:''}
       <button onclick="genererDossierFabrication('${id}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">⚙️ Générer les OF automatiquement →</button>`;
   } else if(rec.etape==='installation'){
     actionPanel=`
