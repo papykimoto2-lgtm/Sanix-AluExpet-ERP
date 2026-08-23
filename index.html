@@ -1131,8 +1131,6 @@ window.SANIX_CFG = {
                   <div class="text-xl font-black">FACTURE PROFORMA</div>
                   <div id="proNumber" class="text-sm font-semibold text-blue-700">PF-2026-0001</div>
                   <div id="proDate" class="text-xs text-slate-500 mt-1"></div>
-                  <div id="proQRCode" class="mt-2 flex justify-end"></div>
-                  <div class="text-[10px] text-slate-400 mt-1">Scanner pour vérifier l'authenticité</div>
                 </div>
               </div>
 
@@ -1145,8 +1143,9 @@ window.SANIX_CFG = {
                 </div>
                 <div>
                   <div class="text-xs uppercase tracking-wider text-slate-400 font-bold">Client</div>
-                  <input id="proClient" list="clientsDatalist" onchange="populateProformaChantierOptions()" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm" value="Client à renseigner">
+                  <input id="proClient" list="clientsDatalist" oninput="onProClientInput()" onchange="populateProformaChantierOptions()" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm" value="Client à renseigner">
                   <input id="proContact" class="mt-2 w-full border rounded-lg px-3 py-2 text-sm" value="Contact / Téléphone">
+                  <div id="proClientDetails" class="text-xs text-slate-500 mt-2 leading-relaxed"></div>
                 </div>
               </div>
 
@@ -1165,26 +1164,32 @@ window.SANIX_CFG = {
                 </table>
               </div>
 
-              <div class="ml-auto max-w-sm mt-5 space-y-2 text-sm">
-                <div class="flex justify-between"><span>Sous-total HT</span><b id="proSubtotal">0 FCFA</b></div>
-                <div class="flex justify-between"><span>Remise</span><b id="proDiscount">0 FCFA</b></div>
-                <div class="flex justify-between"><span>TVA</span><b id="proTax">0 FCFA</b></div>
-                <div class="flex justify-between border-t pt-3 text-lg"><span class="font-bold">Total TTC</span><b id="proTotal">0 FCFA</b></div>
+              <div class="grid md:grid-cols-2 gap-5 mt-5">
+                <div>
+                  <b class="text-slate-700 text-xs uppercase tracking-wider">Observations</b>
+                  <textarea id="proNotes" class="mt-2 w-full border rounded-lg p-2 text-xs" rows="5">Proforma générée depuis le configurateur BOM.</textarea>
+                </div>
+                <div>
+                  <div class="space-y-2 text-sm">
+                    <div class="flex justify-between"><span>Sous-total HT</span><b id="proSubtotal">0 FCFA</b></div>
+                    <div class="flex justify-between"><span>Remise</span><b id="proDiscount">0 FCFA</b></div>
+                    <div class="flex justify-between"><span>TVA</span><b id="proTax">0 FCFA</b></div>
+                    <div class="flex justify-between border-t pt-3 text-lg"><span class="font-bold">Total TTC</span><b id="proTotal">0 FCFA</b></div>
+                  </div>
+                  <div class="mt-4 pt-4 border-t text-xs text-slate-500">
+                    <b class="text-slate-700">Conditions commerciales</b>
+                    <ul class="mt-2 space-y-1">
+                      <li>• Validité de l'offre : 15 jours</li>
+                      <li>• Délai de fabrication : selon planning atelier</li>
+                      <li>• Livraison et pose selon devis</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
 
-              <div class="mt-5 grid md:grid-cols-2 gap-4 text-xs text-slate-500 border-t pt-5">
-                <div>
-                  <b class="text-slate-700">Conditions commerciales</b>
-                  <ul class="mt-2 space-y-1">
-                    <li>• Validité de l'offre : 15 jours</li>
-                    <li>• Délai de fabrication : selon planning atelier</li>
-                    <li>• Livraison et pose selon devis</li>
-                  </ul>
-                </div>
-                <div>
-                  <b class="text-slate-700">Observations</b>
-                  <textarea id="proNotes" class="mt-2 w-full border rounded-lg p-2" rows="4">Proforma générée depuis le configurateur BOM.</textarea>
-                </div>
+              <div class="mt-6 pt-5 border-t flex flex-col items-center text-center">
+                <div id="proQRCode" class="flex justify-center"></div>
+                <div class="text-[10px] text-slate-400 mt-1">Scanner pour vérifier l'authenticité</div>
               </div>
             </div>
 
@@ -3247,13 +3252,17 @@ async function openChantierDetail(id){
     actionPanel=`
       ${mrpHtml}
       <div class="mb-3">
-        <p class="text-sm text-slate-600 mb-2">Demandes d'achats multi-fournisseurs pour ce chantier.</p>
-        <form onsubmit="return handleAddAchat(event,'${id}')" class="grid sm:grid-cols-5 gap-2 mb-3 bg-slate-50 border rounded-xl p-3">
+        <p class="text-sm text-slate-600 mb-2">Demandes d'achats multi-fournisseurs pour ce chantier — lignes appelées depuis la BOM de la cotation.</p>
+        <form onsubmit="return handleAddAchat(event,'${id}')" class="grid sm:grid-cols-6 gap-2 mb-3 bg-slate-50 border rounded-xl p-3">
+          <select id="acBomRef" onchange="onAcBomRefChange('${id}')" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
+            <option value="">— Composant BOM (ou saisie libre) —</option>
+            ${besoinsMRP.map(b=>`<option value="${escapeHtml(b.code)}" data-designation="${escapeHtml(b.designation)}" data-manquant="${b.manquant.toFixed(2)}" data-prix="${b.prixUnitaire||0}" data-fournisseur="${escapeHtml(b.fournisseur||'')}">${escapeHtml(b.code)} — ${escapeHtml(b.designation)}${b.manquant>0.01?' (manque '+b.manquant.toFixed(2)+')':''}</option>`).join('')}
+          </select>
           <input id="acFournisseur" list="fournisseursDatalist" placeholder="Fournisseur" required class="border rounded-lg px-2 py-1.5 text-sm">
           <input id="acDesignation" placeholder="Désignation article" required class="border rounded-lg px-2 py-1.5 text-sm">
           <input id="acQte" type="number" min="1" value="1" placeholder="Qté" class="border rounded-lg px-2 py-1.5 text-sm">
           <input id="acPrix" type="number" min="0" placeholder="Prix unitaire" required class="border rounded-lg px-2 py-1.5 text-sm">
-          <button type="submit" class="bg-slate-900 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter DA</button>
+          <button type="submit" class="bg-slate-900 text-white rounded-lg px-3 py-1.5 text-sm font-semibold sm:col-span-6">+ Ajouter DA</button>
         </form>
         <div class="space-y-2">${achats.length?achats.map(a=>`
           <div class="flex items-center justify-between border rounded-lg p-3 text-sm">
@@ -3343,15 +3352,26 @@ async function handleAddAchat(e,chantierId){
   const designation=document.getElementById('acDesignation').value.trim();
   const qte=+document.getElementById('acQte').value||1;
   const prix=+document.getElementById('acPrix').value||0;
+  const codeBom=document.getElementById('acBomRef')?.value||null;
   if(!fournisseur||!designation) return false;
   const seq=nextSeq('achat');
   const numero='DA-'+seq.year+'-'+String(seq.n).padStart(4,'0');
-  const rec={id:numero,numero,chantierId,fournisseur,designation,qte,montant:qte*prix,statut:'demande',dateCreation:new Date().toISOString()};
+  const rec={id:numero,numero,chantierId,fournisseur,designation,qte,montant:qte*prix,statut:'demande',dateCreation:new Date().toISOString(),codeBom};
   await idbPut('achats',rec);
   queueSync('alubom_achats',rec);
-  await audit('CREATE_DEMANDE_ACHAT',numero+' — '+fournisseur+' — '+designation);
+  await audit('CREATE_DEMANDE_ACHAT',numero+' — '+fournisseur+' — '+designation+(codeBom?' ('+codeBom+')':''));
   await openChantierDetail(chantierId);
   return false;
+}
+function onAcBomRefChange(){
+  const sel=document.getElementById('acBomRef');
+  const opt=sel?.selectedOptions[0];
+  if(!opt || !opt.value){ return; }
+  document.getElementById('acDesignation').value=opt.dataset.designation||'';
+  const manquant=+opt.dataset.manquant||0;
+  document.getElementById('acQte').value = manquant>0 ? Math.ceil(manquant) : 1;
+  if(opt.dataset.prix) document.getElementById('acPrix').value=opt.dataset.prix;
+  if(opt.dataset.fournisseur) document.getElementById('acFournisseur').value=opt.dataset.fournisseur;
 }
 
 const ACHAT_STATUT_NEXT={demande:'validee',validee:'commandee',commandee:'recue',partielle:'recue'};
@@ -5070,7 +5090,28 @@ function clearProformaCart(){
   updateProforma();
 }
 
+/* ---------- Infos client automatiques sur la proforma ---------- */
+function onProClientInput(){
+  updateProClientDetails();
+}
+async function updateProClientDetails(){
+  const el=document.getElementById('proClientDetails'); if(!el) return;
+  const nom=(document.getElementById('proClient')?.value||'').trim();
+  if(!nom || nom==='Client à renseigner'){ el.innerHTML=''; return; }
+  const rows=await idbGetAll('clients');
+  const rec=rows.find(r=>(r.nom||'').trim().toLowerCase()===nom.toLowerCase());
+  if(!rec){ el.innerHTML=''; return; }
+  const lignes=[];
+  if(rec.adresse||rec.ville) lignes.push(escapeHtml([rec.adresse,rec.ville].filter(Boolean).join(', ')));
+  if(rec.tel) lignes.push('Tél. '+escapeHtml(rec.tel));
+  if(rec.email) lignes.push(escapeHtml(rec.email));
+  const legal=[rec.rccm?'RCCM '+rec.rccm:'',rec.ncc?'NCC '+rec.ncc:''].filter(Boolean).join(' — ');
+  if(legal) lignes.push(escapeHtml(legal));
+  el.innerHTML=lignes.join('<br>');
+}
+
 function updateProforma(){
+  updateProClientDetails();
   const discountRate = Math.max(0, +document.getElementById('proDiscountRate').value || 0) / 100;
   const taxRate = Math.max(0, +document.getElementById('proTaxRate').value || 0) / 100;
 
@@ -5613,6 +5654,7 @@ function printProforma(){
   if(!win) return;
   win.document.write(`
     <html><head><title>Facture Proforma</title>
+    <script src="https://cdn.tailwindcss.com"><\/script>
     <style>
       *{box-sizing:border-box}
       body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#e2e8f0;margin:0}
@@ -5625,7 +5667,7 @@ function printProforma(){
       th,td{border:1px solid #cbd5e1;padding:9px 12px;font-size:12.5px}
       th{background:#f1f5f9;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#475569}
       tbody tr:nth-child(even){background:#f8fafc}
-      input,textarea{border:0;font:inherit;width:100%;background:transparent}
+      input,textarea{border:0 !important;font:inherit;width:100%;background:transparent !important;padding:0 !important}
       .dossier-page{page-break-before:always;padding-top:10px}
       .dossier-title{font-size:18px;font-weight:800;margin-bottom:4px}
       .dossier-sub{font-size:12px;color:#64748b;margin-bottom:16px}
