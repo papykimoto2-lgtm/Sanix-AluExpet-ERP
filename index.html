@@ -20,6 +20,7 @@
 </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script>
 // === CONFIG SUPABASE — à renseigner par Papi ===
 window.SANIX_CFG = {
@@ -108,6 +109,12 @@ window.SANIX_CFG = {
   .etude-tab-btn:hover,.ref-tab-btn:hover,.cat-tab-btn:hover,.stock-tab-btn:hover,.prod-tab-btn:hover{background:var(--ds-slate-100);color:var(--ds-slate-700)}
   .flux-view-btn:hover{background:#e2e8f0}
   .etude-tab-btn.active,.ref-tab-btn.active,.cat-tab-btn.active,.stock-tab-btn.active,.prod-tab-btn.active{background:var(--ds-accent);color:#fff;box-shadow:var(--ds-shadow-sm)}
+  .config-view-btn{color:var(--ds-slate-500);background:transparent;border-radius:6px;transition:background-color .12s ease,color .12s ease}
+  .config-view-btn:hover{background:var(--ds-slate-100)}
+  .config-view-btn.active{background:var(--ds-accent);color:#fff}
+  .editor-tool-btn{color:var(--ds-slate-500);background:transparent;transition:background-color .12s ease,color .12s ease}
+  .editor-tool-btn:hover{background:var(--ds-slate-100)}
+  .editor-tool-btn.active{background:var(--ds-accent-soft);color:var(--ds-accent);font-weight:700}
   .flux-view-btn.active{background:#fff;color:var(--ds-ink-2);box-shadow:0 1px 3px rgba(0,0,0,.1)}
 
   /* Page — pas d'animation, aspect statique robuste */
@@ -823,7 +830,14 @@ window.SANIX_CFG = {
                 <button type="button" onclick="previewPlanTechnique()" class="border px-3 py-1.5 rounded-lg text-xs font-semibold">👁️ Aperçu</button>
                 <button type="button" onclick="printPlanTechnique()" class="border px-3 py-1.5 rounded-lg text-xs font-semibold">🖨️ Imprimer plan</button>
               </div>
-              <div class="bg-white rounded-xl border p-3 overflow-hidden">
+
+              <div class="flex gap-1 mb-3 bg-white border rounded-lg p-1 w-fit">
+                <button type="button" onclick="switchConfigView('2d')" id="viewBtn2d" class="config-view-btn px-3 py-1.5 rounded-md text-xs font-semibold active">📐 Vue 2D</button>
+                <button type="button" onclick="switchConfigView('3d')" id="viewBtn3d" class="config-view-btn px-3 py-1.5 rounded-md text-xs font-semibold">🧊 Vue 3D</button>
+                <button type="button" onclick="switchConfigView('editor')" id="viewBtnEditor" class="config-view-btn px-3 py-1.5 rounded-md text-xs font-semibold">✏️ Éditeur de plan</button>
+              </div>
+
+              <div id="configView2d" class="bg-white rounded-xl border p-3 overflow-hidden">
                 <svg id="technicalDrawing" viewBox="0 0 760 390" class="w-full h-auto" role="img" aria-label="Schéma technique de l'ouvrage">
                   <defs>
                     <marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
@@ -857,6 +871,36 @@ window.SANIX_CFG = {
                     Fenêtre • 2 vantaux • Série Standard 120
                   </text>
                 </svg>
+              </div>
+
+              <div id="configView3d" class="hidden bg-white rounded-xl border overflow-hidden relative">
+                <div class="absolute top-2 left-2 z-10 flex gap-1">
+                  <button type="button" onclick="reset3DView()" class="bg-white/90 border px-2 py-1 rounded text-xs font-semibold shadow-sm">⟲ Réinitialiser</button>
+                </div>
+                <div class="absolute top-2 right-2 z-10 text-[10px] text-slate-400 bg-white/90 px-2 py-1 rounded">Glisser pour tourner • Molette pour zoomer</div>
+                <div id="canvas3dHost" style="width:100%;height:420px;cursor:grab"></div>
+              </div>
+
+              <div id="configViewEditor" class="hidden bg-white rounded-xl border overflow-hidden">
+                <div class="flex flex-wrap items-center gap-1 border-b bg-slate-50 p-2">
+                  <button type="button" onclick="editorSetTool('pan')" id="toolBtnPan" class="editor-tool-btn px-2.5 py-1.5 rounded text-xs font-semibold active" title="Déplacer">✋ Déplacer</button>
+                  <button type="button" onclick="editorSetTool('cote')" id="toolBtnCote" class="editor-tool-btn px-2.5 py-1.5 rounded text-xs font-semibold" title="Ajouter une cote">📏 Cote</button>
+                  <button type="button" onclick="editorSetTool('annot')" id="toolBtnAnnot" class="editor-tool-btn px-2.5 py-1.5 rounded text-xs font-semibold" title="Annotation texte">📝 Annotation</button>
+                  <span class="w-px h-5 bg-slate-300 mx-1"></span>
+                  <button type="button" onclick="editorZoom(1.2)" class="editor-tool-btn px-2.5 py-1.5 rounded text-xs font-semibold" title="Zoom avant">➕</button>
+                  <button type="button" onclick="editorZoom(0.8)" class="editor-tool-btn px-2.5 py-1.5 rounded text-xs font-semibold" title="Zoom arrière">➖</button>
+                  <button type="button" onclick="editorResetView()" class="editor-tool-btn px-2.5 py-1.5 rounded text-xs font-semibold" title="Réinitialiser vue">⟲</button>
+                  <span class="w-px h-5 bg-slate-300 mx-1"></span>
+                  <label class="flex items-center gap-1 text-xs font-semibold px-1"><input type="checkbox" id="layerDormant" checked onchange="renderPlanEditor()"> Dormant</label>
+                  <label class="flex items-center gap-1 text-xs font-semibold px-1"><input type="checkbox" id="layerOuvrant" checked onchange="renderPlanEditor()"> Ouvrant</label>
+                  <label class="flex items-center gap-1 text-xs font-semibold px-1"><input type="checkbox" id="layerVitrage" checked onchange="renderPlanEditor()"> Vitrage</label>
+                  <label class="flex items-center gap-1 text-xs font-semibold px-1"><input type="checkbox" id="layerCotes" checked onchange="renderPlanEditor()"> Cotes</label>
+                  <button type="button" onclick="editorUndo()" class="editor-tool-btn px-2.5 py-1.5 rounded text-xs font-semibold ml-auto" title="Annuler dernier ajout">↩ Annuler</button>
+                  <button type="button" onclick="editorClearAnnotations()" class="editor-tool-btn px-2.5 py-1.5 rounded text-xs font-semibold text-red-600" title="Tout effacer">🗑 Effacer</button>
+                  <button type="button" onclick="exportPlanEditorPNG()" class="editor-tool-btn px-2.5 py-1.5 rounded text-xs font-semibold text-blue-700" title="Exporter en image">⬇ Export PNG</button>
+                </div>
+                <div id="editorHint" class="text-[11px] text-slate-500 px-3 py-1.5 bg-amber-50 border-b border-amber-100">✋ Cliquez-glissez pour déplacer la vue. Molette pour zoomer.</div>
+                <canvas id="planEditorCanvas" width="900" height="440" style="width:100%;height:440px;display:block;cursor:grab"></canvas>
               </div>
             </div>
 
@@ -7855,6 +7899,276 @@ async function printPlanTechnique(autoPrint=true){
 }
 function previewPlanTechnique(){ printPlanTechnique(false); }
 
+/* =========================================================
+   Configurateur — Vue 3D (Three.js) & Éditeur de plan semi-technique
+   ========================================================= */
+let configCurrentView='2d';
+function switchConfigView(view){
+  configCurrentView=view;
+  document.getElementById('configView2d').classList.toggle('hidden',view!=='2d');
+  document.getElementById('configView3d').classList.toggle('hidden',view!=='3d');
+  document.getElementById('configViewEditor').classList.toggle('hidden',view!=='editor');
+  document.getElementById('viewBtn2d').classList.toggle('active',view==='2d');
+  document.getElementById('viewBtn3d').classList.toggle('active',view==='3d');
+  document.getElementById('viewBtnEditor').classList.toggle('active',view==='editor');
+  if(view==='3d') initOrUpdate3D();
+  if(view==='editor') initOrUpdatePlanEditor();
+}
+function refreshDependentViews(){
+  if(configCurrentView==='3d') build3DOuvrage();
+  if(configCurrentView==='editor') renderPlanEditor();
+}
+
+/* ---------- Vue 3D paramétrique ---------- */
+let scene3d,camera3d,renderer3d,group3d,anim3dId;
+let rot3d={x:-0.35,y:0.5}, zoom3d=1, drag3d=false, lastMouse3d={x:0,y:0};
+function initOrUpdate3D(){
+  if(typeof THREE==='undefined'){
+    document.getElementById('canvas3dHost').innerHTML='<div class="p-6 text-sm text-slate-400">La bibliothèque 3D (Three.js) n\'a pas pu être chargée — vérifiez la connexion réseau.</div>';
+    return;
+  }
+  const host=document.getElementById('canvas3dHost');
+  if(!renderer3d){
+    scene3d=new THREE.Scene();
+    scene3d.background=new THREE.Color(0xf1f5f9);
+    camera3d=new THREE.PerspectiveCamera(45, host.clientWidth/host.clientHeight, 1, 5000);
+    renderer3d=new THREE.WebGLRenderer({antialias:true});
+    renderer3d.setSize(host.clientWidth, host.clientHeight);
+    host.innerHTML=''; host.appendChild(renderer3d.domElement);
+    const amb=new THREE.AmbientLight(0xffffff,0.75); scene3d.add(amb);
+    const dir=new THREE.DirectionalLight(0xffffff,0.7); dir.position.set(400,600,800); scene3d.add(dir);
+    const dir2=new THREE.DirectionalLight(0xffffff,0.35); dir2.position.set(-400,200,-600); scene3d.add(dir2);
+    group3d=new THREE.Group(); scene3d.add(group3d);
+
+    renderer3d.domElement.addEventListener('mousedown',e=>{drag3d=true; lastMouse3d={x:e.clientX,y:e.clientY}; renderer3d.domElement.style.cursor='grabbing';});
+    window.addEventListener('mouseup',()=>{drag3d=false; if(renderer3d) renderer3d.domElement.style.cursor='grab';});
+    window.addEventListener('mousemove',e=>{
+      if(!drag3d) return;
+      const dx=e.clientX-lastMouse3d.x, dy=e.clientY-lastMouse3d.y;
+      rot3d.y+=dx*0.008; rot3d.x=Math.max(-1.2,Math.min(1.2,rot3d.x+dy*0.008));
+      lastMouse3d={x:e.clientX,y:e.clientY};
+    });
+    renderer3d.domElement.addEventListener('wheel',e=>{ e.preventDefault(); zoom3d=Math.max(0.4,Math.min(3,zoom3d*(e.deltaY>0?1.08:0.92))); },{passive:false});
+    renderer3d.domElement.addEventListener('touchstart',e=>{ if(e.touches.length===1){ drag3d=true; lastMouse3d={x:e.touches[0].clientX,y:e.touches[0].clientY}; } },{passive:true});
+    renderer3d.domElement.addEventListener('touchmove',e=>{
+      if(!drag3d||!e.touches.length) return;
+      const dx=e.touches[0].clientX-lastMouse3d.x, dy=e.touches[0].clientY-lastMouse3d.y;
+      rot3d.y+=dx*0.008; rot3d.x=Math.max(-1.2,Math.min(1.2,rot3d.x+dy*0.008));
+      lastMouse3d={x:e.touches[0].clientX,y:e.touches[0].clientY};
+    },{passive:true});
+    renderer3d.domElement.addEventListener('touchend',()=>{drag3d=false;});
+
+    function animate3D(){
+      anim3dId=requestAnimationFrame(animate3D);
+      if(group3d){ group3d.rotation.x=rot3d.x; group3d.rotation.y=rot3d.y; }
+      if(camera3d) camera3d.zoom=zoom3d, camera3d.updateProjectionMatrix?.();
+      renderer3d.render(scene3d,camera3d);
+    }
+    animate3D();
+  } else {
+    renderer3d.setSize(host.clientWidth, host.clientHeight);
+    camera3d.aspect=host.clientWidth/host.clientHeight;
+    camera3d.updateProjectionMatrix();
+  }
+  build3DOuvrage();
+}
+function reset3DView(){ rot3d={x:-0.35,y:0.5}; zoom3d=1; }
+function build3DOuvrage(){
+  if(!group3d || typeof THREE==='undefined') return;
+  while(group3d.children.length) group3d.remove(group3d.children[0]);
+  const w=(+document.getElementById('width')?.value||1500);
+  const h=(+document.getElementById('height')?.value||1400);
+  const leaves=Math.max(1,+document.getElementById('leaves')?.value||1);
+  const type=document.getElementById('type')?.value||'Fenêtre';
+  const isDoor=/porte/i.test(type);
+  const cadreEp=8, profondeur=isDoor?45:55;
+  const scale=280/Math.max(w,h);
+  const W=w*scale, H=h*scale;
+
+  const matCadre=new THREE.MeshStandardMaterial({color:0x334155,metalness:0.3,roughness:0.5});
+  const matVerre=new THREE.MeshPhysicalMaterial({color:0xbfdbfe,transparent:true,opacity:0.35,roughness:0.05,metalness:0,transmission:0.4});
+
+  // Dormant (cadre extérieur, forme creuse via 4 barres)
+  const bars=[
+    [W,cadreEp,profondeur, 0, H/2-cadreEp/2, 0],
+    [W,cadreEp,profondeur, 0,-H/2+cadreEp/2, 0],
+    [cadreEp,H,profondeur, -W/2+cadreEp/2, 0, 0],
+    [cadreEp,H,profondeur,  W/2-cadreEp/2, 0, 0]
+  ];
+  bars.forEach(([bw,bh,bd,x,y,z])=>{
+    const m=new THREE.Mesh(new THREE.BoxGeometry(bw,bh,bd), matCadre);
+    m.position.set(x,y,z);
+    group3d.add(m);
+  });
+
+  // Vantaux + vitrage
+  const innerW=W-cadreEp*2, innerH=H-cadreEp*2;
+  const leafW=innerW/leaves;
+  for(let i=0;i<leaves;i++){
+    const cx=-innerW/2+leafW*i+leafW/2;
+    const leafFrameBars=[
+      [leafW-4,6,profondeur*0.6, cx, innerH/2-3, 2],
+      [leafW-4,6,profondeur*0.6, cx,-innerH/2+3, 2],
+      [6,innerH,profondeur*0.6, cx-leafW/2+3, 0, 2],
+      [6,innerH,profondeur*0.6, cx+leafW/2-3, 0, 2]
+    ];
+    leafFrameBars.forEach(([bw,bh,bd,x,y,z])=>{
+      const m=new THREE.Mesh(new THREE.BoxGeometry(bw,bh,bd), matCadre);
+      m.position.set(x,y,z);
+      group3d.add(m);
+    });
+    const glass=new THREE.Mesh(new THREE.BoxGeometry(leafW-16,innerH-16,3), matVerre);
+    glass.position.set(cx,0,2);
+    group3d.add(glass);
+    if(!isDoor){
+      const handle=new THREE.Mesh(new THREE.BoxGeometry(4,26,6), new THREE.MeshStandardMaterial({color:0x94a3b8,metalness:0.6,roughness:0.3}));
+      handle.position.set(i%2===0?cx+leafW/2-14:cx-leafW/2+14, 0, profondeur*0.3+4);
+      group3d.add(handle);
+    }
+  }
+
+  camera3d.position.set(0,0,Math.max(W,H)*1.7);
+  camera3d.lookAt(0,0,0);
+}
+
+/* ---------- Éditeur de plan semi-technique (Canvas 2D, outils) ---------- */
+let editorTool='pan', editorZoomVal=1, editorOffset={x:0,y:0}, editorAnnotations=[];
+let editorDragging=false, editorLastPos={x:0,y:0}, editorPendingCote=null;
+function initOrUpdatePlanEditor(){
+  const canvas=document.getElementById('planEditorCanvas');
+  if(!canvas._wired){
+    canvas._wired=true;
+    const rectOf=()=>canvas.getBoundingClientRect();
+    const toCanvasXY=(clientX,clientY)=>{
+      const r=rectOf();
+      return {x:(clientX-r.left)*(canvas.width/r.width), y:(clientY-r.top)*(canvas.height/r.height)};
+    };
+    canvas.addEventListener('mousedown',e=>{
+      const p=toCanvasXY(e.clientX,e.clientY);
+      if(editorTool==='pan'){ editorDragging=true; editorLastPos={x:e.clientX,y:e.clientY}; canvas.style.cursor='grabbing'; }
+      else if(editorTool==='cote'){
+        const world={x:(p.x-editorOffset.x)/editorZoomVal, y:(p.y-editorOffset.y)/editorZoomVal};
+        if(!editorPendingCote){ editorPendingCote=world; }
+        else {
+          editorAnnotations.push({type:'cote', x1:editorPendingCote.x, y1:editorPendingCote.y, x2:world.x, y2:world.y});
+          editorPendingCote=null;
+          renderPlanEditor();
+        }
+      } else if(editorTool==='annot'){
+        const world={x:(p.x-editorOffset.x)/editorZoomVal, y:(p.y-editorOffset.y)/editorZoomVal};
+        const txt=prompt('Texte de l\'annotation :');
+        if(txt) editorAnnotations.push({type:'annot', x:world.x, y:world.y, text:txt});
+        renderPlanEditor();
+      }
+    });
+    window.addEventListener('mouseup',()=>{ editorDragging=false; if(canvas) canvas.style.cursor=editorTool==='pan'?'grab':'crosshair'; });
+    window.addEventListener('mousemove',e=>{
+      if(!editorDragging || editorTool!=='pan') return;
+      editorOffset.x+=(e.clientX-editorLastPos.x)*(canvas.width/canvas.getBoundingClientRect().width);
+      editorOffset.y+=(e.clientY-editorLastPos.y)*(canvas.height/canvas.getBoundingClientRect().height);
+      editorLastPos={x:e.clientX,y:e.clientY};
+      renderPlanEditor();
+    });
+    canvas.addEventListener('wheel',e=>{
+      e.preventDefault();
+      editorZoomVal=Math.max(0.3,Math.min(4,editorZoomVal*(e.deltaY>0?0.9:1.1)));
+      renderPlanEditor();
+    },{passive:false});
+  }
+  renderPlanEditor();
+}
+function editorSetTool(tool){
+  editorTool=tool; editorPendingCote=null;
+  document.querySelectorAll('.editor-tool-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('toolBtn'+tool.charAt(0).toUpperCase()+tool.slice(1))?.classList.add('active');
+  const canvas=document.getElementById('planEditorCanvas');
+  if(canvas) canvas.style.cursor = tool==='pan' ? 'grab' : 'crosshair';
+  const hints={pan:'✋ Cliquez-glissez pour déplacer la vue. Molette pour zoomer.',cote:'📏 Cliquez un premier point puis un second pour tracer une cote.',annot:'📝 Cliquez un point du plan pour ajouter une annotation texte.'};
+  const hintEl=document.getElementById('editorHint');
+  if(hintEl) hintEl.textContent=hints[tool]||'';
+}
+function editorZoom(factor){ editorZoomVal=Math.max(0.3,Math.min(4,editorZoomVal*factor)); renderPlanEditor(); }
+function editorResetView(){ editorZoomVal=1; editorOffset={x:0,y:0}; renderPlanEditor(); }
+function editorUndo(){ editorAnnotations.pop(); renderPlanEditor(); }
+function editorClearAnnotations(){ if(confirm('Effacer toutes les cotes et annotations ajoutées ?')){ editorAnnotations=[]; renderPlanEditor(); } }
+function exportPlanEditorPNG(){
+  const canvas=document.getElementById('planEditorCanvas'); if(!canvas) return;
+  const link=document.createElement('a');
+  link.download='plan-'+(document.getElementById('type')?.value||'ouvrage').replace(/\s+/g,'_')+'.png';
+  link.href=canvas.toDataURL('image/png');
+  link.click();
+}
+function renderPlanEditor(){
+  const canvas=document.getElementById('planEditorCanvas'); if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const w=(+document.getElementById('width')?.value||1500);
+  const h=(+document.getElementById('height')?.value||1400);
+  const leaves=Math.max(1,+document.getElementById('leaves')?.value||1);
+  const type=document.getElementById('type')?.value||'Ouvrage';
+  const serie=document.getElementById('serie')?.selectedOptions[0]?.text||'';
+
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  ctx.save();
+  ctx.translate(canvas.width/2+editorOffset.x, canvas.height/2+editorOffset.y);
+  ctx.scale(editorZoomVal,editorZoomVal);
+
+  const scale=280/Math.max(w,h);
+  const W=w*scale, H=h*scale;
+  const showDormant=document.getElementById('layerDormant')?.checked!==false;
+  const showOuvrant=document.getElementById('layerOuvrant')?.checked!==false;
+  const showVitrage=document.getElementById('layerVitrage')?.checked!==false;
+  const showCotes=document.getElementById('layerCotes')?.checked!==false;
+
+  if(showDormant){
+    ctx.fillStyle='#e2e8f0'; ctx.strokeStyle='#0f172a'; ctx.lineWidth=6;
+    ctx.fillRect(-W/2,-H/2,W,H); ctx.strokeRect(-W/2,-H/2,W,H);
+  }
+  const innerW=W-16, innerH=H-16;
+  const leafW=innerW/leaves;
+  for(let i=0;i<leaves;i++){
+    const x0=-innerW/2+leafW*i;
+    if(showVitrage){ ctx.fillStyle='#dbeafe'; ctx.fillRect(x0+4,-innerH/2+4,leafW-8,innerH-8); }
+    if(showOuvrant){ ctx.strokeStyle='#64748b'; ctx.lineWidth=3; ctx.strokeRect(x0+4,-innerH/2+4,leafW-8,innerH-8); }
+  }
+
+  if(showCotes){
+    ctx.strokeStyle='#334155'; ctx.fillStyle='#0f172a'; ctx.font='12px Inter, sans-serif'; ctx.lineWidth=1.5; ctx.textAlign='center';
+    ctx.beginPath(); ctx.moveTo(-W/2,-H/2-18); ctx.lineTo(W/2,-H/2-18); ctx.stroke();
+    ctx.fillText(w+' mm',0,-H/2-24);
+    ctx.save(); ctx.translate(-W/2-24,0); ctx.rotate(-Math.PI/2); ctx.fillText(h+' mm',0,0); ctx.restore();
+  }
+
+  // Cotes personnalisées ajoutées à l'outil
+  editorAnnotations.forEach(a=>{
+    if(a.type==='cote'){
+      const dx=a.x2-a.x1, dy=a.y2-a.y1;
+      const distReal=Math.round(Math.sqrt(dx*dx+dy*dy)/scale);
+      ctx.strokeStyle='#dc2626'; ctx.fillStyle='#dc2626'; ctx.lineWidth=1.5; ctx.font='11px Inter, sans-serif'; ctx.textAlign='center';
+      ctx.beginPath(); ctx.moveTo(a.x1,a.y1); ctx.lineTo(a.x2,a.y2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(a.x1,a.y1,2.5,0,7); ctx.fill();
+      ctx.beginPath(); ctx.arc(a.x2,a.y2,2.5,0,7); ctx.fill();
+      ctx.fillText(distReal+' mm', (a.x1+a.x2)/2, (a.y1+a.y2)/2-6);
+    } else if(a.type==='annot'){
+      ctx.fillStyle='#7c3aed';
+      ctx.beginPath(); ctx.arc(a.x,a.y,3,0,7); ctx.fill();
+      ctx.font='11px Inter, sans-serif'; ctx.textAlign='left';
+      ctx.fillStyle='#4c1d95';
+      ctx.fillText(a.text, a.x+6, a.y-6);
+    }
+  });
+  if(editorPendingCote){
+    ctx.fillStyle='#dc2626'; ctx.beginPath(); ctx.arc(editorPendingCote.x,editorPendingCote.y,3,0,7); ctx.fill();
+  }
+
+  ctx.font='13px Inter, sans-serif'; ctx.fillStyle='#475569'; ctx.textAlign='center';
+  ctx.fillText(`${type} • ${leaves} vantail${leaves>1?'s':''} • ${serie}`, 0, H/2+28);
+
+  ctx.restore();
+}
+
 function toggleTypeFields(){
   const type=document.getElementById('type').value;
   const isFacade=type==='Façade';
@@ -9373,6 +9687,7 @@ function updateTechnicalDrawing(){
       svg.appendChild(t);
     }
   }
+  if(typeof refreshDependentViews==='function') refreshDependentViews();
 }
 document.querySelectorAll('#type,#width,#height,#leaves,#serie,#facCols,#facRows,#gcSpacing,#bdLameWidth,#bdRailSpacing,#pgDepth,#pgFixation,#pgLameSpacing,#cwCols,#cwDoor,#vrCols,#vrRows,#vrDoor,#voCoffre,#voMotor,#auSaillie,#auCouverture,#auSpacing,#sbSaillie,#sbMotor,#kiDepth,#kiRoofType,#kiCouverture,#giSpacing,#giInfill,#esType,#esMarcheH,#esGardeCorps,#ftPente,#ftType').forEach(e=>e.addEventListener('input',()=>{
   const w=+document.getElementById('width').value||0,h=+document.getElementById('height').value||0;
