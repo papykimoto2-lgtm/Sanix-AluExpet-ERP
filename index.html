@@ -473,6 +473,22 @@ window.SANIX_CFG = {
       </section>
 
       <section id="etude" class="page hidden">
+        <div id="devisContextBar" class="card bg-white rounded-2xl p-4 mb-4 border-2 border-blue-200">
+          <div class="flex flex-wrap items-end gap-3">
+            <div class="flex-1 min-w-[220px]">
+              <label class="text-xs font-bold text-blue-700 uppercase tracking-wide">1. Client</label>
+              <input id="devisCtxClient" list="clientsDatalist" placeholder="Nom du client..." oninput="onDevisContextClientChange()" class="mt-1 w-full border-2 rounded-lg px-3 py-2 text-sm font-semibold">
+            </div>
+            <div class="flex-1 min-w-[260px]">
+              <label class="text-xs font-bold text-blue-700 uppercase tracking-wide">2. Chantier / Dossier</label>
+              <select id="devisCtxChantier" onchange="onDevisContextChantierChange()" class="mt-1 w-full border-2 rounded-lg px-3 py-2 text-sm font-semibold">
+                <option value="">— Sélectionner un client d'abord —</option>
+              </select>
+            </div>
+            <button type="button" onclick="devisContextNouveauChantier()" class="border border-blue-600 text-blue-600 px-3 py-2 rounded-lg text-sm font-semibold whitespace-nowrap">+ Nouveau chantier</button>
+            <div id="devisCtxStatus" class="w-full text-xs font-semibold text-red-600">⚠️ Sélectionnez un client et un chantier pour démarrer un devis.</div>
+          </div>
+        </div>
         <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1">
           <button class="etude-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-tab="config" onclick="showPage('config')">🧩 Configurateur</button>
           <button class="etude-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-tab="bom" onclick="showPage('bom')">📋 BOM</button>
@@ -2807,6 +2823,33 @@ async function createChantierFromProforma(){
   const contact=document.getElementById('proContact')?.value||'';
   const clientId=await resolveOrCreateClient(client,contact);
   const montantTotal=parseMoney(document.getElementById('proTotal')?.textContent);
+
+  // Si un dossier existant (créé depuis le contexte devis) est sélectionné et encore au stade "devis", on le complète au lieu d'en créer un nouveau.
+  const chantierExistantId=document.getElementById('devisCtxChantier')?.value||'';
+  if(chantierExistantId){
+    const existant=await getChantier(chantierExistantId);
+    if(existant && existant.etape==='devis' && !existant.annule){
+      existant.devisNumero=numeroDevis;
+      existant.proformaId=currentProformaId||existant.proformaId;
+      existant.proformaIds=Array.from(new Set([...(existant.proformaIds||[]),...(currentProformaId?[currentProformaId]:[])]));
+      existant.client=client; existant.clientId=clientId; existant.contact=contact;
+      existant.montantTotal=montantTotal;
+      existant.lignes=JSON.parse(JSON.stringify(proformaCart));
+      await saveChantier(existant);
+      if(currentProformaId){
+        const proRows=await idbGetAll('proforma');
+        const proRec=proRows.find(p=>p.id===currentProformaId);
+        if(proRec){ proRec.chantierId=existant.id; proRec.chantierNumero=existant.numero; proRec._modifie=new Date().toISOString(); await idbPut('proforma',proRec); queueSync('alubom_proforma',proRec); }
+      }
+      await audit('MAJ_CHANTIER',existant.numero+' / '+client+' — devis complété dans dossier existant');
+      await renderChantierList();
+      await renderProformaList();
+      showPage('chantier');
+      openChantierDetail(existant.id);
+      return;
+    }
+  }
+
   const seq=nextSeq('chantier');
   const numero='CH-'+seq.year+'-'+String(seq.n).padStart(4,'0');
   const rec={
@@ -4889,6 +4932,15 @@ function showPage(page){
     document.querySelectorAll('.etude-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===page));
     document.querySelectorAll('.nav').forEach(b=>{if(b.dataset.page==='etude')b.classList.add('active')});
     if(page==='proforma') populateProformaChantierOptions();
+    if(ETUDE_TABS.includes(page)){
+      const ctxClientEl=document.getElementById('devisCtxClient');
+      if(ctxClientEl && !ctxClientEl.value && document.getElementById('proClient')?.value && document.getElementById('proClient').value!=='Client à renseigner'){
+        ctxClientEl.value=document.getElementById('proClient').value;
+        onDevisContextClientChange();
+      } else {
+        updateDevisContextStatus();
+      }
+    }
     if(page==='config') populateAtelierSelect();
     if(page==='flux') setFluxViewMode('global');
   } else {
@@ -4914,7 +4966,77 @@ function closeSidebar(){
 let proformaCart = JSON.parse(localStorage.getItem('alubom_proforma_cart')||'[]');
 function saveProformaCartLocal(){ localStorage.setItem('alubom_proforma_cart',JSON.stringify(proformaCart)); }
 
+/* ---------- Contexte devis obligatoire : Client + Chantier avant tout ajout ---------- */
+let devisContext={client:'',chantierId:''};
+function isDevisContextValid(){
+  return !!document.getElementById('devisCtxClient')?.value.trim();
+}
+function onDevisContextClientChange(){
+  const client=document.getElementById('devisCtxClient').value.trim();
+  devisContext.client=client;
+  const proClientEl=document.getElementById('proClient');
+  if(proClientEl) proClientEl.value=client||'Client à renseigner';
+  populateDevisContextChantiers();
+}
+async function populateDevisContextChantiers(){
+  const sel=document.getElementById('devisCtxChantier'); if(!sel) return;
+  const client=devisContext.client;
+  if(!client){ sel.innerHTML='<option value="">— Sélectionner un client d\'abord —</option>'; updateDevisContextStatus(); return; }
+  const all=await idbGetAll('chantiers');
+  const mine=all.filter(c=>(c.client||'').trim().toLowerCase()===client.toLowerCase() && !c.annule && c.etape==='devis').sort((a,b)=>b.dateCreation.localeCompare(a.dateCreation));
+  const label=c=>`${c.numero} — devis en cours (${(c.lignes||[]).length} ligne(s))`;
+  sel.innerHTML=`<option value="">+ Nouveau devis (nouveau dossier à la validation)</option>`+mine.map(c=>`<option value="${c.id}">${escapeHtml(label(c))}</option>`).join('');
+  devisContext.chantierId='';
+  onDevisContextChantierChange();
+}
+async function onDevisContextChantierChange(){
+  const sel=document.getElementById('devisCtxChantier'); if(!sel) return;
+  devisContext.chantierId=sel.value;
+  const proChSel=document.getElementById('proChantierId');
+  if(proChSel){
+    await populateProformaChantierOptions(false);
+    proChSel.value=devisContext.chantierId;
+    updateProformaChantierHint();
+  }
+  updateDevisContextStatus();
+}
+function updateDevisContextStatus(){
+  const statusEl=document.getElementById('devisCtxStatus'); if(!statusEl) return;
+  const valid=isDevisContextValid();
+  if(valid){
+    statusEl.className='w-full text-xs font-semibold text-emerald-600';
+    statusEl.textContent=devisContext.chantierId?'✓ Devis rattaché au dossier existant — vous pouvez configurer les ouvrages.':'✓ Client sélectionné — nouveau devis prêt, configurez les ouvrages.';
+  } else {
+    statusEl.className='w-full text-xs font-semibold text-red-600';
+    statusEl.textContent='⚠️ Sélectionnez un client et un chantier pour démarrer un devis.';
+  }
+}
+async function devisContextNouveauChantier(){
+  const client=document.getElementById('devisCtxClient')?.value.trim();
+  if(!client){ alert("Renseignez d'abord le nom du client."); document.getElementById('devisCtxClient')?.focus(); return; }
+  if(!hasRole('chantier:create')){ alert('Permission refusée.'); return; }
+  const clientId=await resolveOrCreateClient(client,'');
+  const seq=nextSeq('chantier');
+  const numero='CH-'+seq.year+'-'+String(seq.n).padStart(4,'0');
+  const rec={
+    id:numero, numero, devisNumero:'—', proformaId:null, proformaIds:[],
+    client, clientId, contact:'',
+    montantTotal:0, montantPaye:0, etape:'devis', lignes:[],
+    historique:[{etape:'devis',date:new Date().toISOString(),user:currentUser?currentUser.email:'—'}],
+    dateCreation:new Date().toISOString(), _modifie:new Date().toISOString()
+  };
+  await idbPut('chantiers',rec);
+  queueSync('alubom_chantiers',rec);
+  await audit('CREATE_CHANTIER',numero+' / '+client+' — dossier créé depuis contexte devis');
+  await renderChantierList();
+  await populateDevisContextChantiers();
+  document.getElementById('devisCtxChantier').value=numero;
+  await onDevisContextChantierChange();
+  alert('Dossier '+numero+' créé. Configurez maintenant les ouvrages du devis.');
+}
+
 function addToProformaCart(){
+  if(!isDevisContextValid()){ alert("Sélectionnez d'abord le Client et le Chantier en haut de page (étapes 1 et 2) avant d'ajouter un ouvrage au devis."); showPage('config'); document.getElementById('devisCtxClient')?.focus(); return; }
   const type=document.getElementById('type').value;
   const atelierSel=document.getElementById('atelier');
   const atelier=atelierSel?.value||'';
@@ -5257,6 +5379,12 @@ function newProforma(){
   const chSel=document.getElementById('proChantierId');
   if(chSel){ chSel.innerHTML='<option value="">— Aucun (nouvelle proforma) —</option>'; chSel.value=''; }
   updateProformaChantierHint();
+  devisContext={client:'',chantierId:''};
+  const ctxClientEl=document.getElementById('devisCtxClient');
+  if(ctxClientEl) ctxClientEl.value='';
+  const ctxChSel=document.getElementById('devisCtxChantier');
+  if(ctxChSel) ctxChSel.innerHTML='<option value="">— Sélectionner un client d\'abord —</option>';
+  updateDevisContextStatus();
 }
 
 async function loadProforma(id){
@@ -5275,6 +5403,15 @@ async function loadProforma(id){
   const chSel=document.getElementById('proChantierId');
   if(chSel){ chSel.value = rec.chantierId||''; }
   updateProformaChantierHint();
+  const ctxClientEl=document.getElementById('devisCtxClient');
+  if(ctxClientEl){
+    ctxClientEl.value=rec.client||'';
+    devisContext.client=rec.client||'';
+    await populateDevisContextChantiers();
+    const ctxChSel=document.getElementById('devisCtxChantier');
+    if(ctxChSel && rec.chantierId) ctxChSel.value=rec.chantierId;
+    await onDevisContextChantierChange();
+  }
   await audit('OUVRIR_PROFORMA',rec.numero);
 }
 
@@ -5425,6 +5562,7 @@ function whatsappProforma(){
 }
 
 async function saveProforma(){
+  if(!isDevisContextValid()){ alert("Sélectionnez d'abord le Client et le Chantier en haut de page (étapes 1 et 2)."); showPage('config'); document.getElementById('devisCtxClient')?.focus(); return; }
   const chantierId=document.getElementById('proChantierId')?.value || null;
   let chantierNumero=null;
   if(chantierId){ const ch=await getChantier(chantierId); chantierNumero=ch?ch.numero:null; }
