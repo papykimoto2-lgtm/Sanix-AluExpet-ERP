@@ -1445,13 +1445,22 @@ window.SANIX_CFG = {
           <button class="prod-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prodtab="kanban" onclick="showProdTab('kanban')">🗂️ Kanban</button>
           <button class="prod-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prodtab="gantt" onclick="showProdTab('gantt')">📅 Planning Gantt</button>
           <button class="prod-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prodtab="charge" onclick="showProdTab('charge')">📊 Charge postes</button>
+          <button class="prod-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prodtab="journalier" onclick="showProdTab('journalier')">📅 Suivi journalier</button>
+          <button class="prod-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prodtab="bilan" onclick="showProdTab('bilan')">📦 Bilan composants</button>
           <button id="btnNewOF" onclick="openNewOFForm()" class="ml-auto bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">+ Nouvel OF</button>
         </div>
 
         <div id="prodTabListe" class="prod-tab">
         <div class="card bg-white rounded-2xl p-6">
-          <div class="flex justify-between mb-5"><div><h2 class="text-lg font-bold">Ordres de fabrication</h2><p class="text-sm text-slate-500">Suivi du cycle atelier — BOM figée au lancement, contrôle qualité avant clôture.</p></div></div>
-          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">OF</th><th class="text-left p-3">Ouvrage</th><th class="text-left p-3">Client</th><th class="text-left p-3">Priorité</th><th class="text-left p-3">Statut</th><th class="text-left p-3">Avancement</th><th class="text-left p-3">Qualité</th><th class="text-right p-3">Marge</th><th class="p-3"></th></tr></thead><tbody id="ofBody"></tbody></table></div>
+          <div class="flex justify-between items-start mb-5 flex-wrap gap-2">
+            <div><h2 class="text-lg font-bold">Ordres de fabrication</h2><p class="text-sm text-slate-500">Suivi du cycle atelier — BOM figée au lancement, contrôle qualité avant clôture.</p></div>
+            <div class="flex gap-1 bg-slate-100 rounded-lg p-1">
+              <button id="ofViewBtnListe" onclick="setOFViewMode('liste')" class="px-3 py-1.5 rounded-md text-xs font-semibold">📋 Liste</button>
+              <button id="ofViewBtnGrille" onclick="setOFViewMode('grille')" class="px-3 py-1.5 rounded-md text-xs font-semibold">▦ Grille</button>
+            </div>
+          </div>
+          <div id="ofListeWrap" class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">OF</th><th class="text-left p-3">Ouvrage</th><th class="text-left p-3">Client</th><th class="text-left p-3">Priorité</th><th class="text-left p-3">Statut</th><th class="text-left p-3">Avancement</th><th class="text-left p-3">Qualité</th><th class="text-right p-3">Marge</th><th class="p-3"></th></tr></thead><tbody id="ofBody"></tbody></table></div>
+          <div id="ofGrid" class="hidden grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3"></div>
         </div>
         <div id="qcDetail" class="hidden mt-6"></div>
         <div class="card bg-white rounded-2xl p-6 mt-6">
@@ -1500,6 +1509,35 @@ window.SANIX_CFG = {
           <div id="chargeGoulotBanner" class="mb-4"></div>
           <div id="chargePostesBody" class="overflow-x-auto"></div>
           <p class="text-xs text-slate-400 mt-4">ℹ️ Hypothèses : 1 OF = 1 unité d'ouvrage · capacité horaire = nombre d'opérateurs × 8h/jour ouvré (selon les jours ouvrés du poste) · besoin = somme des étapes de gamme non encore terminées de chaque OF actif (hors Terminé / Prêt à livrer / Livré / Annulé / Suspendu). Les étapes de gamme doivent respecter le format "… (CODE) 1,5h" pour être comptabilisées par poste.</p>
+        </div>
+        </div>
+
+        <div id="prodTabJournalier" class="prod-tab hidden">
+        <div class="card bg-white rounded-2xl p-6">
+          <div class="flex flex-wrap justify-between items-center gap-3 mb-5">
+            <div><h2 class="text-lg font-bold">Suivi journalier de production</h2><p class="text-sm text-slate-500">Quantités conformes/rebut/reprise, temps pointés et activité par poste et opérateur pour une journée donnée.</p></div>
+            <div class="flex items-center gap-2">
+              <button onclick="sjChangerJour(-1)" class="border rounded-lg px-2 py-1.5 text-sm font-semibold">◀</button>
+              <input id="sjDate" type="date" onchange="renderSuiviJournalier()" class="border rounded-lg px-2 py-1.5 text-sm">
+              <button onclick="sjChangerJour(1)" class="border rounded-lg px-2 py-1.5 text-sm font-semibold">▶</button>
+              <button onclick="sjAujourdhui()" class="border rounded-lg px-3 py-1.5 text-sm font-semibold">Aujourd'hui</button>
+              <button onclick="printSuiviJournalier()" class="border px-3 py-1.5 rounded-lg text-sm font-semibold">🖨 Imprimer</button>
+            </div>
+          </div>
+          <div id="sjContent"></div>
+        </div>
+        </div>
+
+        <div id="prodTabBilan" class="prod-tab hidden">
+        <div class="card bg-white rounded-2xl p-6">
+          <div class="flex flex-wrap justify-between items-center gap-3 mb-5">
+            <div><h2 class="text-lg font-bold">Bilan utilisation des composants & avancement</h2><p class="text-sm text-slate-500">Composants réservés (BOM figée) vs sortis d'atelier (bons de réquisition), et taux d'avancement des OF par dossier chantier.</p></div>
+            <div class="flex items-center gap-2">
+              <select id="bcChantierSelect" onchange="renderBilanComposants()" class="border rounded-lg px-2 py-1.5 text-sm min-w-[220px]"></select>
+              <button onclick="printBilanComposants()" class="border px-3 py-1.5 rounded-lg text-sm font-semibold">🖨 Imprimer</button>
+            </div>
+          </div>
+          <div id="bcContent"></div>
         </div>
         </div>
       </section>
@@ -2703,6 +2741,7 @@ async function updateDashboard(){
 
 async function renderOFTable(){
   const el=document.getElementById('ofBody'); if(!el) return;
+  const elGrid=document.getElementById('ofGrid');
   const rows=(await idbGetAll('of')).sort((a,b)=>b.date.localeCompare(a.date));
   const qcRows=await idbGetAll('controles_qualite');
   const plansRows=await idbGetAll('plans');
@@ -2710,6 +2749,7 @@ async function renderOFTable(){
   const suiviRows=await idbGetAll('suivi_reel');
   const pointagesRows=await idbGetAll('pointages');
   const today=new Date().toISOString().slice(0,10);
+  const cards=[];
   el.innerHTML = rows.length ? rows.map(r=>{
     const c=OF_STATUS_COLOR[r.statut]||'slate';
     const next=ofNextStatut(r);
@@ -2745,8 +2785,35 @@ async function renderOFTable(){
     const prioSelect=`<select onchange="setOFPriorite('${r.id}',this.value)" class="text-xs border-0 bg-transparent font-semibold cursor-pointer">${Object.entries(OF_PRIORITES).map(([k,v])=>`<option value="${k}" ${((r.priorite||'normale')===k)?'selected':''}>${v.emoji} ${v.label}</option>`).join('')}</select>`;
     const pct=ofAvancementPct(r.statut,r.gammeSteps);
     const avancement = (r.statut==='Annulé') ? '<span class="text-xs text-slate-400">—</span>' : `<div class="w-24"><div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-blue-600" style="width:${pct}%"></div></div><div class="text-[10px] text-slate-400 mt-0.5">${pct}%</div></div>`;
+    const avancementCard = (r.statut==='Annulé') ? '<span class="text-xs text-slate-400">—</span>' : `<div class="w-full"><div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-blue-600" style="width:${pct}%"></div></div><div class="text-[10px] text-slate-400 mt-0.5">${pct}% avancé</div></div>`;
+    cards.push(`<div class="bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition flex flex-col">
+      <div class="flex justify-between items-start mb-2">
+        <div><div class="font-bold text-sm">${escapeHtml(r.numero)}</div><div class="text-xs text-slate-400">${escapeHtml(r.client)}</div></div>
+        <span class="badge bg-${c}-50 text-${c}-700">${escapeHtml(r.statut)}</span>
+      </div>
+      <div class="text-sm font-semibold mb-1">${escapeHtml(r.ouvrage)}</div>
+      <div class="text-xs text-slate-400 mb-3">${meta}</div>
+      <div class="flex items-center justify-between gap-2 mb-2">${prioSelect}${qcBadge}</div>
+      ${avancementCard}
+      <div class="flex justify-between items-center mt-2">
+        <span class="text-xs text-slate-400">Marge</span>
+        <span class="text-sm font-bold">${escapeHtml(r.marge)}</span>
+      </div>
+      <div class="flex flex-wrap gap-1 mt-3 pt-3 border-t">${actions}</div>
+    </div>`);
     return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.numero)}</td><td class="p-3">${escapeHtml(r.ouvrage)}<div class="text-xs text-slate-400">${meta}</div></td><td class="p-3">${escapeHtml(r.client)}</td><td class="p-3">${prioSelect}</td><td class="p-3"><span class="badge bg-${c}-50 text-${c}-700">${escapeHtml(r.statut)}</span></td><td class="p-3">${avancement}</td><td class="p-3">${qcBadge}</td><td class="p-3 text-right">${escapeHtml(r.marge)}</td><td class="p-3 text-right whitespace-nowrap">${actions}</td></tr>`;
   }).join('') : `<tr><td class="p-3 text-slate-400" colspan="9">Aucun OF. Créez-en un depuis le Chiffrage ou ici.</td></tr>`;
+  if(elGrid) elGrid.innerHTML = cards.length ? cards.join('') : `<p class="text-slate-400 col-span-full text-center py-8">Aucun OF. Créez-en un depuis le Chiffrage ou ici.</p>`;
+  setOFViewMode(localStorage.getItem('of_view_mode')||'liste');
+}
+function setOFViewMode(mode){
+  localStorage.setItem('of_view_mode',mode);
+  const showListe=mode!=='grille';
+  document.getElementById('ofListeWrap')?.classList.toggle('hidden',!showListe);
+  document.getElementById('ofGrid')?.classList.toggle('hidden',showListe);
+  const bL=document.getElementById('ofViewBtnListe'), bG=document.getElementById('ofViewBtnGrille');
+  bL?.classList.toggle('bg-white',showListe); bL?.classList.toggle('shadow-sm',showListe);
+  bG?.classList.toggle('bg-white',!showListe); bG?.classList.toggle('shadow-sm',!showListe);
 }
 
 /* ---------- Onglets Production (Liste / Kanban / Gantt) ---------- */
@@ -2758,6 +2825,8 @@ function showProdTab(tab){
   if(tab==='liste') renderNCList();
   if(tab==='gantt') renderGantt();
   if(tab==='charge') renderChargePostes();
+  if(tab==='journalier') renderSuiviJournalier();
+  if(tab==='bilan'){ populateBilanChantierSelect().then(renderBilanComposants); }
 }
 
 /* ---------- Charge & capacité par poste — goulot d'étranglement ---------- */
@@ -2943,6 +3012,223 @@ function printGantt(){
   win.document.write(`<html><head><title>Planning de production</title>
     <style>body{font-family:Arial,sans-serif;padding:20px;color:#0f172a}h1{font-size:16px}.sub{color:#64748b;font-size:11px;margin-bottom:14px}</style>
     </head><body><h1>Planning de production — SANIX AFRICA</h1><div class="sub">Édité le ${dateStr}</div>${html}</body></html>`);
+  win.document.close(); win.focus(); setTimeout(()=>win.print(),300);
+}
+
+/* ---------- Suivi journalier de production ---------- */
+async function renderSuiviJournalier(){
+  const dateInp=document.getElementById('sjDate'); if(!dateInp) return;
+  if(!dateInp.value) dateInp.value=new Date().toISOString().slice(0,10);
+  const date=dateInp.value;
+  const pointages=(await idbGetAll('pointages')).filter(p=>(p.debut||'').slice(0,10)===date);
+  const ofRows=await idbGetAll('of');
+  const ofById={}; ofRows.forEach(o=>ofById[o.id]=o);
+
+  const totalConforme=pointages.reduce((s,p)=>s+(+p.qteConforme||0),0);
+  const totalRebut=pointages.reduce((s,p)=>s+(+p.qteRebut||0),0);
+  const totalReprise=pointages.reduce((s,p)=>s+(+p.qteReprise||0),0);
+  const totalProduit=totalConforme+totalRebut+totalReprise;
+  const tauxRebut=totalProduit?((totalRebut/totalProduit)*100).toFixed(1):'0.0';
+  const dureeMin=p=>(p.debut&&p.fin)?Math.max(0,(new Date(p.fin)-new Date(p.debut))/60000):0;
+  const totalMin=pointages.reduce((s,p)=>s+dureeMin(p),0);
+  const ofDistinct=new Set(pointages.map(p=>p.ofId)).size;
+  const operateursDistinct=new Set(pointages.map(p=>p.operateur).filter(Boolean)).size;
+
+  const agreger=keyFn=>{
+    const m={};
+    pointages.forEach(p=>{
+      const k=keyFn(p)||'—';
+      m[k]=m[k]||{conforme:0,rebut:0,reprise:0,min:0,nb:0};
+      m[k].conforme+=(+p.qteConforme||0); m[k].rebut+=(+p.qteRebut||0); m[k].reprise+=(+p.qteReprise||0);
+      m[k].min+=dureeMin(p); m[k].nb++;
+    });
+    return m;
+  };
+  const tableauLignes=m=>Object.entries(m).sort((a,b)=>b[1].conforme-a[1].conforme).map(([nom,v])=>{
+    const t=v.conforme+v.rebut+v.reprise;
+    const taux=t?((v.rebut/t)*100).toFixed(1):'0.0';
+    return `<tr class="border-b"><td class="p-2 font-semibold">${escapeHtml(nom)}</td><td class="p-2 text-right">${v.nb}</td><td class="p-2 text-right text-emerald-600">${v.conforme}</td><td class="p-2 text-right text-red-600">${v.rebut}</td><td class="p-2 text-right text-amber-600">${v.reprise}</td><td class="p-2 text-right">${taux}%</td><td class="p-2 text-right">${(v.min/60).toFixed(1)} h</td></tr>`;
+  }).join('') || `<tr><td class="p-2 text-slate-400" colspan="7">Aucun pointage ce jour.</td></tr>`;
+
+  const detailRows=pointages.slice().sort((a,b)=>(a.debut||'').localeCompare(b.debut||'')).map(p=>{
+    const of=ofById[p.ofId];
+    const dm=dureeMin(p);
+    return `<tr class="border-b"><td class="p-2 text-xs text-slate-400 whitespace-nowrap">${p.debut?new Date(p.debut).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'—'}${p.fin?'→'+new Date(p.fin).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):''}</td><td class="p-2 font-semibold">${escapeHtml(p.ofNumero||'—')}</td><td class="p-2 text-xs text-slate-500">${escapeHtml(of?.ouvrage||'—')}</td><td class="p-2">${escapeHtml(p.operation||'—')}</td><td class="p-2">${escapeHtml(p.operateur||'—')}</td><td class="p-2 text-right text-emerald-600">${p.qteConforme||0}</td><td class="p-2 text-right text-red-600">${p.qteRebut||0}</td><td class="p-2 text-right text-amber-600">${p.qteReprise||0}</td><td class="p-2 text-right text-xs whitespace-nowrap">${dm?Math.round(dm)+' min':'—'}</td></tr>`;
+  }).join('') || `<tr><td class="p-2 text-slate-400" colspan="9">Aucun pointage saisi pour cette date.</td></tr>`;
+
+  const el=document.getElementById('sjContent'); if(!el) return;
+  el.innerHTML=`
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+      <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3"><div class="text-xs text-emerald-700 font-semibold">Qté conforme</div><div class="text-2xl font-bold text-emerald-700">${totalConforme}</div></div>
+      <div class="bg-red-50 border border-red-200 rounded-xl p-3"><div class="text-xs text-red-700 font-semibold">Qté rebut</div><div class="text-2xl font-bold text-red-700">${totalRebut}</div></div>
+      <div class="bg-amber-50 border border-amber-200 rounded-xl p-3"><div class="text-xs text-amber-700 font-semibold">Qté reprise</div><div class="text-2xl font-bold text-amber-700">${totalReprise}</div></div>
+      <div class="bg-slate-50 border rounded-xl p-3"><div class="text-xs text-slate-500 font-semibold">Taux de rebut</div><div class="text-2xl font-bold text-slate-700">${tauxRebut}%</div></div>
+      <div class="bg-blue-50 border border-blue-200 rounded-xl p-3"><div class="text-xs text-blue-700 font-semibold">Heures pointées</div><div class="text-2xl font-bold text-blue-700">${(totalMin/60).toFixed(1)} h</div></div>
+    </div>
+    <div class="flex flex-wrap gap-4 text-sm text-slate-500 mb-5">
+      <div>🏭 <b class="text-slate-700">${ofDistinct}</b> OF travaillé(s)</div>
+      <div>👷 <b class="text-slate-700">${operateursDistinct}</b> opérateur(s) actif(s)</div>
+      <div>⏱ <b class="text-slate-700">${pointages.length}</b> pointage(s) saisi(s)</div>
+    </div>
+    <div class="grid lg:grid-cols-2 gap-4 mb-5">
+      <div>
+        <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Par poste</h3>
+        <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Poste</th><th class="text-right p-2">Pointages</th><th class="text-right p-2">Conf.</th><th class="text-right p-2">Rebut</th><th class="text-right p-2">Repr.</th><th class="text-right p-2">Taux rebut</th><th class="text-right p-2">Temps</th></tr></thead><tbody>${tableauLignes(agreger(p=>p.operation))}</tbody></table></div>
+      </div>
+      <div>
+        <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Par opérateur</h3>
+        <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Opérateur</th><th class="text-right p-2">Pointages</th><th class="text-right p-2">Conf.</th><th class="text-right p-2">Rebut</th><th class="text-right p-2">Repr.</th><th class="text-right p-2">Taux rebut</th><th class="text-right p-2">Temps</th></tr></thead><tbody>${tableauLignes(agreger(p=>p.operateur))}</tbody></table></div>
+      </div>
+    </div>
+    <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Détail des pointages du jour</h3>
+    <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Horaire</th><th class="text-left p-2">OF</th><th class="text-left p-2">Ouvrage</th><th class="text-left p-2">Opération</th><th class="text-left p-2">Opérateur</th><th class="text-right p-2">Conf.</th><th class="text-right p-2">Rebut</th><th class="text-right p-2">Repr.</th><th class="text-right p-2">Temps</th></tr></thead><tbody>${detailRows}</tbody></table></div>`;
+}
+function sjChangerJour(delta){
+  const inp=document.getElementById('sjDate'); if(!inp) return;
+  const d=new Date((inp.value||new Date().toISOString().slice(0,10))+'T00:00:00');
+  d.setDate(d.getDate()+delta);
+  inp.value=d.toISOString().slice(0,10);
+  renderSuiviJournalier();
+}
+function sjAujourdhui(){
+  const inp=document.getElementById('sjDate'); if(!inp) return;
+  inp.value=new Date().toISOString().slice(0,10);
+  renderSuiviJournalier();
+}
+function printSuiviJournalier(){
+  const html=document.getElementById('sjContent')?.innerHTML||'';
+  const date=document.getElementById('sjDate')?.value||new Date().toISOString().slice(0,10);
+  const win=window.open('','_blank','width=1200,height=900');
+  if(!win) return;
+  win.document.write(`<html><head><title>Suivi journalier de production — ${date}</title>
+    <style>body{font-family:Arial,sans-serif;padding:20px;color:#0f172a}h1{font-size:16px;margin:0}.sub{color:#64748b;font-size:11px;margin-bottom:14px}table{width:100%;border-collapse:collapse;font-size:11.5px}th,td{border:1px solid #e2e8f0;padding:5px 8px;text-align:left}</style>
+    </head><body><h1>Suivi journalier de production — SANIX AFRICA</h1><div class="sub">Journée du ${new Date(date+'T00:00:00').toLocaleDateString('fr-FR')}</div>${html}</body></html>`);
+  win.document.close(); win.focus(); setTimeout(()=>win.print(),300);
+}
+
+/* ---------- Bilan utilisation des composants & avancement (OF / chantier) ---------- */
+function chantierAvancementPct(etape){
+  if(etape==='termine') return 100;
+  const idx=CHANTIER_STAGES.findIndex(s=>s.key===etape);
+  if(idx<0) return 0;
+  return Math.round(((idx+1)/CHANTIER_STAGES.length)*100);
+}
+async function populateBilanChantierSelect(){
+  const sel=document.getElementById('bcChantierSelect'); if(!sel) return;
+  const prev=sel.value;
+  const chantiers=(await idbGetAll('chantiers')).filter(c=>c.ofGeneres&&c.ofGeneres.length).sort((a,b)=>(b.numero||'').localeCompare(a.numero||''));
+  sel.innerHTML = `<option value="">Tous les dossiers chantier</option>`+
+    chantiers.map(c=>`<option value="${c.id}">${escapeHtml(c.numero)} — ${escapeHtml(c.client)}</option>`).join('')+
+    `<option value="__horschantier">OF hors dossier chantier</option>`;
+  if(prev && [...sel.options].some(o=>o.value===prev)) sel.value=prev;
+}
+async function renderBilanComposants(){
+  const el=document.getElementById('bcContent'); if(!el) return;
+  const sel=document.getElementById('bcChantierSelect');
+  if(sel && !sel.options.length) await populateBilanChantierSelect();
+  const scope=sel?sel.value:'';
+
+  const [ofRows,chantierRows,stockRows,mouvRows]=await Promise.all([
+    idbGetAll('of'),idbGetAll('chantiers'),idbGetAll('stock'),idbGetAll('stock_mouvements')
+  ]);
+  const labelByRef={},uniteByRef={},dispoByRef={};
+  stockRows.forEach(s=>{ labelByRef[s.ref]=s.label; uniteByRef[s.ref]=s.unite||''; dispoByRef[s.ref]=(dispoByRef[s.ref]||0)+(s.dispo||0); });
+  const sortiParOFRef={};
+  mouvRows.filter(m=>m.type==='sortie'&&m.refOF).forEach(m=>{
+    sortiParOFRef[m.refOF]=sortiParOFRef[m.refOF]||{};
+    sortiParOFRef[m.refOF][m.ref]=(sortiParOFRef[m.refOF][m.ref]||0)+(m.qty||0);
+  });
+
+  let chantiersScope;
+  let ofHorsChantier=[];
+  if(scope==='__horschantier'){
+    chantiersScope=[];
+    ofHorsChantier=ofRows.filter(o=>!o.chantierId);
+  } else if(scope){
+    chantiersScope=chantierRows.filter(c=>c.id===scope);
+  } else {
+    chantiersScope=chantierRows.filter(c=>c.ofGeneres&&c.ofGeneres.length);
+    ofHorsChantier=ofRows.filter(o=>!o.chantierId);
+  }
+
+  const blocsChantier=chantiersScope.map(ch=>{
+    const ofDuChantier=ofRows.filter(o=>o.chantierId===ch.id);
+    const pctChantier=chantierAvancementPct(ch.etape);
+    const stageLabel=CHANTIER_STAGES.find(s=>s.key===ch.etape)?.label||ch.etape;
+    const pctMoyenOF = ofDuChantier.length ? Math.round(ofDuChantier.reduce((s,o)=>s+ofAvancementPct(o.statut,o.gammeSteps),0)/ofDuChantier.length) : null;
+    const ofRowsHtml = ofDuChantier.length ? ofDuChantier.map(o=>{
+      const pct=ofAvancementPct(o.statut,o.gammeSteps);
+      const c=OF_STATUS_COLOR[o.statut]||'slate';
+      return `<tr class="border-b"><td class="p-2 font-semibold">${escapeHtml(o.numero)}</td><td class="p-2 text-xs">${escapeHtml(o.ouvrage)}</td><td class="p-2"><span class="badge bg-${c}-50 text-${c}-700">${escapeHtml(o.statut)}</span></td><td class="p-2"><div class="w-24"><div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-blue-600" style="width:${pct}%"></div></div><div class="text-[10px] text-slate-400 mt-0.5">${pct}%</div></div></td><td class="p-2 text-xs">${o.requisitionNumero?'<span class="text-emerald-600 font-semibold">✓ '+escapeHtml(o.requisitionNumero)+'</span>':'<span class="text-amber-600">En attente de sortie</span>'}</td></tr>`;
+    }).join('') : `<tr><td class="p-2 text-slate-400" colspan="5">Aucun OF généré pour ce dossier.</td></tr>`;
+    return `<div class="border rounded-xl p-4 mb-4">
+      <div class="flex flex-wrap justify-between items-center gap-2 mb-2">
+        <div><span class="font-bold">${escapeHtml(ch.numero)}</span> — ${escapeHtml(ch.client)}<span class="badge bg-${CHANTIER_STAGE_COLOR[ch.etape]||'slate'}-50 text-${CHANTIER_STAGE_COLOR[ch.etape]||'slate'}-700 ml-2">${escapeHtml(stageLabel)}</span></div>
+        <div class="text-xs text-slate-500">Avancement circuit : <b>${pctChantier}%</b>${pctMoyenOF!=null?' · Avancement atelier moyen (OF) : <b>'+pctMoyenOF+'%</b>':''}</div>
+      </div>
+      <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-3"><div class="h-full bg-emerald-600" style="width:${pctChantier}%"></div></div>
+      <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">OF</th><th class="text-left p-2">Ouvrage</th><th class="text-left p-2">Statut</th><th class="text-left p-2">Avancement</th><th class="text-left p-2">Réquisition</th></tr></thead><tbody>${ofRowsHtml}</tbody></table></div>
+    </div>`;
+  }).join('');
+
+  const blocHorsChantier = ofHorsChantier.length ? `<div class="border rounded-xl p-4 mb-4">
+    <div class="font-bold mb-2">📦 OF hors dossier chantier (${ofHorsChantier.length})</div>
+    <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">OF</th><th class="text-left p-2">Ouvrage</th><th class="text-left p-2">Client</th><th class="text-left p-2">Statut</th><th class="text-left p-2">Avancement</th></tr></thead><tbody>
+      ${ofHorsChantier.map(o=>{
+        const pct=ofAvancementPct(o.statut,o.gammeSteps);
+        const c=OF_STATUS_COLOR[o.statut]||'slate';
+        return `<tr class="border-b"><td class="p-2 font-semibold">${escapeHtml(o.numero)}</td><td class="p-2 text-xs">${escapeHtml(o.ouvrage)}</td><td class="p-2">${escapeHtml(o.client)}</td><td class="p-2"><span class="badge bg-${c}-50 text-${c}-700">${escapeHtml(o.statut)}</span></td><td class="p-2"><div class="w-24"><div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-blue-600" style="width:${pct}%"></div></div><div class="text-[10px] text-slate-400 mt-0.5">${pct}%</div></div></td></tr>`;
+      }).join('')}
+    </tbody></table></div>
+  </div>` : '';
+
+  // Bilan composants consolidé sur le périmètre sélectionné
+  const ofScope = scope==='__horschantier' ? ofHorsChantier
+    : scope ? ofRows.filter(o=>o.chantierId===scope)
+    : ofRows;
+  const bilan={};
+  ofScope.forEach(o=>{
+    (o.reservations||[]).forEach(r=>{
+      bilan[r.ref]=bilan[r.ref]||{prevu:0,sorti:0};
+      bilan[r.ref].prevu+=(r.qty||0);
+    });
+    const sortiRefs=sortiParOFRef[o.numero]||{};
+    Object.entries(sortiRefs).forEach(([ref,qty])=>{
+      bilan[ref]=bilan[ref]||{prevu:0,sorti:0};
+      bilan[ref].sorti+=qty;
+    });
+  });
+  const bilanRows=Object.entries(bilan).sort((a,b)=>b[1].prevu-a[1].prevu).map(([ref,v])=>{
+    const enAttente=Math.max(0,v.prevu-v.sorti);
+    const unite=uniteByRef[ref]||'';
+    return `<tr class="border-b"><td class="p-2 font-mono text-xs">${escapeHtml(ref)}</td><td class="p-2 text-xs">${escapeHtml(labelByRef[ref]||'—')}</td><td class="p-2 text-right">${v.prevu.toFixed(2)} ${escapeHtml(unite)}</td><td class="p-2 text-right text-emerald-600">${v.sorti.toFixed(2)} ${escapeHtml(unite)}</td><td class="p-2 text-right ${enAttente>0?'text-amber-600 font-semibold':'text-slate-400'}">${enAttente.toFixed(2)} ${escapeHtml(unite)}</td><td class="p-2 text-right text-slate-500">${(dispoByRef[ref]||0).toFixed(2)} ${escapeHtml(unite)}</td></tr>`;
+  }).join('') || `<tr><td class="p-2 text-slate-400" colspan="6">Aucun composant réservé sur ce périmètre.</td></tr>`;
+
+  const nbOF=ofScope.length;
+  const nbReq=ofScope.filter(o=>o.requisitionNumero).length;
+
+  el.innerHTML = `
+    <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Dossiers & avancement</h3>
+    ${blocsChantier || ''}
+    ${blocHorsChantier}
+    ${!blocsChantier && !blocHorsChantier ? '<p class="text-slate-400 text-sm mb-4">Aucun dossier dans ce périmètre.</p>' : ''}
+    <div class="flex flex-wrap gap-4 text-sm text-slate-500 my-4">
+      <div>🏭 <b class="text-slate-700">${nbOF}</b> OF dans le périmètre</div>
+      <div>📋 <b class="text-slate-700">${nbReq}</b>/${nbOF} bon(s) de réquisition émis</div>
+    </div>
+    <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Bilan composants — réservé (BOM) vs sorti (réquisition)</h3>
+    <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Réf.</th><th class="text-left p-2">Désignation</th><th class="text-right p-2">Prévu (réservé)</th><th class="text-right p-2">Sorti (réquisition)</th><th class="text-right p-2">En attente de sortie</th><th class="text-right p-2">Stock dispo. actuel</th></tr></thead><tbody>${bilanRows}</tbody></table></div>`;
+}
+function printBilanComposants(){
+  const html=document.getElementById('bcContent')?.innerHTML||'';
+  const sel=document.getElementById('bcChantierSelect');
+  const perim=sel?sel.options[sel.selectedIndex]?.textContent:'Tous les dossiers';
+  const dateStr=new Date().toLocaleDateString('fr-FR');
+  const win=window.open('','_blank','width=1200,height=900');
+  if(!win) return;
+  win.document.write(`<html><head><title>Bilan composants & avancement</title>
+    <style>body{font-family:Arial,sans-serif;padding:20px;color:#0f172a}h1{font-size:16px;margin:0}.sub{color:#64748b;font-size:11px;margin-bottom:14px}table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px}th,td{border:1px solid #e2e8f0;padding:5px 8px;text-align:left}.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700}</style>
+    </head><body><h1>Bilan utilisation des composants & avancement — SANIX AFRICA</h1><div class="sub">Périmètre : ${escapeHtml(perim||'')} • Édité le ${dateStr}</div>${html}</body></html>`);
   win.document.close(); win.focus(); setTimeout(()=>win.print(),300);
 }
 
@@ -5026,6 +5312,65 @@ function apercuDossierChantier(chantierId){
   });
 }
 
+/* ---------- Envoi du devis au client (WhatsApp / Email) ---------- */
+function formatTelWhatsApp(raw){
+  let d=String(raw||'').replace(/[^\d]/g,'');
+  if(!d) return '';
+  if(d.startsWith('00')) d=d.slice(2);
+  if(d.startsWith('225')) return d;
+  if(d.startsWith('0')) d=d.slice(1);
+  if(d.length>=8 && d.length<=10) return '225'+d;
+  return d;
+}
+async function getClientRecord(clientId){
+  if(!clientId) return null;
+  const rows=await idbGetAll('clients');
+  return rows.find(c=>c.id===clientId)||null;
+}
+function buildDevisMessageTexte(rec){
+  const nbOuvrages=(rec.lignes||[]).length;
+  return `Bonjour ${rec.client||''},\n\n`+
+    `Veuillez trouver ci-joint notre devis ${rec.devisNumero||rec.numero} pour un montant total de ${money(rec.montantTotal||0)} TTC`+
+    (nbOuvrages?` (${nbOuvrages} ouvrage${nbOuvrages>1?'s':''}).`:'.')+
+    `\n\nMerci de nous confirmer votre accord pour lancement de la fabrication.\n\n`+
+    `Cordialement,\nSANIX AFRICA — Division Technologies\nTél : 0779181075`;
+}
+async function envoyerDevisWhatsApp(chantierId){
+  const rec=await getChantier(chantierId); if(!rec) return;
+  if(!(rec.lignes||[]).length || !rec.montantTotal){ alert('Dossier vide — impossible d\'envoyer.'); return; }
+  const client=await getClientRecord(rec.clientId);
+  let tel=formatTelWhatsApp(client?.tel || rec.contact || '');
+  if(!tel){
+    const saisie=prompt('Numéro WhatsApp du client (avec ou sans indicatif) :','');
+    if(saisie===null) return;
+    tel=formatTelWhatsApp(saisie);
+    if(!tel){ alert('Numéro invalide.'); return; }
+    if(rec.clientId && client){ client.tel=saisie.trim(); await idbPut('clients',client); queueSync('alubom_clients',client); }
+  }
+  const texte=buildDevisMessageTexte(rec);
+  window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(texte),'_blank');
+  await audit('ENVOI_DEVIS_WHATSAPP',rec.numero+' → '+rec.client);
+  if(confirm('Marquer ce devis comme envoyé au client ?')) await advanceChantierStage(chantierId,'paiement');
+}
+async function envoyerDevisEmail(chantierId){
+  const rec=await getChantier(chantierId); if(!rec) return;
+  if(!(rec.lignes||[]).length || !rec.montantTotal){ alert('Dossier vide — impossible d\'envoyer.'); return; }
+  const client=await getClientRecord(rec.clientId);
+  let email=(client?.email||'').trim();
+  if(!email){
+    const saisie=prompt('Adresse email du client :','');
+    if(saisie===null) return;
+    if(!/^\S+@\S+\.\S+$/.test(saisie.trim())){ alert('Adresse email invalide.'); return; }
+    email=saisie.trim();
+    if(rec.clientId && client){ client.email=email; await idbPut('clients',client); queueSync('alubom_clients',client); }
+  }
+  const sujet='Devis '+(rec.devisNumero||rec.numero)+' — SANIX AFRICA';
+  const corps=buildDevisMessageTexte(rec);
+  window.location.href='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent(sujet)+'&body='+encodeURIComponent(corps);
+  await audit('ENVOI_DEVIS_EMAIL',rec.numero+' → '+rec.client);
+  if(confirm('Marquer ce devis comme envoyé au client ?')) await advanceChantierStage(chantierId,'paiement');
+}
+
 /* ---------- Visualisation complète du dossier de fabrication (schémas + BOM par ouvrage) ---------- */
 function visualiserDossierFabrication(chantierId){
   idbGetAll('chantiers').then(rows=>{
@@ -5385,8 +5730,13 @@ async function openChantierDetail(id){
     actionPanel=`
       <p class="text-sm text-slate-600 mb-3">Devis <b>${escapeHtml(rec.devisNumero)}</b> — Montant total <b>${money(rec.montantTotal)}</b>${(rec.lignes||[]).length?' — '+(rec.lignes||[]).length+' ouvrage(s)':''}.</p>
       ${devisVide?`<p class="text-xs text-red-600 mb-2">⚠️ Dossier vide ou montant nul — ajoutez au moins un ouvrage (Configurateur → Chiffrage → Proforma) avant d'envoyer le devis.</p>`:''}
-      <button ${devisVide?'disabled class="opacity-50 cursor-not-allowed"':''} onclick="advanceChantierStage('${id}','paiement')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">Marquer devis envoyé au client →</button>
-      <button ${devisVide?'disabled class="opacity-50 cursor-not-allowed"':''} onclick="apercuDossierChantier('${id}')" class="border border-slate-400 text-slate-700 px-4 py-2 rounded-lg font-semibold ml-2">👁️ Aperçu du devis</button>`;
+      <div class="flex flex-wrap gap-2 mb-2">
+        <button ${devisVide?'disabled class="opacity-50 cursor-not-allowed"':''} onclick="envoyerDevisWhatsApp('${id}')" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold">📱 Envoyer via WhatsApp</button>
+        <button ${devisVide?'disabled class="opacity-50 cursor-not-allowed"':''} onclick="envoyerDevisEmail('${id}')" class="bg-slate-700 text-white px-4 py-2 rounded-lg font-semibold">✉️ Envoyer par Email</button>
+        <button ${devisVide?'disabled class="opacity-50 cursor-not-allowed"':''} onclick="apercuDossierChantier('${id}')" class="border border-slate-400 text-slate-700 px-4 py-2 rounded-lg font-semibold">👁️ Aperçu du devis</button>
+      </div>
+      <p class="text-xs text-slate-400 mb-2">📎 Le PDF n'est pas joint automatiquement — ouvrez « Aperçu du devis » → Imprimer → Enregistrer en PDF, puis joignez-le manuellement dans WhatsApp/Email avant l'envoi.</p>
+      <button ${devisVide?'disabled class="opacity-50 cursor-not-allowed"':''} onclick="advanceChantierStage('${id}','paiement')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">Marquer devis envoyé au client →</button>`;
   } else if(rec.etape==='paiement'){
     const restant=Math.max(0,rec.montantTotal-rec.montantPaye);
     const acompteMin=Math.round(rec.montantTotal*0.3);
