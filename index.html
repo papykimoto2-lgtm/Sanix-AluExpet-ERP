@@ -8326,7 +8326,7 @@ function refreshDependentViews(){
 }
 
 /* ---------- Vue 3D paramétrique ---------- */
-let scene3d,camera3d,renderer3d,group3d,anim3dId;
+let scene3d,camera3d,renderer3d,group3d,content3d,anim3dId;
 let rot3d={x:-0.35,y:0.5}, zoom3d=1, drag3d=false, lastMouse3d={x:0,y:0};
 function initOrUpdate3D(){
   if(typeof THREE==='undefined'){
@@ -8345,6 +8345,7 @@ function initOrUpdate3D(){
     const dir=new THREE.DirectionalLight(0xffffff,0.7); dir.position.set(400,600,800); scene3d.add(dir);
     const dir2=new THREE.DirectionalLight(0xffffff,0.35); dir2.position.set(-400,200,-600); scene3d.add(dir2);
     group3d=new THREE.Group(); scene3d.add(group3d);
+    content3d=new THREE.Group(); group3d.add(content3d);
 
     renderer3d.domElement.addEventListener('mousedown',e=>{drag3d=true; lastMouse3d={x:e.clientX,y:e.clientY}; renderer3d.domElement.style.cursor='grabbing';});
     window.addEventListener('mouseup',()=>{drag3d=false; if(renderer3d) renderer3d.domElement.style.cursor='grab';});
@@ -8379,63 +8380,333 @@ function initOrUpdate3D(){
   build3DOuvrage();
 }
 function reset3DView(){ rot3d={x:-0.35,y:0.5}; zoom3d=1; }
+/* ---------- Matériaux 3D partagés ---------- */
+function mat3dCadre(){ return new THREE.MeshStandardMaterial({color:0x334155,metalness:0.3,roughness:0.5}); }
+function mat3dVerre(){ return new THREE.MeshPhysicalMaterial({color:0xbfdbfe,transparent:true,opacity:0.35,roughness:0.05,metalness:0,transmission:0.4}); }
+function mat3dInox(){ return new THREE.MeshStandardMaterial({color:0xcbd5e1,metalness:0.85,roughness:0.25}); }
+function mat3dBeton(){ return new THREE.MeshStandardMaterial({color:0xd6d3cc,roughness:0.9}); }
+function mat3dToile(color){ return new THREE.MeshStandardMaterial({color:color||0x1d4ed8,roughness:0.8,side:THREE.DoubleSide}); }
+function mat3dPoly(){ return new THREE.MeshPhysicalMaterial({color:0xf1f5f9,transparent:true,opacity:0.55,roughness:0.3}); }
+function addBox3d(w,h,d,x,y,z,material){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(Math.max(1,w),Math.max(1,h),Math.max(1,d)), material);
+  m.position.set(x,y,z);
+  content3d.add(m);
+  return m;
+}
+
 function build3DOuvrage(){
-  if(!group3d || typeof THREE==='undefined') return;
-  while(group3d.children.length) group3d.remove(group3d.children[0]);
+  if(!group3d || !content3d || typeof THREE==='undefined') return;
+  while(content3d.children.length) content3d.remove(content3d.children[0]);
+  content3d.rotation.set(0,0,0);
+  content3d.position.set(0,0,0);
   const w=(+document.getElementById('width')?.value||1500);
   const h=(+document.getElementById('height')?.value||1400);
   const leaves=Math.max(1,+document.getElementById('leaves')?.value||1);
   const type=document.getElementById('type')?.value||'Fenêtre';
+  const scale=280/Math.max(w,h,600);
+
+  if(/garde-corps/i.test(type)) build3D_GardeCorps(w,h,scale,type);
+  else if(/escalier/i.test(type)) build3D_Escalier(w,h,scale);
+  else if(/pergola/i.test(type)) build3D_Pergola(w,h,scale);
+  else if(/bardage/i.test(type)) build3D_Bardage(w,h,scale);
+  else if(type==='Façade') build3D_Grille(w,h,scale,'facCols','facRows',null,0x0f172a);
+  else if(/cloison/i.test(type)) build3D_Grille(w,h,scale,'cwCols',null,'cwDoor',0x334155);
+  else if(/verrière/i.test(type)) build3D_Grille(w,h,scale,'vrCols','vrRows','vrDoor',0x0f172a);
+  else if(/volet roulant/i.test(type)) build3D_VoletRoulant(w,h,scale);
+  else if(/auvent|marquise/i.test(type)) build3D_Auvent(w,h,scale);
+  else if(/store banne/i.test(type)) build3D_StoreBanne(w,h,scale);
+  else if(/kiosque|abri/i.test(type)) build3D_Kiosque(w,h,scale);
+  else build3D_FenetrePorte(w,h,leaves,scale,type); // Fenêtre, Porte, Coulissant, Coulissant galandage, Baie vitrée, Fenêtre de toit
+
+  fitCamera3D();
+}
+function fitCamera3D(){
+  const savedX=group3d.rotation.x, savedY=group3d.rotation.y;
+  group3d.rotation.set(0,0,0);
+  group3d.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(content3d);
+  group3d.rotation.x=savedX; group3d.rotation.y=savedY;
+  if(box.isEmpty()) return;
+  const size=box.getSize(new THREE.Vector3());
+  const center=box.getCenter(new THREE.Vector3());
+  const maxDim=Math.max(size.x,size.y,size.z,50);
+  const dist=maxDim/Math.tan((camera3d.fov*Math.PI/180)/2)*0.62;
+  content3d.position.set(-center.x,-center.y,-center.z);
+  camera3d.position.set(0,0,dist);
+  camera3d.lookAt(0,0,0);
+}
+
+/* ---------- Fenêtre / Porte / Coulissant / Baie vitrée / Fenêtre de toit ---------- */
+function build3D_FenetrePorte(w,h,leaves,scale,type){
   const isDoor=/porte/i.test(type);
+  const isRoof=/toit/i.test(type);
   const cadreEp=8, profondeur=isDoor?45:55;
-  const scale=280/Math.max(w,h);
   const W=w*scale, H=h*scale;
+  const matCadre=mat3dCadre(), matVerre=mat3dVerre();
 
-  const matCadre=new THREE.MeshStandardMaterial({color:0x334155,metalness:0.3,roughness:0.5});
-  const matVerre=new THREE.MeshPhysicalMaterial({color:0xbfdbfe,transparent:true,opacity:0.35,roughness:0.05,metalness:0,transmission:0.4});
+  [[W,cadreEp,profondeur,0,H/2-cadreEp/2,0],[W,cadreEp,profondeur,0,-H/2+cadreEp/2,0],
+   [cadreEp,H,profondeur,-W/2+cadreEp/2,0,0],[cadreEp,H,profondeur,W/2-cadreEp/2,0,0]]
+   .forEach(a=>addBox3d(...a,matCadre));
 
-  // Dormant (cadre extérieur, forme creuse via 4 barres)
-  const bars=[
-    [W,cadreEp,profondeur, 0, H/2-cadreEp/2, 0],
-    [W,cadreEp,profondeur, 0,-H/2+cadreEp/2, 0],
-    [cadreEp,H,profondeur, -W/2+cadreEp/2, 0, 0],
-    [cadreEp,H,profondeur,  W/2-cadreEp/2, 0, 0]
-  ];
-  bars.forEach(([bw,bh,bd,x,y,z])=>{
-    const m=new THREE.Mesh(new THREE.BoxGeometry(bw,bh,bd), matCadre);
-    m.position.set(x,y,z);
-    group3d.add(m);
-  });
-
-  // Vantaux + vitrage
   const innerW=W-cadreEp*2, innerH=H-cadreEp*2;
   const leafW=innerW/leaves;
   for(let i=0;i<leaves;i++){
     const cx=-innerW/2+leafW*i+leafW/2;
-    const leafFrameBars=[
-      [leafW-4,6,profondeur*0.6, cx, innerH/2-3, 2],
-      [leafW-4,6,profondeur*0.6, cx,-innerH/2+3, 2],
-      [6,innerH,profondeur*0.6, cx-leafW/2+3, 0, 2],
-      [6,innerH,profondeur*0.6, cx+leafW/2-3, 0, 2]
-    ];
-    leafFrameBars.forEach(([bw,bh,bd,x,y,z])=>{
-      const m=new THREE.Mesh(new THREE.BoxGeometry(bw,bh,bd), matCadre);
-      m.position.set(x,y,z);
-      group3d.add(m);
-    });
-    const glass=new THREE.Mesh(new THREE.BoxGeometry(leafW-16,innerH-16,3), matVerre);
-    glass.position.set(cx,0,2);
-    group3d.add(glass);
+    [[leafW-4,6,profondeur*0.6,cx,innerH/2-3,2],[leafW-4,6,profondeur*0.6,cx,-innerH/2+3,2],
+     [6,innerH,profondeur*0.6,cx-leafW/2+3,0,2],[6,innerH,profondeur*0.6,cx+leafW/2-3,0,2]]
+     .forEach(a=>addBox3d(...a,matCadre));
+    addBox3d(leafW-16,innerH-16,3,cx,0,2,matVerre);
     if(!isDoor){
-      const handle=new THREE.Mesh(new THREE.BoxGeometry(4,26,6), new THREE.MeshStandardMaterial({color:0x94a3b8,metalness:0.6,roughness:0.3}));
-      handle.position.set(i%2===0?cx+leafW/2-14:cx-leafW/2+14, 0, profondeur*0.3+4);
-      group3d.add(handle);
+      const handle=addBox3d(4,26,6, i%2===0?cx+leafW/2-14:cx-leafW/2+14, 0, profondeur*0.3+4, new THREE.MeshStandardMaterial({color:0x94a3b8,metalness:0.6,roughness:0.3}));
     }
   }
-
-  camera3d.position.set(0,0,Math.max(W,H)*1.7);
-  camera3d.lookAt(0,0,0);
+  if(isRoof){
+    const pente=+document.getElementById('ftPente')?.value||30;
+    content3d.rotation.x=THREE.MathUtils.degToRad(-pente);
+  }
 }
+
+/* ---------- Garde-corps (alu/verre ou inox) ---------- */
+function build3D_GardeCorps(w,h,scale,type){
+  const isInox=/inox/i.test(type);
+  const spacing=+document.getElementById(isInox?'giSpacing':'gcSpacing')?.value||1200;
+  const infill=document.getElementById('giInfill')?.value||'verre';
+  const hauteurGC=1000; // hauteur garde-corps normalisée (1m réglementaire)
+  const W=w*scale, H=hauteurGC*scale;
+  const matPoteau=isInox?mat3dInox():mat3dCadre();
+  const nbPoteaux=Math.max(2,Math.round(w/spacing)+1);
+  const pas=W/(nbPoteaux-1);
+
+  // Poteaux
+  for(let i=0;i<nbPoteaux;i++) addBox3d(10,H,10,-W/2+pas*i,0,0,matPoteau);
+  // Main courante
+  addBox3d(W+16,14,40,0,H/2,0,matPoteau);
+  // Lisse basse
+  addBox3d(W+10,8,8,0,-H/2+6,0,matPoteau);
+
+  // Remplissage
+  for(let i=0;i<nbPoteaux-1;i++){
+    const cx=-W/2+pas*i+pas/2;
+    if(!isInox || infill==='verre'){
+      addBox3d(pas-14,H-30,4,cx,0,0,mat3dVerre());
+    } else if(infill==='barreaudage'){
+      const nbBarres=Math.max(3,Math.round(pas/110));
+      for(let b=0;b<nbBarres;b++){
+        const bx=-pas/2+((b+0.5)*pas/nbBarres);
+        addBox3d(6,H-22,6,cx+bx,0,0,matPoteau);
+      }
+    } else { // câble inox tendu
+      const nbCables=6;
+      for(let c=0;c<nbCables;c++){
+        const cy=-H/2+18+((H-36)/(nbCables-1))*c;
+        addBox3d(pas-6,2,2,cx,cy,0,matPoteau);
+      }
+    }
+  }
+}
+
+/* ---------- Escalier métallique/inox ---------- */
+function build3D_Escalier(w,h,scale){
+  const marcheH=+document.getElementById('esMarcheH')?.value||175;
+  const avecGC=document.getElementById('esGardeCorps')?.value!=='non';
+  const nbMarches=Math.max(3,Math.round(h/marcheH));
+  const girondeReelle=Math.max(220,w*1000/Math.max(1,nbMarches)); // profondeur marche approx si w = longueur totale au sol (en mm déjà)
+  const H=h*scale, stepH=H/nbMarches;
+  const stepDepthMm=Math.max(240,w/Math.max(1,nbMarches));
+  const stepD=stepDepthMm*scale;
+  const stepW=Math.min(280,900*scale);
+  const matMarche=mat3dInox(), matLimon=mat3dCadre();
+
+  const totalDepth=stepD*nbMarches;
+  for(let i=0;i<nbMarches;i++){
+    const y=-H/2+stepH*(i+0.5);
+    const z=-totalDepth/2+stepD*(i+0.5);
+    addBox3d(stepW,10,stepD-4,0,y,z,matMarche);
+    // Contremarche
+    addBox3d(stepW,stepH,4,0,y-stepH/2+2,z-stepD/2+2,matLimon);
+  }
+  // Limons (structure porteuse diagonale approximée par boîte inclinée)
+  const limon=new THREE.Mesh(new THREE.BoxGeometry(14,Math.sqrt(H*H+totalDepth*totalDepth),10), matLimon);
+  limon.rotation.x=Math.atan2(H,totalDepth);
+  limon.position.set(stepW/2-8,0,0);
+  content3d.add(limon);
+  const limon2=limon.clone(); limon2.position.x=-(stepW/2-8); content3d.add(limon2);
+
+  if(avecGC){
+    const matGC=mat3dInox();
+    const nbMontants=nbMarches;
+    for(let i=0;i<=nbMontants;i++){
+      const y=-H/2+stepH*i+380*scale;
+      const z=-totalDepth/2+stepD*i;
+      addBox3d(8,760*scale,8,stepW/2+6,y,z,matGC);
+    }
+    const rampe=new THREE.Mesh(new THREE.BoxGeometry(10,10,Math.sqrt(H*H+totalDepth*totalDepth)), matGC);
+    rampe.rotation.x=Math.atan2(H,totalDepth);
+    rampe.position.set(stepW/2+6,380*scale,0);
+    content3d.add(rampe);
+  }
+}
+
+/* ---------- Pergola bioclimatique ---------- */
+function build3D_Pergola(w,h,scale){
+  const depth=+document.getElementById('pgDepth')?.value||3000;
+  const fixation=document.getElementById('pgFixation')?.value||'autoportee';
+  const lameW=+document.getElementById('pgLameSpacing')?.value||120;
+  const W=w*scale, D=depth*scale, H=h*scale||2200*scale;
+  const matStruct=mat3dCadre();
+
+  const postXs = fixation==='murale' ? [-W/2+15, W/2-15] : [-W/2+15, W/2-15];
+  postXs.forEach(px=>{
+    addBox3d(20,H,20,px,-H/2+H/2-H/2,-D/2+15,matStruct); // avant (structure murale = mur, on affiche quand même 2 poteaux avant)
+    addBox3d(20,H,20,px,0,-D/2+15,matStruct);
+    if(fixation!=='murale') addBox3d(20,H,20,px,0,D/2-15,matStruct);
+  });
+  // Poutraison haute
+  addBox3d(W,20,20,0,H/2,-D/2+15,matStruct);
+  if(fixation!=='murale') addBox3d(W,20,20,0,H/2,D/2-15,matStruct);
+  addBox3d(20,20,D,-W/2+15,H/2,0,matStruct);
+  addBox3d(20,20,D,W/2+15,H/2,0,matStruct);
+  // Lames orientables
+  const nbLames=Math.max(3,Math.round(depth/lameW));
+  const pas=D/nbLames;
+  for(let i=0;i<nbLames;i++){
+    const lame=new THREE.Mesh(new THREE.BoxGeometry(W-40,8,pas*0.85), mat3dCadre());
+    lame.position.set(0,H/2-6,-D/2+pas*(i+0.5));
+    lame.rotation.x=THREE.MathUtils.degToRad(35);
+    content3d.add(lame);
+  }
+}
+
+/* ---------- Bardage aluminium ---------- */
+function build3D_Bardage(w,h,scale){
+  const laneW=+document.getElementById('bdLameWidth')?.value||300;
+  const railSpacing=+document.getElementById('bdRailSpacing')?.value||600;
+  const W=w*scale, H=h*scale;
+  addBox3d(W+10,H+10,15,0,0,-8,mat3dBeton()); // support mur
+  const nbBandes=Math.max(2,Math.round(h/laneW));
+  const bandeH=H/nbBandes;
+  for(let i=0;i<nbBandes;i++){
+    addBox3d(W,bandeH-4,10,0,-H/2+bandeH*(i+0.5),4,new THREE.MeshStandardMaterial({color:i%2===0?0x475569:0x64748b,metalness:0.5,roughness:0.4}));
+  }
+  const nbRails=Math.max(2,Math.round(w/railSpacing));
+  for(let i=0;i<=nbRails;i++){
+    addBox3d(10,H,4,-W/2+(W/nbRails)*i,0,10,mat3dCadre());
+  }
+}
+
+/* ---------- Façade rideau / Cloison vitrée / Verrière (grille de trames) ---------- */
+function build3D_Grille(w,h,scale,colsId,rowsId,doorId,couleurStruct){
+  const cols=Math.max(1,+document.getElementById(colsId)?.value||3);
+  const rows=rowsId ? Math.max(1,+document.getElementById(rowsId)?.value||1) : 1;
+  const avecPorte=document.getElementById(doorId||'')?.value==='oui';
+  const W=w*scale, H=h*scale;
+  const matStruct=new THREE.MeshStandardMaterial({color:couleurStruct,metalness:0.4,roughness:0.4});
+  const matVerre=mat3dVerre();
+  const cellW=W/cols, cellH=H/rows;
+
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const cx=-W/2+cellW*c+cellW/2, cy=-H/2+cellH*r+cellH/2;
+      const isDoorCell = avecPorte && r===0 && c===0;
+      addBox3d(cellW-10,cellH-10,4,cx,cy,0, isDoorCell?mat3dVerre():matVerre);
+    }
+  }
+  // Meneaux verticaux
+  for(let c=0;c<=cols;c++) addBox3d(10,H,20,-W/2+cellW*c,0,2,matStruct);
+  // Traverses horizontales
+  for(let r=0;r<=rows;r++) addBox3d(W,10,20,0,-H/2+cellH*r,2,matStruct);
+}
+
+/* ---------- Volet roulant ---------- */
+function build3D_VoletRoulant(w,h,scale){
+  const coffreType=document.getElementById('voCoffre')?.value||'tunnel';
+  const W=w*scale, H=h*scale;
+  const coffreH=(coffreType==='monobloc'?26:18)*scale*4;
+  addBox3d(W+16,coffreH,60,0,H/2+coffreH/2,0,mat3dCadre());
+  const nbLames=Math.max(6,Math.round(h/40));
+  const lameH=H/nbLames;
+  for(let i=0;i<nbLames;i++){
+    addBox3d(W,lameH-2,25,0,H/2-lameH*(i+0.5),0,new THREE.MeshStandardMaterial({color:i%2===0?0xcbd5e1:0xe2e8f0,metalness:0.3,roughness:0.4}));
+  }
+  addBox3d(10,H,30,-W/2-5,0,0,mat3dCadre());
+  addBox3d(10,H,30,W/2+5,0,0,mat3dCadre());
+}
+
+/* ---------- Auvent / Marquise ---------- */
+function build3D_Auvent(w,h,scale){
+  const saillie=+document.getElementById('auSaillie')?.value||1500;
+  const couverture=document.getElementById('auCouverture')?.value||'poly';
+  const spacing=+document.getElementById('auSpacing')?.value||1000;
+  const W=w*scale, D=saillie*scale;
+  addBox3d(W+20,300*scale,20,0,0,-10,mat3dBeton());
+  const matToit = couverture==='verre'?mat3dVerre():couverture==='alu'?mat3dCadre():mat3dPoly();
+  const toit=new THREE.Mesh(new THREE.BoxGeometry(W,6,D), matToit);
+  toit.position.set(0,20,D/2-10);
+  toit.rotation.x=THREE.MathUtils.degToRad(-8);
+  content3d.add(toit);
+  const nbConsoles=Math.max(2,Math.round(w/spacing)+1);
+  for(let i=0;i<nbConsoles;i++){
+    const cx=-W/2+(W/(nbConsoles-1||1))*i;
+    const console_=new THREE.Mesh(new THREE.BoxGeometry(12,12,D), mat3dCadre());
+    console_.position.set(cx,0,D/2-10);
+    console_.rotation.x=THREE.MathUtils.degToRad(-8);
+    content3d.add(console_);
+  }
+}
+
+/* ---------- Store banne ---------- */
+function build3D_StoreBanne(w,h,scale){
+  const saillie=+document.getElementById('sbSaillie')?.value||2500;
+  const W=w*scale, D=saillie*scale;
+  addBox3d(W+16,140*scale,140*scale,0,H_STORE(h,scale),-10,mat3dCadre());
+  const toile=new THREE.Mesh(new THREE.BoxGeometry(W,4,D), mat3dToile(0xb45309));
+  toile.position.set(0,H_STORE(h,scale)-D*0.18,D/2-10);
+  toile.rotation.x=THREE.MathUtils.degToRad(-14);
+  content3d.add(toile);
+  [-W/2+20,W/2-20].forEach(x=>{
+    const bras=new THREE.Mesh(new THREE.BoxGeometry(8,8,D), mat3dCadre());
+    bras.position.set(x,H_STORE(h,scale)-D*0.09,D/2-10);
+    bras.rotation.x=THREE.MathUtils.degToRad(-14);
+    content3d.add(bras);
+  });
+}
+function H_STORE(h,scale){ return (h||2200)*scale/2; }
+
+/* ---------- Kiosque / abri de jardin ---------- */
+function build3D_Kiosque(w,h,scale){
+  const depth=+document.getElementById('kiDepth')?.value||3000;
+  const roofType=document.getElementById('kiRoofType')?.value||'2pans';
+  const W=w*scale, D=depth*scale, H=(h||2400)*scale;
+  const matStruct=mat3dCadre(), matToit=mat3dPoly();
+  const corners=[[-W/2+15,-D/2+15],[W/2-15,-D/2+15],[-W/2+15,D/2-15],[W/2-15,D/2-15]];
+  corners.forEach(([x,z])=>addBox3d(20,H,20,x,-H/2+H/2-0,z,matStruct));
+  // Sabliere haute
+  addBox3d(W,20,20,0,H/2,-D/2+15,matStruct); addBox3d(W,20,20,0,H/2,D/2-15,matStruct);
+  addBox3d(20,20,D,-W/2+15,H/2,0,matStruct); addBox3d(20,20,D,W/2+15,H/2,0,matStruct);
+  // Toiture
+  if(roofType==='pyramidale'){
+    const roof=new THREE.Mesh(new THREE.ConeGeometry(Math.max(W,D)/1.7,H*0.35,4), matToit);
+    roof.rotation.y=Math.PI/4;
+    roof.position.set(0,H/2+H*0.175,0);
+    content3d.add(roof);
+  } else if(roofType==='4pans'){
+    [[0,0,1],[0,0,-1],[1,0,0],[-1,0,0]].forEach(([rx,ry,rz])=>{
+      const panneau=new THREE.Mesh(new THREE.BoxGeometry(W*0.75,6,D*0.6), matToit);
+      panneau.position.set(rx*W*0.15,H/2+H*0.12,rz*D*0.15);
+      panneau.rotation.x=THREE.MathUtils.degToRad(rz!==0?(rz>0?18:-18):0);
+      panneau.rotation.z=THREE.MathUtils.degToRad(rx!==0?(rx>0?-18:18):0);
+      content3d.add(panneau);
+    });
+  } else { // 2 pans
+    [-1,1].forEach(side=>{
+      const panneau=new THREE.Mesh(new THREE.BoxGeometry(W+30,6,D/1.7), matToit);
+      panneau.position.set(0,H/2+H*0.12,side*D*0.2);
+      panneau.rotation.x=THREE.MathUtils.degToRad(side*20);
+      content3d.add(panneau);
+    });
+  }
+}
+
 
 /* ---------- Éditeur de plan semi-technique (Canvas 2D, outils) ---------- */
 let editorTool='pan', editorZoomVal=1, editorOffset={x:0,y:0}, editorAnnotations=[];
