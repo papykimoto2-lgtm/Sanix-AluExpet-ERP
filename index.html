@@ -1636,6 +1636,10 @@ window.SANIX_CFG = {
   <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" id="receptionAchatContent"></div>
 </div>
 
+<div id="editAchatModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 modal-overlay">
+  <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" id="editAchatContent"></div>
+</div>
+
 <script>
 /* =========================================================
    Sanix AluExpert ERP — Couche ERP (Auth Supabase, IndexedDB offline,
@@ -3300,10 +3304,12 @@ async function openChantierDetail(id){
               <div class="flex items-center gap-2">
                 <span class="badge bg-${a.statut==='recue'?'emerald':a.statut==='partielle'?'orange':a.statut==='commandee'?'blue':a.statut==='validee'?'amber':'slate'}-50 text-${a.statut==='recue'?'emerald':a.statut==='partielle'?'orange':a.statut==='commandee'?'blue':a.statut==='validee'?'amber':'slate'}-700">${escapeHtml(a.statut)}</span>
                 ${a.statut!=='recue'?`<button onclick="advanceAchatStatut('${a.id}','${id}')" class="text-blue-600 text-xs font-semibold">${(a.statut==='commandee'||a.statut==='partielle')?'📦 Réceptionner':'Étape suivante →'}</button>`:''}
+                <button onclick="openEditAchatModal('${a.id}','${id}')" title="Modifier fournisseur/statut" class="text-slate-500 text-xs font-semibold">✏️</button>
+                <button onclick="deleteAchat('${a.id}','${id}')" title="Supprimer toute la demande" class="text-red-500 text-xs font-semibold">🗑️</button>
               </div>
             </div>
             <div class="mt-2 pt-2 border-t text-xs text-slate-500 space-y-0.5">
-              ${lignes.map(l=>`<div class="flex justify-between"><span>${escapeHtml(l.code?l.code+' — ':'')}${escapeHtml(l.designation)} × ${l.qte}${(l.qteRecue||0)>0?` (reçu ${l.qteRecue}/${l.qte})`:''}</span><span>${money(l.montant||l.qte*l.prix)}</span></div>`).join('')}
+              ${lignes.map((l,li)=>`<div class="flex justify-between items-center"><span>${escapeHtml(l.code?l.code+' — ':'')}${escapeHtml(l.designation)} × ${l.qte}${(l.qteRecue||0)>0?` (reçu ${l.qteRecue}/${l.qte})`:''}</span><span class="flex items-center gap-2"><b>${money(l.montant||l.qte*l.prix)}</b>${a.statut!=='recue'?`<button onclick="deleteLigneAchat('${a.id}',${li},'${id}')" title="Retirer cette ligne" class="text-red-400 hover:text-red-600 font-bold">✕</button>`:''}</span></div>`).join('')}
             </div>
           </div>`;
         }).join('') : '<div class="text-sm text-slate-400">Aucune demande d\'achat.</div>'}
@@ -3532,6 +3538,93 @@ async function validerReceptionAchat(){
   await audit('RECEPTION_ACHAT',rec.numero+' → '+rec.statut);
   closeReceptionAchatModal();
   await openChantierDetail(receptionChantierId);
+}
+
+/* ---------- Suppression d'une DA entière ou d'une ligne au sein d'une DA ---------- */
+/* ---------- Édition d'une DA existante (fournisseur, statut) ---------- */
+const ACHAT_STATUTS=['demande','validee','commandee','partielle','recue'];
+async function openEditAchatModal(achatId,chantierId){
+  if(!hasRole('achat:manage')){ alert('Permission refusée.'); return; }
+  const rows=await idbGetAll('achats');
+  const rec=rows.find(a=>a.id===achatId); if(!rec) return;
+  const modal=document.getElementById('editAchatModal');
+  const content=document.getElementById('editAchatContent');
+  content.innerHTML=`
+    <div class="flex justify-between items-start mb-4">
+      <h2 class="text-lg font-bold">✏️ Modifier ${escapeHtml(rec.numero)}</h2>
+      <button onclick="closeEditAchatModal()" class="text-slate-400 text-xl leading-none">×</button>
+    </div>
+    <form onsubmit="return handleEditAchat(event,'${achatId}','${chantierId}')" class="space-y-3">
+      <label class="text-sm font-semibold block">Fournisseur
+        <input id="eaFournisseur" list="fournisseursDatalist" value="${escapeHtml(rec.fournisseur||'')}" required class="mt-1 w-full border rounded-lg px-3 py-2">
+      </label>
+      <label class="text-sm font-semibold block">Statut
+        <select id="eaStatut" class="mt-1 w-full border rounded-lg px-3 py-2">
+          ${ACHAT_STATUTS.map(s=>`<option value="${s}" ${rec.statut===s?'selected':''}>${escapeHtml(s)}</option>`).join('')}
+        </select>
+        <span class="text-xs text-slate-400 mt-1 block">Changement manuel — outrepasse la progression normale (demande → validée → commandée → reçue).</span>
+      </label>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" onclick="closeEditAchatModal()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Annuler</button>
+        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">✓ Enregistrer</button>
+      </div>
+    </form>`;
+  modal.classList.remove('hidden');
+  setModalOpen(true);
+}
+function closeEditAchatModal(){
+  document.getElementById('editAchatModal').classList.add('hidden');
+  setModalOpen(false);
+}
+async function handleEditAchat(e,achatId,chantierId){
+  e.preventDefault();
+  if(!hasRole('achat:manage')){ alert('Permission refusée.'); return false; }
+  const rows=await idbGetAll('achats');
+  const rec=rows.find(a=>a.id===achatId); if(!rec) return false;
+  const ancienStatut=rec.statut;
+  rec.fournisseur=document.getElementById('eaFournisseur').value.trim();
+  rec.statut=document.getElementById('eaStatut').value;
+  await idbPut('achats',rec);
+  queueSync('alubom_achats',rec);
+  await audit('MAJ_DEMANDE_ACHAT',rec.numero+' — modification manuelle (fournisseur/statut'+(ancienStatut!==rec.statut?' : '+ancienStatut+' → '+rec.statut:'')+')');
+  closeEditAchatModal();
+  await openChantierDetail(chantierId);
+  return false;
+}
+
+async function deleteAchat(achatId,chantierId){
+  if(!hasRole('achat:manage')){ alert('Permission refusée.'); return; }
+  const rows=await idbGetAll('achats');
+  const rec=rows.find(a=>a.id===achatId); if(!rec) return;
+  if(!confirm('Supprimer définitivement la demande d\'achat '+rec.numero+' ('+escapeHtml(rec.fournisseur)+') ?')) return;
+  await idbDelete('achats',achatId);
+  await audit('DELETE_DEMANDE_ACHAT',rec.numero+' — '+rec.fournisseur);
+  await openChantierDetail(chantierId);
+}
+async function deleteLigneAchat(achatId,ligneIndex,chantierId){
+  if(!hasRole('achat:manage')){ alert('Permission refusée.'); return; }
+  const rows=await idbGetAll('achats');
+  const rec=rows.find(a=>a.id===achatId); if(!rec) return;
+  const lignes=normalizeAchatLignes(rec);
+  if(!lignes[ligneIndex]) return;
+  if(!confirm('Retirer la référence "'+escapeHtml(lignes[ligneIndex].designation)+'" de cette demande d\'achat ?')) return;
+  if(lignes.length<=1){
+    if(!confirm('C\'est la dernière ligne — cela supprimera toute la demande d\'achat '+rec.numero+'. Continuer ?')) return;
+    await idbDelete('achats',achatId);
+    await audit('DELETE_DEMANDE_ACHAT',rec.numero+' — dernière ligne retirée');
+    await openChantierDetail(chantierId);
+    return;
+  }
+  const nouvellesLignes=lignes.filter((_,i)=>i!==ligneIndex);
+  rec.lignes=nouvellesLignes;
+  rec.montant=nouvellesLignes.reduce((s,l)=>s+(l.montant||0),0);
+  const toutRecu=nouvellesLignes.every(l=>(l.qteRecue||0)>=l.qte);
+  const rienRecu=nouvellesLignes.every(l=>(l.qteRecue||0)<=0);
+  if(toutRecu) rec.statut='recue'; else if(rienRecu && rec.statut==='partielle') rec.statut='commandee';
+  await idbPut('achats',rec);
+  queueSync('alubom_achats',rec);
+  await audit('MAJ_DEMANDE_ACHAT',rec.numero+' — ligne retirée, nouveau total '+money(rec.montant));
+  await openChantierDetail(chantierId);
 }
 
 async function handlePlanifierInstallation(e,id){
