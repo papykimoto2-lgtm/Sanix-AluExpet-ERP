@@ -1140,7 +1140,11 @@ window.SANIX_CFG = {
       <div id="cut" class="etude-tab hidden">
         <div class="grid lg:grid-cols-3 gap-6">
           <div class="lg:col-span-2 card bg-white rounded-2xl p-6">
-            <div class="flex flex-wrap justify-between gap-2 mb-5"><div><h2 class="text-lg font-bold">Fiche de débit — Optimisation des barres</h2><p class="text-sm text-slate-500">Calculée à partir de la BOM réelle, par référence de profil.</p></div><span id="cutRate" class="badge bg-emerald-50 text-emerald-700">—</span></div>
+            <div class="flex flex-wrap justify-between gap-2 mb-5"><div><h2 class="text-lg font-bold">Fiche de débit — Optimisation des barres</h2><p class="text-sm text-slate-500">Calculée à partir de la BOM réelle, par référence de profil.</p></div>
+            <div class="flex items-center gap-2">
+              <span id="cutRate" class="badge bg-emerald-50 text-emerald-700">—</span>
+              <button onclick="exportDebitDXF()" class="border border-blue-600 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-semibold">⬇ Export DXF (CNC)</button>
+            </div></div>
             <div id="cutModeNote" class="text-xs text-slate-500 bg-slate-50 border rounded-lg p-2 mb-4 hidden"></div>
             <div id="cutPlan" class="space-y-6"></div>
           </div>
@@ -2235,6 +2239,8 @@ function showApp(){
 
 async function checkSession(){
   db = await openDB();
+  const trackCode=new URLSearchParams(window.location.search).get('track');
+  if(trackCode){ await renderTrackingPortal(trackCode); return; }
   await seedDefaultLocalUser();
   const s=getSession();
   if(s && s.expires_at>Date.now()){
@@ -4898,6 +4904,162 @@ function visualiserDossierFabrication(chantierId){
   });
 }
 
+/* ---------- Export DXF du plan de débit (interconnexion machine CNC) ---------- */
+function exportDebitDXF(){
+  const plan=window.lastCutPlan;
+  if(!plan || !plan.length){ alert("Lancez d'abord l'optimisation du débit avant d'exporter."); return; }
+  const type=document.getElementById('type')?.value||'ouvrage';
+  const lines=[];
+  const add=(...vals)=>{ vals.forEach(v=>lines.push(String(v))); };
+
+  add('0','SECTION','2','HEADER','0','ENDSEC');
+  add('0','SECTION','2','TABLES','0','TABLE','2','LAYER','70','2');
+  add('0','LAYER','2','BARRE','70','0','62','7','6','CONTINUOUS');
+  add('0','LAYER','2','COUPE','70','0','62','1','6','CONTINUOUS');
+  add('0','LAYER','2','TEXTE','70','0','62','3','6','CONTINUOUS');
+  add('0','ENDTAB','0','ENDSEC');
+  add('0','SECTION','2','ENTITIES');
+
+  let yOffset=0;
+  const rowHeight=200, scale=1; // 1 unité DXF = 1 mm
+  plan.forEach(group=>{
+    group.bars.forEach((bar,barIdx)=>{
+      const barLen=bar.fromStock ? (bar.used+bar.chute) : group.barLen;
+      const y0=yOffset, y1=yOffset+60;
+      // Rectangle représentant la barre
+      add('0','LWPOLYLINE','8','BARRE','90','4','70','1',
+          '10',0,'20',y0,
+          '10',barLen,'20',y0,
+          '10',barLen,'20',y1,
+          '10',0,'20',y1);
+      // Traits de coupe successifs
+      let x=0;
+      bar.cuts.forEach((c,ci)=>{
+        x+=c;
+        add('0','LINE','8','COUPE','10',x,'20',y0,'11',x,'21',y1);
+        add('0','TEXT','8','TEXTE','10',x-c/2,'20',y0-14,'40',10,'1',c+'mm');
+        x+=group.kerf;
+      });
+      // Étiquette de la barre
+      add('0','TEXT','8','TEXTE','10',0,'20',y1+14,'40',14,'1',`${group.code} — ${bar.fromStock?'CHUTE':'Barre '+(barIdx+1)} — L=${Math.round(barLen)}mm — Chute ${Math.round(bar.chute)}mm`);
+      yOffset+=rowHeight;
+    });
+    yOffset+=rowHeight/2;
+  });
+
+  add('0','ENDSEC','0','EOF');
+  const dxfContent=lines.join('\n');
+  const blob=new Blob([dxfContent],{type:'application/dxf'});
+  const link=document.createElement('a');
+  link.href=URL.createObjectURL(blob);
+  link.download='debit-'+type.replace(/\s+/g,'_')+'-'+new Date().toISOString().slice(0,10)+'.dxf';
+  link.click();
+  audit('EXPORT_DXF',type+' — '+plan.reduce((s,g)=>s+g.bars.length,0)+' barre(s)');
+}
+
+/* ---------- Portail public de suivi client (sans connexion, accès par lien/QR) ---------- */
+function generateTrackingCode(){
+  return Array.from({length:10},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)]).join('');
+}
+async function genererLienSuivi(chantierId){
+  if(!hasRole('chantier:create')){ alert('Permission refusée.'); return; }
+  const rec=await getChantier(chantierId); if(!rec) return;
+  if(!rec.trackingCode){
+    rec.trackingCode=generateTrackingCode();
+    await saveChantier(rec);
+    await audit('GENERER_LIEN_SUIVI',rec.numero);
+  }
+  const url=window.location.origin+window.location.pathname+'?track='+rec.trackingCode;
+  const win=window.open('','_blank','width=420,height=560');
+  if(!win) return;
+  let qrSvg='';
+  if(typeof qrcode!=='undefined'){
+    const qr=qrcode(0,'M'); qr.addData(url); qr.make();
+    const n=qr.getModuleCount(), cell=5;
+    qrSvg=`<svg viewBox="0 0 ${n*cell} ${n*cell}" width="200" height="200" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#fff"/>`;
+    for(let r=0;r<n;r++) for(let c=0;c<n;c++) if(qr.isDark(r,c)) qrSvg+=`<rect x="${c*cell}" y="${r*cell}" width="${cell}" height="${cell}" fill="#0f172a"/>`;
+    qrSvg+='</svg>';
+  }
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Lien de suivi — ${escapeHtml(rec.numero)}</title>
+    <style>body{font-family:Arial,sans-serif;padding:24px;text-align:center;color:#0f172a}
+    .box{border:2px solid #0f172a;border-radius:10px;padding:20px}
+    input{width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:8px;font-size:11px;margin:12px 0;text-align:center}
+    button{background:#1d4ed8;color:#fff;border:0;padding:10px 18px;border-radius:8px;font-weight:700;cursor:pointer;margin-top:8px}
+    </style></head><body>
+    <div class="box">
+      <h2>Lien de suivi client</h2>
+      <p style="font-size:12px;color:#64748b">${escapeHtml(rec.numero)} — ${escapeHtml(rec.client)}</p>
+      ${qrSvg}
+      <input id="linkInput" readonly value="${url}" onclick="this.select()">
+      <button onclick="navigator.clipboard.writeText(document.getElementById('linkInput').value);this.textContent='✓ Copié'">📋 Copier le lien</button>
+      <p style="font-size:10px;color:#94a3b8;margin-top:14px">Ce lien permet au client de suivre l'avancement de son dossier sans compte ni mot de passe. Aucune donnée financière n'est exposée.</p>
+    </div>
+    </body></html>`);
+  win.document.close();
+}
+async function renderTrackingPortal(trackCode){
+  document.body.innerHTML=`<div id="trackRoot" style="min-height:100vh;background:#f5f6f8;font-family:Inter,system-ui,sans-serif;display:flex;align-items:center;justify-content:center;padding:20px">
+    <div style="max-width:520px;width:100%;text-align:center;color:#64748b">Chargement du suivi…</div>
+  </div>`;
+  const root=document.getElementById('trackRoot');
+  let rec=null;
+  try{
+    const rows=await idbGetAll('chantiers');
+    rec=rows.find(c=>c.trackingCode===trackCode);
+  }catch(err){}
+  if(!rec && CFG && CFG.SUPABASE_URL && !CFG.SUPABASE_URL.includes('VOTRE-PROJET')){
+    try{
+      const url=restUrl('alubom_chantiers')+'?trackingCode=eq.'+encodeURIComponent(trackCode)+'&select=*';
+      const x=new XMLHttpRequest();
+      x.open('GET',url,false);
+      x.setRequestHeader('apikey',CFG.SUPABASE_ANON_KEY);
+      x.setRequestHeader('Authorization','Bearer '+CFG.SUPABASE_ANON_KEY);
+      x.send();
+      if(x.status>=200&&x.status<300){ const arr=JSON.parse(x.responseText||'[]'); if(arr.length) rec=arr[0].data||arr[0]; }
+    }catch(err){}
+  }
+  if(!rec){
+    root.innerHTML=`<div style="max-width:420px;text-align:center">
+      <div style="font-size:40px">🔍</div>
+      <h2 style="color:#0f172a">Suivi introuvable</h2>
+      <p style="color:#64748b;font-size:14px">Ce lien de suivi n'est pas valide ou le dossier n'a pas encore été synchronisé sur cet appareil. Contactez SANIX AFRICA pour plus d'informations.</p>
+    </div>`;
+    return;
+  }
+  const stageIdx=CHANTIER_STAGES.findIndex(s=>s.key===rec.etape);
+  const stepsHtml=CHANTIER_STAGES.map((s,i)=>{
+    const done=i<stageIdx || rec.etape==='termine';
+    const current=i===stageIdx && rec.etape!=='termine';
+    const color = done?'#059669':current?'#1d4ed8':'#cbd5e1';
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0">
+      <div style="width:28px;height:28px;border-radius:999px;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">${done?'✓':i+1}</div>
+      <div style="flex:1;text-align:left">
+        <div style="font-weight:${current?'800':'600'};color:${current?'#1d4ed8':'#0f172a'};font-size:14px">${escapeHtml(s.label)}</div>
+        ${current?'<div style="font-size:11px;color:#64748b">Étape en cours</div>':''}
+      </div>
+    </div>${i<CHANTIER_STAGES.length-1?'<div style="width:2px;height:14px;background:'+(done?'#059669':'#e2e8f0')+';margin-left:13px"></div>':''}`;
+  }).join('');
+  const dateEstFr=rec.dateFabricationEstimee?new Date(rec.dateFabricationEstimee).toLocaleDateString('fr-FR'):null;
+  root.innerHTML=`<div style="max-width:520px;width:100%">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-weight:900;font-size:20px;color:#0f172a">SANIX <span style="color:#1d4ed8">AluExpert</span></div>
+      <div style="font-size:11px;color:#94a3b8;letter-spacing:1px">SUIVI DE COMMANDE</div>
+    </div>
+    <div style="background:#fff;border:1px solid #e3e6ec;border-radius:16px;padding:24px;box-shadow:0 1px 3px rgba(15,23,42,.06)">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:16px">
+        <div style="text-align:left">
+          <div style="font-size:13px;color:#64748b">Dossier ${escapeHtml(rec.numero)}</div>
+          <div style="font-size:18px;font-weight:800;color:#0f172a">${escapeHtml(rec.client)}</div>
+        </div>
+        ${rec.annule?'<span style="background:#fef2f2;color:#b91c1c;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px">Annulé</span>':''}
+      </div>
+      ${dateEstFr?`<div style="background:#eff6ff;border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:12.5px;color:#1d4ed8;text-align:left">📅 Livraison estimée : <b>${dateEstFr}</b></div>`:''}
+      <div style="text-align:left">${stepsHtml}</div>
+    </div>
+    <p style="text-align:center;font-size:11px;color:#94a3b8;margin-top:16px">SANIX AFRICA — Division Technologies • Ce lien est personnel, ne le partagez qu'avec les personnes autorisées.</p>
+  </div>`;
+}
+
 async function annulerChantier(id){
   if(!hasRole('chantier:validate')){ alert('Permission refusée (validation DG requise pour annuler un dossier).'); return; }
   const rec=await getChantier(id); if(!rec) return;
@@ -5137,6 +5299,7 @@ async function openChantierDetail(id){
       <div class="flex flex-wrap justify-between gap-3 mb-5">
         <div><h2 class="text-lg font-bold">${escapeHtml(rec.numero)} — ${escapeHtml(rec.client)}</h2><p class="text-sm text-slate-500">Devis ${escapeHtml(rec.devisNumero)} • ${escapeHtml(rec.contact||'')}</p></div>
         <div class="flex gap-2">
+          <button onclick="genererLienSuivi('${id}')" class="border border-teal-600 text-teal-700 px-3 py-2 rounded-lg text-sm font-semibold">🔗 Lien de suivi client</button>
           ${(!rec.annule && rec.etape!=='termine')?`<button onclick="annulerChantier('${id}')" class="border border-amber-500 text-amber-600 px-3 py-2 rounded-lg text-sm font-semibold">✕ Annuler</button>`:''}
           <button onclick="openEditChantierModal('${id}')" class="border border-blue-600 text-blue-600 px-3 py-2 rounded-lg text-sm font-semibold">✏️ Modifier</button>
           <button onclick="deleteChantier('${id}')" class="border border-red-500 text-red-500 px-3 py-2 rounded-lg text-sm font-semibold">🗑️ Supprimer</button>
@@ -9056,6 +9219,7 @@ async function optimize(){
   let html='', totalBars=0, totalChuteReutil=0, totalDechet=0, rates=[];
   let theorique=0, consommeeNeuf=0, naiveBars=0, chuteStockUsedValue=0, unmatchedFournisseur=[];
   window.lastChutes=[];
+  window.lastCutPlan=[];
 
   for(const code of Object.keys(groups)){
     const g=groups[code];
@@ -9070,6 +9234,7 @@ async function optimize(){
       seed=[chuteStock[code]];
     }
     const bars=binPackCuts(g.cuts,barLen,kerf,seed);
+    window.lastCutPlan.push({code,label:g.label,barLen,kerf,bars});
     const barsNeuves=bars.filter(b=>!b.fromStock);
     totalBars+=barsNeuves.length;
     consommeeNeuf += barsNeuves.length*barLen;
