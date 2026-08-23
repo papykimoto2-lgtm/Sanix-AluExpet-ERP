@@ -41,6 +41,9 @@ window.SANIX_CFG = {
   .ref-tab-btn{color:#475569;background:transparent}
   .ref-tab-btn:hover{background:#f1f5f9}
   .ref-tab-btn.active{background:#2563eb;color:#fff}
+  .flux-view-btn{color:#475569;background:transparent}
+  .flux-view-btn:hover{background:#e2e8f0}
+  .flux-view-btn.active{background:#fff;color:#0f172a;box-shadow:0 1px 3px rgba(0,0,0,.1)}
   .cat-tab-btn{color:#475569;background:transparent}
   .cat-tab-btn:hover{background:#f1f5f9}
   .cat-tab-btn.active{background:#2563eb;color:#fff}
@@ -157,9 +160,15 @@ window.SANIX_CFG = {
 
       <section id="flux" class="page hidden">
         <div class="card bg-white rounded-2xl p-6">
-          <div class="flex justify-between items-start mb-4">
+          <div class="flex flex-wrap justify-between items-start gap-3 mb-4">
             <div><h2 class="text-lg font-bold">Schéma des flux — Sanix AluExpert ERP</h2><p class="text-sm text-slate-500">Vue d'ensemble du circuit, de la conception à l'installation.</p></div>
+            <div class="flex gap-2 bg-slate-100 rounded-lg p-1">
+              <button onclick="setFluxViewMode('global')" class="flux-view-btn px-3 py-1.5 rounded-md text-xs font-semibold" data-fluxview="global">Circuit global</button>
+              <button onclick="setFluxViewMode('proforma')" class="flux-view-btn px-3 py-1.5 rounded-md text-xs font-semibold" data-fluxview="proforma">Flux Proforma</button>
+            </div>
           </div>
+
+          <div id="fluxViewGlobal" class="flux-view">
           <div class="overflow-x-auto bg-slate-50 rounded-xl border p-3">
             <svg viewBox="0 0 1400 900" class="w-full min-w-[1200px] h-auto" xmlns="http://www.w3.org/2000/svg">
               <defs>
@@ -316,6 +325,149 @@ window.SANIX_CFG = {
             <div class="bg-blue-50 rounded-xl p-3"><b class="text-blue-700">Conception</b><p class="text-xs text-slate-600 mt-1">Le Bureau d'études configure l'ouvrage par atelier, génère la BOM et chiffre automatiquement.</p></div>
             <div class="bg-amber-50 rounded-xl p-3"><b class="text-amber-700">Engagement</b><p class="text-xs text-slate-600 mt-1">Devis → acompte client → validation DG déclenche le circuit d'exécution.</p></div>
             <div class="bg-emerald-50 rounded-xl p-3"><b class="text-emerald-700">Exécution</b><p class="text-xs text-slate-600 mt-1">MRP calcule les besoins réels, déclenche achats et OF, jusqu'à l'installation.</p></div>
+          </div>
+          </div>
+
+          <div id="fluxViewProforma" class="flux-view hidden">
+          <div class="overflow-x-auto bg-slate-50 rounded-xl border p-3">
+            <svg viewBox="0 0 1300 620" class="w-full min-w-[1100px] h-auto" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <marker id="fpArrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                  <path d="M0,0 L8,4 L0,8 Z" fill="#1d4ed8"/>
+                </marker>
+              </defs>
+              <style>
+                .fp-box{fill:#fff;stroke:#0f172a;stroke-width:1.6;rx:10}
+                .fp-boxblue{fill:#eff6ff;stroke:#1d4ed8;stroke-width:1.6;rx:10}
+                .fp-boxgreen{fill:#ecfdf5;stroke:#059669;stroke-width:1.6;rx:10}
+                .fp-boxamber{fill:#fffbeb;stroke:#d97706;stroke-width:1.6;rx:10}
+                .fp-boxslate{fill:#f8fafc;stroke:#64748b;stroke-width:1.4;rx:10}
+                .fp-title{font:800 12px Arial;fill:#0f172a}
+                .fp-sub{font:600 9.5px Arial;fill:#64748b}
+                .fp-arrow{stroke:#1d4ed8;stroke-width:2;fill:none;marker-end:url(#fpArrow)}
+                .fp-arrow-grey{stroke:#94a3b8;stroke-width:1.6;fill:none;stroke-dasharray:4,3;marker-end:url(#fpArrow)}
+                .fp-section{font:800 11px Arial;fill:#1d4ed8;text-transform:uppercase;letter-spacing:1px}
+              </style>
+
+              <!-- Étape 1 : Constitution -->
+              <text x="20" y="24" class="fp-section">1 · Constitution du devis</text>
+              <rect x="20" y="34" width="180" height="60" class="fp-boxblue"/>
+              <text x="110" y="58" text-anchor="middle" class="fp-title">Configurateur</text>
+              <text x="110" y="75" text-anchor="middle" class="fp-sub">Type, dimensions, atelier</text>
+              <text x="110" y="88" text-anchor="middle" class="fp-sub">BOM + chiffrage auto</text>
+
+              <rect x="230" y="34" width="180" height="60" class="fp-boxblue"/>
+              <text x="320" y="58" text-anchor="middle" class="fp-title">+ Ajouter au devis</text>
+              <text x="320" y="75" text-anchor="middle" class="fp-sub">Panier multi-ouvrages</text>
+              <text x="320" y="88" text-anchor="middle" class="fp-sub">tous ateliers confondus</text>
+
+              <rect x="440" y="34" width="180" height="60" class="fp-boxslate"/>
+              <text x="530" y="58" text-anchor="middle" class="fp-title">Bibliothèque / Ensembles</text>
+              <text x="530" y="75" text-anchor="middle" class="fp-sub">Modèles réutilisables</text>
+              <text x="530" y="88" text-anchor="middle" class="fp-sub">Charger dans le devis</text>
+
+              <line x1="200" y1="64" x2="230" y2="64" class="fp-arrow"/>
+              <line x1="440" y1="64" x2="410" y2="64" class="fp-arrow-grey"/>
+
+              <!-- Étape 2 : Génération -->
+              <text x="20" y="140" class="fp-section">2 · Génération du document</text>
+              <rect x="20" y="150" width="180" height="70" class="fp-boxgreen"/>
+              <text x="110" y="173" text-anchor="middle" class="fp-title">Numérotation</text>
+              <text x="110" y="189" text-anchor="middle" class="fp-sub">PF-AAAA-NNNN</text>
+              <text x="110" y="203" text-anchor="middle" class="fp-sub">séquence auto</text>
+
+              <rect x="230" y="150" width="180" height="70" class="fp-boxgreen"/>
+              <text x="320" y="173" text-anchor="middle" class="fp-title">Regroupement atelier</text>
+              <text x="320" y="189" text-anchor="middle" class="fp-sub">Sous-total par atelier</text>
+              <text x="320" y="203" text-anchor="middle" class="fp-sub">(Alu, Inox, ...)</text>
+
+              <rect x="440" y="150" width="180" height="70" class="fp-boxgreen"/>
+              <text x="530" y="173" text-anchor="middle" class="fp-title">Remise / TVA</text>
+              <text x="530" y="189" text-anchor="middle" class="fp-sub">Sous-total → Total TTC</text>
+              <text x="530" y="203" text-anchor="middle" class="fp-sub">18% par défaut</text>
+
+              <rect x="650" y="150" width="180" height="70" class="fp-boxgreen"/>
+              <text x="740" y="173" text-anchor="middle" class="fp-title">QR + Hash SHA-256</text>
+              <text x="740" y="189" text-anchor="middle" class="fp-sub">Vérification intégrité</text>
+              <text x="740" y="203" text-anchor="middle" class="fp-sub">document infalsifiable</text>
+
+              <line x1="110" y1="94" x2="110" y2="150" class="fp-arrow"/>
+              <line x1="200" y1="185" x2="230" y2="185" class="fp-arrow"/>
+              <line x1="410" y1="185" x2="440" y2="185" class="fp-arrow"/>
+              <line x1="620" y1="185" x2="650" y2="185" class="fp-arrow"/>
+
+              <!-- Étape 3 : Diffusion -->
+              <text x="20" y="260" class="fp-section">3 · Diffusion</text>
+              <rect x="20" y="270" width="180" height="56" class="fp-box"/>
+              <text x="110" y="293" text-anchor="middle" class="fp-title">🖨 Impression</text>
+              <text x="110" y="310" text-anchor="middle" class="fp-sub">Entête + pied vérifiable</text>
+
+              <rect x="230" y="270" width="180" height="56" class="fp-box"/>
+              <text x="320" y="293" text-anchor="middle" class="fp-title">✉️ Email</text>
+              <text x="320" y="310" text-anchor="middle" class="fp-sub">Envoi client direct</text>
+
+              <rect x="440" y="270" width="180" height="56" class="fp-boxslate"/>
+              <text x="530" y="293" text-anchor="middle" class="fp-title">💾 Sauvegarde</text>
+              <text x="530" y="310" text-anchor="middle" class="fp-sub">IndexedDB + sync Supabase</text>
+
+              <line x1="740" y1="220" x2="110" y2="270" class="fp-arrow-grey"/>
+              <line x1="740" y1="220" x2="320" y2="270" class="fp-arrow-grey"/>
+              <line x1="740" y1="220" x2="530" y2="270" class="fp-arrow-grey"/>
+
+              <!-- Étape 4 : Décision client -->
+              <text x="20" y="380" class="fp-section">4 · Décision client</text>
+              <rect x="20" y="390" width="200" height="60" class="fp-boxamber"/>
+              <text x="120" y="414" text-anchor="middle" class="fp-title">Client accepte</text>
+              <text x="120" y="431" text-anchor="middle" class="fp-sub">→ Créer dossier chantier</text>
+
+              <rect x="250" y="390" width="200" height="60" class="fp-boxslate"/>
+              <text x="350" y="414" text-anchor="middle" class="fp-title">Client hésite</text>
+              <text x="350" y="431" text-anchor="middle" class="fp-sub">Proforma conservée, non liée</text>
+
+              <line x1="530" y1="326" x2="120" y2="390" class="fp-arrow-grey"/>
+              <line x1="530" y1="326" x2="350" y2="390" class="fp-arrow-grey"/>
+
+              <!-- Étape 5 : Rattachement -->
+              <text x="20" y="500" class="fp-section">5 · Rattachement dossier</text>
+              <rect x="20" y="510" width="220" height="70" class="fp-boxgreen"/>
+              <text x="130" y="533" text-anchor="middle" class="fp-title">Nouveau dossier chantier</text>
+              <text x="130" y="549" text-anchor="middle" class="fp-sub">Devis → Circuit chantier</text>
+              <text x="130" y="563" text-anchor="middle" class="fp-sub">Lien réciproque proforma ↔ dossier</text>
+
+              <rect x="270" y="510" width="220" height="70" class="fp-box"/>
+              <text x="380" y="533" text-anchor="middle" class="fp-title">Rattacher à dossier existant</text>
+              <text x="380" y="549" text-anchor="middle" class="fp-sub">Client avec plusieurs proformas</text>
+              <text x="380" y="563" text-anchor="middle" class="fp-sub">(devis complémentaire)</text>
+
+              <rect x="520" y="510" width="220" height="70" class="fp-boxslate"/>
+              <text x="630" y="533" text-anchor="middle" class="fp-title">Proforma restante</text>
+              <text x="630" y="549" text-anchor="middle" class="fp-sub">Non transformée</text>
+              <text x="630" y="563" text-anchor="middle" class="fp-sub">Reste modifiable / rechargeable</text>
+
+              <line x1="120" y1="450" x2="130" y2="510" class="fp-arrow"/>
+              <line x1="120" y1="450" x2="380" y2="510" class="fp-arrow-grey"/>
+              <line x1="350" y1="450" x2="630" y2="510" class="fp-arrow-grey"/>
+
+              <!-- Légende -->
+              <g transform="translate(800,390)">
+                <rect x="0" y="0" width="16" height="16" class="fp-boxgreen"/>
+                <text x="22" y="12" class="fp-sub">Jalon officiel du document</text>
+                <rect x="0" y="24" width="16" height="16" class="fp-boxamber"/>
+                <text x="22" y="36" class="fp-sub">Décision client</text>
+                <rect x="0" y="48" width="16" height="16" class="fp-boxslate"/>
+                <text x="22" y="60" class="fp-sub">État secondaire / en attente</text>
+                <line x1="0" y1="76" x2="30" y2="76" class="fp-arrow"/>
+                <text x="38" y="80" class="fp-sub">Flux principal</text>
+                <line x1="0" y1="96" x2="30" y2="96" class="fp-arrow-grey"/>
+                <text x="38" y="100" class="fp-sub">Branche alternative</text>
+              </g>
+            </svg>
+          </div>
+          <div class="grid sm:grid-cols-3 gap-3 mt-4 text-sm">
+            <div class="bg-blue-50 rounded-xl p-3"><b class="text-blue-700">Constitution</b><p class="text-xs text-slate-600 mt-1">Chaque ouvrage chiffré au Configurateur peut être ajouté au panier de devis, tous ateliers confondus.</p></div>
+            <div class="bg-emerald-50 rounded-xl p-3"><b class="text-emerald-700">Génération</b><p class="text-xs text-slate-600 mt-1">Numérotation séquentielle, regroupement par atelier, calcul remise/TVA, QR + hash SHA-256 infalsifiable.</p></div>
+            <div class="bg-amber-50 rounded-xl p-3"><b class="text-amber-700">Rattachement</b><p class="text-xs text-slate-600 mt-1">À l'acceptation client, la proforma devient le dossier chantier — ou reste disponible pour rattachement ultérieur.</p></div>
+          </div>
           </div>
         </div>
       </section>
@@ -3609,6 +3761,11 @@ function showRefTab(tab){
 
 /* ---------- Bascule d'affichage Liste / Grille ---------- */
 let refViewMode = localStorage.getItem('sanix_ref_view') || 'liste';
+function setFluxViewMode(mode){
+  document.getElementById('fluxViewGlobal').classList.toggle('hidden',mode!=='global');
+  document.getElementById('fluxViewProforma').classList.toggle('hidden',mode!=='proforma');
+  document.querySelectorAll('.flux-view-btn').forEach(b=>b.classList.toggle('active',b.dataset.fluxview===mode));
+}
 function setRefViewMode(mode){
   refViewMode = mode;
   localStorage.setItem('sanix_ref_view', mode);
@@ -4733,6 +4890,7 @@ function showPage(page){
     document.querySelectorAll('.nav').forEach(b=>{if(b.dataset.page==='etude')b.classList.add('active')});
     if(page==='proforma') populateProformaChantierOptions();
     if(page==='config') populateAtelierSelect();
+    if(page==='flux') setFluxViewMode('global');
   } else {
     document.getElementById(page).classList.remove('hidden');
     document.querySelectorAll('.nav').forEach(b=>{if(b.dataset.page===page)b.classList.add('active')});
