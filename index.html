@@ -7078,7 +7078,7 @@ function csvImportFormHtml(activeKey,defs){
       </label>
     </div>
     <div class="flex flex-wrap items-center gap-3 mb-4">
-      <label class="text-sm flex items-center gap-2"><input id="csvUpdateExisting" type="checkbox" class="rounded"> Mettre à jour les fiches existantes (même code)</label>
+      <label class="text-sm flex items-center gap-2"><input id="csvUpdateExisting" type="checkbox" class="rounded"> Mettre à jour les fiches existantes (même identifiant : code, type d'ouvrage, etc. selon le référentiel)</label>
       <button type="button" onclick="downloadCsvTemplate()" class="ml-auto text-xs font-semibold border border-teal-600 text-teal-600 px-3 py-1.5 rounded-lg">⬇️ Télécharger le modèle CSV</button>
     </div>
     <p class="text-xs text-slate-400 mb-3">Astuce : téléchargez le modèle pour le référentiel choisi — les en-têtes de colonnes sont alors automatiquement reconnus à l'import. Séparateur accepté : virgule ou point-virgule.</p>
@@ -7099,10 +7099,11 @@ function onCsvTargetChange(){
 function downloadCsvTemplate(){
   const key=document.getElementById('csvTargetKey').value;
   const defs=csvImportableDefs(); const def=defs[key];
+  const keyField=(def.fields.find(f=>f.required)||def.fields[0]).id;
   const headers=def.fields.map(f=>cleanLabel(f.label));
   const example=def.fields.map(f=>{
-    if(f.id==='code') return key.toUpperCase().slice(0,3)+'-001';
-    if(f.id==='designation') return 'Exemple '+def.label.toLowerCase();
+    if(f.id===keyField) return f.id==='code' ? key.toUpperCase().slice(0,3)+'-001' : 'Exemple '+def.label.toLowerCase();
+    if(f.id==='designation'||f.id==='nom') return 'Exemple '+def.label.toLowerCase();
     if(f.type==='select') return f.default||f.options[0];
     if(f.type==='number') return String(f.default??0);
     return '';
@@ -7126,6 +7127,8 @@ async function handleCsvFileSelected(e){
   if(!file){ zone.textContent='Sélectionnez un fichier CSV pour prévisualiser l\'import.'; return; }
   const key=document.getElementById('csvTargetKey').value;
   const defs=csvImportableDefs(); const def=defs[key];
+  const requiredFields=def.fields.filter(f=>f.required);
+  const keyField=(requiredFields[0]||def.fields[0]).id;
   let text;
   try{ text=await file.text(); }catch(err){ zone.innerHTML='<p class="text-red-600">Impossible de lire le fichier.</p>'; return; }
   const rows=parseCsvText(text);
@@ -7144,17 +7147,17 @@ async function handleCsvFileSelected(e){
     return;
   }
   const existing=await idbGetAll(def.store);
-  const existingByCode={};
-  existing.forEach(r=>{ if(r.code) existingByCode[String(r.code).trim().toLowerCase()]=r; });
+  const existingByKey={};
+  existing.forEach(r=>{ if(r[keyField]) existingByKey[String(r[keyField]).trim().toLowerCase()]=r; });
   const updateExisting=document.getElementById('csvUpdateExisting').checked;
   const valid=[]; const skipped=[];
   dataRows.forEach((r,i)=>{
     const get=fid=> colFor[fid]!==undefined ? r[colFor[fid]] : undefined;
-    const code=(get('code')||'').toString().trim();
-    const designation=(get('designation')||'').toString().trim();
-    if(!code||!designation){ skipped.push({line:i+2,reason:'Code ou désignation manquant'}); return; }
-    const existRec=existingByCode[code.toLowerCase()];
-    if(existRec && !updateExisting){ skipped.push({line:i+2,reason:'Code déjà existant ('+code+') — cochez « Mettre à jour » pour l\'écraser'}); return; }
+    const missingVals=requiredFields.filter(f=>!(get(f.id)||'').toString().trim());
+    if(missingVals.length){ skipped.push({line:i+2,reason:'Champ(s) obligatoire(s) manquant(s) : '+missingVals.map(f=>cleanLabel(f.label)).join(', ')}); return; }
+    const keyVal=(get(keyField)||'').toString().trim();
+    const existRec=existingByKey[keyVal.toLowerCase()];
+    if(existRec && !updateExisting){ skipped.push({line:i+2,reason:'Identifiant déjà existant ('+keyVal+') — cochez « Mettre à jour » pour l\'écraser'}); return; }
     const rec={ id: existRec?existRec.id:def.prefix+'_'+Date.now()+'_'+i, _modifie:new Date().toISOString() };
     def.fields.forEach(f=>{
       const raw=get(f.id);
