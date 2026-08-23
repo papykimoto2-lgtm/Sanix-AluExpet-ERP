@@ -1495,6 +1495,7 @@ window.SANIX_CFG = {
                 <option value="30">30 jours</option>
               </select>
             </label>
+            <button onclick="repareGammeStepsOFActifs()" class="border border-amber-500 text-amber-700 px-3 py-2 rounded-lg text-sm font-semibold">🔧 Recalculer les gammes des OF actifs</button>
           </div>
           <div id="chargeGoulotBanner" class="mb-4"></div>
           <div id="chargePostesBody" class="overflow-x-auto"></div>
@@ -2852,7 +2853,36 @@ async function renderChargePostes(){
       </tr>`).join('')}
     </tbody>
   </table>
-  ${ofSansGammeDetaillee?`<p class="text-xs text-amber-600 mt-3">⚠️ ${ofSansGammeDetaillee} OF actif(s) sur ${ofActifs} n'a/n'ont pas de gamme détaillée exploitable (étapes au format attendu) et n'est/ne sont pas comptabilisé(s) dans les besoins ci-dessus.</p>`:''}`;
+  ${ofSansGammeDetaillee?`<p class="text-xs text-amber-600 mt-3">⚠️ ${ofSansGammeDetaillee} OF actif(s) sur ${ofActifs} n'a/n'ont pas de gamme détaillée exploitable (étapes au format attendu) et n'est/ne sont pas comptabilisé(s) dans les besoins ci-dessus. Utilisez « 🔧 Recalculer les gammes des OF actifs » ci-dessus pour resynchroniser ces OF avec le référentiel Gammes actuel.</p>`:''}`;
+}
+async function repareGammeStepsOFActifs(){
+  if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
+  if(!confirm("Recalculer les étapes de gamme des OF actifs à partir du référentiel Gammes actuel ?\n\nUtile après une correction ou un import du référentiel Gammes. Les OF dont le statut en cours ne correspond plus à aucune étape seront repositionnés sur la première étape de la gamme mise à jour.")) return;
+  const ofRows=(await idbGetAll('of')).filter(r=>!OF_STATUTS_TERMINES.includes(r.statut));
+  let nbMaj=0, nbReset=0;
+  for(const r of ofRows){
+    const type=r.configSnapshot?.type;
+    if(!type) continue;
+    const freshSteps=await resolveGammeSteps(type);
+    const sameLength=r.gammeSteps && r.gammeSteps.length===freshSteps.length;
+    const identical=sameLength && r.gammeSteps.every((s,i)=>s===freshSteps[i]);
+    if(identical) continue;
+    const idx=freshSteps.indexOf(r.statut);
+    r.gammeSteps=freshSteps;
+    if(idx<0){
+      r.statut=freshSteps[0]||r.statut;
+      r.evenements=(r.evenements||[]).concat([{ts:new Date().toISOString(),statut:r.statut,user:currentUser?currentUser.email:'—',note:'Repositionné automatiquement — recalcul des gammes'}]);
+      nbReset++;
+    }
+    r._modifie=new Date().toISOString();
+    await idbPut('of',r);
+    queueSync('alubom_of',r);
+    nbMaj++;
+  }
+  await audit('REPARE_GAMMES_OF', nbMaj+' OF recalculé(s), '+nbReset+' remis à la 1ère étape (statut obsolète)');
+  await refreshAllTables();
+  await renderChargePostes();
+  alert(nbMaj+' OF mis à jour, dont '+nbReset+' repositionné(s) sur la 1ère étape faute de correspondance avec la gamme actuelle.\n\nAucune modification si les étapes étaient déjà identiques.');
 }
 /* ---------- Planning Gantt (§19) ---------- */
 async function renderGantt(){
