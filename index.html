@@ -19,40 +19,92 @@ window.SANIX_CFG = {
 };
 </script>
 <style>
-  body{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f4f7fb}
+  /* ===================== SANIX DESIGN SYSTEM — ERP industriel ===================== */
+  :root{
+    --ds-ink:#0b1220; --ds-ink-2:#0f172a; --ds-slate-900:#0f172a; --ds-slate-700:#334155;
+    --ds-slate-500:#64748b; --ds-slate-400:#94a3b8; --ds-slate-200:#e2e8f0; --ds-slate-100:#f1f5f9;
+    --ds-surface:#ffffff; --ds-canvas:#f3f6fb;
+    --ds-accent:#2563eb; --ds-accent-ink:#1d4ed8; --ds-accent-soft:#eff6ff;
+    --ds-ok:#059669; --ds-warn:#d97706; --ds-danger:#dc2626;
+    --ds-radius-sm:6px; --ds-radius:10px; --ds-radius-lg:14px;
+    --ds-border:#e5e9f0;
+    --ds-shadow-sm:0 1px 2px rgba(15,23,42,.06);
+    --ds-shadow:0 1px 3px rgba(15,23,42,.06), 0 8px 24px -8px rgba(15,23,42,.10);
+    --ds-shadow-lg:0 12px 40px -12px rgba(15,23,42,.22);
+    --ds-mono:ui-monospace,'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+    --ds-font:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  }
+
+  *{scrollbar-width:thin;scrollbar-color:#cbd5e1 transparent}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:999px}
+  ::-webkit-scrollbar-thumb:hover{background:#94a3b8}
+
+  html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  body{font-family:var(--ds-font);background:var(--ds-canvas);color:var(--ds-ink-2);letter-spacing:-.006em}
   body.modal-open{overflow:hidden}
-  .modal-overlay{overscroll-behavior:contain}
-  .modal-overlay>div{overscroll-behavior:contain}
+  .modal-overlay{overscroll-behavior:contain;animation:dsFadeIn .15s ease}
+  .modal-overlay>div{overscroll-behavior:contain;animation:dsPopIn .18s cubic-bezier(.22,1,.36,1)}
+  @keyframes dsFadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes dsPopIn{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+  h1,h2,h3{letter-spacing:-.015em}
+  table{font-variant-numeric:tabular-nums}
+  td.text-right,th.text-right,.text-right{font-variant-numeric:tabular-nums}
+
   .glass{background:rgba(255,255,255,.88);backdrop-filter:blur(12px)}
-  .sidebar{background:#0f172a}
-  #sidebar{scrollbar-width:thin;scrollbar-color:#334155 #0f172a}
+
+  /* Sidebar */
+  .sidebar{background:linear-gradient(180deg,#0b1220 0%,#0f172a 100%);border-right:1px solid rgba(255,255,255,.05)}
+  #sidebar{scrollbar-width:thin;scrollbar-color:#334155 transparent}
   #sidebar::-webkit-scrollbar{width:6px}
-  #sidebar::-webkit-scrollbar-track{background:#0f172a}
+  #sidebar::-webkit-scrollbar-track{background:transparent}
   #sidebar::-webkit-scrollbar-thumb{background:#334155;border-radius:999px}
   #sidebar::-webkit-scrollbar-thumb:hover{background:#475569}
-  .active{background:#1e293b;color:#fff}
-  .card{box-shadow:0 10px 30px rgba(15,23,42,.07)}
-  input,select{outline:none}
-  input:focus,select:focus{box-shadow:0 0 0 3px rgba(37,99,235,.12);border-color:#2563eb}
-  .badge{font-size:.72rem;font-weight:700;padding:.25rem .55rem;border-radius:999px}
-  .etude-tab-btn{color:#475569;background:transparent}
-  .etude-tab-btn:hover{background:#f1f5f9}
-  .etude-tab-btn.active{background:#2563eb;color:#fff}
-  .ref-tab-btn{color:#475569;background:transparent}
-  .ref-tab-btn:hover{background:#f1f5f9}
-  .ref-tab-btn.active{background:#2563eb;color:#fff}
-  .flux-view-btn{color:#475569;background:transparent}
+  .nav{color:#cbd5e1;transition:background .12s ease,color .12s ease}
+  .nav:hover{background:rgba(255,255,255,.05);color:#fff}
+  .active{background:rgba(37,99,235,.18)!important;color:#fff!important;font-weight:600;box-shadow:inset 2px 0 0 var(--ds-accent)}
+
+  /* Header */
+  header{border-bottom:1px solid var(--ds-border);background:rgba(255,255,255,.92);backdrop-filter:blur(8px)}
+
+  /* Cards */
+  .card{background:var(--ds-surface);border:1px solid var(--ds-border);box-shadow:var(--ds-shadow-sm);border-radius:var(--ds-radius-lg);transition:box-shadow .15s ease}
+
+  /* Inputs */
+  input,select,textarea{outline:none;transition:border-color .12s ease,box-shadow .12s ease;font-family:var(--ds-font)}
+  input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(37,99,235,.14);border-color:var(--ds-accent)!important}
+  input::placeholder,textarea::placeholder{color:#a0aec0}
+
+  /* Badges */
+  .badge{font-size:.7rem;font-weight:700;padding:.25rem .55rem;border-radius:999px;letter-spacing:.01em;white-space:nowrap}
+
+  /* Buttons — universal interaction polish (colors/classes untouched) */
+  button{transition:background-color .12s ease,color .12s ease,border-color .12s ease,transform .08s ease,box-shadow .12s ease;cursor:pointer}
+  button:active{transform:translateY(1px)}
+  button:disabled{cursor:not-allowed}
+  button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ds-accent);outline-offset:2px}
+
+  /* Tables — zebra + sticky head + hover, generic, non-invasive */
+  table thead th{font-weight:700;letter-spacing:.02em}
+  table tbody tr{transition:background-color .1s ease}
+  table tbody tr:hover{background-color:#f8fafc}
+
+  /* Tab-bar buttons (config/ref/stock/prod/flux/catalogue) */
+  .etude-tab-btn,.ref-tab-btn,.flux-view-btn,.cat-tab-btn,.stock-tab-btn,.prod-tab-btn{color:var(--ds-slate-500);background:transparent;border-radius:8px;font-weight:600;transition:background-color .12s ease,color .12s ease}
+  .etude-tab-btn:hover,.ref-tab-btn:hover,.cat-tab-btn:hover,.stock-tab-btn:hover,.prod-tab-btn:hover{background:var(--ds-slate-100);color:var(--ds-slate-700)}
   .flux-view-btn:hover{background:#e2e8f0}
-  .flux-view-btn.active{background:#fff;color:#0f172a;box-shadow:0 1px 3px rgba(0,0,0,.1)}
-  .cat-tab-btn{color:#475569;background:transparent}
-  .cat-tab-btn:hover{background:#f1f5f9}
-  .cat-tab-btn.active{background:#2563eb;color:#fff}
-  .stock-tab-btn{color:#475569;background:transparent}
-  .stock-tab-btn:hover{background:#f1f5f9}
-  .stock-tab-btn.active{background:#2563eb;color:#fff}
-  .prod-tab-btn{color:#475569;background:transparent}
-  .prod-tab-btn:hover{background:#f1f5f9}
-  .prod-tab-btn.active{background:#2563eb;color:#fff}
+  .etude-tab-btn.active,.ref-tab-btn.active,.cat-tab-btn.active,.stock-tab-btn.active,.prod-tab-btn.active{background:var(--ds-accent);color:#fff;box-shadow:var(--ds-shadow-sm)}
+  .flux-view-btn.active{background:#fff;color:var(--ds-ink-2);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+
+  /* Page transition */
+  .page:not(.hidden){animation:dsFadeUp .16s ease}
+  @keyframes dsFadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+  /* KPI number emphasis */
+  .text-3xl.font-black{letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+
   @media (max-width:767px){
     .sidebar{position:fixed;inset:0 25% 0 0;z-index:40;transform:translateX(-100%);transition:transform .25s ease;overflow-y:auto;display:block!important}
     .sidebar.open{transform:translateX(0)}
