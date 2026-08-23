@@ -1258,6 +1258,7 @@ window.SANIX_CFG = {
         <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1 items-center">
           <button class="prod-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prodtab="liste" onclick="showProdTab('liste')">📋 Liste</button>
           <button class="prod-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prodtab="kanban" onclick="showProdTab('kanban')">🗂️ Kanban</button>
+          <button class="prod-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prodtab="gantt" onclick="showProdTab('gantt')">📅 Planning Gantt</button>
           <button id="btnNewOF" onclick="openNewOFForm()" class="ml-auto bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">+ Nouvel OF</button>
         </div>
 
@@ -1267,6 +1268,10 @@ window.SANIX_CFG = {
           <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">OF</th><th class="text-left p-3">Ouvrage</th><th class="text-left p-3">Client</th><th class="text-left p-3">Priorité</th><th class="text-left p-3">Statut</th><th class="text-left p-3">Avancement</th><th class="text-left p-3">Qualité</th><th class="text-right p-3">Marge</th><th class="p-3"></th></tr></thead><tbody id="ofBody"></tbody></table></div>
         </div>
         <div id="qcDetail" class="hidden mt-6"></div>
+        <div class="card bg-white rounded-2xl p-6 mt-6">
+          <h2 class="text-lg font-bold mb-4">🚫 Fiches non-conformité</h2>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">N°</th><th class="text-left p-3">OF</th><th class="text-left p-3">Type</th><th class="text-left p-3">Problème</th><th class="text-left p-3">Responsable</th><th class="text-left p-3">Statut</th><th class="p-3"></th></tr></thead><tbody id="ncListBody"></tbody></table></div>
+        </div>
         <div class="card bg-white rounded-2xl p-6 mt-6">
           <details><summary class="font-bold cursor-pointer">Journal d'audit (dernières actions)</summary>
             <div id="auditLog" class="mt-4 text-xs text-slate-500 space-y-1"></div>
@@ -1278,6 +1283,16 @@ window.SANIX_CFG = {
         <div class="card bg-white rounded-2xl p-6">
           <h2 class="text-lg font-bold mb-4">Avancement de production</h2>
           <div id="kanbanBoard" class="grid gap-3" style="grid-template-columns:repeat(7,minmax(180px,1fr));overflow-x-auto"></div>
+        </div>
+        </div>
+
+        <div id="prodTabGantt" class="prod-tab hidden">
+        <div class="card bg-white rounded-2xl p-6">
+          <div class="flex flex-wrap justify-between gap-3 mb-4">
+            <div><h2 class="text-lg font-bold">Planning de production</h2><p class="text-sm text-slate-500">OF actifs, positionnés par date prévue — largeur proportionnelle à l'avancement de la gamme.</p></div>
+            <button onclick="printGantt()" class="border px-3 py-2 rounded-lg text-sm font-semibold">🖨 Imprimer</button>
+          </div>
+          <div id="ganttBoard" class="overflow-x-auto"></div>
         </div>
         </div>
       </section>
@@ -1455,6 +1470,7 @@ window.SANIX_CFG = {
             <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="machines" onclick="showRefTab('machines')">🛠️ Machines</button>
             <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="ateliers" onclick="showRefTab('ateliers')">🏭 Ateliers</button>
             <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="depots" onclick="showRefTab('depots')">🏬 Dépôts</button>
+            <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="postes" onclick="showRefTab('postes')">🧑‍🔧 Postes</button>
             <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="parametres" onclick="showRefTab('parametres')">⚙️ Jeux & tolérances</button>
           </div>
           <button onclick="openCsvImport()" class="border border-teal-600 text-teal-600 px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap">📥 Importer CSV</button>
@@ -1531,6 +1547,7 @@ window.SANIX_CFG = {
         <div id="refVitrages" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_vitrages"></div></div>
         <div id="refAteliers" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_ateliers"></div></div>
         <div id="refDepots" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_depots"></div></div>
+        <div id="refPostes" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_postes"></div></div>
         <div id="refQuincaillerie" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_quincaillerie"></div></div>
         <div id="refJoints" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_joints"></div></div>
         <div id="refConsommables" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_consommables"></div></div>
@@ -1755,10 +1772,10 @@ function escapeHtml(s){
 /* ---------- IndexedDB ---------- */
 function openDB(){
   return new Promise((resolve,reject)=>{
-    const req=indexedDB.open('alubom_db',13);
+    const req=indexedDB.open('alubom_db',15);
     req.onupgradeneeded=e=>{
       const d=e.target.result;
-      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers','depots','pointages'].forEach(s=>{
+      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers','depots','pointages','nonconformites','chutes','postes'].forEach(s=>{
         if(!d.objectStoreNames.contains(s)) d.createObjectStore(s,{keyPath:'id'});
       });
     };
@@ -2243,16 +2260,21 @@ async function renderOFTable(){
     const planBtn=`<button onclick="openPlansPanel('${r.id}')" class="text-indigo-600 text-xs font-semibold mr-2">📎 Plans${nbPlans?' ('+nbPlans+')':''}</button>`;
     const suivi=suiviRows.find(s=>s.ofId===r.id);
     const suiviBtn = r.statut==='Terminé' ? `<button onclick="openSuiviReelForm('${r.id}')" class="text-teal-600 text-xs font-semibold mr-2">${suivi?'✓ Réel saisi':'📊 Saisir le réel'}</button>` : '';
+    const coutBtn = (r.statut==='Terminé'||r.statut==='Prêt à livrer'||r.statut==='Livré') ? `<button onclick="voirCoutReelOF('${r.id}')" class="text-orange-600 text-xs font-semibold mr-2">💰 Coût réel</button>` : '';
     const reqBtn = r.requisitionNumero
       ? `<button onclick="imprimerBonRequisition('${r.id}')" title="Réimprimer" class="text-emerald-600 text-xs font-semibold mr-2">✓ ${escapeHtml(r.requisitionNumero)}</button>`
       : `<button onclick="emettreBonRequisition('${r.id}')" title="Émettre le bon de réquisition et mouvementer le stock" class="text-purple-600 text-xs font-semibold mr-2">📋 Bon de réquisition</button>`;
     const nbPointages=pointagesRows.filter(p=>p.ofId===r.id).length;
     const pointageBtn = (r.statut!=='Terminé'&&r.statut!=='Annulé'&&r.statut!=='Livré') ? `<button onclick="openPointageModal('${r.id}')" class="text-cyan-600 text-xs font-semibold mr-2">⏱ Pointage${nbPointages?' ('+nbPointages+')':''}</button>` : '';
-    const actions = (r.statut==='Terminé'||r.statut==='Annulé'||r.statut==='Livré') ? planBtn+suiviBtn : `
+    const ncBtn = (r.statut!=='Livré') ? `<button onclick="openNCForm('${r.id}','')" class="text-red-500 text-xs font-semibold mr-2">🚫 NC</button>` : '';
+    const etiquetteBtn = (r.statut==='Terminé'||r.statut==='Prêt à livrer'||r.statut==='Livré') ? `<button onclick="imprimerEtiquetteOF('${r.id}')" class="text-slate-700 text-xs font-semibold mr-2">🏷️ Étiquette</button>` : '';
+    const actions = (r.statut==='Terminé'||r.statut==='Annulé'||r.statut==='Livré') ? planBtn+suiviBtn+ncBtn+etiquetteBtn+coutBtn : `
       ${pointageBtn}
       ${reqBtn}
       ${next?`<button onclick="advanceOFStatus('${r.id}','${next}')" class="text-blue-600 text-xs font-semibold mr-2">→ ${escapeHtml(next)}</button>`:''}
       <button onclick="openQCForm('${r.id}')" class="text-amber-600 text-xs font-semibold mr-2">Contrôle qualité</button>
+      ${ncBtn}
+      ${etiquetteBtn}
       ${planBtn}
       <button onclick="viewOFBom('${r.id}')" class="text-slate-500 text-xs font-semibold mr-2">BOM figée</button>
       <button onclick="advanceOFStatus('${r.id}','Annulé')" class="text-red-500 text-xs font-semibold">Annuler</button>`;
@@ -2264,13 +2286,78 @@ async function renderOFTable(){
   }).join('') : `<tr><td class="p-3 text-slate-400" colspan="9">Aucun OF. Créez-en un depuis le Chiffrage ou ici.</td></tr>`;
 }
 
-/* ---------- Onglets Production (Liste / Kanban) ---------- */
+/* ---------- Onglets Production (Liste / Kanban / Gantt) ---------- */
 function showProdTab(tab){
   document.querySelectorAll('.prod-tab').forEach(t=>t.classList.add('hidden'));
   document.getElementById('prodTab'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.remove('hidden');
   document.querySelectorAll('.prod-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.prodtab===tab));
   if(tab==='kanban') renderKanban();
+  if(tab==='liste') renderNCList();
+  if(tab==='gantt') renderGantt();
 }
+
+/* ---------- Planning Gantt (§19) ---------- */
+async function renderGantt(){
+  const board=document.getElementById('ganttBoard'); if(!board) return;
+  const rows=(await idbGetAll('of')).filter(r=>r.statut!=='Annulé'&&r.statut!=='Livré').sort((a,b)=>(a.datePrevue||'').localeCompare(b.datePrevue||''));
+  if(!rows.length){ board.innerHTML='<p class="text-sm text-slate-400 py-8 text-center">Aucun OF actif à planifier.</p>'; return; }
+  const dates=rows.flatMap(r=>[r.date?r.date.slice(0,10):null,r.datePrevue]).filter(Boolean);
+  const today=new Date().toISOString().slice(0,10);
+  dates.push(today);
+  let minD=new Date(Math.min(...dates.map(d=>new Date(d))));
+  let maxD=new Date(Math.max(...dates.map(d=>new Date(d))));
+  minD.setDate(minD.getDate()-1); maxD.setDate(maxD.getDate()+2);
+  const totalDays=Math.max(1,Math.round((maxD-minD)/86400000));
+  const dayWidth=Math.max(28,Math.min(48,Math.round(1000/totalDays)));
+  const pxPerDay=dayWidth;
+  const totalWidth=totalDays*pxPerDay;
+  const dayHeaders=[]; for(let i=0;i<totalDays;i++){ const d=new Date(minD); d.setDate(d.getDate()+i); dayHeaders.push(d); }
+  const todayOffset=Math.round((new Date(today)-minD)/86400000)*pxPerDay;
+  const headerHtml=`<div style="display:flex;position:sticky;top:0;background:#fff;z-index:2;border-bottom:2px solid #0f172a;min-width:${totalWidth}px">
+    ${dayHeaders.map(d=>`<div style="width:${pxPerDay}px;flex-shrink:0;text-align:center;font-size:9px;color:#64748b;padding:4px 0;border-right:1px solid #f1f5f9">${d.getDate()}/${d.getMonth()+1}</div>`).join('')}
+  </div>`;
+  const rowsHtml=rows.map(r=>{
+    const start=r.date?new Date(r.date.slice(0,10)):minD;
+    const end=r.datePrevue?new Date(r.datePrevue):start;
+    const startOff=Math.max(0,Math.round((start-minD)/86400000))*pxPerDay;
+    const durDays=Math.max(1,Math.round((end-start)/86400000));
+    const width=durDays*pxPerDay;
+    const c=OF_STATUS_COLOR[r.statut]||'slate';
+    const colorMap={blue:'#2563eb',indigo:'#4f46e5',amber:'#d97706',emerald:'#059669',teal:'#0d9488',slate:'#64748b',red:'#dc2626'};
+    const pct=ofAvancementPct(r.statut);
+    const prio=OF_PRIORITES[r.priorite||'normale'];
+    return `<div style="display:flex;align-items:center;height:34px;position:relative;min-width:${totalWidth}px;border-bottom:1px solid #f1f5f9">
+      <div style="position:absolute;left:${startOff}px;width:${width}px;height:22px;background:${colorMap[c]||'#64748b'};border-radius:4px;display:flex;align-items:center;padding:0 6px;overflow:hidden;white-space:nowrap" title="${escapeHtml(r.numero)} — ${escapeHtml(r.ouvrage)} — ${escapeHtml(r.statut)}">
+        <span style="color:#fff;font-size:9.5px;font-weight:700">${prio.emoji} ${escapeHtml(r.numero)} — ${pct}%</span>
+      </div>
+    </div>`;
+  }).join('');
+  const labelsHtml=rows.map(r=>`<div style="height:34px;display:flex;align-items:center;font-size:11px;font-weight:600;border-bottom:1px solid #f1f5f9;padding-right:8px;white-space:nowrap">${escapeHtml(r.numero)}<span class="text-slate-400 font-normal ml-1 truncate">${escapeHtml(r.ouvrage)}</span></div>`).join('');
+  board.innerHTML=`<div style="display:flex">
+    <div style="width:180px;flex-shrink:0;position:sticky;left:0;background:#fff;z-index:3;border-right:2px solid #0f172a">
+      <div style="height:20px"></div>
+      ${labelsHtml}
+    </div>
+    <div style="overflow-x:auto;flex:1;position:relative">
+      ${headerHtml}
+      <div style="position:relative">
+        ${rowsHtml}
+        <div style="position:absolute;top:0;bottom:0;left:${todayOffset}px;width:2px;background:#dc2626;z-index:1" title="Aujourd'hui"></div>
+      </div>
+    </div>
+  </div>`;
+}
+function printGantt(){
+  const html=document.getElementById('ganttBoard').innerHTML;
+  const dateStr=new Date().toLocaleDateString('fr-FR');
+  const win=window.open('','_blank','width=1200,height=800');
+  if(!win) return;
+  win.document.write(`<html><head><title>Planning de production</title>
+    <style>body{font-family:Arial,sans-serif;padding:20px;color:#0f172a}h1{font-size:16px}.sub{color:#64748b;font-size:11px;margin-bottom:14px}</style>
+    </head><body><h1>Planning de production — SANIX AFRICA</h1><div class="sub">Édité le ${dateStr}</div>${html}</body></html>`);
+  win.document.close(); win.focus(); setTimeout(()=>win.print(),300);
+}
+
 async function renderKanban(){
   const board=document.getElementById('kanbanBoard'); if(!board) return;
   const rows=(await idbGetAll('of')).filter(r=>r.statut!=='Annulé').sort((a,b)=>b.date.localeCompare(a.date));
@@ -2495,9 +2582,167 @@ async function handleSubmitQC(e,ofId){
   await audit('CONTROLE_QUALITE',rec.numero+' — '+qc.statut);
   document.getElementById('qcDetail').classList.add('hidden');
   await renderOFTable();
+  if(!allOk){
+    if(confirm('Contrôle non conforme enregistré. Créer une fiche de non-conformité maintenant ?')) {
+      openNCForm(ofId,qc.id);
+      return false;
+    }
+  }
   alert('Contrôle enregistré : '+(allOk?'✓ Conforme':'✕ Non conforme — voir observations')+'.');
   return false;
 }
+
+/* ---------- Fiches non-conformité (NC) ---------- */
+const NC_TYPES=['Défaut dimensionnel','Rayure','Mauvais usinage','Mauvais assemblage','Vitrage incorrect','Couleur incorrecte','Quincaillerie manquante','Défaut esthétique','Autre'];
+async function openNCForm(ofId,qcId){
+  if(!hasRole('qc:validate')){ alert('Permission refusée.'); return; }
+  const rows=await idbGetAll('of');
+  const rec=rows.find(r=>r.id===ofId); if(!rec) return;
+  const wrap=document.getElementById('qcDetail');
+  wrap.classList.remove('hidden');
+  wrap.innerHTML=`
+    <div class="card bg-white rounded-2xl p-6">
+      <div class="flex flex-wrap justify-between gap-3 mb-5">
+        <div><h2 class="text-lg font-bold">🚫 Fiche de non-conformité — ${escapeHtml(rec.numero)}</h2><p class="text-sm text-slate-500">${escapeHtml(rec.ouvrage)} — ${escapeHtml(rec.client)}</p></div>
+        <button onclick="document.getElementById('qcDetail').classList.add('hidden')" class="border px-3 py-2 rounded-lg text-sm font-semibold">Fermer</button>
+      </div>
+      <form onsubmit="return handleSubmitNC(event,'${ofId}','${qcId||''}')" class="space-y-3">
+        <div class="grid sm:grid-cols-2 gap-3">
+          <label class="text-sm font-semibold block">Opération concernée
+            <input id="ncOperation" value="${escapeHtml(rec.poste||'')}" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+          </label>
+          <label class="text-sm font-semibold block">Opérateur concerné
+            <input id="ncOperateur" value="${escapeHtml(rec.operateur||'')}" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+          </label>
+        </div>
+        <label class="text-sm font-semibold block">Type de non-conformité
+          <select id="ncType" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">${NC_TYPES.map(t=>`<option>${escapeHtml(t)}</option>`).join('')}</select>
+        </label>
+        <div class="grid sm:grid-cols-2 gap-3">
+          <label class="text-sm font-semibold block">Quantité concernée
+            <input id="ncQte" type="number" min="1" value="1" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+          </label>
+          <label class="text-sm font-semibold block">Responsable traitement
+            <input id="ncResponsable" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm" placeholder="Nom">
+          </label>
+        </div>
+        <label class="text-sm font-semibold block">Description du problème
+          <textarea id="ncProbleme" rows="2" class="mt-1 w-full border rounded-lg p-2 text-sm" required></textarea>
+        </label>
+        <label class="text-sm font-semibold block">Cause identifiée
+          <textarea id="ncCause" rows="2" class="mt-1 w-full border rounded-lg p-2 text-sm"></textarea>
+        </label>
+        <label class="text-sm font-semibold block">Action corrective
+          <textarea id="ncAction" rows="2" class="mt-1 w-full border rounded-lg p-2 text-sm"></textarea>
+        </label>
+        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-lg font-bold">Enregistrer la fiche NC</button>
+      </form>
+    </div>`;
+}
+async function handleSubmitNC(e,ofId,qcId){
+  e.preventDefault();
+  if(!hasRole('qc:validate')){ alert('Permission refusée.'); return false; }
+  const rows=await idbGetAll('of');
+  const rec=rows.find(r=>r.id===ofId); if(!rec) return false;
+  const seq=nextSeq('nc');
+  const numero='NC-'+seq.year+'-'+String(seq.n).padStart(4,'0');
+  const nc={
+    id:numero, numero, ofId, ofNumero:rec.numero, qcId:qcId||null,
+    produit:rec.ouvrage, client:rec.client,
+    operation:document.getElementById('ncOperation').value.trim(),
+    operateur:document.getElementById('ncOperateur').value.trim(),
+    type:document.getElementById('ncType').value,
+    qte:+document.getElementById('ncQte').value||1,
+    probleme:document.getElementById('ncProbleme').value.trim(),
+    cause:document.getElementById('ncCause').value.trim(),
+    action:document.getElementById('ncAction').value.trim(),
+    responsable:document.getElementById('ncResponsable').value.trim(),
+    statut:'ouverte',
+    date:new Date().toISOString(), declarePar:currentUser?currentUser.email:'—'
+  };
+  await idbPut('nonconformites',nc);
+  queueSync('alubom_nonconformites',nc);
+  await audit('CREATE_NC',numero+' — '+rec.numero+' — '+nc.type);
+  document.getElementById('qcDetail').classList.add('hidden');
+  await renderOFTable();
+  alert('Fiche '+numero+' enregistrée.');
+  return false;
+}
+async function cloturerNC(ncId){
+  if(!hasRole('qc:validate')){ alert('Permission refusée.'); return; }
+  const rows=await idbGetAll('nonconformites');
+  const nc=rows.find(n=>n.id===ncId); if(!nc) return;
+  if(!confirm('Clôturer la fiche '+nc.numero+' ?')) return;
+  nc.statut='cloturee';
+  nc.dateCloture=new Date().toISOString();
+  await idbPut('nonconformites',nc);
+  queueSync('alubom_nonconformites',nc);
+  await audit('CLOTURER_NC',nc.numero);
+  await renderNCList();
+}
+/* ---------- Étiquette produit (QR → fiche OF) ---------- */
+async function imprimerEtiquetteOF(ofId){
+  const rows=await idbGetAll('of');
+  const rec=rows.find(r=>r.id===ofId); if(!rec) return;
+  const qcRows=await idbGetAll('controles_qualite');
+  const qc=qcRows.filter(q=>q.ofId===ofId).sort((a,b)=>b.date.localeCompare(a.date))[0];
+  const verifText=`SANIX-OF|${rec.numero}`;
+  let qrSvg='';
+  if(typeof qrcode!=='undefined'){
+    const qr=qrcode(0,'M'); qr.addData(verifText); qr.make();
+    const n=qr.getModuleCount(), cell=4;
+    qrSvg=`<svg viewBox="0 0 ${n*cell} ${n*cell}" width="110" height="110" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#fff"/>`;
+    for(let r=0;r<n;r++) for(let c=0;c<n;c++) if(qr.isDark(r,c)) qrSvg+=`<rect x="${c*cell}" y="${r*cell}" width="${cell}" height="${cell}" fill="#0f172a"/>`;
+    qrSvg+='</svg>';
+  }
+  const c=rec.configSnapshot||{};
+  const win=window.open('','_blank','width=500,height=650');
+  if(!win) return;
+  win.document.write(`<html><head><title>Étiquette ${escapeHtml(rec.numero)}</title>
+    <style>
+      @page{size:100mm 140mm;margin:4mm}
+      body{font-family:Arial,sans-serif;color:#0f172a;margin:0;padding:8px}
+      .label{border:2px solid #0f172a;border-radius:6px;padding:12px;text-align:center}
+      .logo{font-weight:900;font-size:16px;letter-spacing:1px}
+      .sub{font-size:9px;color:#64748b;letter-spacing:2px;margin-bottom:8px}
+      .of{font-size:13px;font-weight:800;margin-top:6px}
+      .client{font-size:11px;color:#334155}
+      .produit{font-size:15px;font-weight:800;margin-top:8px;text-transform:uppercase}
+      .dims{font-size:12px;color:#334155;margin-top:2px}
+      .qr{margin:10px 0}
+      .ctrl{font-size:11px;font-weight:700;margin-top:6px}
+      .ctrl.ok{color:#059669}
+      .ctrl.nok{color:#dc2626}
+    </style></head><body>
+    <div class="label">
+      <div class="logo">SANIX FACTORY</div>
+      <div class="sub">DIVISION TECHNOLOGIES</div>
+      <div class="of">OF : ${escapeHtml(rec.numero)}</div>
+      <div class="client">CLIENT : ${escapeHtml(rec.client)}</div>
+      <div class="produit">${escapeHtml(rec.ouvrage)}</div>
+      <div class="dims">${c.type?escapeHtml(c.type)+' — ':''}${c.serie?escapeHtml(c.serie):''}</div>
+      <div class="qr">${qrSvg}</div>
+      <div class="ctrl ${qc?(qc.statut==='conforme'?'ok':'nok'):''}">${qc?(qc.statut==='conforme'?'✓ CONTRÔLE OK':'✕ NON CONFORME'):'Contrôle : en attente'}</div>
+    </div>
+    <script>window.onload=()=>window.print()<\/script>
+    </body></html>`);
+  win.document.close();
+}
+
+async function renderNCList(){
+  const el=document.getElementById('ncListBody'); if(!el) return;
+  const rows=(await idbGetAll('nonconformites')).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  el.innerHTML = rows.length ? rows.map(n=>`<tr class="border-b">
+    <td class="p-3 font-semibold">${escapeHtml(n.numero)}</td>
+    <td class="p-3">${escapeHtml(n.ofNumero)}</td>
+    <td class="p-3">${escapeHtml(n.type)}</td>
+    <td class="p-3 text-xs text-slate-500">${escapeHtml(n.probleme).slice(0,60)}${n.probleme.length>60?'…':''}</td>
+    <td class="p-3">${escapeHtml(n.responsable||'—')}</td>
+    <td class="p-3"><span class="badge bg-${n.statut==='cloturee'?'emerald':'amber'}-50 text-${n.statut==='cloturee'?'emerald':'amber'}-700">${n.statut==='cloturee'?'Clôturée':'Ouverte'}</span></td>
+    <td class="p-3 text-right">${n.statut!=='cloturee'?`<button onclick="cloturerNC('${n.id}')" class="text-blue-600 text-xs font-semibold">Clôturer</button>`:''}</td>
+  </tr>`).join('') : `<tr><td class="p-3 text-slate-400" colspan="7">Aucune non-conformité enregistrée.</td></tr>`;
+}
+
 
 /* ---------- Gestion des plans (dessin technique, PDF, photo, schéma) ---------- */
 const PLAN_MAX_SIZE=5*1024*1024; // 5 Mo par fichier
@@ -2583,6 +2828,66 @@ async function renderPlansList(ofId){
 }
 
 /* ---------- Comparaison prévu/réel (§25) — matière & main-d'œuvre ---------- */
+/* ---------- Coût de production réel (prévu / réel / écart) ---------- */
+async function voirCoutReelOF(ofId){
+  const rows=await idbGetAll('of');
+  const rec=rows.find(r=>r.id===ofId); if(!rec) return;
+  const suiviRows=await idbGetAll('suivi_reel');
+  const suivi=suiviRows.find(s=>s.ofId===ofId);
+  const pointages=(await idbGetAll('pointages')).filter(p=>p.ofId===ofId);
+  const postes=await idbGetAll('postes');
+  const tauxHoraireDefaut=1500;
+  const tauxHoraire = (postesCode)=>{
+    const p=postes.find(x=>x.code===postesCode||x.nom===postesCode);
+    return p?.tauxHoraire || tauxHoraireDefaut;
+  };
+  const aluT=rec.aluMlTheorique||0, aluR=suivi?.aluMlReel ?? aluT;
+  const moT=rec.moHeuresTheorique||1.8, moR=suivi?.moHeuresReel ?? moT;
+  const matierePrevu=rec.cout||0;
+  const ecartAluPct=aluT ? ((aluR-aluT)/aluT) : 0;
+  const matiereReel=Math.round(matierePrevu*(1+ecartAluPct));
+  let moReelFCFA=0, tempsReelMin=0;
+  if(pointages.length){
+    pointages.forEach(p=>{
+      if(p.debut&&p.fin){
+        const min=(new Date(p.fin)-new Date(p.debut))/60000;
+        tempsReelMin+=min;
+        moReelFCFA+=(min/60)*tauxHoraire(p.operation);
+      }
+    });
+  }
+  if(!moReelFCFA) moReelFCFA=moR*tauxHoraire(rec.poste);
+  const moPrevuFCFA=moT*tauxHoraire(rec.poste);
+  const totalPrevu=matierePrevu+moPrevuFCFA;
+  const totalReel=matiereReel+moReelFCFA;
+  const dateStr=new Date().toLocaleDateString('fr-FR');
+  const lignes=[
+    {label:'Matières (aluminium, vitrage, accessoires)',prevu:matierePrevu,reel:matiereReel},
+    {label:'Main-d\'œuvre'+(pointages.length?' ('+Math.round(tempsReelMin)+' min pointées)':' (estimation)'),prevu:moPrevuFCFA,reel:moReelFCFA}
+  ];
+  const rowsHtml=lignes.map(l=>{
+    const ecart=l.reel-l.prevu;
+    return `<tr><td>${escapeHtml(l.label)}</td><td style="text-align:right">${money(l.prevu)}</td><td style="text-align:right">${money(l.reel)}</td><td style="text-align:right;color:${ecart>0?'#dc2626':'#059669'}">${ecart>=0?'+':''}${money(ecart)}</td></tr>`;
+  }).join('');
+  const ecartTotal=totalReel-totalPrevu;
+  const win=window.open('','_blank','width=800,height=900');
+  if(!win) return;
+  win.document.write(`<html><head><title>Coût de production — ${escapeHtml(rec.numero)}</title>
+    <style>body{font-family:Arial,sans-serif;padding:30px;color:#0f172a;font-size:13px}
+    table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #cbd5e1;padding:8px 12px;text-align:left}th{background:#f1f5f9}
+    h1{font-size:18px}.sub{color:#64748b;font-size:12px;margin-bottom:6px}
+    tfoot td{font-weight:800;border-top:2px solid #0f172a}
+    .note{font-size:10.5px;color:#94a3b8;margin-top:14px}</style></head><body>
+    <h1>Coût de production réel — ${escapeHtml(rec.numero)}</h1>
+    <div class="sub">${escapeHtml(rec.ouvrage)} — ${escapeHtml(rec.client)} — édité le ${dateStr}</div>
+    <table><thead><tr><th>Élément</th><th style="text-align:right">Prévu</th><th style="text-align:right">Réel</th><th style="text-align:right">Écart</th></tr></thead>
+    <tbody>${rowsHtml}</tbody>
+    <tfoot><tr><td>Total</td><td style="text-align:right">${money(totalPrevu)}</td><td style="text-align:right">${money(totalReel)}</td><td style="text-align:right;color:${ecartTotal>0?'#dc2626':'#059669'}">${ecartTotal>=0?'+':''}${money(ecartTotal)}</td></tr></tfoot></table>
+    <p class="note">Matière réelle estimée à partir de l'écart de consommation aluminium (${(ecartAluPct*100).toFixed(1)}%) appliqué au coût matière théorique. Main-d'œuvre calculée sur pointages horodatés si disponibles, sinon sur la saisie "Consommation réelle" × taux horaire du poste (référentiel Postes de travail).</p>
+    </body></html>`);
+  win.document.close(); win.focus();
+}
+
 async function openSuiviReelForm(ofId){
   const rows=await idbGetAll('of');
   const rec=rows.find(r=>r.id===ofId); if(!rec) return;
@@ -4978,7 +5283,7 @@ async function openEntityDetail(kind,id){
 /* ---------- Référentiel technique : Séries & Profils ---------- */
 function showRefTab(tab){
   document.querySelectorAll('.ref-tab').forEach(t=>t.classList.add('hidden'));
-  const ids={series:'refSeries',profils:'refProfils',vitrages:'refVitrages',quincaillerie:'refQuincaillerie',joints:'refJoints',consommables:'refConsommables',machines:'refMachines',ateliers:'refAteliers',depots:'refDepots',parametres:'refParametres'};
+  const ids={series:'refSeries',profils:'refProfils',vitrages:'refVitrages',quincaillerie:'refQuincaillerie',joints:'refJoints',consommables:'refConsommables',machines:'refMachines',ateliers:'refAteliers',depots:'refDepots',postes:'refPostes',parametres:'refParametres'};
   document.getElementById(ids[tab]).classList.remove('hidden');
   document.querySelectorAll('.ref-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.reftab===tab));
   if(REF_DEFS[tab]) renderGenericRef(tab);
@@ -5495,6 +5800,18 @@ const REF_DEFS={
       {id:'statut',label:'Statut',type:'select',options:['actif','inactif']}
     ],
     cols:[['code','Code'],['nom','Nom'],['adresse','Adresse'],['responsable','Responsable'],['statut','Statut','badge']]
+  },
+  postes:{store:'postes',label:'Postes de travail',prefix:'po',
+    fields:[
+      {id:'code',label:'Code (ex. DBT, USI, ASM, VIT, QC, EMB)',required:true},
+      {id:'nom',label:'Nom du poste',required:true,span:2},
+      {id:'responsable',label:'Responsable'},
+      {id:'nbOperateurs',label:"Nombre d'opérateurs",type:'number'},
+      {id:'capaciteJour',label:'Capacité journalière (ouvrages/jour)',type:'number'},
+      {id:'tauxHoraire',label:'Taux horaire (FCFA/h)',type:'number'},
+      {id:'statut',label:'Statut',type:'select',options:['actif','inactif']}
+    ],
+    cols:[['code','Code'],['nom','Nom'],['responsable','Responsable'],['capaciteJour','Capacité/j'],['statut','Statut','badge']]
   },
   machines:{store:'machines',label:'Machines',prefix:'ma',
     fields:[
