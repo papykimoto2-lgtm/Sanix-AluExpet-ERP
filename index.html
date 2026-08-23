@@ -1632,6 +1632,10 @@ window.SANIX_CFG = {
   <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" id="editChantierContent"></div>
 </div>
 
+<div id="receptionAchatModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 modal-overlay">
+  <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" id="receptionAchatContent"></div>
+</div>
+
 <script>
 /* =========================================================
    Sanix AluExpert ERP — Couche ERP (Auth Supabase, IndexedDB offline,
@@ -2763,16 +2767,29 @@ async function genererAchatsDepuisMRP(chantierId){
   const besoins=await calculerBesoinsMRP(chantierId);
   const manquants=besoins.filter(b=>b.manquant>0.01);
   if(!manquants.length){ alert('Aucun manquant — stock suffisant pour ce dossier.'); return; }
-  for(const m of manquants){
+  const groupes={};
+  manquants.forEach(m=>{
+    const fournisseur=m.fournisseur||'À définir';
+    (groupes[fournisseur]=groupes[fournisseur]||[]).push(m);
+  });
+  let nbDA=0;
+  for(const [fournisseur,items] of Object.entries(groupes)){
     const seq=nextSeq('achat');
     const numero='DA-'+seq.year+'-'+String(seq.n).padStart(4,'0');
-    const rec={id:numero,numero,chantierId,fournisseur:m.fournisseur||'À définir',designation:m.designation+' ('+m.code+')',qte:Math.round(m.manquant*100)/100,montant:Math.round(m.manquant*(m.prixUnitaire||0)),statut:'demande',dateCreation:new Date().toISOString(),origineMRP:true};
+    const lignes=items.map(m=>{
+      const qte=Math.round(m.manquant*100)/100;
+      const prix=m.prixUnitaire||0;
+      return {code:m.code,designation:m.designation,qte,prix,montant:Math.round(qte*prix),qteRecue:0};
+    });
+    const montant=lignes.reduce((s,l)=>s+l.montant,0);
+    const rec={id:numero,numero,chantierId,fournisseur,lignes,montant,statut:'demande',dateCreation:new Date().toISOString(),origineMRP:true};
     await idbPut('achats',rec);
     queueSync('alubom_achats',rec);
+    nbDA++;
   }
-  await audit('GENERER_ACHATS_MRP',chantierId+' — '+manquants.length+' référence(s) commandée(s) automatiquement');
+  await audit('GENERER_ACHATS_MRP',chantierId+' — '+nbDA+' DA / '+manquants.length+' référence(s) générée(s) automatiquement');
   await openChantierDetail(chantierId);
-  alert(manquants.length+' demande(s) d\'achat générée(s) automatiquement (MRP).');
+  alert(nbDA+' demande(s) d\'achat générée(s) automatiquement (MRP), '+manquants.length+' référence(s) au total.');
 }
 
 async function consumeReservation(reservations){
@@ -3252,26 +3269,44 @@ async function openChantierDetail(id){
     actionPanel=`
       ${mrpHtml}
       <div class="mb-3">
-        <p class="text-sm text-slate-600 mb-2">Demandes d'achats multi-fournisseurs pour ce chantier — lignes appelées depuis la BOM de la cotation.</p>
-        <form onsubmit="return handleAddAchat(event,'${id}')" class="grid sm:grid-cols-6 gap-2 mb-3 bg-slate-50 border rounded-xl p-3">
-          <select id="acBomRef" onchange="onAcBomRefChange('${id}')" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
-            <option value="">— Composant BOM (ou saisie libre) —</option>
-            ${besoinsMRP.map(b=>`<option value="${escapeHtml(b.code)}" data-designation="${escapeHtml(b.designation)}" data-manquant="${b.manquant.toFixed(2)}" data-prix="${b.prixUnitaire||0}" data-fournisseur="${escapeHtml(b.fournisseur||'')}">${escapeHtml(b.code)} — ${escapeHtml(b.designation)}${b.manquant>0.01?' (manque '+b.manquant.toFixed(2)+')':''}</option>`).join('')}
-          </select>
-          <input id="acFournisseur" list="fournisseursDatalist" placeholder="Fournisseur" required class="border rounded-lg px-2 py-1.5 text-sm">
-          <input id="acDesignation" placeholder="Désignation article" required class="border rounded-lg px-2 py-1.5 text-sm">
-          <input id="acQte" type="number" min="1" value="1" placeholder="Qté" class="border rounded-lg px-2 py-1.5 text-sm">
-          <input id="acPrix" type="number" min="0" placeholder="Prix unitaire" required class="border rounded-lg px-2 py-1.5 text-sm">
-          <button type="submit" class="bg-slate-900 text-white rounded-lg px-3 py-1.5 text-sm font-semibold sm:col-span-6">+ Ajouter DA</button>
-        </form>
-        <div class="space-y-2">${achats.length?achats.map(a=>`
-          <div class="flex items-center justify-between border rounded-lg p-3 text-sm">
-            <div><b>${escapeHtml(a.numero)}</b> — ${escapeHtml(a.fournisseur)} — ${escapeHtml(a.designation)} × ${a.qte}${a.qteRecue?` (reçu ${a.qteRecue}/${a.qte})`:''} — ${money(a.montant)}${a.origineMRP?' <span class="badge bg-blue-50 text-blue-700">MRP auto</span>':''}</div>
-            <div class="flex items-center gap-2">
-              <span class="badge bg-${a.statut==='recue'?'emerald':a.statut==='partielle'?'orange':a.statut==='commandee'?'blue':a.statut==='validee'?'amber':'slate'}-50 text-${a.statut==='recue'?'emerald':a.statut==='partielle'?'orange':a.statut==='commandee'?'blue':a.statut==='validee'?'amber':'slate'}-700">${escapeHtml(a.statut)}</span>
-              ${a.statut!=='recue'?`<button onclick="advanceAchatStatut('${a.id}','${id}')" class="text-blue-600 text-xs font-semibold">Étape suivante →</button>`:''}
+        <p class="text-sm text-slate-600 mb-2">Demandes d'achats multi-fournisseurs pour ce chantier — une demande peut regrouper plusieurs références de la BOM.</p>
+        <div class="bg-slate-50 border rounded-xl p-3 mb-3">
+          <div class="grid sm:grid-cols-6 gap-2 mb-2">
+            <select id="acBomRef" onchange="onAcBomRefChange()" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
+              <option value="">— Composant BOM (ou saisie libre) —</option>
+              ${besoinsMRP.map(b=>`<option value="${escapeHtml(b.code)}" data-designation="${escapeHtml(b.designation)}" data-manquant="${b.manquant.toFixed(2)}" data-prix="${b.prixUnitaire||0}" data-fournisseur="${escapeHtml(b.fournisseur||'')}">${escapeHtml(b.code)} — ${escapeHtml(b.designation)}${b.manquant>0.01?' (manque '+b.manquant.toFixed(2)+')':''}</option>`).join('')}
+            </select>
+            <input id="acDesignation" placeholder="Désignation article" class="border rounded-lg px-2 py-1.5 text-sm">
+            <input id="acQte" type="number" min="1" value="1" placeholder="Qté" class="border rounded-lg px-2 py-1.5 text-sm">
+            <input id="acPrix" type="number" min="0" placeholder="Prix unitaire" class="border rounded-lg px-2 py-1.5 text-sm">
+            <button type="button" onclick="ajouterLigneAchatCart()" class="border border-blue-600 text-blue-600 rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter à la demande</button>
+          </div>
+          <div id="acCartBody" class="space-y-1 mb-2"></div>
+          <div class="flex flex-wrap items-center justify-between gap-2 border-t pt-2">
+            <div class="text-sm">Total demande : <b id="acCartTotal">0 FCFA</b></div>
+            <div class="flex gap-2 items-center">
+              <input id="acFournisseur" list="fournisseursDatalist" placeholder="Fournisseur (obligatoire)" class="border rounded-lg px-2 py-1.5 text-sm">
+              <button type="button" onclick="handleAddAchat('${id}')" class="bg-slate-900 text-white rounded-lg px-4 py-1.5 text-sm font-semibold">✓ Valider la demande d'achat</button>
             </div>
-          </div>`).join('') : '<div class="text-sm text-slate-400">Aucune demande d\'achat.</div>'}
+          </div>
+        </div>
+        <div class="space-y-2">${achats.length?achats.map(a=>{
+          const lignes=normalizeAchatLignes(a);
+          const nbLignes=lignes.length;
+          return `
+          <div class="border rounded-lg p-3 text-sm">
+            <div class="flex items-center justify-between">
+              <div><b>${escapeHtml(a.numero)}</b> — ${escapeHtml(a.fournisseur)} — ${nbLignes} référence${nbLignes>1?'s':''} — ${money(a.montant)}${a.origineMRP?' <span class="badge bg-blue-50 text-blue-700">MRP auto</span>':''}</div>
+              <div class="flex items-center gap-2">
+                <span class="badge bg-${a.statut==='recue'?'emerald':a.statut==='partielle'?'orange':a.statut==='commandee'?'blue':a.statut==='validee'?'amber':'slate'}-50 text-${a.statut==='recue'?'emerald':a.statut==='partielle'?'orange':a.statut==='commandee'?'blue':a.statut==='validee'?'amber':'slate'}-700">${escapeHtml(a.statut)}</span>
+                ${a.statut!=='recue'?`<button onclick="advanceAchatStatut('${a.id}','${id}')" class="text-blue-600 text-xs font-semibold">${(a.statut==='commandee'||a.statut==='partielle')?'📦 Réceptionner':'Étape suivante →'}</button>`:''}
+              </div>
+            </div>
+            <div class="mt-2 pt-2 border-t text-xs text-slate-500 space-y-0.5">
+              ${lignes.map(l=>`<div class="flex justify-between"><span>${escapeHtml(l.code?l.code+' — ':'')}${escapeHtml(l.designation)} × ${l.qte}${(l.qteRecue||0)>0?` (reçu ${l.qteRecue}/${l.qte})`:''}</span><span>${money(l.montant||l.qte*l.prix)}</span></div>`).join('')}
+            </div>
+          </div>`;
+        }).join('') : '<div class="text-sm text-slate-400">Aucune demande d\'achat.</div>'}
         </div>
       </div>
       <button ${(allRecue&&!manquantsMRP.length)?'':'disabled class="opacity-50 cursor-not-allowed"'} onclick="advanceChantierStage('${id}','fabrication')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">Passer au dossier de fabrication →</button>
@@ -3312,6 +3347,8 @@ async function openChantierDetail(id){
       ${proformasHtml}
     </div>`;
   wrap.scrollIntoView({behavior:'smooth',block:'start'});
+  achatCart=[];
+  renderAchatCart();
   }catch(err){
     wrap.innerHTML=`<div class="card bg-white rounded-2xl p-6">
       <div class="flex justify-between items-center mb-3">
@@ -3345,23 +3382,56 @@ async function handlePaiement(e,id){
   return false;
 }
 
-async function handleAddAchat(e,chantierId){
-  e.preventDefault();
-  if(!hasRole('achat:create')){ alert('Permission refusée.'); return false; }
-  const fournisseur=document.getElementById('acFournisseur').value.trim();
+/* ---------- Panier multi-lignes pour une demande d'achat (une DA = plusieurs réf. BOM) ---------- */
+let achatCart=[];
+function normalizeAchatLignes(rec){
+  if(rec.lignes && rec.lignes.length) return rec.lignes;
+  return [{code:rec.codeBom||null,designation:rec.designation||'Article',qte:rec.qte||1,prix:rec.qte?Math.round((rec.montant||0)/rec.qte):0,montant:rec.montant||0,qteRecue:rec.qteRecue||0}];
+}
+function renderAchatCart(){
+  const el=document.getElementById('acCartBody'); if(!el) return;
+  el.innerHTML = achatCart.length ? achatCart.map((l,i)=>`
+    <div class="flex items-center justify-between text-xs bg-white border rounded-lg px-2 py-1.5">
+      <span>${escapeHtml(l.code?l.code+' — ':'')}${escapeHtml(l.designation)} × ${l.qte} @ ${money(l.prix)}</span>
+      <span class="flex items-center gap-2"><b>${money(l.montant)}</b><button type="button" onclick="removeLigneAchatCart(${i})" class="text-red-500 font-bold">✕</button></span>
+    </div>`).join('') : '<p class="text-xs text-slate-400">Aucune ligne ajoutée à cette demande.</p>';
+  const total=achatCart.reduce((s,l)=>s+l.montant,0);
+  const totalEl=document.getElementById('acCartTotal');
+  if(totalEl) totalEl.textContent=money(total);
+}
+function ajouterLigneAchatCart(){
+  const code=document.getElementById('acBomRef')?.value||null;
   const designation=document.getElementById('acDesignation').value.trim();
   const qte=+document.getElementById('acQte').value||1;
   const prix=+document.getElementById('acPrix').value||0;
-  const codeBom=document.getElementById('acBomRef')?.value||null;
-  if(!fournisseur||!designation) return false;
+  if(!designation){ alert('Choisissez un composant BOM ou saisissez une désignation.'); return; }
+  achatCart.push({code,designation,qte,prix,montant:Math.round(qte*prix),qteRecue:0});
+  document.getElementById('acBomRef').value='';
+  document.getElementById('acDesignation').value='';
+  document.getElementById('acQte').value=1;
+  document.getElementById('acPrix').value='';
+  renderAchatCart();
+}
+function removeLigneAchatCart(i){
+  achatCart.splice(i,1);
+  renderAchatCart();
+}
+async function handleAddAchat(chantierId){
+  if(!hasRole('achat:create')){ alert('Permission refusée.'); return; }
+  const fournisseur=document.getElementById('acFournisseur').value.trim();
+  if(!fournisseur){ alert('Renseignez le fournisseur de cette demande.'); document.getElementById('acFournisseur').focus(); return; }
+  if(!achatCart.length){ alert("Ajoutez au moins une ligne (composant BOM ou saisie libre) avant de valider."); return; }
   const seq=nextSeq('achat');
   const numero='DA-'+seq.year+'-'+String(seq.n).padStart(4,'0');
-  const rec={id:numero,numero,chantierId,fournisseur,designation,qte,montant:qte*prix,statut:'demande',dateCreation:new Date().toISOString(),codeBom};
+  const lignes=achatCart.map(l=>({...l}));
+  const montant=lignes.reduce((s,l)=>s+l.montant,0);
+  const rec={id:numero,numero,chantierId,fournisseur,lignes,montant,statut:'demande',dateCreation:new Date().toISOString()};
   await idbPut('achats',rec);
   queueSync('alubom_achats',rec);
-  await audit('CREATE_DEMANDE_ACHAT',numero+' — '+fournisseur+' — '+designation+(codeBom?' ('+codeBom+')':''));
+  await audit('CREATE_DEMANDE_ACHAT',numero+' — '+fournisseur+' — '+lignes.length+' référence(s)');
+  achatCart=[];
+  document.getElementById('acFournisseur').value='';
   await openChantierDetail(chantierId);
-  return false;
 }
 function onAcBomRefChange(){
   const sel=document.getElementById('acBomRef');
@@ -3371,38 +3441,97 @@ function onAcBomRefChange(){
   const manquant=+opt.dataset.manquant||0;
   document.getElementById('acQte').value = manquant>0 ? Math.ceil(manquant) : 1;
   if(opt.dataset.prix) document.getElementById('acPrix').value=opt.dataset.prix;
-  if(opt.dataset.fournisseur) document.getElementById('acFournisseur').value=opt.dataset.fournisseur;
+  if(opt.dataset.fournisseur && !document.getElementById('acFournisseur').value) document.getElementById('acFournisseur').value=opt.dataset.fournisseur;
 }
 function remplirDAdepuisMRP(code,designation,manquant,prix,fournisseur){
-  const sel=document.getElementById('acBomRef');
-  if(sel) sel.value=code;
+  document.getElementById('acBomRef').value=code;
   document.getElementById('acDesignation').value=designation||'';
   document.getElementById('acQte').value = manquant>0 ? Math.ceil(manquant) : 1;
   if(prix) document.getElementById('acPrix').value=prix;
-  if(fournisseur) document.getElementById('acFournisseur').value=fournisseur;
+  if(fournisseur && !document.getElementById('acFournisseur').value) document.getElementById('acFournisseur').value=fournisseur;
+  ajouterLigneAchatCart();
   document.getElementById('acFournisseur')?.scrollIntoView({behavior:'smooth',block:'center'});
   document.getElementById('acFournisseur')?.focus();
 }
 
-const ACHAT_STATUT_NEXT={demande:'validee',validee:'commandee',commandee:'recue',partielle:'recue'};
+const ACHAT_STATUT_NEXT={demande:'validee',validee:'commandee'};
 async function advanceAchatStatut(achatId,chantierId){
   if(!hasRole('achat:manage')){ alert('Permission refusée.'); return; }
   const rows=await idbGetAll('achats');
   const rec=rows.find(a=>a.id===achatId); if(!rec) return;
   if(rec.statut==='commandee' || rec.statut==='partielle'){
-    const restant=rec.qte-(rec.qteRecue||0);
-    const saisie=prompt(`Quantité reçue pour cette livraison (sur ${restant} restant(s)) :`, restant);
-    if(saisie===null) return;
-    const qteRecueMaintenant=Math.max(0,+saisie||0);
-    rec.qteRecue=(rec.qteRecue||0)+qteRecueMaintenant;
-    rec.statut = rec.qteRecue>=rec.qte ? 'recue' : 'partielle';
-  } else {
-    rec.statut=ACHAT_STATUT_NEXT[rec.statut]||rec.statut;
+    await openReceptionAchatModal(achatId,chantierId);
+    return;
   }
+  rec.statut=ACHAT_STATUT_NEXT[rec.statut]||rec.statut;
   await idbPut('achats',rec);
   queueSync('alubom_achats',rec);
-  await audit('MAJ_DEMANDE_ACHAT',rec.numero+' → '+rec.statut+(rec.qteRecue?' ('+rec.qteRecue+'/'+rec.qte+')':''));
+  await audit('MAJ_DEMANDE_ACHAT',rec.numero+' → '+rec.statut);
   await openChantierDetail(chantierId);
+}
+
+/* ---------- Réception (multi-lignes) d'une demande d'achat ---------- */
+let receptionAchatId=null, receptionChantierId=null, receptionLignes=[];
+async function openReceptionAchatModal(achatId,chantierId){
+  const rows=await idbGetAll('achats');
+  const rec=rows.find(a=>a.id===achatId); if(!rec) return;
+  receptionAchatId=achatId; receptionChantierId=chantierId;
+  receptionLignes=normalizeAchatLignes(rec).map(l=>({...l}));
+  const modal=document.getElementById('receptionAchatModal');
+  const content=document.getElementById('receptionAchatContent');
+  content.innerHTML=`
+    <div class="flex justify-between items-start mb-4">
+      <h2 class="text-lg font-bold">📦 Réception — ${escapeHtml(rec.numero)}</h2>
+      <button onclick="closeReceptionAchatModal()" class="text-slate-400 text-xl leading-none">×</button>
+    </div>
+    <p class="text-sm text-slate-500 mb-3">${escapeHtml(rec.fournisseur)} — saisissez la quantité reçue par référence.</p>
+    <div id="receptionLignesBody" class="space-y-2 max-h-72 overflow-y-auto"></div>
+    <div class="flex justify-end gap-2 pt-4 mt-2 border-t">
+      <button type="button" onclick="closeReceptionAchatModal()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Annuler</button>
+      <button type="button" onclick="validerReceptionAchat()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">✓ Valider la réception</button>
+    </div>`;
+  renderReceptionLignes();
+  modal.classList.remove('hidden');
+  setModalOpen(true);
+}
+function renderReceptionLignes(){
+  const el=document.getElementById('receptionLignesBody'); if(!el) return;
+  el.innerHTML=receptionLignes.map((l,i)=>{
+    const restant=l.qte-(l.qteRecue||0);
+    return `<div class="flex items-center gap-2 border rounded-lg p-2 text-xs">
+      <div class="flex-1">
+        <div class="font-semibold">${escapeHtml(l.code?l.code+' — ':'')}${escapeHtml(l.designation)}</div>
+        <div class="text-slate-400">Commandé ${l.qte} — déjà reçu ${l.qteRecue||0} — restant ${restant.toFixed(2)}</div>
+      </div>
+      <label>Reçu maintenant <input type="number" min="0" max="${restant}" value="${restant>0?restant:0}" onchange="updateReceptionLigne(${i},this.value)" class="w-20 border rounded px-1 py-1"></label>
+    </div>`;
+  }).join('');
+}
+function updateReceptionLigne(i,value){
+  receptionLignes[i]._recuMaintenant=Math.max(0,+value||0);
+}
+function closeReceptionAchatModal(){
+  document.getElementById('receptionAchatModal').classList.add('hidden');
+  setModalOpen(false);
+}
+async function validerReceptionAchat(){
+  if(!hasRole('achat:manage')){ alert('Permission refusée.'); return; }
+  const rows=await idbGetAll('achats');
+  const rec=rows.find(a=>a.id===receptionAchatId); if(!rec) return;
+  const nouvellesLignes=receptionLignes.map(l=>({
+    code:l.code, designation:l.designation, qte:l.qte, prix:l.prix, montant:l.montant,
+    qteRecue:Math.min(l.qte,(l.qteRecue||0)+(l._recuMaintenant||0))
+  }));
+  rec.lignes=nouvellesLignes;
+  rec.montant=nouvellesLignes.reduce((s,l)=>s+l.montant,0);
+  const toutRecu=nouvellesLignes.every(l=>l.qteRecue>=l.qte);
+  const rienRecu=nouvellesLignes.every(l=>(l.qteRecue||0)<=0);
+  rec.statut = toutRecu ? 'recue' : (rienRecu ? rec.statut : 'partielle');
+  await idbPut('achats',rec);
+  queueSync('alubom_achats',rec);
+  await audit('RECEPTION_ACHAT',rec.numero+' → '+rec.statut);
+  closeReceptionAchatModal();
+  await openChantierDetail(receptionChantierId);
 }
 
 async function handlePlanifierInstallation(e,id){
