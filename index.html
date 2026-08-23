@@ -50,6 +50,9 @@ window.SANIX_CFG = {
   .stock-tab-btn{color:#475569;background:transparent}
   .stock-tab-btn:hover{background:#f1f5f9}
   .stock-tab-btn.active{background:#2563eb;color:#fff}
+  .prod-tab-btn{color:#475569;background:transparent}
+  .prod-tab-btn:hover{background:#f1f5f9}
+  .prod-tab-btn.active{background:#2563eb;color:#fff}
   @media (max-width:767px){
     .sidebar{position:fixed;inset:0 25% 0 0;z-index:40;transform:translateX(-100%);transition:transform .25s ease;overflow-y:auto;display:block!important}
     .sidebar.open{transform:translateX(0)}
@@ -1252,15 +1255,30 @@ window.SANIX_CFG = {
       </section>
 
       <section id="production" class="page hidden">
+        <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1 items-center">
+          <button class="prod-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prodtab="liste" onclick="showProdTab('liste')">📋 Liste</button>
+          <button class="prod-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prodtab="kanban" onclick="showProdTab('kanban')">🗂️ Kanban</button>
+          <button id="btnNewOF" onclick="openNewOFForm()" class="ml-auto bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">+ Nouvel OF</button>
+        </div>
+
+        <div id="prodTabListe" class="prod-tab">
         <div class="card bg-white rounded-2xl p-6">
-          <div class="flex justify-between mb-5"><div><h2 class="text-lg font-bold">Ordres de fabrication</h2><p class="text-sm text-slate-500">Suivi du cycle atelier — BOM figée au lancement, contrôle qualité avant clôture.</p></div><button id="btnNewOF" onclick="openNewOFForm()" class="bg-blue-600 text-white px-4 py-2 rounded-lg">+ Nouvel OF</button></div>
-          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">OF</th><th class="text-left p-3">Ouvrage</th><th class="text-left p-3">Client</th><th class="text-left p-3">Statut</th><th class="text-left p-3">Qualité</th><th class="text-right p-3">Marge</th><th class="p-3"></th></tr></thead><tbody id="ofBody"></tbody></table></div>
+          <div class="flex justify-between mb-5"><div><h2 class="text-lg font-bold">Ordres de fabrication</h2><p class="text-sm text-slate-500">Suivi du cycle atelier — BOM figée au lancement, contrôle qualité avant clôture.</p></div></div>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">OF</th><th class="text-left p-3">Ouvrage</th><th class="text-left p-3">Client</th><th class="text-left p-3">Priorité</th><th class="text-left p-3">Statut</th><th class="text-left p-3">Avancement</th><th class="text-left p-3">Qualité</th><th class="text-right p-3">Marge</th><th class="p-3"></th></tr></thead><tbody id="ofBody"></tbody></table></div>
         </div>
         <div id="qcDetail" class="hidden mt-6"></div>
         <div class="card bg-white rounded-2xl p-6 mt-6">
           <details><summary class="font-bold cursor-pointer">Journal d'audit (dernières actions)</summary>
             <div id="auditLog" class="mt-4 text-xs text-slate-500 space-y-1"></div>
           </details>
+        </div>
+        </div>
+
+        <div id="prodTabKanban" class="prod-tab hidden">
+        <div class="card bg-white rounded-2xl p-6">
+          <h2 class="text-lg font-bold mb-4">Avancement de production</h2>
+          <div id="kanbanBoard" class="grid gap-3" style="grid-template-columns:repeat(7,minmax(180px,1fr));overflow-x-auto"></div>
+        </div>
         </div>
       </section>
 
@@ -1714,6 +1732,10 @@ window.SANIX_CFG = {
   <div class="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[85vh] overflow-y-auto" id="dossierFromProformaContent"></div>
 </div>
 
+<div id="pointageModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 modal-overlay">
+  <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" id="pointageContent"></div>
+</div>
+
 <script>
 /* =========================================================
    Sanix AluExpert ERP — Couche ERP (Auth Supabase, IndexedDB offline,
@@ -1733,10 +1755,10 @@ function escapeHtml(s){
 /* ---------- IndexedDB ---------- */
 function openDB(){
   return new Promise((resolve,reject)=>{
-    const req=indexedDB.open('alubom_db',12);
+    const req=indexedDB.open('alubom_db',13);
     req.onupgradeneeded=e=>{
       const d=e.target.result;
-      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers','depots'].forEach(s=>{
+      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers','depots','pointages'].forEach(s=>{
         if(!d.objectStoreNames.contains(s)) d.createObjectStore(s,{keyPath:'id'});
       });
     };
@@ -2039,7 +2061,7 @@ async function checkSession(){
 document.addEventListener('DOMContentLoaded',checkSession);
 
 /* ---------- Ordres de Fabrication (OF) ---------- */
-async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable(),renderEnsemblesList(),renderPlansFacadeTable(),renderRevisionsTable(),populateAtelierSelect(),loadParams()]); renderUsersTable(); if(document.getElementById('costChart')) updateDashboard(); }
+async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable(),renderEnsemblesList(),renderPlansFacadeTable(),renderRevisionsTable(),populateAtelierSelect(),loadParams()]); renderUsersTable(); if(document.getElementById('costChart')) updateDashboard(); if(document.getElementById('prodTabKanban') && !document.getElementById('prodTabKanban').classList.contains('hidden')) renderKanban(); }
 
 function openNewOFForm(){
   if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
@@ -2098,10 +2120,11 @@ async function handleCreateOF(e){
   };
   const rec={
     id:numero,numero,ouvrage:`${type} ${w}×${h}`,client,operateur,poste,
-    datePrevue,dateReelle:null,statut:'Découpe',
+    datePrevue,dateReelle:null,statut:'Découpe',priorite:'normale',
     marge:(margin*100).toFixed(0)+'%',cout:lastCost,date:new Date().toISOString(),
     reservations,bomVersion,configSnapshot,bomSnapshot:window.lastBOMRows||[],
     aluMlTheorique:window.lastAluMl||0,glassM2Theorique:window.lastGlassM2||0,moHeuresTheorique:1.8,
+    evenements:[{ts:new Date().toISOString(),statut:'Découpe',user:currentUser?currentUser.email:'—'}],
     _modifie:new Date().toISOString()
   };
   await idbPut('of',rec);
@@ -2113,8 +2136,16 @@ async function handleCreateOF(e){
   return false;
 }
 
-const OF_STATUS_COLOR={'Découpe':'blue','Assemblage':'blue','Vitrage':'amber','Terminé':'emerald','Annulé':'red'};
-const OF_STATUS_FLOW={'Découpe':'Assemblage','Assemblage':'Vitrage','Vitrage':'Terminé'};
+const OF_STATUS_COLOR={'Découpe':'blue','Usinage':'indigo','Assemblage':'blue','Vitrage':'amber','Terminé':'emerald','Prêt à livrer':'teal','Livré':'emerald','Suspendu':'slate','Annulé':'red'};
+const OF_STATUS_FLOW={'Découpe':'Usinage','Usinage':'Assemblage','Assemblage':'Vitrage','Vitrage':'Terminé','Terminé':'Prêt à livrer','Prêt à livrer':'Livré'};
+const OF_GAMME=['Découpe','Usinage','Assemblage','Vitrage','Terminé','Prêt à livrer','Livré'];
+const OF_STATUS_POSTE={'Découpe':'Débit','Usinage':'Usinage','Assemblage':'Assemblage','Vitrage':'Vitrage','Terminé':'Contrôle qualité','Prêt à livrer':'Emballage','Livré':'Livraison'};
+const OF_PRIORITES={urgent:{label:'Urgent',emoji:'🔴',order:0},haute:{label:'Haute',emoji:'🟠',order:1},normale:{label:'Normale',emoji:'🟡',order:2},faible:{label:'Faible',emoji:'🟢',order:3}};
+function ofAvancementPct(statut){
+  const idx=OF_GAMME.indexOf(statut);
+  if(idx<0) return statut==='Terminé'||statut==='Livré' ? 100 : 0;
+  return Math.round(((idx+1)/OF_GAMME.length)*100);
+}
 
 function viewOFBom(id){
   idbGetAll('of').then(rows=>{
@@ -2197,6 +2228,7 @@ async function renderOFTable(){
   const plansRows=await idbGetAll('plans');
   const plansCount={}; plansRows.forEach(p=>{ plansCount[p.ofId]=(plansCount[p.ofId]||0)+1; });
   const suiviRows=await idbGetAll('suivi_reel');
+  const pointagesRows=await idbGetAll('pointages');
   const today=new Date().toISOString().slice(0,10);
   el.innerHTML = rows.length ? rows.map(r=>{
     const c=OF_STATUS_COLOR[r.statut]||'slate';
@@ -2214,16 +2246,152 @@ async function renderOFTable(){
     const reqBtn = r.requisitionNumero
       ? `<button onclick="imprimerBonRequisition('${r.id}')" title="Réimprimer" class="text-emerald-600 text-xs font-semibold mr-2">✓ ${escapeHtml(r.requisitionNumero)}</button>`
       : `<button onclick="emettreBonRequisition('${r.id}')" title="Émettre le bon de réquisition et mouvementer le stock" class="text-purple-600 text-xs font-semibold mr-2">📋 Bon de réquisition</button>`;
-    const actions = (r.statut==='Terminé'||r.statut==='Annulé') ? planBtn+suiviBtn : `
+    const nbPointages=pointagesRows.filter(p=>p.ofId===r.id).length;
+    const pointageBtn = (r.statut!=='Terminé'&&r.statut!=='Annulé'&&r.statut!=='Livré') ? `<button onclick="openPointageModal('${r.id}')" class="text-cyan-600 text-xs font-semibold mr-2">⏱ Pointage${nbPointages?' ('+nbPointages+')':''}</button>` : '';
+    const actions = (r.statut==='Terminé'||r.statut==='Annulé'||r.statut==='Livré') ? planBtn+suiviBtn : `
+      ${pointageBtn}
       ${reqBtn}
       ${next?`<button onclick="advanceOFStatus('${r.id}','${next}')" class="text-blue-600 text-xs font-semibold mr-2">→ ${escapeHtml(next)}</button>`:''}
       <button onclick="openQCForm('${r.id}')" class="text-amber-600 text-xs font-semibold mr-2">Contrôle qualité</button>
       ${planBtn}
       <button onclick="viewOFBom('${r.id}')" class="text-slate-500 text-xs font-semibold mr-2">BOM figée</button>
       <button onclick="advanceOFStatus('${r.id}','Annulé')" class="text-red-500 text-xs font-semibold">Annuler</button>`;
-    return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.numero)}</td><td class="p-3">${escapeHtml(r.ouvrage)}<div class="text-xs text-slate-400">${meta}</div></td><td class="p-3">${escapeHtml(r.client)}</td><td class="p-3"><span class="badge bg-${c}-50 text-${c}-700">${escapeHtml(r.statut)}</span></td><td class="p-3">${qcBadge}</td><td class="p-3 text-right">${escapeHtml(r.marge)}</td><td class="p-3 text-right whitespace-nowrap">${actions}</td></tr>`;
-  }).join('') : `<tr><td class="p-3 text-slate-400" colspan="7">Aucun OF. Créez-en un depuis le Chiffrage ou ici.</td></tr>`;
+    const prio=OF_PRIORITES[r.priorite||'normale'];
+    const prioSelect=`<select onchange="setOFPriorite('${r.id}',this.value)" class="text-xs border-0 bg-transparent font-semibold cursor-pointer">${Object.entries(OF_PRIORITES).map(([k,v])=>`<option value="${k}" ${((r.priorite||'normale')===k)?'selected':''}>${v.emoji} ${v.label}</option>`).join('')}</select>`;
+    const pct=ofAvancementPct(r.statut);
+    const avancement = (r.statut==='Annulé') ? '<span class="text-xs text-slate-400">—</span>' : `<div class="w-24"><div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-blue-600" style="width:${pct}%"></div></div><div class="text-[10px] text-slate-400 mt-0.5">${pct}%</div></div>`;
+    return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.numero)}</td><td class="p-3">${escapeHtml(r.ouvrage)}<div class="text-xs text-slate-400">${meta}</div></td><td class="p-3">${escapeHtml(r.client)}</td><td class="p-3">${prioSelect}</td><td class="p-3"><span class="badge bg-${c}-50 text-${c}-700">${escapeHtml(r.statut)}</span></td><td class="p-3">${avancement}</td><td class="p-3">${qcBadge}</td><td class="p-3 text-right">${escapeHtml(r.marge)}</td><td class="p-3 text-right whitespace-nowrap">${actions}</td></tr>`;
+  }).join('') : `<tr><td class="p-3 text-slate-400" colspan="9">Aucun OF. Créez-en un depuis le Chiffrage ou ici.</td></tr>`;
 }
+
+/* ---------- Onglets Production (Liste / Kanban) ---------- */
+function showProdTab(tab){
+  document.querySelectorAll('.prod-tab').forEach(t=>t.classList.add('hidden'));
+  document.getElementById('prodTab'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.remove('hidden');
+  document.querySelectorAll('.prod-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.prodtab===tab));
+  if(tab==='kanban') renderKanban();
+}
+async function renderKanban(){
+  const board=document.getElementById('kanbanBoard'); if(!board) return;
+  const rows=(await idbGetAll('of')).filter(r=>r.statut!=='Annulé').sort((a,b)=>b.date.localeCompare(a.date));
+  const today=new Date().toISOString().slice(0,10);
+  const colonnes=OF_GAMME;
+  board.innerHTML=colonnes.map(statut=>{
+    const items=rows.filter(r=>r.statut===statut);
+    const c=OF_STATUS_COLOR[statut]||'slate';
+    return `<div class="bg-slate-50 rounded-xl border p-2 min-w-[180px]">
+      <div class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-2 flex justify-between items-center"><span>${escapeHtml(statut)}</span><span class="badge bg-${c}-50 text-${c}-700">${items.length}</span></div>
+      <div class="space-y-2">
+        ${items.map(r=>{
+          const prio=OF_PRIORITES[r.priorite||'normale'];
+          const enRetard = r.datePrevue && r.datePrevue<today && statut!=='Terminé' && statut!=='Livré';
+          const pct=ofAvancementPct(r.statut);
+          return `<div class="bg-white rounded-lg border p-2 shadow-sm cursor-pointer hover:shadow-md" onclick="showPage('production');showProdTab('liste')">
+            <div class="flex justify-between items-start"><span class="text-xs font-bold">${escapeHtml(r.numero)}</span><span class="text-xs">${prio.emoji}</span></div>
+            <div class="text-xs text-slate-600 mt-0.5 truncate">${escapeHtml(r.ouvrage)}</div>
+            <div class="text-[10px] text-slate-400 truncate">${escapeHtml(r.client)}</div>
+            <div class="h-1 bg-slate-100 rounded-full overflow-hidden mt-2"><div class="h-full bg-blue-600" style="width:${pct}%"></div></div>
+            ${enRetard?'<div class="text-[10px] text-red-600 font-bold mt-1">⚠ En retard</div>':''}
+          </div>`;
+        }).join('') || '<p class="text-xs text-slate-400 text-center py-4">Vide</p>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- Pointage opérateur (début/fin, qté conforme/rebut/reprise) ---------- */
+let pointageOFId=null;
+async function openPointageModal(ofId){
+  const rows=await idbGetAll('of');
+  const rec=rows.find(r=>r.id===ofId); if(!rec) return;
+  pointageOFId=ofId;
+  const pointages=(await idbGetAll('pointages')).filter(p=>p.ofId===ofId).sort((a,b)=>(b.debut||'').localeCompare(a.debut||''));
+  const modal=document.getElementById('pointageModal');
+  const content=document.getElementById('pointageContent');
+  content.innerHTML=`
+    <div class="flex justify-between items-start mb-4">
+      <div><h2 class="text-lg font-bold">⏱ Pointage — ${escapeHtml(rec.numero)}</h2><p class="text-sm text-slate-500">${escapeHtml(rec.ouvrage)} — poste actuel : ${escapeHtml(rec.poste||OF_STATUS_POSTE[rec.statut]||'—')}</p></div>
+      <button onclick="closePointageModal()" class="text-slate-400 text-xl leading-none">×</button>
+    </div>
+    <form onsubmit="return handleSubmitPointage(event,'${ofId}')" class="space-y-3 bg-slate-50 border rounded-xl p-3 mb-4">
+      <div class="grid sm:grid-cols-2 gap-3">
+        <label class="text-xs font-semibold block">Opérateur
+          <input id="ptOperateur" value="${escapeHtml(rec.operateur||'')}" required class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+        <label class="text-xs font-semibold block">Opération / poste
+          <input id="ptOperation" value="${escapeHtml(rec.poste||OF_STATUS_POSTE[rec.statut]||'')}" required class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <label class="text-xs font-semibold block">Début
+          <input id="ptDebut" type="datetime-local" required class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+        <label class="text-xs font-semibold block">Fin
+          <input id="ptFin" type="datetime-local" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+      </div>
+      <div class="grid sm:grid-cols-3 gap-3">
+        <label class="text-xs font-semibold block">Qté conforme
+          <input id="ptQteConforme" type="number" min="0" value="1" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+        <label class="text-xs font-semibold block">Qté rebut
+          <input id="ptQteRebut" type="number" min="0" value="0" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+        <label class="text-xs font-semibold block">Qté reprise
+          <input id="ptQteReprise" type="number" min="0" value="0" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+      </div>
+      <label class="text-xs font-semibold block">Commentaire
+        <input id="ptCommentaire" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <button type="submit" class="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg text-sm font-semibold w-full">✓ Enregistrer le pointage</button>
+    </form>
+    <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Historique (${pointages.length})</h3>
+    <div class="space-y-2 max-h-60 overflow-y-auto">
+      ${pointages.length?pointages.map(p=>{
+        const tempsMin = p.fin&&p.debut ? Math.round((new Date(p.fin)-new Date(p.debut))/60000) : null;
+        return `<div class="border rounded-lg p-2 text-xs">
+          <div class="flex justify-between"><b>${escapeHtml(p.operation)}</b><span class="text-slate-400">${escapeHtml(p.operateur)}</span></div>
+          <div class="text-slate-500">${p.debut?new Date(p.debut).toLocaleString('fr-FR'):'—'}${p.fin?' → '+new Date(p.fin).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):''}${tempsMin!=null?' ('+tempsMin+' min)':''}</div>
+          <div class="mt-1">Conforme <b class="text-emerald-600">${p.qteConforme||0}</b> · Rebut <b class="text-red-600">${p.qteRebut||0}</b> · Reprise <b class="text-amber-600">${p.qteReprise||0}</b></div>
+          ${p.commentaire?`<div class="text-slate-500 italic mt-1">${escapeHtml(p.commentaire)}</div>`:''}
+        </div>`;
+      }).join(''):'<p class="text-xs text-slate-400">Aucun pointage enregistré.</p>'}
+    </div>`;
+  document.getElementById('ptDebut').value=new Date().toISOString().slice(0,16);
+  modal.classList.remove('hidden');
+  setModalOpen(true);
+}
+function closePointageModal(){
+  document.getElementById('pointageModal').classList.add('hidden');
+  setModalOpen(false);
+}
+async function handleSubmitPointage(e,ofId){
+  e.preventDefault();
+  if(!hasRole('of:create')){ alert('Permission refusée.'); return false; }
+  const rows=await idbGetAll('of');
+  const rec=rows.find(r=>r.id===ofId); if(!rec) return false;
+  const pt={
+    id:'pt_'+Date.now(), ofId, ofNumero:rec.numero,
+    operateur:document.getElementById('ptOperateur').value.trim(),
+    operation:document.getElementById('ptOperation').value.trim(),
+    debut:document.getElementById('ptDebut').value,
+    fin:document.getElementById('ptFin').value||null,
+    qteConforme:+document.getElementById('ptQteConforme').value||0,
+    qteRebut:+document.getElementById('ptQteRebut').value||0,
+    qteReprise:+document.getElementById('ptQteReprise').value||0,
+    commentaire:document.getElementById('ptCommentaire').value.trim(),
+    saisiPar:currentUser?currentUser.email:'—',
+    _modifie:new Date().toISOString()
+  };
+  await idbPut('pointages',pt);
+  queueSync('alubom_pointages',pt);
+  await audit('POINTAGE_OF',rec.numero+' — '+pt.operation+' — conforme '+pt.qteConforme+' / rebut '+pt.qteRebut);
+  await openPointageModal(ofId);
+  await renderOFTable();
+  return false;
+}
+
 
 async function advanceOFStatus(id,newStatut){
   if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
@@ -2241,11 +2409,24 @@ async function advanceOFStatus(id,newStatut){
   }
   if(newStatut==='Annulé') await releaseReservation(rec.reservations||[]);
   rec.statut=newStatut;
+  rec.poste=OF_STATUS_POSTE[newStatut]||rec.poste;
+  rec.evenements=(rec.evenements||[]).concat([{ts:new Date().toISOString(),statut:newStatut,user:currentUser?currentUser.email:'—'}]);
   rec._modifie=new Date().toISOString();
   await idbPut('of',rec);
   queueSync('alubom_of',rec);
   await audit('OF_'+newStatut.toUpperCase(),rec.numero);
   await refreshAllTables();
+}
+async function setOFPriorite(id,priorite){
+  if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
+  const rows=await idbGetAll('of');
+  const rec=rows.find(r=>r.id===id); if(!rec) return;
+  rec.priorite=priorite;
+  rec._modifie=new Date().toISOString();
+  await idbPut('of',rec);
+  queueSync('alubom_of',rec);
+  await audit('OF_PRIORITE',rec.numero+' → '+(OF_PRIORITES[priorite]?.label||priorite));
+  await renderOFTable();
 }
 
 /* ---------- Contrôle qualité ---------- */
@@ -2989,10 +3170,11 @@ async function createOFFromLine(line,client,chantierId){
     id:numero,numero,ouvrage:line.detail,client,
     operateur:'',poste:'Débit',
     datePrevue:new Date(Date.now()+3*86400000).toISOString().slice(0,10),dateReelle:null,
-    statut:'Découpe',marge:'—',cout:line.subtotal||0,date:new Date().toISOString(),
+    statut:'Découpe',priorite:'normale',marge:'—',cout:line.subtotal||0,date:new Date().toISOString(),
     reservations,bomVersion,configSnapshot:{type:line.type,detail:line.detail},bomSnapshot:bomArray,
     aluMlTheorique:aluMlApprox,glassM2Theorique:null,moHeuresTheorique:1.8,
     chantierId,origineAuto:true,
+    evenements:[{ts:new Date().toISOString(),statut:'Découpe',user:currentUser?currentUser.email:'—'}],
     _modifie:new Date().toISOString()
   };
   await idbPut('of',rec);
@@ -5982,6 +6164,7 @@ function showPage(page){
     if(page==='config') populateAtelierSelect();
     if(page==='flux') setFluxViewMode('global');
     if(page==='stock') showStockTab('liste');
+    if(page==='production') showProdTab('liste');
   } else {
     document.getElementById(page).classList.remove('hidden');
     document.querySelectorAll('.nav').forEach(b=>{if(b.dataset.page===page)b.classList.add('active')});
