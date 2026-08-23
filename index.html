@@ -5983,6 +5983,12 @@ async function linkProformaToChantier(proformaId,chantierId){
   await idbPut('proforma',proRec);
   queueSync('alubom_proforma',proRec);
   ch.proformaIds=Array.from(new Set([...(ch.proformaIds||[]),proRec.id]));
+  if(ch.etape==='devis'){
+    ch.montantTotal=parseMoney(proRec.total);
+    ch.lignes=JSON.parse(JSON.stringify(proRec.lignes||[]));
+    ch.devisNumero=proRec.numero;
+    ch.proformaId=proRec.id;
+  }
   await saveChantier(ch);
   await audit('LIER_PROFORMA_CHANTIER',proRec.numero+' → '+ch.numero);
   await renderProformaList();
@@ -6001,7 +6007,22 @@ async function unlinkProformaFromChantier(proformaId,chantierId){
   await idbPut('proforma',proRec);
   queueSync('alubom_proforma',proRec);
   const ch=await getChantier(chantierId);
-  if(ch){ ch.proformaIds=(ch.proformaIds||[]).filter(x=>x!==proformaId); await saveChantier(ch); }
+  if(ch){
+    ch.proformaIds=(ch.proformaIds||[]).filter(x=>x!==proformaId);
+    if(ch.etape==='devis' && ch.proformaId===proformaId){
+      if(ch.proformaIds.length){
+        const rows2=await idbGetAll('proforma');
+        const next=rows2.find(p=>p.id===ch.proformaIds[ch.proformaIds.length-1]);
+        ch.proformaId=next?next.id:null;
+        ch.montantTotal=next?parseMoney(next.total):0;
+        ch.lignes=next?JSON.parse(JSON.stringify(next.lignes||[])):[];
+        ch.devisNumero=next?next.numero:'—';
+      } else {
+        ch.proformaId=null; ch.montantTotal=0; ch.lignes=[]; ch.devisNumero='—';
+      }
+    }
+    await saveChantier(ch);
+  }
   await audit('DELIER_PROFORMA_CHANTIER',proRec.numero+' ⇥ '+(ch?ch.numero:chantierId));
   await renderProformaList();
   if(currentProformaId===proformaId){
@@ -8348,6 +8369,12 @@ async function saveProforma(){
     const ch=await getChantier(chantierId);
     if(ch){
       ch.proformaIds=Array.from(new Set([...(ch.proformaIds||[]),rec.id]));
+      if(ch.etape==='devis'){
+        ch.montantTotal=parseMoney(rec.total);
+        ch.lignes=JSON.parse(JSON.stringify(rec.lignes||[]));
+        ch.devisNumero=rec.numero;
+        ch.proformaId=rec.id;
+      }
       await saveChantier(ch);
     }
   }
