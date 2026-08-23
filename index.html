@@ -503,6 +503,10 @@ window.SANIX_CFG = {
               </select>
             </div>
             <button type="button" onclick="devisContextNouveauChantier()" class="border border-blue-600 text-blue-600 px-3 py-2 rounded-lg text-sm font-semibold whitespace-nowrap">+ Nouveau chantier</button>
+            <div class="min-w-[200px]">
+              <label class="text-xs font-bold text-blue-700 uppercase tracking-wide">Mise à disposition souhaitée</label>
+              <input id="devisCtxDateSouhaitee" type="date" onchange="onDevisContextChantierChange()" class="mt-1 w-full border-2 rounded-lg px-3 py-2 text-sm font-semibold">
+            </div>
             <div id="devisCtxStatus" class="w-full text-xs font-semibold text-red-600">⚠️ Sélectionnez un client et un chantier pour démarrer un devis.</div>
           </div>
         </div>
@@ -2212,6 +2216,26 @@ async function resolveGammeSteps(typeOuvrage){
   }catch(err){}
   return OF_GAMME.slice();
 }
+const DUREE_FABRICATION_DEFAUT=2; // jours ouvrés par ouvrage, si aucune gamme paramétrée pour ce type
+async function resolveDureeFabrication(typeOuvrage){
+  if(!typeOuvrage) return DUREE_FABRICATION_DEFAUT;
+  try{
+    const rows=await idbGetAll('gammes');
+    const match=rows.find(g=>g.statut!=='inactif' && (g.typeOuvrage||'').trim().toLowerCase()===typeOuvrage.trim().toLowerCase());
+    if(match && match.dureeJours>0) return +match.dureeJours;
+  }catch(err){}
+  return DUREE_FABRICATION_DEFAUT;
+}
+function addJoursOuvres(dateDepart,joursOuvres){
+  const d=new Date(dateDepart);
+  let restant=Math.ceil(joursOuvres);
+  while(restant>0){
+    d.setDate(d.getDate()+1);
+    const jourSemaine=d.getDay();
+    if(jourSemaine!==0 && jourSemaine!==6) restant--;
+  }
+  return d;
+}
 
 function viewOFBom(id){
   idbGetAll('of').then(rows=>{
@@ -2421,6 +2445,8 @@ async function updateDashboard(){
   if(faibles) alertes.push({icon:'📦',color:'amber',text:faibles+' référence(s) de stock en dessous du seuil critique'});
   const postesIndispo=(await idbGetAll('postes')).filter(p=>p.statut!=='inactif' && (p.disponibilite==='indisponible'||p.disponibilite==='maintenance'));
   if(postesIndispo.length) alertes.push({icon:'🛠️',color:'red',text:postesIndispo.length+' poste(s) indisponible(s) : '+postesIndispo.map(p=>p.nom).join(', ')});
+  const chantiersRetardEstime=(await idbGetAll('chantiers')).filter(c=>!c.annule && c.dateMiseADispositionSouhaitee && c.dateFabricationEstimee && c.dateFabricationEstimee>c.dateMiseADispositionSouhaitee && !['installation','termine'].includes(c.etape));
+  if(chantiersRetardEstime.length) alertes.push({icon:'📅',color:'red',text:chantiersRetardEstime.length+' dossier(s) au délai client insuffisant : '+chantiersRetardEstime.slice(0,3).map(c=>c.numero).join(', ')});
   const panel=document.getElementById('alertesPanel');
   if(alertes.length){
     panel.classList.remove('hidden');
@@ -3735,10 +3761,13 @@ async function createOFFromLine(line,client,chantierId){
   const bomVersion='v'+new Date().toISOString().replace(/[-:T.]/g,'').slice(0,14);
   const aluMlApprox=bomArray.filter(r=>r[3]>0).reduce((s,r)=>s+(r[2]*r[3])/1000,0);
   const gammeSteps=await resolveGammeSteps(line.type);
+  const chantierRec=chantierId?await getChantier(chantierId):null;
+  const dureeOuvrage=await resolveDureeFabrication(line.type);
+  const datePrevue = chantierRec?.dateFabricationEstimee || addJoursOuvres(new Date(),dureeOuvrage).toISOString().slice(0,10);
   const rec={
     id:numero,numero,ouvrage:line.detail,client,
     operateur:'',poste:'Débit',
-    datePrevue:new Date(Date.now()+3*86400000).toISOString().slice(0,10),dateReelle:null,
+    datePrevue,dateReelle:null,
     statut:gammeSteps[0]||'Découpe',priorite:'normale',gammeSteps,marge:'—',cout:line.subtotal||0,date:new Date().toISOString(),
     reservations,bomVersion,configSnapshot:{type:line.type,detail:line.detail},bomSnapshot:bomArray,
     aluMlTheorique:aluMlApprox,glassM2Theorique:null,moHeuresTheorique:1.8,
@@ -3774,11 +3803,38 @@ async function genererDossierFabrication(id){
 }
 
 /* ---------- MRP : Besoins matières issus du dossier de fabrication validé ---------- */
-async function calculerBesoinsMRP(chantierId){
-  const rec=await getChantier(chantierId); if(!rec) return [];
-  const lignes=rec.lignes||[];
+/* ---------- Estimation date de fabrication réalisable (gamme + disponibilité matières) ---------- */
+async function estimerDateFabrication(lignes,besoinsMRP){
+  // 1. Durée de fabrication : cumul séquentiel par atelier (une équipe = un ouvrage à la fois), max entre ateliers (travail en parallèle)
+  const parAtelier={};
+  for(const l of lignes){
+    const key=l.atelierNom||'Atelier';
+    const duree=await resolveDureeFabrication(l.type);
+    parAtelier[key]=(parAtelier[key]||0)+duree*(l.qty||1);
+  }
+  const dureeFabricationJours=Object.values(parAtelier).length?Math.max(...Object.values(parAtelier)):DUREE_FABRICATION_DEFAUT;
+
+  // 2. Délai d'approvisionnement matières manquantes (si le MRP signale un manquant, délai fournisseur estimé)
+  const DELAI_APPRO_DEFAUT=7;
+  const manquants=(besoinsMRP||[]).filter(b=>b.manquant>0.01);
+  const delaiApproJours=manquants.length ? DELAI_APPRO_DEFAUT : 0;
+
+  const today=new Date();
+  const dateDebutFab=delaiApproJours>0 ? addJoursOuvres(today,delaiApproJours) : today;
+  const dateFabricationEstimee=addJoursOuvres(dateDebutFab,dureeFabricationJours);
+
+  return {
+    dureeFabricationJours: Math.round(dureeFabricationJours*10)/10,
+    delaiApproJours,
+    manquantsCount: manquants.length,
+    dateFabricationEstimee: dateFabricationEstimee.toISOString().slice(0,10),
+    parAtelier
+  };
+}
+
+async function calculerBesoinsMRPPourLignes(lignes){
   const besoins={};
-  lignes.forEach(l=>{
+  (lignes||[]).forEach(l=>{
     const qtyLigne=l.qty||1;
     (l.bom||[]).forEach(b=>{
       const qte=(b.qte||0)*0.001*qtyLigne;
@@ -3798,6 +3854,10 @@ async function calculerBesoinsMRP(chantierId){
     const prixUnitaire=refInfo?(refInfo.prixMl||refInfo.prixM2||refInfo.prixUnitaire||refInfo.prix||0):(stockPrinc?.prix||0);
     return {code:b.code,designation:b.designation,besoin:b.qte,dispo,dispoAutresDepots,manquant,fournisseur,prixUnitaire};
   }).sort((a,b)=>b.manquant-a.manquant);
+}
+async function calculerBesoinsMRP(chantierId){
+  const rec=await getChantier(chantierId); if(!rec) return [];
+  return calculerBesoinsMRPPourLignes(rec.lignes||[]);
 }
 async function genererAchatsDepuisMRP(chantierId){
   if(!hasRole('achat:create')){ alert('Permission refusée.'); return; }
@@ -4024,6 +4084,10 @@ async function createChantierFromProforma(){
     tvaMention:bd.tvaMention||''
   };
 
+  const dateMiseADispositionSouhaitee=document.getElementById('devisCtxDateSouhaitee')?.value||null;
+  const besoinsMRPEstim=await calculerBesoinsMRPPourLignes(proformaCart);
+  const estimPlanning=await estimerDateFabrication(proformaCart,besoinsMRPEstim);
+
   // Si un dossier existant (créé depuis le contexte devis) est sélectionné et encore au stade "devis", on le complète au lieu d'en créer un nouveau.
   const chantierExistantId=document.getElementById('devisCtxChantier')?.value||'';
   if(chantierExistantId){
@@ -4036,6 +4100,10 @@ async function createChantierFromProforma(){
       existant.montantTotal=montantTotal;
       existant.facturation=facturation;
       existant.lignes=JSON.parse(JSON.stringify(proformaCart));
+      existant.dateMiseADispositionSouhaitee=dateMiseADispositionSouhaitee;
+      existant.dateFabricationEstimee=estimPlanning.dateFabricationEstimee;
+      existant.dureeFabricationJours=estimPlanning.dureeFabricationJours;
+      existant.delaiApproJours=estimPlanning.delaiApproJours;
       await saveChantier(existant);
       if(currentProformaId){
         const proRows=await idbGetAll('proforma');
@@ -4058,6 +4126,8 @@ async function createChantierFromProforma(){
     proformaIds:currentProformaId?[currentProformaId]:[], client, clientId, contact,
     montantTotal, montantPaye:0, etape:'devis', facturation,
     lignes:JSON.parse(JSON.stringify(proformaCart)),
+    dateMiseADispositionSouhaitee, dateFabricationEstimee:estimPlanning.dateFabricationEstimee,
+    dureeFabricationJours:estimPlanning.dureeFabricationJours, delaiApproJours:estimPlanning.delaiApproJours,
     historique:[{etape:'devis',date:new Date().toISOString(),user:currentUser?currentUser.email:'—'}],
     dateCreation:new Date().toISOString(), _modifie:new Date().toISOString()
   };
@@ -4384,6 +4454,12 @@ function apercuDossierChantier(chantierId){
         <div><b>Créé le</b>${rec.dateCreation?new Date(rec.dateCreation).toLocaleDateString('fr-FR'):'—'}</div>
         <div><b>Nombre d'ouvrages</b>${lignes.length}</div>
       </div>
+      ${rec.dateFabricationEstimee?`
+      <div style="background:${rec.dateMiseADispositionSouhaitee&&rec.dateFabricationEstimee>rec.dateMiseADispositionSouhaitee?'#fef2f2':'#ecfdf5'};border:1px solid ${rec.dateMiseADispositionSouhaitee&&rec.dateFabricationEstimee>rec.dateMiseADispositionSouhaitee?'#fecaca':'#a7f3d0'};border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12.5px">
+        <b style="display:block;margin-bottom:4px;color:${rec.dateMiseADispositionSouhaitee&&rec.dateFabricationEstimee>rec.dateMiseADispositionSouhaitee?'#b91c1c':'#047857'}">📅 Planning de fabrication</b>
+        Durée estimée : ${rec.dureeFabricationJours} j${rec.delaiApproJours?` + délai appro. matières ${rec.delaiApproJours} j`:''} → réalisable le <b>${new Date(rec.dateFabricationEstimee).toLocaleDateString('fr-FR')}</b>
+        ${rec.dateMiseADispositionSouhaitee?`<br>Souhaité par le client : <b>${new Date(rec.dateMiseADispositionSouhaitee).toLocaleDateString('fr-FR')}</b> ${rec.dateFabricationEstimee>rec.dateMiseADispositionSouhaitee?'— ⚠️ délai insuffisant':'— ✓ délai tenable'}`:''}
+      </div>`:''}
       <h3 style="font-size:13px;text-transform:uppercase;color:#475569;border-bottom:1px solid #e2e8f0;padding-bottom:6px">Composants du dossier</h3>
       ${lignesHtml}
       <div class="totaux">
@@ -6103,9 +6179,10 @@ const REF_DEFS={
     fields:[
       {id:'typeOuvrage',label:"Type d'ouvrage (doit correspondre au Configurateur)",required:true,span:2},
       {id:'etapes',label:'Séquence des étapes, séparées par virgules (ex. Découpe,Usinage,Assemblage,Vitrage,Terminé,Prêt à livrer,Livré)',span:2},
+      {id:'dureeJours',label:'Durée de fabrication (jours ouvrés, par unité d\'ouvrage)',type:'number'},
       {id:'statut',label:'Statut',type:'select',options:['actif','inactif']}
     ],
-    cols:[['typeOuvrage',"Type d'ouvrage"],['etapes','Étapes'],['statut','Statut','badge']]
+    cols:[['typeOuvrage',"Type d'ouvrage"],['etapes','Étapes'],['dureeJours','Durée (j)'],['statut','Statut','badge']]
   },
   machines:{store:'machines',label:'Machines',prefix:'ma',
     fields:[
@@ -6835,16 +6912,37 @@ async function onDevisContextChantierChange(){
   }
   updateDevisContextStatus();
 }
-function updateDevisContextStatus(){
+async function updateDevisContextStatus(){
   const statusEl=document.getElementById('devisCtxStatus'); if(!statusEl) return;
   const valid=isDevisContextValid();
-  if(valid){
-    statusEl.className='w-full text-xs font-semibold text-emerald-600';
-    statusEl.textContent=devisContext.chantierId?'✓ Devis rattaché au dossier existant — vous pouvez configurer les ouvrages.':'✓ Client sélectionné — nouveau devis prêt, configurez les ouvrages.';
-  } else {
+  if(!valid){
     statusEl.className='w-full text-xs font-semibold text-red-600';
     statusEl.textContent='⚠️ Sélectionnez un client et un chantier pour démarrer un devis.';
+    return;
   }
+  const dateSouhaitee=document.getElementById('devisCtxDateSouhaitee')?.value;
+  const lignes = proformaCart.length ? proformaCart : [];
+  if(!lignes.length){
+    statusEl.className='w-full text-xs font-semibold text-emerald-600';
+    statusEl.textContent=devisContext.chantierId?'✓ Devis rattaché au dossier existant — vous pouvez configurer les ouvrages.':'✓ Client sélectionné — nouveau devis prêt, configurez les ouvrages.';
+    return;
+  }
+  const besoinsMRP=await calculerBesoinsMRPPourLignes(lignes);
+  const estim=await estimerDateFabrication(lignes,besoinsMRP);
+  window._devisEstimation=estim;
+  const dateEstFr=new Date(estim.dateFabricationEstimee).toLocaleDateString('fr-FR');
+  let msg=`✓ Réalisable estimé le ${dateEstFr} (fabrication ${estim.dureeFabricationJours} j${estim.delaiApproJours?` + appro ${estim.delaiApproJours} j (${estim.manquantsCount} réf. manquante(s))`:''})`;
+  let cls='text-emerald-600';
+  if(dateSouhaitee){
+    if(estim.dateFabricationEstimee>dateSouhaitee){
+      cls='text-red-600';
+      msg=`⚠️ Délai insuffisant — réalisable le ${dateEstFr}, souhaité le ${new Date(dateSouhaitee).toLocaleDateString('fr-FR')}. `+msg;
+    } else {
+      msg=`✓ Délai tenable — réalisable le ${dateEstFr} (souhaité ${new Date(dateSouhaitee).toLocaleDateString('fr-FR')}).`;
+    }
+  }
+  statusEl.className='w-full text-xs font-semibold '+cls;
+  statusEl.textContent=msg;
 }
 async function devisContextNouveauChantier(){
   const client=document.getElementById('devisCtxClient')?.value.trim();
@@ -6989,6 +7087,7 @@ function updateProforma(){
   renderConsolidatedNeeds(lines);
   renderProformaQR(total);
   window._proformaBreakdown={subtotal,discountRate,discount,taxRate,tvaApplicable,tax,total,tvaMention:document.getElementById('proTvaMention')?.value||''};
+  if(document.getElementById('devisCtxDateSouhaitee')) updateDevisContextStatus();
 }
 
 /* ---------- QR code de sécurité (vérification/intégrité) ---------- */
