@@ -110,6 +110,7 @@ window.SANIX_CFG = {
 
       <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">4 · Exécution</div>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="production">🏭 Production</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="atelier">📱 Vue atelier (mobile)</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="stock">📦 Stock</button>
 
       <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">5 · Administration</div>
@@ -139,6 +140,9 @@ window.SANIX_CFG = {
 
     <div class="p-4 md:p-8">
       <section id="dashboard" class="page">
+        <div class="flex justify-end mb-3">
+          <button onclick="openRapportProductionModal()" class="border border-blue-600 text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold">📄 Rapport de production périodique</button>
+        </div>
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">OF en cours</div><div id="kpiOFEnCours" class="text-3xl font-black mt-2">—</div><div id="kpiOFEnCoursSub" class="text-xs text-slate-400 mt-2">&nbsp;</div></div>
           <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Chute (dernier débit)</div><div id="kpiChute" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">objectif &lt; 8%</div></div>
@@ -151,6 +155,13 @@ window.SANIX_CFG = {
           <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Taux de non-conformité</div><div id="kpiTauxNC" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">contrôles qualité</div></div>
           <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Écart matière prévu/réel</div><div id="kpiEcartMatiere" class="text-3xl font-black mt-2">—</div><div id="kpiEcartSub" class="text-xs text-slate-400 mt-2">aluminium consommé</div></div>
         </div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Production du jour</div><div id="kpiProdJour" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">OF clôturés aujourd'hui</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Production du mois</div><div id="kpiProdMois" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">OF clôturés ce mois-ci</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Taux de rebut</div><div id="kpiRebut" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">pointages atelier</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Coût moyen / OF</div><div id="kpiCoutMoyen" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">coût matière théorique</div></div>
+        </div>
+        <div id="alertesPanel" class="mb-6 hidden"></div>
 
         <div class="grid lg:grid-cols-3 gap-6">
           <div class="card bg-white rounded-2xl p-6 lg:col-span-2">
@@ -1297,6 +1308,14 @@ window.SANIX_CFG = {
         </div>
       </section>
 
+      <section id="atelier" class="page hidden">
+        <div class="mb-4">
+          <label class="text-xs font-bold text-slate-500 uppercase">Mon nom (opérateur)</label>
+          <input id="atelierOperateur" placeholder="Votre nom..." oninput="renderAtelierMobile()" class="mt-1 w-full border-2 rounded-xl px-4 py-3 text-base">
+        </div>
+        <div id="atelierList" class="space-y-4"></div>
+      </section>
+
       <section id="stock" class="page hidden">
         <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1">
           <button class="stock-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-stocktab="liste" onclick="showStockTab('liste')">📦 Stock</button>
@@ -1471,6 +1490,7 @@ window.SANIX_CFG = {
             <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="ateliers" onclick="showRefTab('ateliers')">🏭 Ateliers</button>
             <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="depots" onclick="showRefTab('depots')">🏬 Dépôts</button>
             <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="postes" onclick="showRefTab('postes')">🧑‍🔧 Postes</button>
+            <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="gammes" onclick="showRefTab('gammes')">🛤️ Gammes</button>
             <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="parametres" onclick="showRefTab('parametres')">⚙️ Jeux & tolérances</button>
           </div>
           <button onclick="openCsvImport()" class="border border-teal-600 text-teal-600 px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap">📥 Importer CSV</button>
@@ -1548,6 +1568,7 @@ window.SANIX_CFG = {
         <div id="refAteliers" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_ateliers"></div></div>
         <div id="refDepots" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_depots"></div></div>
         <div id="refPostes" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_postes"></div></div>
+        <div id="refGammes" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_gammes"></div></div>
         <div id="refQuincaillerie" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_quincaillerie"></div></div>
         <div id="refJoints" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_joints"></div></div>
         <div id="refConsommables" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_consommables"></div></div>
@@ -1580,6 +1601,10 @@ window.SANIX_CFG = {
               <label class="text-sm font-semibold block">Tolérance fabrication (mm)
                 <input id="pToleranceFabrication" type="number" step="0.5" class="mt-1 w-full border rounded-lg px-3 py-2">
                 <span class="text-xs text-slate-400">Référence contrôle qualité / fiche technique.</span>
+              </label>
+              <label class="text-sm font-semibold block">Chute minimale réutilisable (mm)
+                <input id="pChuteMinReutilisable" type="number" step="10" class="mt-1 w-full border rounded-lg px-3 py-2">
+                <span class="text-xs text-slate-400">En dessous, la chute est considérée non réutilisable (débit).</span>
               </label>
               <div class="sm:col-span-3 border-t pt-4 mt-1"><h3 class="font-bold text-sm text-slate-700">Coûts indirects (% du coût direct)</h3></div>
               <label class="text-sm font-semibold block">Énergie (%)
@@ -1753,6 +1778,10 @@ window.SANIX_CFG = {
   <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" id="pointageContent"></div>
 </div>
 
+<div id="rapportProdModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 modal-overlay">
+  <div class="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto" id="rapportProdContent"></div>
+</div>
+
 <script>
 /* =========================================================
    Sanix AluExpert ERP — Couche ERP (Auth Supabase, IndexedDB offline,
@@ -1772,10 +1801,10 @@ function escapeHtml(s){
 /* ---------- IndexedDB ---------- */
 function openDB(){
   return new Promise((resolve,reject)=>{
-    const req=indexedDB.open('alubom_db',15);
+    const req=indexedDB.open('alubom_db',16);
     req.onupgradeneeded=e=>{
       const d=e.target.result;
-      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers','depots','pointages','nonconformites','chutes','postes'].forEach(s=>{
+      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers','depots','pointages','nonconformites','chutes','postes','gammes'].forEach(s=>{
         if(!d.objectStoreNames.contains(s)) d.createObjectStore(s,{keyPath:'id'});
       });
     };
@@ -2078,7 +2107,7 @@ async function checkSession(){
 document.addEventListener('DOMContentLoaded',checkSession);
 
 /* ---------- Ordres de Fabrication (OF) ---------- */
-async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable(),renderEnsemblesList(),renderPlansFacadeTable(),renderRevisionsTable(),populateAtelierSelect(),loadParams()]); renderUsersTable(); if(document.getElementById('costChart')) updateDashboard(); if(document.getElementById('prodTabKanban') && !document.getElementById('prodTabKanban').classList.contains('hidden')) renderKanban(); }
+async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable(),renderEnsemblesList(),renderPlansFacadeTable(),renderRevisionsTable(),populateAtelierSelect(),loadParams()]); renderUsersTable(); if(document.getElementById('costChart')) updateDashboard(); if(document.getElementById('prodTabKanban') && !document.getElementById('prodTabKanban').classList.contains('hidden')) renderKanban(); if(document.getElementById('atelier') && !document.getElementById('atelier').classList.contains('hidden')) renderAtelierMobile(); }
 
 function openNewOFForm(){
   if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
@@ -2135,13 +2164,14 @@ async function handleCreateOF(e){
     serie:document.getElementById('serie').value,
     jointType:document.getElementById('jointType')?.value||null
   };
+  const gammeSteps=await resolveGammeSteps(type);
   const rec={
     id:numero,numero,ouvrage:`${type} ${w}×${h}`,client,operateur,poste,
-    datePrevue,dateReelle:null,statut:'Découpe',priorite:'normale',
+    datePrevue,dateReelle:null,statut:gammeSteps[0]||'Découpe',priorite:'normale',gammeSteps,
     marge:(margin*100).toFixed(0)+'%',cout:lastCost,date:new Date().toISOString(),
     reservations,bomVersion,configSnapshot,bomSnapshot:window.lastBOMRows||[],
     aluMlTheorique:window.lastAluMl||0,glassM2Theorique:window.lastGlassM2||0,moHeuresTheorique:1.8,
-    evenements:[{ts:new Date().toISOString(),statut:'Découpe',user:currentUser?currentUser.email:'—'}],
+    evenements:[{ts:new Date().toISOString(),statut:gammeSteps[0]||'Découpe',user:currentUser?currentUser.email:'—'}],
     _modifie:new Date().toISOString()
   };
   await idbPut('of',rec);
@@ -2158,23 +2188,156 @@ const OF_STATUS_FLOW={'Découpe':'Usinage','Usinage':'Assemblage','Assemblage':'
 const OF_GAMME=['Découpe','Usinage','Assemblage','Vitrage','Terminé','Prêt à livrer','Livré'];
 const OF_STATUS_POSTE={'Découpe':'Débit','Usinage':'Usinage','Assemblage':'Assemblage','Vitrage':'Vitrage','Terminé':'Contrôle qualité','Prêt à livrer':'Emballage','Livré':'Livraison'};
 const OF_PRIORITES={urgent:{label:'Urgent',emoji:'🔴',order:0},haute:{label:'Haute',emoji:'🟠',order:1},normale:{label:'Normale',emoji:'🟡',order:2},faible:{label:'Faible',emoji:'🟢',order:3}};
-function ofAvancementPct(statut){
-  const idx=OF_GAMME.indexOf(statut);
+function ofAvancementPct(statut,gammeSteps){
+  const steps=(gammeSteps&&gammeSteps.length)?gammeSteps:OF_GAMME;
+  const idx=steps.indexOf(statut);
   if(idx<0) return statut==='Terminé'||statut==='Livré' ? 100 : 0;
-  return Math.round(((idx+1)/OF_GAMME.length)*100);
+  return Math.round(((idx+1)/steps.length)*100);
+}
+function ofNextStatut(rec){
+  const steps=(rec.gammeSteps&&rec.gammeSteps.length)?rec.gammeSteps:OF_GAMME;
+  const idx=steps.indexOf(rec.statut);
+  if(idx<0 || idx>=steps.length-1) return null;
+  return steps[idx+1];
+}
+async function resolveGammeSteps(typeOuvrage){
+  if(!typeOuvrage) return OF_GAMME.slice();
+  try{
+    const rows=await idbGetAll('gammes');
+    const match=rows.find(g=>g.statut!=='inactif' && (g.typeOuvrage||'').trim().toLowerCase()===typeOuvrage.trim().toLowerCase());
+    if(match && match.etapes){
+      const steps=match.etapes.split(',').map(s=>s.trim()).filter(Boolean);
+      if(steps.length) return steps;
+    }
+  }catch(err){}
+  return OF_GAMME.slice();
 }
 
 function viewOFBom(id){
   idbGetAll('of').then(rows=>{
     const rec=rows.find(r=>r.id===id); if(!rec) return;
     const bom=rec.bomSnapshot||[];
-    const lines=bom.map(r=>`${r[0]} — ${r[1]} — qté ${Number(r[2]).toFixed(2)} — ${r[3]?Number(r[3]).toFixed(0)+' mm':'—'} — ${money(r[4])}`).join('\n');
-    alert(`BOM figée ${rec.bomVersion} — OF ${rec.numero}\n\n${lines||'Aucune donnée BOM enregistrée pour cet OF.'}`);
+    const total=bom.reduce((s,r)=>s+(+r[4]||0),0);
+    const modal=document.getElementById('rapportProdModal');
+    document.getElementById('rapportProdContent').innerHTML=`
+      <div class="flex justify-between items-start mb-4">
+        <div><h2 class="text-lg font-bold">📋 BOM figée — ${escapeHtml(rec.numero)}</h2><p class="text-xs text-slate-400">Version ${escapeHtml(rec.bomVersion||'—')} — immuable depuis la création de l'OF (règle métier)</p></div>
+        <button onclick="document.getElementById('rapportProdModal').classList.add('hidden');setModalOpen(false)" class="text-slate-400 text-xl leading-none">×</button>
+      </div>
+      <div class="overflow-x-auto max-h-80 overflow-y-auto"><table class="w-full text-xs"><thead class="bg-slate-50"><tr><th class="text-left p-2">Code</th><th class="text-left p-2">Désignation</th><th class="text-right p-2">Qté</th><th class="text-right p-2">Longueur</th><th class="text-right p-2">Montant</th></tr></thead>
+      <tbody>${bom.length?bom.map(r=>`<tr class="border-b"><td class="p-2 font-semibold">${escapeHtml(r[0])}</td><td class="p-2">${escapeHtml(r[1])}</td><td class="p-2 text-right">${Number(r[2]).toFixed(2)}</td><td class="p-2 text-right">${r[3]?Number(r[3]).toFixed(0)+' mm':'—'}</td><td class="p-2 text-right">${money(r[4])}</td></tr>`).join(''):'<tr><td class="p-2 text-slate-400" colspan="5">Aucune donnée BOM enregistrée.</td></tr>'}</tbody>
+      <tfoot><tr class="border-t-2 font-bold"><td class="p-2" colspan="4">Total</td><td class="p-2 text-right">${money(total)}</td></tr></tfoot></table></div>`;
+    modal.classList.remove('hidden');
+    setModalOpen(true);
   });
 }
 
 /* ---------- Dashboard — données réelles ---------- */
 let dashboardChart=null;
+/* ---------- Rapport de production périodique (§22/§24) ---------- */
+function openRapportProductionModal(){
+  const today=new Date().toISOString().slice(0,10);
+  const firstOfMonth=today.slice(0,8)+'01';
+  const modal=document.getElementById('rapportProdModal');
+  document.getElementById('rapportProdContent').innerHTML=`
+    <div class="flex justify-between items-start mb-4">
+      <h2 class="text-lg font-bold">📄 Rapport de production</h2>
+      <button onclick="document.getElementById('rapportProdModal').classList.add('hidden');setModalOpen(false)" class="text-slate-400 text-xl leading-none">×</button>
+    </div>
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      <label class="text-xs font-semibold block">Du
+        <input id="rapDateFrom" type="date" value="${firstOfMonth}" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+      </label>
+      <label class="text-xs font-semibold block">Au
+        <input id="rapDateTo" type="date" value="${today}" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+      </label>
+    </div>
+    <button onclick="genererRapportProduction()" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold">🖨 Générer le rapport</button>`;
+  modal.classList.remove('hidden');
+  setModalOpen(true);
+}
+async function genererRapportProduction(){
+  const from=document.getElementById('rapDateFrom').value;
+  const to=document.getElementById('rapDateTo').value;
+  const ofs=await idbGetAll('of');
+  const inPeriod=o=>o.dateReelle && o.dateReelle>=from && o.dateReelle<=to;
+  const termines=ofs.filter(o=>(o.statut==='Terminé'||o.statut==='Prêt à livrer'||o.statut==='Livré') && inPeriod(o));
+  const pointages=(await idbGetAll('pointages')).filter(p=>p.debut && p.debut.slice(0,10)>=from && p.debut.slice(0,10)<=to);
+  const nc=(await idbGetAll('nonconformites')).filter(n=>n.date && n.date.slice(0,10)>=from && n.date.slice(0,10)<=to);
+  const suiviRows=await idbGetAll('suivi_reel');
+
+  const totConf=pointages.reduce((s,p)=>s+(p.qteConforme||0),0);
+  const totRebut=pointages.reduce((s,p)=>s+(p.qteRebut||0),0);
+  const totReprise=pointages.reduce((s,p)=>s+(p.qteReprise||0),0);
+  const totPiece=totConf+totRebut;
+  const tauxRebut=totPiece?(totRebut/totPiece*100):0;
+  const tauxRendement=totPiece?(totConf/totPiece*100):100;
+
+  const coutTotal=termines.reduce((s,o)=>s+(o.cout||0),0);
+  const coutMoyen=termines.length?coutTotal/termines.length:0;
+  const marges=termines.map(o=>parseFloat(String(o.marge).replace('%',''))).filter(n=>!isNaN(n));
+  const margeMoy=marges.length?marges.reduce((a,b)=>a+b,0)/marges.length:0;
+
+  const suiviPeriode=suiviRows.filter(s=>termines.some(o=>o.id===s.ofId));
+  const ecartAluMoy=suiviPeriode.length?suiviPeriode.reduce((s,r)=>s+r.aluEcartPct,0)/suiviPeriode.length:null;
+
+  const parAtelier={};
+  termines.forEach(o=>{ const k=o.poste||'—'; parAtelier[k]=(parAtelier[k]||0)+1; });
+
+  const dateStr=new Date().toLocaleDateString('fr-FR');
+  const win=window.open('','_blank','width=900,height=1100');
+  if(!win) return;
+  win.document.write(`<html><head><title>Rapport de production ${from} → ${to}</title>
+    <style>
+      body{font-family:Arial,sans-serif;padding:30px;color:#0f172a;font-size:13px}
+      h1{font-size:19px;margin-bottom:2px}
+      .sub{color:#64748b;font-size:12px;margin-bottom:20px}
+      .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px}
+      .kpi{border:1px solid #cbd5e1;border-radius:8px;padding:10px;text-align:center}
+      .kpi b{display:block;font-size:20px;margin-top:4px}
+      .kpi span{font-size:10px;color:#64748b;text-transform:uppercase}
+      table{width:100%;border-collapse:collapse;margin-bottom:20px}
+      th,td{border:1px solid #cbd5e1;padding:7px 10px;text-align:left;font-size:12px}
+      th{background:#f1f5f9}
+      h2{font-size:13px;text-transform:uppercase;color:#475569;border-bottom:1px solid #e2e8f0;padding-bottom:5px;margin-top:22px}
+    </style></head><body>
+    <h1>Rapport de production — SANIX AFRICA</h1>
+    <div class="sub">Période du ${new Date(from).toLocaleDateString('fr-FR')} au ${new Date(to).toLocaleDateString('fr-FR')} — édité le ${dateStr}</div>
+
+    <div class="kpi-grid">
+      <div class="kpi"><span>OF clôturés</span><b>${termines.length}</b></div>
+      <div class="kpi"><span>Taux de rendement</span><b>${tauxPiece_display(tauxRendement,totPiece)}</b></div>
+      <div class="kpi"><span>Taux de rebut</span><b>${tauxPiece_display(tauxRebut,totPiece)}</b></div>
+      <div class="kpi"><span>Marge moyenne</span><b>${marges.length?margeMoy.toFixed(1)+'%':'—'}</b></div>
+    </div>
+
+    <h2>Production</h2>
+    <table><tbody>
+      <tr><td>Ordres de fabrication clôturés</td><td style="text-align:right">${termines.length}</td></tr>
+      <tr><td>Pièces conformes (pointées)</td><td style="text-align:right">${totConf}</td></tr>
+      <tr><td>Pièces rebutées</td><td style="text-align:right">${totRebut}</td></tr>
+      <tr><td>Pièces reprises</td><td style="text-align:right">${totReprise}</td></tr>
+      <tr><td>Fiches de non-conformité ouvertes sur la période</td><td style="text-align:right">${nc.length}</td></tr>
+    </tbody></table>
+
+    <h2>Coûts</h2>
+    <table><tbody>
+      <tr><td>Coût matière total (théorique)</td><td style="text-align:right">${money(coutTotal)}</td></tr>
+      <tr><td>Coût moyen par OF</td><td style="text-align:right">${money(coutMoyen)}</td></tr>
+      <tr><td>Écart consommation aluminium moyen</td><td style="text-align:right">${ecartAluMoy!=null?(ecartAluMoy>=0?'+':'')+ecartAluMoy.toFixed(1)+'%':'—'}</td></tr>
+    </tbody></table>
+
+    <h2>Répartition par poste</h2>
+    <table><thead><tr><th>Poste</th><th style="text-align:right">OF clôturés</th></tr></thead>
+    <tbody>${Object.entries(parAtelier).map(([k,v])=>`<tr><td>${escapeHtml(k)}</td><td style="text-align:right">${v}</td></tr>`).join('')||'<tr><td colspan="2">Aucune donnée</td></tr>'}</tbody></table>
+
+    </body></html>`);
+  win.document.close(); win.focus();
+  document.getElementById('rapportProdModal').classList.add('hidden');
+  setModalOpen(false);
+}
+function tauxPiece_display(pct,total){ return total ? pct.toFixed(1)+'%' : '—'; }
+
 async function updateDashboard(){
   const ofs=await idbGetAll('of');
   const enCours=ofs.filter(o=>o.statut!=='Terminé' && o.statut!=='Annulé');
@@ -2224,6 +2387,51 @@ async function updateDashboard(){
   const statusCounts={};
   Object.keys(OF_STATUS_COLOR).forEach(s=>statusCounts[s]=0);
   ofs.forEach(o=>{ statusCounts[o.statut]=(statusCounts[o.statut]||0)+1; });
+
+  // Production du jour / du mois
+  const todayStr=today;
+  const moisStr=today.slice(0,7);
+  const clotures=ofs.filter(o=>(o.statut==='Terminé'||o.statut==='Prêt à livrer'||o.statut==='Livré') && o.dateReelle);
+  document.getElementById('kpiProdJour').textContent=clotures.filter(o=>o.dateReelle===todayStr).length;
+  document.getElementById('kpiProdMois').textContent=clotures.filter(o=>o.dateReelle&&o.dateReelle.slice(0,7)===moisStr).length;
+
+  // Taux de rebut (pointages)
+  const pointages=await idbGetAll('pointages');
+  const totConf=pointages.reduce((s,p)=>s+(p.qteConforme||0),0);
+  const totRebut=pointages.reduce((s,p)=>s+(p.qteRebut||0),0);
+  const totPiece=totConf+totRebut;
+  document.getElementById('kpiRebut').textContent = totPiece ? (totRebut/totPiece*100).toFixed(1).replace('.',',')+'%' : '—';
+
+  // Coût moyen par OF
+  const couts=ofs.map(o=>o.cout).filter(c=>c>0);
+  document.getElementById('kpiCoutMoyen').textContent = couts.length ? money(Math.round(couts.reduce((a,b)=>a+b,0)/couts.length)) : '—';
+
+  // Alertes
+  const alertes=[];
+  if(enRetard.length) alertes.push({icon:'⏰',color:'red',text:enRetard.length+' OF en retard : '+enRetard.slice(0,3).map(o=>o.numero).join(', ')+(enRetard.length>3?'…':'')});
+  const urgents=ofs.filter(o=>o.priorite==='urgent' && o.statut!=='Terminé' && o.statut!=='Livré' && o.statut!=='Annulé');
+  if(urgents.length) alertes.push({icon:'🔴',color:'red',text:urgents.length+' OF urgent(s) en cours : '+urgents.slice(0,3).map(o=>o.numero).join(', ')});
+  const attenteQC=ofs.filter(o=>{
+    if(o.statut!=='Vitrage') return false;
+    return true;
+  });
+  if(attenteQC.length) alertes.push({icon:'🔍',color:'amber',text:attenteQC.length+' OF en attente de contrôle qualité avant clôture'});
+  const ncOuvertes=(await idbGetAll('nonconformites')).filter(n=>n.statut!=='cloturee');
+  if(ncOuvertes.length) alertes.push({icon:'🚫',color:'amber',text:ncOuvertes.length+' fiche(s) de non-conformité ouverte(s)'});
+  if(faibles) alertes.push({icon:'📦',color:'amber',text:faibles+' référence(s) de stock en dessous du seuil critique'});
+  const postesIndispo=(await idbGetAll('postes')).filter(p=>p.statut!=='inactif' && (p.disponibilite==='indisponible'||p.disponibilite==='maintenance'));
+  if(postesIndispo.length) alertes.push({icon:'🛠️',color:'red',text:postesIndispo.length+' poste(s) indisponible(s) : '+postesIndispo.map(p=>p.nom).join(', ')});
+  const panel=document.getElementById('alertesPanel');
+  if(alertes.length){
+    panel.classList.remove('hidden');
+    panel.innerHTML=`<div class="card bg-white rounded-2xl p-5">
+      <h3 class="font-bold text-sm text-slate-700 mb-3">⚠️ Alertes</h3>
+      <div class="space-y-2">${alertes.map(a=>`<div class="flex items-center gap-2 text-sm bg-${a.color}-50 text-${a.color}-700 rounded-lg px-3 py-2"><span>${a.icon}</span><span>${escapeHtml(a.text)}</span></div>`).join('')}</div>
+    </div>`;
+  } else {
+    panel.classList.add('hidden');
+  }
+  ofs.forEach(o=>{ statusCounts[o.statut]=(statusCounts[o.statut]||0)+1; });
   const labels=Object.keys(statusCounts);
   const data=labels.map(l=>statusCounts[l]);
   const colors=['#2563eb','#3b82f6','#f59e0b','#10b981','#ef4444'];
@@ -2249,7 +2457,7 @@ async function renderOFTable(){
   const today=new Date().toISOString().slice(0,10);
   el.innerHTML = rows.length ? rows.map(r=>{
     const c=OF_STATUS_COLOR[r.statut]||'slate';
-    const next=OF_STATUS_FLOW[r.statut];
+    const next=ofNextStatut(r);
     const qc=qcRows.filter(q=>q.ofId===r.id).sort((a,b)=>b.date.localeCompare(a.date))[0];
     const qcBadge = qc
       ? `<span class="badge bg-${qc.statut==='conforme'?'emerald':'red'}-50 text-${qc.statut==='conforme'?'emerald':'red'}-700">${qc.statut==='conforme'?'✓ Conforme':'✕ Non conforme'}</span>`
@@ -2280,7 +2488,7 @@ async function renderOFTable(){
       <button onclick="advanceOFStatus('${r.id}','Annulé')" class="text-red-500 text-xs font-semibold">Annuler</button>`;
     const prio=OF_PRIORITES[r.priorite||'normale'];
     const prioSelect=`<select onchange="setOFPriorite('${r.id}',this.value)" class="text-xs border-0 bg-transparent font-semibold cursor-pointer">${Object.entries(OF_PRIORITES).map(([k,v])=>`<option value="${k}" ${((r.priorite||'normale')===k)?'selected':''}>${v.emoji} ${v.label}</option>`).join('')}</select>`;
-    const pct=ofAvancementPct(r.statut);
+    const pct=ofAvancementPct(r.statut,r.gammeSteps);
     const avancement = (r.statut==='Annulé') ? '<span class="text-xs text-slate-400">—</span>' : `<div class="w-24"><div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-blue-600" style="width:${pct}%"></div></div><div class="text-[10px] text-slate-400 mt-0.5">${pct}%</div></div>`;
     return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.numero)}</td><td class="p-3">${escapeHtml(r.ouvrage)}<div class="text-xs text-slate-400">${meta}</div></td><td class="p-3">${escapeHtml(r.client)}</td><td class="p-3">${prioSelect}</td><td class="p-3"><span class="badge bg-${c}-50 text-${c}-700">${escapeHtml(r.statut)}</span></td><td class="p-3">${avancement}</td><td class="p-3">${qcBadge}</td><td class="p-3 text-right">${escapeHtml(r.marge)}</td><td class="p-3 text-right whitespace-nowrap">${actions}</td></tr>`;
   }).join('') : `<tr><td class="p-3 text-slate-400" colspan="9">Aucun OF. Créez-en un depuis le Chiffrage ou ici.</td></tr>`;
@@ -2324,7 +2532,7 @@ async function renderGantt(){
     const width=durDays*pxPerDay;
     const c=OF_STATUS_COLOR[r.statut]||'slate';
     const colorMap={blue:'#2563eb',indigo:'#4f46e5',amber:'#d97706',emerald:'#059669',teal:'#0d9488',slate:'#64748b',red:'#dc2626'};
-    const pct=ofAvancementPct(r.statut);
+    const pct=ofAvancementPct(r.statut,r.gammeSteps);
     const prio=OF_PRIORITES[r.priorite||'normale'];
     return `<div style="display:flex;align-items:center;height:34px;position:relative;min-width:${totalWidth}px;border-bottom:1px solid #f1f5f9">
       <div style="position:absolute;left:${startOff}px;width:${width}px;height:22px;background:${colorMap[c]||'#64748b'};border-radius:4px;display:flex;align-items:center;padding:0 6px;overflow:hidden;white-space:nowrap" title="${escapeHtml(r.numero)} — ${escapeHtml(r.ouvrage)} — ${escapeHtml(r.statut)}">
@@ -2372,7 +2580,7 @@ async function renderKanban(){
         ${items.map(r=>{
           const prio=OF_PRIORITES[r.priorite||'normale'];
           const enRetard = r.datePrevue && r.datePrevue<today && statut!=='Terminé' && statut!=='Livré';
-          const pct=ofAvancementPct(r.statut);
+          const pct=ofAvancementPct(r.statut,r.gammeSteps);
           return `<div class="bg-white rounded-lg border p-2 shadow-sm cursor-pointer hover:shadow-md" onclick="showPage('production');showProdTab('liste')">
             <div class="flex justify-between items-start"><span class="text-xs font-bold">${escapeHtml(r.numero)}</span><span class="text-xs">${prio.emoji}</span></div>
             <div class="text-xs text-slate-600 mt-0.5 truncate">${escapeHtml(r.ouvrage)}</div>
@@ -2522,6 +2730,12 @@ const QC_ITEMS=[
   ['vitrage','Vitrage'],['fermeture','Fermeture'],['serrure','Serrure / quincaillerie'],['joints','Joints'],
   ['finition','Finition'],['couleur','Couleur'],['rayures','Absence de rayures'],['fonctionnement','Fonctionnement']
 ];
+const QC_CATEGORIES=[
+  {label:'Dimensions',items:[['dimensions','Largeur / hauteur conformes'],['equerrage','Équerrage'],['coupe','Diagonales / coupe']]},
+  {label:'Assemblage',items:[['assemblage','Assemblage dormant/ouvrant'],['fermeture','Ouverture / fermeture'],['serrure','Poignée / quincaillerie fonctionnelle']]},
+  {label:'Vitrage',items:[['vitrage','Type et dimensions conformes'],['joints','Joint correctement posé']]},
+  {label:'Aspect',items:[['finition','Finition générale'],['couleur','Couleur conforme'],['rayures','Absence de rayures'],['fonctionnement','Nettoyage effectué']]}
+];
 
 async function openQCForm(ofId){
   if(!hasRole('qc:validate')){ alert('Permission refusée.'); return; }
@@ -2537,16 +2751,20 @@ async function openQCForm(ofId){
       </div>
       <p class="text-xs text-slate-500 bg-slate-50 border rounded-lg p-2 mb-4">ℹ️ Un seul point "Non conforme" suffit à bloquer la clôture de l'OF (statut "Terminé"). L'enregistrement est définitif — il constitue la preuve du contrôle effectué (signature électronique requise).</p>
       <form onsubmit="return handleSubmitQC(event,'${ofId}')">
-        <div class="grid sm:grid-cols-3 gap-3 mb-4">
-          ${QC_ITEMS.map(([key,label])=>`
-            <label class="flex items-center justify-between border rounded-lg px-3 py-2 text-sm bg-slate-50">
-              <span>${escapeHtml(label)}</span>
-              <select id="qc_${key}" class="border rounded px-1 py-0.5 text-xs">
-                <option value="ok">Conforme</option>
-                <option value="nok">Non conforme</option>
-              </select>
-            </label>`).join('')}
-        </div>
+        ${QC_CATEGORIES.map(cat=>`
+          <div class="mb-4">
+            <h3 class="text-xs font-bold uppercase tracking-wide text-blue-700 border-b border-blue-100 pb-1 mb-2">${escapeHtml(cat.label)}</h3>
+            <div class="grid sm:grid-cols-3 gap-3">
+              ${cat.items.map(([key,label])=>`
+                <label class="flex items-center justify-between border rounded-lg px-3 py-2 text-sm bg-slate-50">
+                  <span>${escapeHtml(label)}</span>
+                  <select id="qc_${key}" class="border rounded px-1 py-0.5 text-xs">
+                    <option value="ok">Conforme</option>
+                    <option value="nok">Non conforme</option>
+                  </select>
+                </label>`).join('')}
+            </div>
+          </div>`).join('')}
         <label class="text-sm font-semibold block mb-1">Observations</label>
         <textarea id="qcObservations" rows="3" class="w-full border rounded-lg p-2 text-sm mb-4" placeholder="Remarques, non-conformités détaillées..."></textarea>
         <label class="text-sm font-semibold block mb-1">Contrôleur</label>
@@ -2727,6 +2945,51 @@ async function imprimerEtiquetteOF(ofId){
     <script>window.onload=()=>window.print()<\/script>
     </body></html>`);
   win.document.close();
+}
+
+/* ---------- Vue atelier mobile (§29) — gros boutons, OF de l'opérateur ---------- */
+async function renderAtelierMobile(){
+  const el=document.getElementById('atelierList'); if(!el) return;
+  const operateurSaved=localStorage.getItem('alubom_atelier_operateur')||'';
+  const inputEl=document.getElementById('atelierOperateur');
+  if(inputEl && !inputEl.value && operateurSaved) inputEl.value=operateurSaved;
+  const operateur=(inputEl?.value||'').trim();
+  if(operateur) localStorage.setItem('alubom_atelier_operateur',operateur);
+  const rows=(await idbGetAll('of')).filter(r=>r.statut!=='Annulé'&&r.statut!=='Terminé'&&r.statut!=='Livré');
+  let mine=operateur ? rows.filter(r=>(r.operateur||'').trim().toLowerCase()===operateur.toLowerCase()) : rows;
+  mine=mine.sort((a,b)=>(OF_PRIORITES[a.priorite||'normale']?.order??2)-(OF_PRIORITES[b.priorite||'normale']?.order??2));
+  if(!mine.length){
+    el.innerHTML=`<div class="bg-white rounded-2xl border p-8 text-center text-slate-400">${operateur?'Aucun OF assigné à cet opérateur pour le moment.':'Saisissez votre nom pour filtrer vos OF (ou laissez vide pour tout voir).'}</div>`;
+    return;
+  }
+  el.innerHTML=mine.map(r=>{
+    const pct=ofAvancementPct(r.statut,r.gammeSteps);
+    const next=ofNextStatut(r);
+    const prio=OF_PRIORITES[r.priorite||'normale'];
+    const c=OF_STATUS_COLOR[r.statut]||'slate';
+    return `<div class="bg-white rounded-2xl border-2 p-5 shadow-sm">
+      <div class="flex justify-between items-start mb-2">
+        <div class="text-lg font-black">${escapeHtml(r.numero)}</div>
+        <span class="text-xl">${prio.emoji}</span>
+      </div>
+      <div class="text-base text-slate-700 mb-1">${escapeHtml(r.ouvrage)}</div>
+      <div class="text-sm text-slate-400 mb-3">${escapeHtml(r.client)}</div>
+      <div class="mb-1 flex justify-between text-xs font-bold text-slate-500"><span>PROGRESSION</span><span>${pct}%</span></div>
+      <div class="h-3 bg-slate-100 rounded-full overflow-hidden mb-4"><div class="h-full bg-blue-600" style="width:${pct}%"></div></div>
+      <div class="bg-slate-50 rounded-xl p-3 mb-4">
+        <div class="text-xs font-bold text-slate-500 mb-1">ÉTAPE ACTUELLE</div>
+        <div class="text-base font-bold"><span class="badge bg-${c}-50 text-${c}-700">${escapeHtml(r.statut)}</span></div>
+        ${next?`<div class="text-xs text-slate-400 mt-2">Prochaine : ${escapeHtml(next)}</div>`:''}
+      </div>
+      <div class="grid grid-cols-2 gap-2 mb-4 text-sm">
+        <div class="bg-emerald-50 text-emerald-700 rounded-lg p-2 text-center font-semibold">✓ Profil</div>
+        <div class="bg-emerald-50 text-emerald-700 rounded-lg p-2 text-center font-semibold">✓ Vitrage</div>
+      </div>
+      ${next?`<button onclick="advanceOFStatus('${r.id}','${next}')" class="w-full bg-blue-600 text-white text-lg font-black py-4 rounded-2xl mb-2 active:scale-95 transition">▶ DÉMARRER / VALIDER ${escapeHtml(next.toUpperCase())}</button>`:''}
+      <button onclick="openPointageModal('${r.id}')" class="w-full border-2 border-cyan-600 text-cyan-700 text-base font-bold py-3.5 rounded-2xl mb-2 active:scale-95 transition">⏱ POINTAGE</button>
+      <button onclick="openNCForm('${r.id}','')" class="w-full border-2 border-red-500 text-red-600 text-base font-bold py-3.5 rounded-2xl active:scale-95 transition">⚠ DÉCLARER UN PROBLÈME</button>
+    </div>`;
+  }).join('');
 }
 
 async function renderNCList(){
@@ -3471,15 +3734,16 @@ async function createOFFromLine(line,client,chantierId){
   const reservations=await reserveStockForBOMArray(bomArray);
   const bomVersion='v'+new Date().toISOString().replace(/[-:T.]/g,'').slice(0,14);
   const aluMlApprox=bomArray.filter(r=>r[3]>0).reduce((s,r)=>s+(r[2]*r[3])/1000,0);
+  const gammeSteps=await resolveGammeSteps(line.type);
   const rec={
     id:numero,numero,ouvrage:line.detail,client,
     operateur:'',poste:'Débit',
     datePrevue:new Date(Date.now()+3*86400000).toISOString().slice(0,10),dateReelle:null,
-    statut:'Découpe',priorite:'normale',marge:'—',cout:line.subtotal||0,date:new Date().toISOString(),
+    statut:gammeSteps[0]||'Découpe',priorite:'normale',gammeSteps,marge:'—',cout:line.subtotal||0,date:new Date().toISOString(),
     reservations,bomVersion,configSnapshot:{type:line.type,detail:line.detail},bomSnapshot:bomArray,
     aluMlTheorique:aluMlApprox,glassM2Theorique:null,moHeuresTheorique:1.8,
     chantierId,origineAuto:true,
-    evenements:[{ts:new Date().toISOString(),statut:'Découpe',user:currentUser?currentUser.email:'—'}],
+    evenements:[{ts:new Date().toISOString(),statut:gammeSteps[0]||'Découpe',user:currentUser?currentUser.email:'—'}],
     _modifie:new Date().toISOString()
   };
   await idbPut('of',rec);
@@ -5283,7 +5547,7 @@ async function openEntityDetail(kind,id){
 /* ---------- Référentiel technique : Séries & Profils ---------- */
 function showRefTab(tab){
   document.querySelectorAll('.ref-tab').forEach(t=>t.classList.add('hidden'));
-  const ids={series:'refSeries',profils:'refProfils',vitrages:'refVitrages',quincaillerie:'refQuincaillerie',joints:'refJoints',consommables:'refConsommables',machines:'refMachines',ateliers:'refAteliers',depots:'refDepots',postes:'refPostes',parametres:'refParametres'};
+  const ids={series:'refSeries',profils:'refProfils',vitrages:'refVitrages',quincaillerie:'refQuincaillerie',joints:'refJoints',consommables:'refConsommables',machines:'refMachines',ateliers:'refAteliers',depots:'refDepots',postes:'refPostes',gammes:'refGammes',parametres:'refParametres'};
   document.getElementById(ids[tab]).classList.remove('hidden');
   document.querySelectorAll('.ref-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.reftab===tab));
   if(REF_DEFS[tab]) renderGenericRef(tab);
@@ -5809,9 +6073,19 @@ const REF_DEFS={
       {id:'nbOperateurs',label:"Nombre d'opérateurs",type:'number'},
       {id:'capaciteJour',label:'Capacité journalière (ouvrages/jour)',type:'number'},
       {id:'tauxHoraire',label:'Taux horaire (FCFA/h)',type:'number'},
+      {id:'joursOuvres',label:'Jours ouvrés',type:'select',options:['Lun-Ven','Lun-Sam','Lun-Dim']},
+      {id:'disponibilite',label:'Disponibilité',type:'select',options:['disponible','maintenance','indisponible']},
       {id:'statut',label:'Statut',type:'select',options:['actif','inactif']}
     ],
-    cols:[['code','Code'],['nom','Nom'],['responsable','Responsable'],['capaciteJour','Capacité/j'],['statut','Statut','badge']]
+    cols:[['code','Code'],['nom','Nom'],['responsable','Responsable'],['capaciteJour','Capacité/j'],['disponibilite','Disponibilité','badge'],['statut','Statut','badge']]
+  },
+  gammes:{store:'gammes',label:'Gammes opératoires',prefix:'gm',
+    fields:[
+      {id:'typeOuvrage',label:"Type d'ouvrage (doit correspondre au Configurateur)",required:true,span:2},
+      {id:'etapes',label:'Séquence des étapes, séparées par virgules (ex. Découpe,Usinage,Assemblage,Vitrage,Terminé,Prêt à livrer,Livré)',span:2},
+      {id:'statut',label:'Statut',type:'select',options:['actif','inactif']}
+    ],
+    cols:[['typeOuvrage',"Type d'ouvrage"],['etapes','Étapes'],['statut','Statut','badge']]
   },
   machines:{store:'machines',label:'Machines',prefix:'ma',
     fields:[
@@ -6301,7 +6575,7 @@ async function setPrixRetenu(tarifId){
 }
 
 /* ---------- Jeux & tolérances (paramètres globaux de calcul) ---------- */
-const DEFAULT_PARAMS={id:'global',jeuLargeurDormant:5,jeuHauteurDormant:5,jeuVitrage:3,jeuOuvrant:4,traitDeScie:3,toleranceFabrication:1,tauxEnergie:2,tauxAmortissement:3,tauxTransport:2,tauxFraisAtelier:5,tauxFraisAdmin:4};
+const DEFAULT_PARAMS={id:'global',jeuLargeurDormant:5,jeuHauteurDormant:5,jeuVitrage:3,jeuOuvrant:4,traitDeScie:3,toleranceFabrication:1,tauxEnergie:2,tauxAmortissement:3,tauxTransport:2,tauxFraisAtelier:5,tauxFraisAdmin:4,chuteMinReutilisable:500};
 window.PARAMS={...DEFAULT_PARAMS};
 
 async function loadParams(){
@@ -6309,7 +6583,7 @@ async function loadParams(){
   const rec=rows.find(r=>r.id==='global');
   window.PARAMS = rec ? {...DEFAULT_PARAMS,...rec} : {...DEFAULT_PARAMS};
   if(!rec){ await idbPut('parametres',window.PARAMS); }
-  const f={pJeuLargeurDormant:'jeuLargeurDormant',pJeuHauteurDormant:'jeuHauteurDormant',pJeuVitrage:'jeuVitrage',pJeuOuvrant:'jeuOuvrant',pTraitDeScie:'traitDeScie',pToleranceFabrication:'toleranceFabrication',pTauxEnergie:'tauxEnergie',pTauxAmortissement:'tauxAmortissement',pTauxTransport:'tauxTransport',pTauxFraisAtelier:'tauxFraisAtelier',pTauxFraisAdmin:'tauxFraisAdmin'};
+  const f={pJeuLargeurDormant:'jeuLargeurDormant',pJeuHauteurDormant:'jeuHauteurDormant',pJeuVitrage:'jeuVitrage',pJeuOuvrant:'jeuOuvrant',pTraitDeScie:'traitDeScie',pToleranceFabrication:'toleranceFabrication',pChuteMinReutilisable:'chuteMinReutilisable',pTauxEnergie:'tauxEnergie',pTauxAmortissement:'tauxAmortissement',pTauxTransport:'tauxTransport',pTauxFraisAtelier:'tauxFraisAtelier',pTauxFraisAdmin:'tauxFraisAdmin'};
   Object.entries(f).forEach(([id,key])=>{ const el=document.getElementById(id); if(el) el.value=window.PARAMS[key]; });
   const gapEl=document.getElementById('gap');
   if(gapEl && (!gapEl.value || gapEl.value==='0')) gapEl.value=window.PARAMS.jeuOuvrant;
@@ -6326,6 +6600,7 @@ async function handleSaveParams(e){
     jeuOuvrant:+document.getElementById('pJeuOuvrant').value||4,
     traitDeScie:+document.getElementById('pTraitDeScie').value||3,
     toleranceFabrication:+document.getElementById('pToleranceFabrication').value||1,
+    chuteMinReutilisable:+document.getElementById('pChuteMinReutilisable').value||500,
     tauxEnergie:+document.getElementById('pTauxEnergie').value||0,
     tauxAmortissement:+document.getElementById('pTauxAmortissement').value||0,
     tauxTransport:+document.getElementById('pTauxTransport').value||0,
@@ -6460,7 +6735,7 @@ const ETUDE_TABS=['config','bom','cut','cost','proforma'];
 function showPage(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
   document.querySelectorAll('.nav').forEach(b=>b.classList.remove('active'));
-  const titles={dashboard:'Tableau de bord',flux:'Schéma des flux',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',stock:'Stock',chantier:'Circuit Chantier',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs',catalogue:'Catalogue technique'};
+  const titles={dashboard:'Tableau de bord',flux:'Schéma des flux',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',atelier:'Vue atelier',stock:'Stock',chantier:'Circuit Chantier',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs',catalogue:'Catalogue technique'};
 
   if(ETUDE_TABS.includes(page)){
     document.getElementById('etude').classList.remove('hidden');
@@ -6482,6 +6757,7 @@ function showPage(page){
     if(page==='flux') setFluxViewMode('global');
     if(page==='stock') showStockTab('liste');
     if(page==='production') showProdTab('liste');
+    if(page==='atelier') renderAtelierMobile();
   } else {
     document.getElementById(page).classList.remove('hidden');
     document.querySelectorAll('.nav').forEach(b=>{if(b.dataset.page===page)b.classList.add('active')});
@@ -7843,7 +8119,7 @@ async function optimize(){
     return;
   }
 
-  const kerf=window.PARAMS?.traitDeScie||3, threshold=500;
+  const kerf=window.PARAMS?.traitDeScie||3, threshold=window.PARAMS?.chuteMinReutilisable||500;
   document.getElementById('cutKerf').textContent=kerf+' mm';
 
   // Mode stock : seed avec chutes réutilisables déjà en stock
