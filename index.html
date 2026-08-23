@@ -1195,8 +1195,9 @@ window.SANIX_CFG = {
 
             <div class="mt-6 border border-amber-200 bg-amber-50 rounded-2xl p-6">
               <details open>
-                <summary class="font-bold cursor-pointer text-amber-800">🔒 Calcul de besoin consolidé (tous ouvrages du devis) — usage interne, non imprimé</summary>
-                <p class="text-xs text-amber-700 mt-2 mb-3">Quantités matières et composants cumulées, référence par référence. Choisissez un fournisseur par composant pour générer les bons de commande.</p>
+                <summary class="font-bold cursor-pointer text-amber-800">🔒 Simulation d'achat (aperçu, avant validation DG) — non enregistré</summary>
+                <p class="text-xs text-amber-700 mt-2 mb-1">Quantités matières estimées pour ce devis, référence par référence. Choisissez un fournisseur indicatif pour éditer un bon de commande <b>de simulation</b>.</p>
+                <p class="text-xs text-amber-700 mb-3">⚠️ Ceci ne crée <b>aucune</b> demande d'achat suivie. Une fois le dossier validé par la DG, les achats réels et traçables se font depuis <b>Circuit Chantier → étape Achats (DA)</b>, calculés automatiquement par le MRP sur la BOM figée.</p>
                 <div class="border rounded-lg overflow-hidden bg-white">
                   <table class="w-full text-sm">
                     <thead class="bg-slate-100"><tr><th class="text-left p-3">Code</th><th class="text-left p-3">Composant</th><th class="text-right p-3">Qté totale</th><th class="text-right p-3">Montant</th><th class="text-left p-3">Fournisseur</th></tr></thead>
@@ -1204,7 +1205,7 @@ window.SANIX_CFG = {
                   </table>
                 </div>
                 <div class="flex flex-wrap justify-between items-center gap-2 mt-3">
-                  <button type="button" onclick="genererBonsDeCommande()" class="border border-blue-600 text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold">🧾 Générer les bons de commande par fournisseur</button>
+                  <button type="button" onclick="genererBonsDeCommande()" class="border border-amber-600 text-amber-700 px-4 py-2 rounded-lg text-sm font-semibold">📄 Aperçu bon de commande (simulation)</button>
                   <div class="text-sm"><span class="font-bold mr-2">Total besoin :</span><b id="consolidatedNeedsTotal">0 FCFA</b></div>
                 </div>
               </details>
@@ -3357,12 +3358,15 @@ async function openChantierDetail(id){
               <div class="flex items-center gap-2">
                 <span class="badge bg-${a.statut==='recue'?'emerald':a.statut==='partielle'?'orange':a.statut==='commandee'?'blue':a.statut==='validee'?'amber':'slate'}-50 text-${a.statut==='recue'?'emerald':a.statut==='partielle'?'orange':a.statut==='commandee'?'blue':a.statut==='validee'?'amber':'slate'}-700">${escapeHtml(a.statut)}</span>
                 ${a.statut!=='recue'?`<button onclick="advanceAchatStatut('${a.id}','${id}')" class="text-blue-600 text-xs font-semibold">${(a.statut==='commandee'||a.statut==='partielle')?'📦 Réceptionner':'Étape suivante →'}</button>`:''}
+                ${a.statut!=='demande'?`<button onclick="imprimerBonDeCommandeDA('${a.id}')" title="Imprimer le bon de commande" class="text-slate-600 text-xs font-semibold">🖨 BC</button>`:''}
                 <button onclick="openEditAchatModal('${a.id}','${id}')" title="Modifier fournisseur/statut" class="text-slate-500 text-xs font-semibold">✏️</button>
                 <button onclick="deleteAchat('${a.id}','${id}')" title="Supprimer toute la demande" class="text-red-500 text-xs font-semibold">🗑️</button>
               </div>
             </div>
             <div class="mt-2 pt-2 border-t text-xs text-slate-500 space-y-0.5">
               ${lignes.map((l,li)=>`<div class="flex justify-between items-center"><span>${escapeHtml(l.code?l.code+' — ':'')}${escapeHtml(l.designation)} × ${l.qte}${(l.qteRecue||0)>0?` (reçu ${l.qteRecue}/${l.qte})`:''}</span><span class="flex items-center gap-2"><b>${money(l.montant||l.qte*l.prix)}</b>${a.statut!=='recue'?`<button onclick="deleteLigneAchat('${a.id}',${li},'${id}')" title="Retirer cette ligne" class="text-red-400 hover:text-red-600 font-bold">✕</button>`:''}</span></div>`).join('')}
+              ${a.factureFournisseur?.numero?`<div class="mt-1 pt-1 border-t text-blue-600">📄 Facture fournisseur ${escapeHtml(a.factureFournisseur.numero)}${a.factureFournisseur.montant?' — '+money(a.factureFournisseur.montant):''}${a.factureFournisseur.date?' — '+new Date(a.factureFournisseur.date).toLocaleDateString('fr-FR'):''}</div>`:''}
+              ${a.bonsReception?.length?`<div class="text-emerald-600">✓ ${a.bonsReception.length} bon(s) de réception : ${a.bonsReception.map(br=>escapeHtml(br.numero)).join(', ')}</div>`:''}
             </div>
           </div>`;
         }).join('') : '<div class="text-sm text-slate-400">Aucune demande d\'achat.</div>'}
@@ -3522,6 +3526,18 @@ async function advanceAchatStatut(achatId,chantierId){
     await openReceptionAchatModal(achatId,chantierId);
     return;
   }
+  if(rec.statut==='demande'){
+    const lignes=normalizeAchatLignes(rec);
+    const stockRows=await idbGetAll('stock');
+    const couvertes=lignes.filter(l=>{
+      const s=stockRows.find(s=>s.ref===l.code);
+      return s && s.dispo>=l.qte;
+    });
+    if(couvertes.length){
+      const detail=couvertes.map(l=>'• '+(l.code||l.designation)+' — '+l.designation).join('\n');
+      if(!confirm(`⚠️ Stock désormais disponible pour ${couvertes.length} référence(s) sur cette demande :\n\n${detail}\n\nCet achat est peut-être devenu inutile. Valider quand même la demande d'achat ?`)) return;
+    }
+  }
   rec.statut=ACHAT_STATUT_NEXT[rec.statut]||rec.statut;
   await idbPut('achats',rec);
   queueSync('alubom_achats',rec);
@@ -3529,7 +3545,48 @@ async function advanceAchatStatut(achatId,chantierId){
   await openChantierDetail(chantierId);
 }
 
-/* ---------- Réception (multi-lignes) d'une demande d'achat ---------- */
+/* ---------- Bon de commande officiel (issu d'une DA validée) ---------- */
+function imprimerBonDeCommandeDA(achatId){
+  idbGetAll('achats').then(rows=>{
+    const rec=rows.find(a=>a.id===achatId); if(!rec) return;
+    const lignes=normalizeAchatLignes(rec);
+    const dateStr=new Date().toLocaleDateString('fr-FR');
+    const total=lignes.reduce((s,l)=>s+(l.montant||l.qte*l.prix),0);
+    const win=window.open('','_blank','width=1000,height=1100');
+    if(!win) return;
+    win.document.write(`<html><head><title>Bon de commande ${escapeHtml(rec.numero)}</title>
+      <style>
+        body{font-family:Arial,sans-serif;padding:30px;color:#0f172a;font-size:13px}
+        .bc-header{border-bottom:2px solid #0f172a;padding-bottom:10px;margin-bottom:14px;display:flex;justify-content:space-between}
+        .bc-header .sub{color:#64748b;font-size:12px;margin-top:2px}
+        table{width:100%;border-collapse:collapse;margin-bottom:14px}
+        th,td{border:1px solid #cbd5e1;padding:7px 10px;text-align:left;font-size:12px}
+        th{background:#f1f5f9}
+        .bc-meta td{border:0;padding:3px 10px 3px 0}
+        .bc-total{text-align:right;font-weight:800;font-size:15px;margin-bottom:20px}
+        .bc-sign{display:flex;justify-content:space-between;margin-top:50px;font-size:11px;color:#475569}
+        .bc-sign div{width:45%;border-top:1px solid #94a3b8;padding-top:6px}
+      </style></head><body>
+      <div class="bc-header">
+        <div><b>SANIX AFRICA</b> — Division Technologies<div class="sub">Menuiserie Aluminium • BOM • Fabrication</div></div>
+        <div style="text-align:right"><b>BON DE COMMANDE</b><div class="sub">${escapeHtml(rec.numero)} • ${dateStr}</div></div>
+      </div>
+      <table class="bc-meta"><tr><td><b>Fournisseur</b></td><td>${escapeHtml(rec.fournisseur)}</td><td><b>Statut</b></td><td>${escapeHtml(rec.statut)}</td></tr></table>
+      <table>
+        <thead><tr><th>Code</th><th>Désignation</th><th>Qté</th><th>Prix unit.</th><th>Sous-total</th></tr></thead>
+        <tbody>${lignes.map(l=>`<tr><td>${escapeHtml(l.code||'—')}</td><td>${escapeHtml(l.designation)}</td><td>${l.qte}</td><td>${money(l.prix)}</td><td>${money(l.montant||l.qte*l.prix)}</td></tr>`).join('')}</tbody>
+      </table>
+      <div class="bc-total">Total commande : ${money(total)}</div>
+      <div class="bc-sign"><div>Signature fournisseur</div><div>Signature SANIX AFRICA</div></div>
+      </body></html>`);
+    win.document.close();
+    win.focus();
+    setTimeout(()=>win.print(),300);
+  });
+  audit('IMPRIMER_BC',achatId);
+}
+
+/* ---------- Réception (multi-lignes) d'une demande d'achat — génère le Bon de Réception + incrémente le stock ---------- */
 let receptionAchatId=null, receptionChantierId=null, receptionLignes=[];
 async function openReceptionAchatModal(achatId,chantierId){
   const rows=await idbGetAll('achats');
@@ -3540,14 +3597,25 @@ async function openReceptionAchatModal(achatId,chantierId){
   const content=document.getElementById('receptionAchatContent');
   content.innerHTML=`
     <div class="flex justify-between items-start mb-4">
-      <h2 class="text-lg font-bold">📦 Réception — ${escapeHtml(rec.numero)}</h2>
+      <h2 class="text-lg font-bold">📦 Bon de réception — ${escapeHtml(rec.numero)}</h2>
       <button onclick="closeReceptionAchatModal()" class="text-slate-400 text-xl leading-none">×</button>
     </div>
-    <p class="text-sm text-slate-500 mb-3">${escapeHtml(rec.fournisseur)} — saisissez la quantité reçue par référence.</p>
-    <div id="receptionLignesBody" class="space-y-2 max-h-72 overflow-y-auto"></div>
+    <p class="text-sm text-slate-500 mb-3">${escapeHtml(rec.fournisseur)} — saisissez la quantité reçue par référence. Le stock sera incrémenté automatiquement.</p>
+    <div id="receptionLignesBody" class="space-y-2 max-h-64 overflow-y-auto"></div>
+    <div class="grid sm:grid-cols-3 gap-2 mt-3 pt-3 border-t">
+      <label class="text-xs font-semibold block">N° facture fournisseur
+        <input id="brFactureNumero" value="${escapeHtml(rec.factureFournisseur?.numero||'')}" placeholder="FAC-..." class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <label class="text-xs font-semibold block">Montant facture (FCFA)
+        <input id="brFactureMontant" type="number" min="0" value="${rec.factureFournisseur?.montant||''}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <label class="text-xs font-semibold block">Date facture
+        <input id="brFactureDate" type="date" value="${rec.factureFournisseur?.date||''}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+    </div>
     <div class="flex justify-end gap-2 pt-4 mt-2 border-t">
       <button type="button" onclick="closeReceptionAchatModal()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Annuler</button>
-      <button type="button" onclick="validerReceptionAchat()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">✓ Valider la réception</button>
+      <button type="button" onclick="validerReceptionAchat()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">✓ Valider réception (BR)</button>
     </div>`;
   renderReceptionLignes();
   modal.classList.remove('hidden');
@@ -3581,16 +3649,77 @@ async function validerReceptionAchat(){
     code:l.code, designation:l.designation, qte:l.qte, prix:l.prix, montant:l.montant,
     qteRecue:Math.min(l.qte,(l.qteRecue||0)+(l._recuMaintenant||0))
   }));
+  // Incrémentation du stock réel pour chaque quantité reçue lors de cette réception
+  const recues=receptionLignes.filter(l=>l.code && (l._recuMaintenant||0)>0);
+  if(recues.length){
+    const stockRows=await idbGetAll('stock');
+    for(const l of recues){
+      let stockRec=stockRows.find(s=>s.ref===l.code);
+      if(!stockRec){ stockRec={id:l.code,ref:l.code,label:l.designation,dispo:0,reserve:0,prix:l.prix||0}; }
+      stockRec.dispo=(stockRec.dispo||0)+l._recuMaintenant;
+      if(l.prix) stockRec.prix=l.prix;
+      stockRec._modifie=new Date().toISOString();
+      await idbPut('stock',stockRec);
+      queueSync('alubom_stock',stockRec);
+      const mv={id:'m_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),ref:l.code,type:'entree',qty:l._recuMaintenant,prixUnitaire:l.prix||0,ts:new Date().toISOString(),user:currentUser?currentUser.email:undefined,refDA:rec.numero};
+      await idbPut('stock_mouvements',mv);
+      queueSync('alubom_stock_mouvements',mv);
+    }
+  }
+  const factureNumero=document.getElementById('brFactureNumero')?.value.trim();
+  const factureMontant=+document.getElementById('brFactureMontant')?.value||0;
+  const factureDate=document.getElementById('brFactureDate')?.value;
+  if(factureNumero||factureMontant||factureDate) rec.factureFournisseur={numero:factureNumero,montant:factureMontant,date:factureDate};
   rec.lignes=nouvellesLignes;
   rec.montant=nouvellesLignes.reduce((s,l)=>s+l.montant,0);
   const toutRecu=nouvellesLignes.every(l=>l.qteRecue>=l.qte);
   const rienRecu=nouvellesLignes.every(l=>(l.qteRecue||0)<=0);
   rec.statut = toutRecu ? 'recue' : (rienRecu ? rec.statut : 'partielle');
+  const seq=nextSeq('br');
+  const brNumero='BR-'+seq.year+'-'+String(seq.n).padStart(4,'0');
+  rec.bonsReception=(rec.bonsReception||[]).concat([{numero:brNumero,date:new Date().toISOString(),lignes:recues.map(l=>({code:l.code,designation:l.designation,qte:l._recuMaintenant})),factureFournisseur:rec.factureFournisseur||null}]);
   await idbPut('achats',rec);
   queueSync('alubom_achats',rec);
-  await audit('RECEPTION_ACHAT',rec.numero+' → '+rec.statut);
+  await audit('RECEPTION_ACHAT',rec.numero+' → '+rec.statut+' — '+brNumero+(recues.length?' — stock incrémenté ('+recues.length+' réf.)':''));
+  if(recues.length) imprimerBonReception(brNumero,rec,recues);
   closeReceptionAchatModal();
+  await refreshAllTables();
   await openChantierDetail(receptionChantierId);
+}
+function imprimerBonReception(brNumero,rec,recues){
+  const dateStr=new Date().toLocaleDateString('fr-FR');
+  const win=window.open('','_blank','width=900,height=1000');
+  if(!win) return;
+  win.document.write(`<html><head><title>Bon de réception ${escapeHtml(brNumero)}</title>
+    <style>
+      body{font-family:Arial,sans-serif;padding:30px;color:#0f172a;font-size:13px}
+      .bc-header{border-bottom:2px solid #0f172a;padding-bottom:10px;margin-bottom:14px;display:flex;justify-content:space-between}
+      .bc-header .sub{color:#64748b;font-size:12px;margin-top:2px}
+      table{width:100%;border-collapse:collapse;margin-bottom:14px}
+      th,td{border:1px solid #cbd5e1;padding:7px 10px;text-align:left;font-size:12px}
+      th{background:#f1f5f9}
+      .bc-meta td{border:0;padding:3px 10px 3px 0}
+      .bc-sign{display:flex;justify-content:space-between;margin-top:50px;font-size:11px;color:#475569}
+      .bc-sign div{width:45%;border-top:1px solid #94a3b8;padding-top:6px}
+    </style></head><body>
+    <div class="bc-header">
+      <div><b>SANIX AFRICA</b> — Division Technologies<div class="sub">Menuiserie Aluminium • BOM • Fabrication</div></div>
+      <div style="text-align:right"><b>BON DE RÉCEPTION</b><div class="sub">${escapeHtml(brNumero)} • ${dateStr}</div></div>
+    </div>
+    <table class="bc-meta">
+      <tr><td><b>Bon de commande</b></td><td>${escapeHtml(rec.numero)}</td><td><b>Fournisseur</b></td><td>${escapeHtml(rec.fournisseur)}</td></tr>
+      ${rec.factureFournisseur?.numero?`<tr><td><b>Facture fournisseur</b></td><td>${escapeHtml(rec.factureFournisseur.numero)}</td><td><b>Montant facture</b></td><td>${money(rec.factureFournisseur.montant||0)}</td></tr>`:''}
+    </table>
+    <table>
+      <thead><tr><th>Code</th><th>Désignation</th><th>Qté reçue</th></tr></thead>
+      <tbody>${recues.map(l=>`<tr><td>${escapeHtml(l.code||'—')}</td><td>${escapeHtml(l.designation)}</td><td>${l._recuMaintenant}</td></tr>`).join('')}</tbody>
+    </table>
+    <p style="font-size:11px;color:#64748b">Stock mis à jour automatiquement dans l'ERP à la validation de ce bon de réception.</p>
+    <div class="bc-sign"><div>Signature magasinier</div><div>Signature réceptionnaire</div></div>
+    </body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(()=>win.print(),300);
 }
 
 /* ---------- Suppression d'une DA entière ou d'une ligne au sein d'une DA ---------- */
@@ -5659,9 +5788,10 @@ async function genererBonsDeCommande(){
   }).join('');
   const win=window.open('','_blank','width=1000,height=1100');
   if(!win) return;
-  win.document.write(`<html><head><title>Bons de commande</title>
+  win.document.write(`<html><head><title>Bons de commande (simulation)</title>
     <style>
       body{font-family:Arial,sans-serif;padding:30px;color:#0f172a;font-size:13px}
+      .bc-watermark{background:#fef3c7;border:1px solid #d97706;color:#92400e;padding:10px 14px;border-radius:6px;font-size:12px;font-weight:700;margin-bottom:20px}
       .bc-header{border-bottom:2px solid #0f172a;padding-bottom:10px;margin-bottom:14px}
       .bc-header .sub{color:#64748b;font-size:12px;margin-top:2px}
       table{width:100%;border-collapse:collapse;margin-bottom:14px}
@@ -5670,7 +5800,8 @@ async function genererBonsDeCommande(){
       .bc-meta td{border:0;padding:3px 10px 3px 0}
       .bc-total{text-align:right;font-weight:800;font-size:15px;margin-bottom:20px}
       .bc-page{page-break-before:always;padding-top:10px}
-    </style></head><body>${sections}</body></html>`);
+      @media print{.bc-watermark{display:none}}
+    </style></head><body><div class="bc-watermark">⚠️ SIMULATION — document indicatif non contractuel, aucune demande d'achat n'a été enregistrée dans l'ERP. Pour un achat réel et suivi, utilisez Circuit Chantier → Achats (DA) après validation DG.</div>${sections}</body></html>`);
   win.document.close();
   win.focus();
   await audit('GENERER_BC',Object.keys(groups).length+' bon(s) de commande généré(s) — devis '+devisNumero);
