@@ -47,6 +47,9 @@ window.SANIX_CFG = {
   .cat-tab-btn{color:#475569;background:transparent}
   .cat-tab-btn:hover{background:#f1f5f9}
   .cat-tab-btn.active{background:#2563eb;color:#fff}
+  .stock-tab-btn{color:#475569;background:transparent}
+  .stock-tab-btn:hover{background:#f1f5f9}
+  .stock-tab-btn.active{background:#2563eb;color:#fff}
   @media (max-width:767px){
     .sidebar{position:fixed;inset:0 25% 0 0;z-index:40;transform:translateX(-100%);transition:transform .25s ease;overflow-y:auto;display:block!important}
     .sidebar.open{transform:translateX(0)}
@@ -1262,6 +1265,15 @@ window.SANIX_CFG = {
       </section>
 
       <section id="stock" class="page hidden">
+        <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1">
+          <button class="stock-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-stocktab="liste" onclick="showStockTab('liste')">📦 Stock</button>
+          <button class="stock-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-stocktab="valorisation" onclick="showStockTab('valorisation')">💰 Valorisation</button>
+          <button class="stock-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-stocktab="inventaireDepot" onclick="showStockTab('inventaireDepot')">🏬 Inventaire par dépôt</button>
+          <button class="stock-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-stocktab="transfert" onclick="showStockTab('transfert')">🔀 Transfert dépôt à dépôt</button>
+          <a href="#" onclick="showPage('catalogue');setTimeout(()=>showCatalogueTab('mouvements'),50);return false;" class="ml-auto self-center text-xs text-blue-600 font-semibold px-3">📖 Journal de mouvement périodique →</a>
+        </div>
+
+        <div id="stockTabListe" class="stock-tab">
         <div class="card bg-white rounded-2xl p-6">
           <div class="flex flex-wrap justify-between gap-3 mb-2">
             <div><h2 class="text-lg font-bold">Stock matières</h2><p class="text-sm text-slate-500">Disponibilité, réservation et chutes réutilisables — liste de composants issue de la BOM et du référentiel.</p></div>
@@ -1270,16 +1282,62 @@ window.SANIX_CFG = {
               <button onclick="syncStockFromReferentiel()" class="border border-teal-600 text-teal-600 px-3 py-2 rounded-lg text-sm font-semibold">📚 Depuis le référentiel</button>
             </div>
           </div>
-          <p class="text-xs text-slate-500 bg-slate-50 border rounded-lg p-2 mb-4">ℹ️ "Depuis la BOM actuelle" ajoute au stock les composants du calcul en cours (Configurateur) qui n'y figurent pas encore. "Depuis le référentiel" ajoute tous les profils/vitrages/quincaillerie/joints/consommables actifs manquants. Les quantités sont ajoutées à 0 — à compléter par une entrée de stock.</p>
-          <form id="stockMoveForm" onsubmit="return handleStockMove(event)" class="grid sm:grid-cols-6 gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
+          <p class="text-xs text-slate-500 bg-slate-50 border rounded-lg p-2 mb-4">ℹ️ "Depuis la BOM actuelle" ajoute au stock les composants du calcul en cours (Configurateur) qui n'y figurent pas encore. "Depuis le référentiel" ajoute tous les profils/vitrages/quincaillerie/joints/consommables actifs manquants. Les quantités sont ajoutées à 0 — à compléter par une entrée de stock. Les mouvements automatiques (réservation OF, réquisition, réception achat) s'appliquent toujours au Dépôt Principal.</p>
+          <form id="stockMoveForm" onsubmit="return handleStockMove(event)" class="grid sm:grid-cols-7 gap-2 mb-3 bg-slate-50 border rounded-xl p-3">
             <input id="mvRef" placeholder="Référence" required class="border rounded-lg px-2 py-1.5 text-sm">
             <input id="mvLabel" placeholder="Désignation" class="border rounded-lg px-2 py-1.5 text-sm">
+            <select id="mvDepot" class="border rounded-lg px-2 py-1.5 text-sm"></select>
             <select id="mvType" onchange="document.getElementById('mvPrix').classList.toggle('hidden',this.value!=='entree')" class="border rounded-lg px-2 py-1.5 text-sm"><option value="entree">Entrée</option><option value="sortie">Sortie</option></select>
             <input id="mvQty" type="number" step="0.01" placeholder="Qté (ml)" required class="border rounded-lg px-2 py-1.5 text-sm">
             <input id="mvPrix" type="number" step="0.01" placeholder="Prix unitaire (achat)" class="border rounded-lg px-2 py-1.5 text-sm">
             <button type="submit" class="bg-slate-900 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">Enregistrer</button>
           </form>
-          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Référence</th><th class="text-left p-3">Désignation</th><th class="text-right p-3">Disponible</th><th class="text-right p-3">Réservé</th><th class="text-right p-3">Prix/ml</th><th class="text-right p-3">CUMP réel</th><th class="text-left p-3">État</th></tr></thead><tbody id="stockBody"></tbody></table></div>
+          <div class="flex items-center gap-2 mb-3">
+            <label class="text-xs font-semibold text-slate-500">Filtrer par dépôt :</label>
+            <select id="stockDepotFilter" onchange="renderStockTable()" class="border rounded-lg px-2 py-1.5 text-sm"></select>
+          </div>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Référence</th><th class="text-left p-3">Désignation</th><th class="text-left p-3">Dépôt</th><th class="text-right p-3">Disponible</th><th class="text-right p-3">Réservé</th><th class="text-right p-3">Prix/ml</th><th class="text-right p-3">CUMP réel</th><th class="text-left p-3">État</th></tr></thead><tbody id="stockBody"></tbody></table></div>
+        </div>
+        </div>
+
+        <div id="stockTabValorisation" class="stock-tab hidden">
+        <div class="card bg-white rounded-2xl p-6">
+          <div class="flex flex-wrap justify-between gap-3 mb-4">
+            <div><h2 class="text-lg font-bold">Valorisation du stock</h2><p class="text-sm text-slate-500">Valeur du stock au CUMP réel (coût unitaire moyen pondéré), par référence et par dépôt.</p></div>
+            <button onclick="printValorisation()" class="border px-3 py-2 rounded-lg text-sm font-semibold">🖨 Imprimer</button>
+          </div>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Référence</th><th class="text-left p-3">Désignation</th><th class="text-left p-3">Dépôt</th><th class="text-right p-3">Qté disponible</th><th class="text-right p-3">CUMP</th><th class="text-right p-3">Valeur stock</th></tr></thead><tbody id="valorisationBody"></tbody><tfoot><tr class="border-t-2 font-bold"><td class="p-3" colspan="5">Valeur totale du stock</td><td class="p-3 text-right" id="valorisationTotal">0 FCFA</td></tr></tfoot></table></div>
+        </div>
+        </div>
+
+        <div id="stockTabInventaireDepot" class="stock-tab hidden">
+        <div class="card bg-white rounded-2xl p-6">
+          <div class="flex flex-wrap justify-between gap-3 mb-4">
+            <div><h2 class="text-lg font-bold">Inventaire par dépôt</h2><p class="text-sm text-slate-500">Comptage physique périodique, dépôt par dépôt — ajuste automatiquement le stock théorique en cas d'écart.</p></div>
+            <div class="flex items-center gap-2">
+              <select id="invDepotFilter" onchange="renderInventaireDepot()" class="border rounded-lg px-2 py-1.5 text-sm"></select>
+              <button onclick="validerInventaireDepot()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">✓ Valider les écarts</button>
+              <button onclick="printInventaireDepot()" class="border px-3 py-2 rounded-lg text-sm font-semibold">🖨 Imprimer</button>
+            </div>
+          </div>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Référence</th><th class="text-left p-3">Désignation</th><th class="text-right p-3">Théorique</th><th class="text-right p-3">Compté</th><th class="text-right p-3">Écart</th><th class="text-left p-3">État</th></tr></thead><tbody id="invDepotBody"></tbody></table></div>
+        </div>
+        </div>
+
+        <div id="stockTabTransfert" class="stock-tab hidden">
+        <div class="card bg-white rounded-2xl p-6">
+          <h2 class="text-lg font-bold mb-1">Transfert dépôt à dépôt</h2>
+          <p class="text-sm text-slate-500 mb-4">Déplace une quantité d'une référence d'un dépôt vers un autre — journalisé dans le mouvement de stock.</p>
+          <form onsubmit="return handleTransfertDepot(event)" class="grid sm:grid-cols-5 gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
+            <input id="trRef" list="stockRefsDatalist" placeholder="Référence" required class="border rounded-lg px-2 py-1.5 text-sm">
+            <select id="trDepotSource" class="border rounded-lg px-2 py-1.5 text-sm"></select>
+            <select id="trDepotDestination" class="border rounded-lg px-2 py-1.5 text-sm"></select>
+            <input id="trQty" type="number" step="0.01" min="0.01" placeholder="Qté à transférer" required class="border rounded-lg px-2 py-1.5 text-sm">
+            <button type="submit" class="bg-slate-900 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">🔀 Transférer</button>
+          </form>
+          <datalist id="stockRefsDatalist"></datalist>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Date</th><th class="text-left p-3">Référence</th><th class="text-left p-3">De</th><th class="text-left p-3">Vers</th><th class="text-right p-3">Qté</th><th class="text-left p-3">Par</th></tr></thead><tbody id="transfertHistoBody"></tbody></table></div>
+        </div>
         </div>
       </section>
 
@@ -1378,6 +1436,7 @@ window.SANIX_CFG = {
             <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="consommables" onclick="showRefTab('consommables')">🧪 Consommables</button>
             <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="machines" onclick="showRefTab('machines')">🛠️ Machines</button>
             <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="ateliers" onclick="showRefTab('ateliers')">🏭 Ateliers</button>
+            <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="depots" onclick="showRefTab('depots')">🏬 Dépôts</button>
             <button class="ref-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-reftab="parametres" onclick="showRefTab('parametres')">⚙️ Jeux & tolérances</button>
           </div>
           <button onclick="openCsvImport()" class="border border-teal-600 text-teal-600 px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap">📥 Importer CSV</button>
@@ -1453,6 +1512,7 @@ window.SANIX_CFG = {
 
         <div id="refVitrages" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_vitrages"></div></div>
         <div id="refAteliers" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_ateliers"></div></div>
+        <div id="refDepots" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_depots"></div></div>
         <div id="refQuincaillerie" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_quincaillerie"></div></div>
         <div id="refJoints" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_joints"></div></div>
         <div id="refConsommables" class="ref-tab hidden"><div class="card bg-white rounded-2xl p-6" id="refGeneric_consommables"></div></div>
@@ -1591,6 +1651,7 @@ window.SANIX_CFG = {
                 <option value="entree">Entrée</option>
                 <option value="sortie">Sortie</option>
                 <option value="ajustement">Ajustement (inventaire)</option>
+                <option value="transfert">Transfert dépôt à dépôt</option>
               </select>
             </div>
             <div>
@@ -1672,10 +1733,10 @@ function escapeHtml(s){
 /* ---------- IndexedDB ---------- */
 function openDB(){
   return new Promise((resolve,reject)=>{
-    const req=indexedDB.open('alubom_db',11);
+    const req=indexedDB.open('alubom_db',12);
     req.onupgradeneeded=e=>{
       const d=e.target.result;
-      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers'].forEach(s=>{
+      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers','depots'].forEach(s=>{
         if(!d.objectStoreNames.contains(s)) d.createObjectStore(s,{keyPath:'id'});
       });
     };
@@ -2150,7 +2211,11 @@ async function renderOFTable(){
     const planBtn=`<button onclick="openPlansPanel('${r.id}')" class="text-indigo-600 text-xs font-semibold mr-2">📎 Plans${nbPlans?' ('+nbPlans+')':''}</button>`;
     const suivi=suiviRows.find(s=>s.ofId===r.id);
     const suiviBtn = r.statut==='Terminé' ? `<button onclick="openSuiviReelForm('${r.id}')" class="text-teal-600 text-xs font-semibold mr-2">${suivi?'✓ Réel saisi':'📊 Saisir le réel'}</button>` : '';
+    const reqBtn = r.requisitionNumero
+      ? `<button onclick="imprimerBonRequisition('${r.id}')" title="Réimprimer" class="text-emerald-600 text-xs font-semibold mr-2">✓ ${escapeHtml(r.requisitionNumero)}</button>`
+      : `<button onclick="emettreBonRequisition('${r.id}')" title="Émettre le bon de réquisition et mouvementer le stock" class="text-purple-600 text-xs font-semibold mr-2">📋 Bon de réquisition</button>`;
     const actions = (r.statut==='Terminé'||r.statut==='Annulé') ? planBtn+suiviBtn : `
+      ${reqBtn}
       ${next?`<button onclick="advanceOFStatus('${r.id}','${next}')" class="text-blue-600 text-xs font-semibold mr-2">→ ${escapeHtml(next)}</button>`:''}
       <button onclick="openQCForm('${r.id}')" class="text-amber-600 text-xs font-semibold mr-2">Contrôle qualité</button>
       ${planBtn}
@@ -2171,7 +2236,7 @@ async function advanceOFStatus(id,newStatut){
       alert("Contrôle qualité requis (et conforme) avant de clôturer cet OF. Utilisez le bouton \"Contrôle qualité\".");
       return;
     }
-    await consumeReservation(rec.reservations||[]);
+    if(!rec.requisitionNumero) await consumeReservation(rec.reservations||[]);
     rec.dateReelle=new Date().toISOString().slice(0,10);
   }
   if(newStatut==='Annulé') await releaseReservation(rec.reservations||[]);
@@ -2414,9 +2479,9 @@ async function seedStockIfEmpty(){
   const rows=await idbGetAll('stock');
   if(rows.length) return;
   const defaults=[
-    {id:'P-STD-001',ref:'P-STD-001',label:'Dormant série 120',dispo:128,reserve:0,prix:8500},
-    {id:'P-STD-002',ref:'P-STD-002',label:'Ouvrant série 120',dispo:74,reserve:0,prix:9200},
-    {id:'P-COUL-001',ref:'P-COUL-001',label:'Rail coulissant',dispo:21,reserve:0,prix:11500}
+    {id:'P-STD-001',ref:'P-STD-001',label:'Dormant série 120',dispo:128,reserve:0,prix:8500,depot:'PRINC'},
+    {id:'P-STD-002',ref:'P-STD-002',label:'Ouvrant série 120',dispo:74,reserve:0,prix:9200,depot:'PRINC'},
+    {id:'P-COUL-001',ref:'P-COUL-001',label:'Rail coulissant',dispo:21,reserve:0,prix:11500,depot:'PRINC'}
   ];
   for(const d of defaults){ d._modifie=new Date().toISOString(); await idbPut('stock',d); queueSync('alubom_stock',d); }
 }
@@ -2434,7 +2499,7 @@ async function syncStockFromBOM(){
     if(existing.has(code)) continue;
     const qty=r[2]||1, montant=r[4]||0;
     const prixUnitaire = r[3]>0 ? montant/(qty*r[3]/1000||1) : montant/qty;
-    const rec={id:code,ref:code,label:r[1],dispo:0,reserve:0,prix:Math.round(prixUnitaire)||0,_modifie:new Date().toISOString()};
+    const rec={id:code,ref:code,label:r[1],dispo:0,reserve:0,prix:Math.round(prixUnitaire)||0,depot:'PRINC',_modifie:new Date().toISOString()};
     await idbPut('stock',rec);
     queueSync('alubom_stock',rec);
     existing.add(code);
@@ -2461,7 +2526,7 @@ async function syncStockFromReferentiel(){
     const items=(await idbGetAll(src.store)).filter(i=>i.statut!=='inactif');
     for(const item of items){
       if(!item.code || existing.has(item.code)) continue;
-      const rec={id:item.code,ref:item.code,label:item.designation,dispo:0,reserve:0,prix:item[src.priceField]||0,_modifie:new Date().toISOString()};
+      const rec={id:item.code,ref:item.code,label:item.designation,dispo:0,reserve:0,prix:item[src.priceField]||0,depot:'PRINC',_modifie:new Date().toISOString()};
       await idbPut('stock',rec);
       queueSync('alubom_stock',rec);
       existing.add(item.code);
@@ -2478,40 +2543,241 @@ function stockEtat(dispo){
   if(dispo<80) return ['Surveillance','amber'];
   return ['Normal','emerald'];
 }
+function showStockTab(tab){
+  document.querySelectorAll('.stock-tab').forEach(t=>t.classList.add('hidden'));
+  document.getElementById('stockTab'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.remove('hidden');
+  document.querySelectorAll('.stock-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.stocktab===tab));
+  populateDepotSelects();
+  if(tab==='liste') renderStockTable();
+  if(tab==='valorisation') renderValorisation();
+  if(tab==='inventaireDepot') renderInventaireDepot();
+  if(tab==='transfert') renderTransfertHisto();
+}
 async function renderStockTable(){
   const el=document.getElementById('stockBody'); if(!el) return;
-  const rows=(await idbGetAll('stock')).sort((a,b)=>a.ref.localeCompare(b.ref));
-  const cells=await Promise.all(rows.map(async r=>{
-    const [label,color]=stockEtat(r.dispo);
-    const cump=await computeCUMP(r.ref);
-    return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.ref)}</td><td class="p-3">${escapeHtml(r.label)}</td><td class="p-3 text-right">${r.dispo.toFixed(1)} ml</td><td class="p-3 text-right">${(r.reserve||0).toFixed(1)} ml</td><td class="p-3 text-right">${money(r.prix)}</td><td class="p-3 text-right">${cump!=null?money(cump):'<span class="text-slate-400">—</span>'}</td><td class="p-3"><span class="badge bg-${color}-50 text-${color}-700">${label}</span></td></tr>`;
-  }));
-  el.innerHTML = cells.join('');
+  await populateDepotSelects();
+  const depotFilter=document.getElementById('stockDepotFilter')?.value||'';
+  let rows=(await idbGetAll('stock')).slice().sort((a,b)=>a.ref.localeCompare(b.ref)||(a.depot||'PRINC').localeCompare(b.depot||'PRINC'));
+  const depots=await getDepotsActifs();
+  const depotNom={}; depots.forEach(d=>depotNom[d.code]=d.nom);
+  if(depotFilter){
+    rows=rows.filter(r=>(r.depot||'PRINC')===depotFilter);
+    const cells=await Promise.all(rows.map(async r=>{
+      const [label,color]=stockEtat(r.dispo);
+      const cump=await computeCUMP(r.ref);
+      return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.ref)}</td><td class="p-3">${escapeHtml(r.label)}</td><td class="p-3"><span class="badge bg-slate-50 text-slate-600">${escapeHtml(depotNom[r.depot||'PRINC']||r.depot||'PRINC')}</span></td><td class="p-3 text-right">${r.dispo.toFixed(1)} ml</td><td class="p-3 text-right">${(r.reserve||0).toFixed(1)} ml</td><td class="p-3 text-right">${money(r.prix)}</td><td class="p-3 text-right">${cump!=null?money(cump):'<span class="text-slate-400">—</span>'}</td><td class="p-3"><span class="badge bg-${color}-50 text-${color}-700">${label}</span></td></tr>`;
+    }));
+    el.innerHTML = cells.length ? cells.join('') : `<tr><td class="p-3 text-slate-400" colspan="8">Aucune référence dans ce dépôt.</td></tr>`;
+  } else {
+    // Agrégation tous dépôts confondus par référence
+    const map=new Map();
+    rows.forEach(r=>{
+      const cur=map.get(r.ref)||{ref:r.ref,label:r.label,dispo:0,reserve:0,prix:r.prix,nbDepots:0};
+      cur.dispo+=r.dispo||0; cur.reserve+=r.reserve||0; cur.nbDepots++;
+      if(r.prix) cur.prix=r.prix;
+      map.set(r.ref,cur);
+    });
+    const agg=[...map.values()].sort((a,b)=>a.ref.localeCompare(b.ref));
+    const cells=await Promise.all(agg.map(async r=>{
+      const [label,color]=stockEtat(r.dispo);
+      const cump=await computeCUMP(r.ref);
+      return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.ref)}</td><td class="p-3">${escapeHtml(r.label)}</td><td class="p-3 text-xs text-slate-400">${r.nbDepots} dépôt${r.nbDepots>1?'s':''}</td><td class="p-3 text-right">${r.dispo.toFixed(1)} ml</td><td class="p-3 text-right">${r.reserve.toFixed(1)} ml</td><td class="p-3 text-right">${money(r.prix)}</td><td class="p-3 text-right">${cump!=null?money(cump):'<span class="text-slate-400">—</span>'}</td><td class="p-3"><span class="badge bg-${color}-50 text-${color}-700">${label}</span></td></tr>`;
+    }));
+    el.innerHTML = cells.length ? cells.join('') : `<tr><td class="p-3 text-slate-400" colspan="8">Aucune référence en stock.</td></tr>`;
+  }
+  const dl=document.getElementById('stockRefsDatalist');
+  if(dl){ const uniqRefs=[...new Set(rows.map(r=>r.ref))]; dl.innerHTML=uniqRefs.map(ref=>`<option value="${escapeHtml(ref)}">`).join(''); }
 }
 async function handleStockMove(e){
   e.preventDefault();
   if(!hasRole('stock:write')){ alert('Permission refusée.'); return false; }
   const ref=document.getElementById('mvRef').value.trim();
   const label=document.getElementById('mvLabel').value.trim();
+  const depot=document.getElementById('mvDepot')?.value||'PRINC';
   const type=document.getElementById('mvType').value;
   const qty=Math.abs(+document.getElementById('mvQty').value||0);
   const prixUnitaire=+document.getElementById('mvPrix').value||0;
   if(!ref||!qty) return false;
   const rows=await idbGetAll('stock');
-  let row=rows.find(r=>r.ref===ref) || {id:ref,ref,label:label||ref,dispo:0,reserve:0,prix:0};
+  const id=stockRowId(ref,depot);
+  let row=rows.find(r=>r.id===id) || {id,ref,label:label||ref,dispo:0,reserve:0,prix:0,depot};
   row.dispo = type==='entree' ? row.dispo+qty : Math.max(0,row.dispo-qty);
   if(type==='entree' && prixUnitaire>0) row.prix=prixUnitaire;
+  row.depot=depot;
   row._modifie=new Date().toISOString();
   await idbPut('stock',row);
   queueSync('alubom_stock',row);
-  const mv={id:'m_'+Date.now(),ref,type,qty,prixUnitaire:type==='entree'?prixUnitaire:0,ts:new Date().toISOString(),user:currentUser?currentUser.email:undefined};
+  const mv={id:'m_'+Date.now(),ref,depot,type,qty,prixUnitaire:type==='entree'?prixUnitaire:0,ts:new Date().toISOString(),user:currentUser?currentUser.email:undefined};
   await idbPut('stock_mouvements',mv);
   queueSync('alubom_stock_mouvements',mv);
-  await audit('MOUVEMENT_STOCK',`${type} ${qty}ml ${ref}`+(prixUnitaire?` @ ${money(prixUnitaire)}`:''));
+  await audit('MOUVEMENT_STOCK',`${type} ${qty}ml ${ref} (${depot})`+(prixUnitaire?` @ ${money(prixUnitaire)}`:''));
   document.getElementById('stockMoveForm').reset();
   document.getElementById('mvPrix').classList.remove('hidden');
+  await populateDepotSelects();
   await renderStockTable();
   return false;
+}
+
+/* ---------- Valorisation du stock (CUMP × quantité, par référence et dépôt) ---------- */
+async function renderValorisation(){
+  const el=document.getElementById('valorisationBody'); if(!el) return;
+  const rows=(await idbGetAll('stock')).filter(r=>r.dispo>0).sort((a,b)=>a.ref.localeCompare(b.ref));
+  const depots=await getDepotsActifs();
+  const depotNom={}; depots.forEach(d=>depotNom[d.code]=d.nom);
+  let total=0;
+  const cells=await Promise.all(rows.map(async r=>{
+    const cump=await computeCUMP(r.ref);
+    const valeurUnitaire = cump!=null ? cump : (r.prix||0);
+    const valeur=r.dispo*valeurUnitaire;
+    total+=valeur;
+    return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.ref)}</td><td class="p-3">${escapeHtml(r.label)}</td><td class="p-3"><span class="badge bg-slate-50 text-slate-600">${escapeHtml(depotNom[r.depot||'PRINC']||r.depot||'PRINC')}</span></td><td class="p-3 text-right">${r.dispo.toFixed(2)} ml</td><td class="p-3 text-right">${money(valeurUnitaire)}${cump==null?' <span class="text-slate-400 text-xs">(prix réf.)</span>':''}</td><td class="p-3 text-right font-semibold">${money(valeur)}</td></tr>`;
+  }));
+  el.innerHTML = cells.length ? cells.join('') : `<tr><td class="p-3 text-slate-400" colspan="6">Aucun stock disponible à valoriser.</td></tr>`;
+  document.getElementById('valorisationTotal').textContent=money(total);
+  window._valorisationTotal=total;
+}
+function printValorisation(){
+  const rowsHtml=document.getElementById('valorisationBody').innerHTML;
+  const total=document.getElementById('valorisationTotal').textContent;
+  const dateStr=new Date().toLocaleDateString('fr-FR');
+  const win=window.open('','_blank','width=900,height=1000');
+  if(!win) return;
+  win.document.write(`<html><head><title>Valorisation du stock</title>
+    <style>body{font-family:Arial,sans-serif;padding:30px;color:#0f172a;font-size:12.5px}
+    table{width:100%;border-collapse:collapse}th,td{border:1px solid #cbd5e1;padding:7px 10px;text-align:left}th{background:#f1f5f9}
+    h1{font-size:18px}.sub{color:#64748b;font-size:12px;margin-bottom:16px}
+    tfoot td{font-weight:800;border-top:2px solid #0f172a}</style></head><body>
+    <h1>Valorisation du stock — SANIX AFRICA</h1><div class="sub">Édité le ${dateStr}</div>
+    <table><thead><tr><th>Référence</th><th>Désignation</th><th>Dépôt</th><th style="text-align:right">Qté</th><th style="text-align:right">CUMP</th><th style="text-align:right">Valeur</th></tr></thead>
+    <tbody>${rowsHtml}</tbody><tfoot><tr><td colspan="5">Valeur totale du stock</td><td style="text-align:right">${total}</td></tr></tfoot></table>
+    </body></html>`);
+  win.document.close(); win.focus(); setTimeout(()=>win.print(),300);
+}
+
+/* ---------- Inventaire par dépôt ---------- */
+async function renderInventaireDepot(){
+  const sel=document.getElementById('invDepotFilter');
+  if(sel && !sel.dataset.loaded){
+    const depots=await getDepotsActifs();
+    sel.innerHTML=depots.map(d=>`<option value="${escapeHtml(d.code)}">${escapeHtml(d.nom)}</option>`).join('');
+    sel.dataset.loaded='1';
+  }
+  const el=document.getElementById('invDepotBody'); if(!el) return;
+  const depot=sel?.value||'PRINC';
+  const rows=(await idbGetAll('stock')).filter(r=>(r.depot||'PRINC')===depot).sort((a,b)=>a.ref.localeCompare(b.ref));
+  el.innerHTML = rows.length ? rows.map(r=>`
+    <tr class="border-b" data-ref="${escapeHtml(r.ref)}" data-depot="${escapeHtml(depot)}">
+      <td class="p-3 font-semibold">${escapeHtml(r.ref)}</td>
+      <td class="p-3">${escapeHtml(r.label)}</td>
+      <td class="p-3 text-right theo-qty" data-theo="${r.dispo}">${r.dispo.toFixed(2)} ml</td>
+      <td class="p-3 text-right"><input type="number" step="0.01" class="inv-compte border rounded-lg px-2 py-1 text-sm w-28 text-right" placeholder="${r.dispo.toFixed(2)}" oninput="updateEcartRowDepot(this)"></td>
+      <td class="p-3 text-right ecart-cell text-slate-400">—</td>
+      <td class="p-3 etat-cell"><span class="badge bg-slate-50 text-slate-500">Non compté</span></td>
+    </tr>`).join('') : `<tr><td class="p-3 text-slate-400" colspan="6">Aucune référence dans ce dépôt.</td></tr>`;
+}
+function updateEcartRowDepot(input){ updateEcartRow(input); }
+async function validerInventaireDepot(){
+  if(!hasRole('stock:write')){ alert('Permission refusée.'); return; }
+  const trs=[...document.querySelectorAll('#invDepotBody tr[data-ref]')];
+  const changes=[];
+  trs.forEach(tr=>{
+    const input=tr.querySelector('.inv-compte');
+    const val=input.value.trim();
+    if(val==='') return;
+    const theo=+tr.querySelector('.theo-qty').dataset.theo;
+    const compte=+val, ecart=compte-theo;
+    if(Math.abs(ecart)>0.001) changes.push({ref:tr.dataset.ref,depot:tr.dataset.depot,theo,compte,ecart});
+  });
+  if(!changes.length){ alert('Aucun écart à enregistrer.'); return; }
+  if(!confirm(changes.length+' référence(s) avec écart détecté dans ce dépôt. Confirmer l\'ajustement du stock ?')) return;
+  const stockRows=await idbGetAll('stock');
+  for(const c of changes){
+    const row=stockRows.find(r=>r.id===stockRowId(c.ref,c.depot));
+    if(!row) continue;
+    row.dispo=c.compte;
+    row._modifie=new Date().toISOString();
+    await idbPut('stock',row);
+    queueSync('alubom_stock',row);
+    const mv={id:'m_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),ref:c.ref,depot:c.depot,type:'ajustement',qty:c.ecart,prixUnitaire:0,ts:new Date().toISOString(),user:currentUser?currentUser.email:undefined};
+    await idbPut('stock_mouvements',mv);
+    queueSync('alubom_stock_mouvements',mv);
+    await audit('INVENTAIRE_AJUSTEMENT',`${c.ref} (${c.depot}) : ${c.theo.toFixed(2)} → ${c.compte.toFixed(2)} (écart ${c.ecart>0?'+':''}${c.ecart.toFixed(2)})`);
+  }
+  alert(changes.length+' référence(s) ajustée(s) suite à inventaire.');
+  await renderInventaireDepot();
+  await renderStockTable();
+}
+function printInventaireDepot(){
+  const depot=document.getElementById('invDepotFilter')?.selectedOptions[0]?.textContent||'—';
+  const trs=[...document.querySelectorAll('#invDepotBody tr[data-ref]')];
+  const rowsHtml=trs.map(tr=>{
+    const ref=tr.dataset.ref, label=tr.children[1].textContent;
+    const theo=+tr.querySelector('.theo-qty').dataset.theo;
+    const compte=tr.querySelector('.inv-compte').value.trim();
+    const ecart=compte===''?'—':(((+compte-theo)>0?'+':'')+(+compte-theo).toFixed(2));
+    return `<tr><td>${escapeHtml(ref)}</td><td>${escapeHtml(label)}</td><td style="text-align:right">${theo.toFixed(2)}</td><td style="text-align:right">${compte||'—'}</td><td style="text-align:right">${ecart}</td></tr>`;
+  }).join('');
+  const dateStr=new Date().toLocaleDateString('fr-FR');
+  const win=window.open('','_blank','width=900,height=1000');
+  if(!win) return;
+  win.document.write(`<html><head><title>Inventaire — ${escapeHtml(depot)}</title>
+    <style>body{font-family:Arial,sans-serif;padding:30px;color:#0f172a;font-size:12.5px}
+    table{width:100%;border-collapse:collapse}th,td{border:1px solid #cbd5e1;padding:7px 10px;text-align:left}th{background:#f1f5f9}
+    h1{font-size:18px}.sub{color:#64748b;font-size:12px;margin-bottom:16px}</style></head><body>
+    <h1>Fiche d'inventaire — ${escapeHtml(depot)}</h1><div class="sub">Édité le ${dateStr}</div>
+    <table><thead><tr><th>Référence</th><th>Désignation</th><th style="text-align:right">Théorique</th><th style="text-align:right">Compté</th><th style="text-align:right">Écart</th></tr></thead><tbody>${rowsHtml}</tbody></table>
+    </body></html>`);
+  win.document.close(); win.focus(); setTimeout(()=>win.print(),300);
+}
+
+/* ---------- Transfert dépôt à dépôt ---------- */
+async function handleTransfertDepot(e){
+  e.preventDefault();
+  if(!hasRole('stock:write')){ alert('Permission refusée.'); return false; }
+  const ref=document.getElementById('trRef').value.trim();
+  const depotSource=document.getElementById('trDepotSource').value;
+  const depotDestination=document.getElementById('trDepotDestination').value;
+  const qty=Math.abs(+document.getElementById('trQty').value||0);
+  if(!ref||!qty) return false;
+  if(depotSource===depotDestination){ alert('Le dépôt source et le dépôt destination doivent être différents.'); return false; }
+  const stockRows=await idbGetAll('stock');
+  const idSource=stockRowId(ref,depotSource);
+  const rowSource=stockRows.find(r=>r.id===idSource);
+  if(!rowSource || rowSource.dispo<qty){ alert(`Stock insuffisant dans le dépôt source (disponible : ${rowSource?rowSource.dispo.toFixed(2):0} ml).`); return false; }
+  rowSource.dispo-=qty;
+  rowSource._modifie=new Date().toISOString();
+  await idbPut('stock',rowSource); queueSync('alubom_stock',rowSource);
+
+  const idDest=stockRowId(ref,depotDestination);
+  let rowDest=stockRows.find(r=>r.id===idDest) || {id:idDest,ref,label:rowSource.label,dispo:0,reserve:0,prix:rowSource.prix||0,depot:depotDestination};
+  rowDest.dispo+=qty;
+  rowDest.depot=depotDestination;
+  rowDest._modifie=new Date().toISOString();
+  await idbPut('stock',rowDest); queueSync('alubom_stock',rowDest);
+
+  const mv={id:'m_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),ref,type:'transfert',qty,depotSource,depotDestination,prixUnitaire:0,ts:new Date().toISOString(),user:currentUser?currentUser.email:undefined};
+  await idbPut('stock_mouvements',mv);
+  queueSync('alubom_stock_mouvements',mv);
+  await audit('TRANSFERT_DEPOT',`${ref} : ${qty.toFixed(2)} ml — ${depotSource} → ${depotDestination}`);
+  document.getElementById('trRef').value=''; document.getElementById('trQty').value='';
+  await renderStockTable();
+  await renderTransfertHisto();
+  alert('Transfert effectué.');
+  return false;
+}
+async function renderTransfertHisto(){
+  const el=document.getElementById('transfertHistoBody'); if(!el) return;
+  const mouvements=(await idbGetAll('stock_mouvements')).filter(m=>m.type==='transfert').sort((a,b)=>(b.ts||'').localeCompare(a.ts||''));
+  const depots=await getDepotsActifs();
+  const depotNom={}; depots.forEach(d=>depotNom[d.code]=d.nom);
+  el.innerHTML = mouvements.length ? mouvements.map(m=>`<tr class="border-b">
+    <td class="p-3">${m.ts?new Date(m.ts).toLocaleString('fr-FR'):'—'}</td>
+    <td class="p-3 font-semibold">${escapeHtml(m.ref)}</td>
+    <td class="p-3">${escapeHtml(depotNom[m.depotSource]||m.depotSource)}</td>
+    <td class="p-3">${escapeHtml(depotNom[m.depotDestination]||m.depotDestination)}</td>
+    <td class="p-3 text-right">${(m.qty||0).toFixed(2)} ml</td>
+    <td class="p-3">${escapeHtml(m.user||'—')}</td>
+  </tr>`).join('') : `<tr><td class="p-3 text-slate-400" colspan="6">Aucun transfert enregistré.</td></tr>`;
 }
 
 /* =========================================================
@@ -2539,6 +2805,7 @@ async function getFilteredMouvements(){
 function mouvementSignedQty(m){
   let sign='+', val=Math.abs(m.qty||0);
   if(m.type==='sortie') sign='-';
+  else if(m.type==='transfert') sign='→';
   else if(m.type==='ajustement') sign=(m.qty||0)>=0?'+':'-';
   return sign+val.toFixed(2)+' ml';
 }
@@ -2546,10 +2813,11 @@ async function renderCatalogueMouvements(){
   const body=document.getElementById('catMouvementsBody'); if(!body) return;
   const emptyEl=document.getElementById('catMouvementsEmpty');
   const {rows,labelByRef}=await getFilteredMouvements();
-  const typeLabels={entree:['Entrée','emerald'],sortie:['Sortie','red'],ajustement:['Ajustement','amber']};
+  const typeLabels={entree:['Entrée','emerald'],sortie:['Sortie','red'],ajustement:['Ajustement','amber'],transfert:['Transfert','blue']};
   body.innerHTML=rows.map(m=>{
     const [tl,color]=typeLabels[m.type]||[m.type,'slate'];
-    return `<tr class="border-b"><td class="p-3">${m.ts?new Date(m.ts).toLocaleString('fr-FR'):'—'}</td><td class="p-3 font-semibold">${escapeHtml(m.ref)}</td><td class="p-3">${escapeHtml(labelByRef[m.ref]||'—')}</td><td class="p-3"><span class="badge bg-${color}-50 text-${color}-700">${tl}</span></td><td class="p-3 text-right">${mouvementSignedQty(m)}</td><td class="p-3 text-right">${m.prixUnitaire?money(m.prixUnitaire):'—'}</td><td class="p-3">${escapeHtml(m.user||'—')}</td></tr>`;
+    const detail = m.type==='transfert' ? `${escapeHtml(m.depotSource||'—')} → ${escapeHtml(m.depotDestination||'—')}` : escapeHtml(labelByRef[m.ref]||'—');
+    return `<tr class="border-b"><td class="p-3">${m.ts?new Date(m.ts).toLocaleString('fr-FR'):'—'}</td><td class="p-3 font-semibold">${escapeHtml(m.ref)}</td><td class="p-3">${detail}</td><td class="p-3"><span class="badge bg-${color}-50 text-${color}-700">${tl}</span></td><td class="p-3 text-right">${mouvementSignedQty(m)}</td><td class="p-3 text-right">${m.prixUnitaire?money(m.prixUnitaire):'—'}</td><td class="p-3">${escapeHtml(m.user||'—')}</td></tr>`;
   }).join('');
   emptyEl.classList.toggle('hidden',rows.length>0);
 }
@@ -2562,7 +2830,7 @@ function resetMouvementsFilters(){
 }
 async function printJournalMouvements(){
   const {rows,labelByRef}=await getFilteredMouvements();
-  const typeLabels={entree:'Entrée',sortie:'Sortie',ajustement:'Ajustement'};
+  const typeLabels={entree:'Entrée',sortie:'Sortie',ajustement:'Ajustement',transfert:'Transfert'};
   const html=`
     ${buildPrintHeaderHtml()}
     <h1>Journal de mouvement de stock</h1>
@@ -2690,7 +2958,7 @@ async function reserveStockForBOMArray(bomRows){
   const reservations=[];
   for(const r of bomRows){
     const code=r[0];
-    const match=stockRows.find(s=>s.ref===code);
+    const match=stockRows.find(s=>s.ref===code && (s.depot||'PRINC')==='PRINC');
     if(match){
       const qty=(r[2]||0)*0.001;
       const applied=Math.min(qty,match.dispo);
@@ -2770,13 +3038,14 @@ async function calculerBesoinsMRP(chantierId){
   const [stockRows,profils,vitrages,quinc,joints,conso]=await Promise.all(['stock','profils','vitrages','quincaillerie','joints','consommables'].map(s=>idbGetAll(s)));
   const allRef=[...profils,...vitrages,...quinc,...joints,...conso];
   return Object.values(besoins).map(b=>{
-    const stock=stockRows.find(s=>s.ref===b.code);
-    const dispo=stock?stock.dispo:0;
+    const stockPrinc=stockRows.find(s=>s.ref===b.code && (s.depot||'PRINC')==='PRINC');
+    const dispo=stockPrinc?stockPrinc.dispo:0;
+    const dispoAutresDepots=stockRows.filter(s=>s.ref===b.code && (s.depot||'PRINC')!=='PRINC').reduce((sum,s)=>sum+(s.dispo||0),0);
     const manquant=Math.max(0,b.qte-dispo);
     const refInfo=allRef.find(r=>r.code===b.code);
     const fournisseur=refInfo?.fournisseur||'';
-    const prixUnitaire=refInfo?(refInfo.prixMl||refInfo.prixM2||refInfo.prixUnitaire||refInfo.prix||0):(stock?.prix||0);
-    return {code:b.code,designation:b.designation,besoin:b.qte,dispo,manquant,fournisseur,prixUnitaire};
+    const prixUnitaire=refInfo?(refInfo.prixMl||refInfo.prixM2||refInfo.prixUnitaire||refInfo.prix||0):(stockPrinc?.prix||0);
+    return {code:b.code,designation:b.designation,besoin:b.qte,dispo,dispoAutresDepots,manquant,fournisseur,prixUnitaire};
   }).sort((a,b)=>b.manquant-a.manquant);
 }
 async function genererAchatsDepuisMRP(chantierId){
@@ -2813,7 +3082,7 @@ async function consumeReservation(reservations){
   if(!reservations||!reservations.length) return;
   const stockRows=await idbGetAll('stock');
   for(const r of reservations){
-    const match=stockRows.find(s=>s.ref===r.ref);
+    const match=stockRows.find(s=>s.ref===r.ref && (s.depot||'PRINC')==='PRINC');
     if(match){
       match.reserve=Math.max(0,(match.reserve||0)-r.qty);
       match._modifie=new Date().toISOString();
@@ -2825,7 +3094,7 @@ async function releaseReservation(reservations){
   if(!reservations||!reservations.length) return;
   const stockRows=await idbGetAll('stock');
   for(const r of reservations){
-    const match=stockRows.find(s=>s.ref===r.ref);
+    const match=stockRows.find(s=>s.ref===r.ref && (s.depot||'PRINC')==='PRINC');
     if(match){
       match.reserve=Math.max(0,(match.reserve||0)-r.qty);
       match.dispo=(match.dispo||0)+r.qty;
@@ -2833,6 +3102,88 @@ async function releaseReservation(reservations){
       await idbPut('stock',match); queueSync('alubom_stock',match);
     }
   }
+}
+
+/* ---------- Bon de réquisition matériel par OF (mouvemente le stock à l'émission) ---------- */
+async function emettreBonRequisition(ofId){
+  if(!hasRole('stock:write')){ alert('Permission refusée (rôle magasinier requis).'); return; }
+  const ofRows=await idbGetAll('of');
+  const rec=ofRows.find(o=>o.id===ofId); if(!rec) return;
+  if(rec.requisitionNumero){ alert('Bon de réquisition déjà émis : '+rec.requisitionNumero); return; }
+  if(rec.statut==='Annulé'){ alert('OF annulé — réquisition impossible.'); return; }
+  const reservations=rec.reservations||[];
+  if(!reservations.length){ alert('Aucune réservation de stock associée à cet OF.'); return; }
+  if(!confirm(`Émettre le bon de réquisition pour ${rec.numero} ?\nCela sort ${reservations.length} référence(s) du stock réservé (matière physiquement remise à l'atelier).`)) return;
+
+  const stockRows=await idbGetAll('stock');
+  const labelByRef={}; stockRows.forEach(s=>labelByRef[s.ref]=s.label);
+  for(const r of reservations){
+    const match=stockRows.find(s=>s.ref===r.ref && (s.depot||'PRINC')==='PRINC');
+    if(match){
+      match.reserve=Math.max(0,(match.reserve||0)-r.qty);
+      match._modifie=new Date().toISOString();
+      await idbPut('stock',match); queueSync('alubom_stock',match);
+    }
+    const mv={id:'m_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),ref:r.ref,depot:'PRINC',type:'sortie',qty:r.qty,prixUnitaire:0,ts:new Date().toISOString(),user:currentUser?currentUser.email:undefined,refOF:rec.numero};
+    await idbPut('stock_mouvements',mv);
+    queueSync('alubom_stock_mouvements',mv);
+  }
+  const seq=nextSeq('req');
+  const numero='REQ-'+seq.year+'-'+String(seq.n).padStart(4,'0');
+  rec.requisitionNumero=numero;
+  rec.requisitionDate=new Date().toISOString();
+  rec.requisitionUser=currentUser?currentUser.email:'—';
+  rec._modifie=new Date().toISOString();
+  await idbPut('of',rec);
+  queueSync('alubom_of',rec);
+  await audit('EMETTRE_BON_REQUISITION',numero+' — '+rec.numero+' — '+reservations.length+' référence(s) sortie(s) du stock');
+  await refreshAllTables();
+  imprimerBonRequisition(ofId,labelByRef);
+}
+function imprimerBonRequisition(ofId,labelByRefArg){
+  idbGetAll('of').then(async rows=>{
+    const rec=rows.find(o=>o.id===ofId); if(!rec || !rec.requisitionNumero) { if(!rec?.requisitionNumero) alert('Aucun bon de réquisition émis pour cet OF.'); return; }
+    let labelByRef=labelByRefArg;
+    if(!labelByRef){
+      const stockRows=await idbGetAll('stock');
+      labelByRef={}; stockRows.forEach(s=>labelByRef[s.ref]=s.label);
+    }
+    const reservations=rec.reservations||[];
+    const dateStr=new Date(rec.requisitionDate).toLocaleDateString('fr-FR');
+    const win=window.open('','_blank','width=900,height=1000');
+    if(!win) return;
+    win.document.write(`<html><head><title>Bon de réquisition ${escapeHtml(rec.requisitionNumero)}</title>
+      <style>
+        body{font-family:Arial,sans-serif;padding:30px;color:#0f172a;font-size:13px}
+        .bc-header{border-bottom:2px solid #0f172a;padding-bottom:10px;margin-bottom:14px;display:flex;justify-content:space-between}
+        .bc-header .sub{color:#64748b;font-size:12px;margin-top:2px}
+        table{width:100%;border-collapse:collapse;margin-bottom:14px}
+        th,td{border:1px solid #cbd5e1;padding:7px 10px;text-align:left;font-size:12px}
+        th{background:#f1f5f9}
+        .bc-meta td{border:0;padding:3px 10px 3px 0}
+        .bc-sign{display:flex;justify-content:space-between;margin-top:50px;font-size:11px;color:#475569}
+        .bc-sign div{width:45%;border-top:1px solid #94a3b8;padding-top:6px}
+      </style></head><body>
+      <div class="bc-header">
+        <div><b>SANIX AFRICA</b> — Division Technologies<div class="sub">Menuiserie Aluminium • BOM • Fabrication</div></div>
+        <div style="text-align:right"><b>BON DE RÉQUISITION MATÉRIEL</b><div class="sub">${escapeHtml(rec.requisitionNumero)} • ${dateStr}</div></div>
+      </div>
+      <table class="bc-meta">
+        <tr><td><b>OF</b></td><td>${escapeHtml(rec.numero)}</td><td><b>Ouvrage</b></td><td>${escapeHtml(rec.ouvrage)}</td></tr>
+        <tr><td><b>Client</b></td><td>${escapeHtml(rec.client)}</td><td><b>Poste</b></td><td>${escapeHtml(rec.poste||'—')}</td></tr>
+        <tr><td><b>Opérateur</b></td><td>${escapeHtml(rec.operateur||'—')}</td><td><b>Émis par</b></td><td>${escapeHtml(rec.requisitionUser||'—')}</td></tr>
+      </table>
+      <table>
+        <thead><tr><th>Référence</th><th>Désignation</th><th>Qté sortie</th></tr></thead>
+        <tbody>${reservations.map(r=>`<tr><td>${escapeHtml(r.ref)}</td><td>${escapeHtml(labelByRef[r.ref]||'—')}</td><td>${r.qty.toFixed(2)}</td></tr>`).join('')}</tbody>
+      </table>
+      <p style="font-size:11px;color:#64748b">Ce bon atteste la sortie physique des matières du magasin vers l'atelier de fabrication. Stock mis à jour automatiquement dans l'ERP à l'émission.</p>
+      <div class="bc-sign"><div>Signature magasinier</div><div>Signature opérateur / atelier</div></div>
+      </body></html>`);
+    win.document.close();
+    win.focus();
+    setTimeout(()=>win.print(),300);
+  });
 }
 
 /* =========================================================
@@ -3528,7 +3879,7 @@ async function openChantierDetail(id){
           ${manquantsMRP.length?`<button onclick="genererAchatsDepuisMRP('${id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">⚙️ Générer les DA manquantes (${manquantsMRP.length})</button>`:''}
         </div>
         ${besoinsMRP.length?`<div class="overflow-x-auto"><table class="w-full text-xs"><thead class="bg-white"><tr><th class="text-left p-1.5">Réf.</th><th class="text-left p-1.5">Désignation</th><th class="text-right p-1.5">Besoin</th><th class="text-right p-1.5">Stock dispo</th><th class="text-right p-1.5">Manquant</th><th class="p-1.5">Fournisseur</th></tr></thead><tbody>
-          ${besoinsMRP.map(b=>`<tr class="border-b cursor-pointer hover:bg-blue-50 ${b.manquant>0.01?'bg-red-50/50':''}" ondblclick="remplirDAdepuisMRP('${escapeHtml(b.code)}','${escapeHtml(b.designation).replace(/'/g,"\\'")}',${b.manquant.toFixed(2)},${b.prixUnitaire||0},'${escapeHtml(b.fournisseur||'').replace(/'/g,"\\'")}')" title="Double-clic pour préremplir la demande d'achat"><td class="p-1.5 font-semibold">${escapeHtml(b.code)}</td><td class="p-1.5">${escapeHtml(b.designation)}</td><td class="p-1.5 text-right">${b.besoin.toFixed(2)}</td><td class="p-1.5 text-right">${b.dispo.toFixed(2)}</td><td class="p-1.5 text-right ${b.manquant>0.01?'font-bold text-red-600':''}">${b.manquant.toFixed(2)}</td><td class="p-1.5">${escapeHtml(b.fournisseur||'—')}</td></tr>`).join('')}
+          ${besoinsMRP.map(b=>`<tr class="border-b cursor-pointer hover:bg-blue-50 ${b.manquant>0.01?'bg-red-50/50':''}" ondblclick="remplirDAdepuisMRP('${escapeHtml(b.code)}','${escapeHtml(b.designation).replace(/'/g,"\\'")}',${b.manquant.toFixed(2)},${b.prixUnitaire||0},'${escapeHtml(b.fournisseur||'').replace(/'/g,"\\'")}')" title="Double-clic pour préremplir la demande d'achat"><td class="p-1.5 font-semibold">${escapeHtml(b.code)}</td><td class="p-1.5">${escapeHtml(b.designation)}</td><td class="p-1.5 text-right">${b.besoin.toFixed(2)}</td><td class="p-1.5 text-right">${b.dispo.toFixed(2)}</td><td class="p-1.5 text-right ${b.manquant>0.01?'font-bold text-red-600':''}">${b.manquant.toFixed(2)}${b.manquant>0.01&&b.dispoAutresDepots>0?`<div class="text-[10px] font-normal text-blue-600">🔀 ${b.dispoAutresDepots.toFixed(2)} en autre dépôt — transfert possible</div>`:''}</td><td class="p-1.5">${escapeHtml(b.fournisseur||'—')}</td></tr>`).join('')}
         </tbody></table></div>`:'<p class="text-xs text-slate-400">Aucune ligne BOM sur ce dossier.</p>'}
       </div>`;
     actionPanel=`
@@ -3738,7 +4089,7 @@ async function advanceAchatStatut(achatId,chantierId){
     const lignes=normalizeAchatLignes(rec);
     const stockRows=await idbGetAll('stock');
     const couvertes=lignes.filter(l=>{
-      const s=stockRows.find(s=>s.ref===l.code);
+      const s=stockRows.find(s=>s.ref===l.code && (s.depot||'PRINC')==='PRINC');
       return s && s.dispo>=l.qte;
     });
     if(couvertes.length){
@@ -3868,14 +4219,15 @@ async function validerReceptionAchat(){
     const stockRows=await idbGetAll('stock');
     for(const l of recues){
       if(!l.code) continue;
-      let stockRec=stockRows.find(s=>s.ref===l.code);
-      if(!stockRec){ stockRec={id:l.code,ref:l.code,label:l.designation,dispo:0,reserve:0,prix:l.prix||0}; }
+      let stockRec=stockRows.find(s=>s.ref===l.code && (s.depot||'PRINC')==='PRINC');
+      if(!stockRec){ stockRec={id:stockRowId(l.code,'PRINC'),ref:l.code,label:l.designation,dispo:0,reserve:0,prix:l.prix||0,depot:'PRINC'}; }
       stockRec.dispo=(stockRec.dispo||0)+l._recuMaintenant;
       if(l.prix) stockRec.prix=l.prix;
+      stockRec.depot='PRINC';
       stockRec._modifie=new Date().toISOString();
       await idbPut('stock',stockRec);
       queueSync('alubom_stock',stockRec);
-      const mv={id:'m_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),ref:l.code,type:'entree',qty:l._recuMaintenant,prixUnitaire:l.prix||0,ts:new Date().toISOString(),user:currentUser?currentUser.email:undefined,refDA:rec.numero};
+      const mv={id:'m_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),ref:l.code,depot:'PRINC',type:'entree',qty:l._recuMaintenant,prixUnitaire:l.prix||0,ts:new Date().toISOString(),user:currentUser?currentUser.email:undefined,refDA:rec.numero};
       await idbPut('stock_mouvements',mv);
       queueSync('alubom_stock_mouvements',mv);
     }
@@ -4444,7 +4796,7 @@ async function openEntityDetail(kind,id){
 /* ---------- Référentiel technique : Séries & Profils ---------- */
 function showRefTab(tab){
   document.querySelectorAll('.ref-tab').forEach(t=>t.classList.add('hidden'));
-  const ids={series:'refSeries',profils:'refProfils',vitrages:'refVitrages',quincaillerie:'refQuincaillerie',joints:'refJoints',consommables:'refConsommables',machines:'refMachines',ateliers:'refAteliers',parametres:'refParametres'};
+  const ids={series:'refSeries',profils:'refProfils',vitrages:'refVitrages',quincaillerie:'refQuincaillerie',joints:'refJoints',consommables:'refConsommables',machines:'refMachines',ateliers:'refAteliers',depots:'refDepots',parametres:'refParametres'};
   document.getElementById(ids[tab]).classList.remove('hidden');
   document.querySelectorAll('.ref-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.reftab===tab));
   if(REF_DEFS[tab]) renderGenericRef(tab);
@@ -4512,6 +4864,34 @@ async function populateAtelierSelect(){
     sel.innerHTML=`<option value="ALU" data-nom="Atelier Aluminium">Atelier Aluminium</option><option value="INOX" data-nom="Atelier Inox">Atelier Inox</option>`;
   }
 }
+
+/* ---------- Dépôts (multi-dépôt) ---------- */
+const DEFAULT_DEPOTS=[
+  {id:'PRINC',code:'PRINC',nom:'Dépôt Principal',adresse:'',responsable:'—',statut:'actif'}
+];
+async function seedDefaultDepotsIfEmpty(){
+  const rows=await idbGetAll('depots');
+  if(rows.length) return;
+  for(const d of DEFAULT_DEPOTS){ d._modifie=new Date().toISOString(); await idbPut('depots',d); }
+}
+function stockRowId(ref,depot){
+  const d=depot||'PRINC';
+  return d==='PRINC' ? ref : ref+'__'+d;
+}
+async function getDepotsActifs(){
+  await seedDefaultDepotsIfEmpty();
+  return (await idbGetAll('depots')).filter(d=>d.statut!=='inactif').sort((a,b)=>(a.code==='PRINC'?-1:a.nom.localeCompare(b.nom)));
+}
+async function populateDepotSelects(){
+  const depots=await getDepotsActifs();
+  const opts=depots.map(d=>`<option value="${escapeHtml(d.code)}">${escapeHtml(d.nom)}</option>`).join('');
+  ['mvDepot','trDepotSource','trDepotDestination','stockDepotFilter'].forEach(id=>{
+    const sel=document.getElementById(id); if(!sel) return;
+    const keepAll = id==='stockDepotFilter';
+    sel.innerHTML = (keepAll?'<option value="">Tous les dépôts (agrégé)</option>':'') + opts;
+  });
+}
+
 
 async function handleAddSerie(e){
   e.preventDefault();
@@ -4923,6 +5303,16 @@ const REF_DEFS={
       {id:'statut',label:'Statut',type:'select',options:['actif','inactif']}
     ],
     cols:[['code','Code'],['nom','Nom'],['responsable','Responsable'],['statut','Statut','badge']]
+  },
+  depots:{store:'depots',label:'Dépôts',prefix:'dp',
+    fields:[
+      {id:'code',label:'Code (ex. PRINC, SECOND, CHANTIER1)',required:true},
+      {id:'nom',label:'Nom du dépôt',required:true,span:2},
+      {id:'adresse',label:'Adresse / localisation',span:2},
+      {id:'responsable',label:'Responsable dépôt'},
+      {id:'statut',label:'Statut',type:'select',options:['actif','inactif']}
+    ],
+    cols:[['code','Code'],['nom','Nom'],['adresse','Adresse'],['responsable','Responsable'],['statut','Statut','badge']]
   },
   machines:{store:'machines',label:'Machines',prefix:'ma',
     fields:[
@@ -5591,6 +5981,7 @@ function showPage(page){
     }
     if(page==='config') populateAtelierSelect();
     if(page==='flux') setFluxViewMode('global');
+    if(page==='stock') showStockTab('liste');
   } else {
     document.getElementById(page).classList.remove('hidden');
     document.querySelectorAll('.nav').forEach(b=>{if(b.dataset.page===page)b.classList.add('active')});
