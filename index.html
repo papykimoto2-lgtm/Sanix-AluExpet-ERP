@@ -3189,6 +3189,90 @@ async function advanceChantierStage(id,stage,label){
 }
 
 /* ---------- Annulation de dossier (distincte de la suppression) ---------- */
+/* ---------- Aperçu visuel du dossier avant validation (devis, dossier, validation DG) ---------- */
+function apercuDossierChantier(chantierId){
+  idbGetAll('chantiers').then(rows=>{
+    const rec=rows.find(c=>c.id===chantierId); if(!rec) return;
+    const lignes=rec.lignes||[];
+    const groupes={};
+    lignes.forEach(l=>{ const key=l.atelierNom||'Sans atelier'; (groupes[key]=groupes[key]||[]).push(l); });
+    const dateStr=new Date().toLocaleDateString('fr-FR');
+    const stageLabel=CHANTIER_STAGES.find(s=>s.key===rec.etape)?.label||rec.etape;
+    const historiqueHtml=(rec.historique||[]).map(h=>`<div class="tl-item">${new Date(h.date).toLocaleString('fr-FR')} — ${escapeHtml(CHANTIER_STAGES.find(s=>s.key===h.etape)?.label||h.etape)} (${escapeHtml(h.user||'—')})</div>`).join('');
+    const lignesHtml=Object.keys(groupes).length ? Object.entries(groupes).map(([atelier,items])=>{
+      const sousTotal=items.reduce((s,l)=>s+(l.subtotal||0),0);
+      return `<div class="atelier-group">
+        <div class="atelier-title">🏭 ${escapeHtml(atelier)} — ${money(sousTotal)}</div>
+        <table><thead><tr><th>Désignation</th><th class="right">Qté</th><th class="right">PU</th><th class="right">Sous-total</th></tr></thead>
+        <tbody>${items.map(l=>`<tr><td>${escapeHtml(l.detail||l.type||'Ouvrage')}</td><td class="right">${l.qty||1}</td><td class="right">${money(l.unit||0)}</td><td class="right">${money(l.subtotal||0)}</td></tr>`).join('')}</tbody></table>
+      </div>`;
+    }).join('') : '<p class="empty">Aucun composant dans ce dossier.</p>';
+
+    const win=window.open('','_blank','width=1000,height=1000');
+    if(!win) return;
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Aperçu dossier — ${escapeHtml(rec.numero)}</title>
+    <style>
+      *{box-sizing:border-box}
+      body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#e2e8f0;margin:0}
+      .toolbar{position:sticky;top:0;z-index:10;background:#0f172a;color:#fff;padding:12px 24px;display:flex;justify-content:space-between;align-items:center}
+      .toolbar button{background:#2563eb;color:#fff;border:0;padding:9px 18px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;margin-left:8px}
+      .toolbar button.secondary{background:transparent;border:1px solid #475569}
+      .sheet{max-width:820px;margin:24px auto;background:#fff;padding:40px 44px;box-shadow:0 10px 40px rgba(15,23,42,.25);border-radius:4px}
+      .head{display:flex;justify-content:space-between;border-bottom:2px solid #0f172a;padding-bottom:12px;margin-bottom:16px}
+      .head h1{font-size:20px;margin:0}
+      .head .sub{color:#64748b;font-size:12px;margin-top:4px}
+      .badge{display:inline-block;background:#dbeafe;color:#1d4ed8;font-weight:700;font-size:11px;padding:4px 10px;border-radius:999px}
+      .meta{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;font-size:13px}
+      .meta div b{display:block;font-size:10px;color:#94a3b8;text-transform:uppercase;margin-bottom:2px}
+      table{width:100%;border-collapse:collapse;margin:8px 0 16px;font-size:12.5px}
+      th,td{border:1px solid #cbd5e1;padding:7px 10px;text-align:left}
+      th{background:#f1f5f9;font-size:11px;text-transform:uppercase;color:#475569}
+      .right{text-align:right}
+      .atelier-title{font-weight:800;font-size:13px;color:#1d4ed8;margin:14px 0 4px}
+      .totaux{margin-left:auto;max-width:320px;font-size:14px}
+      .totaux div{display:flex;justify-content:space-between;padding:4px 0}
+      .totaux .grand{border-top:2px solid #0f172a;font-weight:800;font-size:17px;padding-top:8px;margin-top:6px}
+      .tl-item{font-size:11.5px;color:#64748b;padding:3px 0;border-bottom:1px dashed #e2e8f0}
+      .empty{color:#94a3b8;font-size:13px}
+      @media print{.toolbar{display:none}.sheet{box-shadow:none;margin:0;max-width:none}}
+    </style></head><body>
+    <div class="toolbar">
+      <b>👁️ Aperçu du dossier — non contractuel, contrôle interne avant validation</b>
+      <div>
+        <button class="secondary" onclick="window.close()">Fermer</button>
+        <button onclick="window.print()">🖨 Imprimer</button>
+      </div>
+    </div>
+    <div class="sheet">
+      <div class="head">
+        <div>
+          <h1>Dossier ${escapeHtml(rec.numero)}</h1>
+          <div class="sub">Devis lié : ${escapeHtml(rec.devisNumero||'—')} • Généré le ${dateStr}</div>
+        </div>
+        <div style="text-align:right"><span class="badge">${escapeHtml(stageLabel)}</span></div>
+      </div>
+      <div class="meta">
+        <div><b>Client</b>${escapeHtml(rec.client||'—')}</div>
+        <div><b>Contact</b>${escapeHtml(rec.contact||'—')}</div>
+        <div><b>Créé le</b>${rec.dateCreation?new Date(rec.dateCreation).toLocaleDateString('fr-FR'):'—'}</div>
+        <div><b>Nombre d'ouvrages</b>${lignes.length}</div>
+      </div>
+      <h3 style="font-size:13px;text-transform:uppercase;color:#475569;border-bottom:1px solid #e2e8f0;padding-bottom:6px">Composants du dossier</h3>
+      ${lignesHtml}
+      <div class="totaux">
+        <div><span>Montant total</span><b>${money(rec.montantTotal||0)}</b></div>
+        <div><span>Payé</span><b>${money(rec.montantPaye||0)}</b></div>
+        <div class="grand"><span>Reste à payer</span><span>${money(Math.max(0,(rec.montantTotal||0)-(rec.montantPaye||0)))}</span></div>
+      </div>
+      <h3 style="font-size:13px;text-transform:uppercase;color:#475569;border-bottom:1px solid #e2e8f0;padding-bottom:6px;margin-top:24px">Historique du circuit</h3>
+      ${historiqueHtml||'<p class="empty">Aucun historique.</p>'}
+    </div>
+    </body></html>`);
+    win.document.close();
+    win.focus();
+  });
+}
+
 async function annulerChantier(id){
   if(!hasRole('chantier:validate')){ alert('Permission refusée (validation DG requise pour annuler un dossier).'); return; }
   const rec=await getChantier(id); if(!rec) return;
@@ -3287,9 +3371,12 @@ async function openChantierDetail(id){
   if(rec.annule){
     actionPanel=`<p class="text-sm text-red-700 font-semibold">✕ Dossier annulé le ${new Date(rec.dateAnnulation).toLocaleDateString('fr-FR')}.</p><p class="text-sm text-slate-600 mt-1">Motif : ${escapeHtml(rec.raisonAnnulation||'—')}</p>`;
   } else if(rec.etape==='devis'){
+    const devisVide = !(rec.lignes||[]).length || !rec.montantTotal;
     actionPanel=`
-      <p class="text-sm text-slate-600 mb-3">Devis <b>${escapeHtml(rec.devisNumero)}</b> — Montant total <b>${money(rec.montantTotal)}</b>.</p>
-      <button onclick="advanceChantierStage('${id}','paiement')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">Marquer devis envoyé au client →</button>`;
+      <p class="text-sm text-slate-600 mb-3">Devis <b>${escapeHtml(rec.devisNumero)}</b> — Montant total <b>${money(rec.montantTotal)}</b>${(rec.lignes||[]).length?' — '+(rec.lignes||[]).length+' ouvrage(s)':''}.</p>
+      ${devisVide?`<p class="text-xs text-red-600 mb-2">⚠️ Dossier vide ou montant nul — ajoutez au moins un ouvrage (Configurateur → Chiffrage → Proforma) avant d'envoyer le devis.</p>`:''}
+      <button ${devisVide?'disabled class="opacity-50 cursor-not-allowed"':''} onclick="advanceChantierStage('${id}','paiement')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">Marquer devis envoyé au client →</button>
+      <button ${devisVide?'disabled class="opacity-50 cursor-not-allowed"':''} onclick="apercuDossierChantier('${id}')" class="border border-slate-400 text-slate-700 px-4 py-2 rounded-lg font-semibold ml-2">👁️ Aperçu du devis</button>`;
   } else if(rec.etape==='paiement'){
     const restant=Math.max(0,rec.montantTotal-rec.montantPaye);
     const acompteMin=Math.round(rec.montantTotal*0.3);
@@ -3302,14 +3389,21 @@ async function openChantierDetail(id){
       </form>
       <button ${rec.montantPaye<acompteMin?'disabled class="opacity-50 cursor-not-allowed"':''} onclick="advanceChantierStage('${id}','dossier')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">Ouvrir le dossier chantier →</button>`;
   } else if(rec.etape==='dossier'){
+    const manqueContact = !rec.contact || !rec.contact.trim();
+    const manqueLignes = !(rec.lignes||[]).length;
+    const bloquant = manqueContact || manqueLignes;
     actionPanel=`
       <p class="text-sm text-slate-600 mb-3">Dossier chantier prêt à être soumis pour validation.</p>
-      <button onclick="advanceChantierStage('${id}','validation')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">Soumettre pour validation DG →</button>`;
+      ${bloquant?`<div class="text-xs text-red-600 mb-2 space-y-0.5">${manqueContact?'<p>⚠️ Contact client manquant — complétez-le (bouton Modifier).</p>':''}${manqueLignes?'<p>⚠️ Aucun composant dans le dossier — impossible à valider.</p>':''}</div>`:''}
+      <button ${bloquant?'disabled class="opacity-50 cursor-not-allowed"':''} onclick="advanceChantierStage('${id}','validation')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">Soumettre pour validation DG →</button>
+      <button onclick="apercuDossierChantier('${id}')" class="border border-slate-400 text-slate-700 px-4 py-2 rounded-lg font-semibold ml-2">👁️ Aperçu du dossier</button>`;
   } else if(rec.etape==='validation'){
     actionPanel = hasRole('chantier:validate') ? `
-      <p class="text-sm text-slate-600 mb-3">En attente de validation DG.</p>
+      <p class="text-sm text-slate-600 mb-3">En attente de validation DG — contrôlez le dossier avant de signer.</p>
+      <button onclick="apercuDossierChantier('${id}')" class="border-2 border-blue-600 text-blue-700 px-4 py-2 rounded-lg font-bold mr-2">👁️ Aperçu du dossier (obligatoire)</button>
       <button onclick="advanceChantierStage('${id}','achats')" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold">✓ Valider le chantier (DG)</button>`
-      : `<p class="text-sm text-amber-600">En attente de validation DG — permission requise.</p>`;
+      : `<p class="text-sm text-amber-600">En attente de validation DG — permission requise.</p>
+      <button onclick="apercuDossierChantier('${id}')" class="border border-slate-400 text-slate-700 px-4 py-2 rounded-lg font-semibold mt-2">👁️ Aperçu du dossier</button>`;
   } else if(rec.etape==='achats'){
     const allRecue=achats.length>0 && achats.every(a=>a.statut==='recue');
     const besoinsMRP=await calculerBesoinsMRP(id);
@@ -3387,8 +3481,8 @@ async function openChantierDetail(id){
         <input id="instEquipe" placeholder="Équipe / chef de chantier" class="border rounded-lg px-2 py-1.5 text-sm">
         <button type="submit" class="bg-slate-900 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">Planifier</button>
       </form>
-      ${rec.installationDate?`<p class="text-sm text-slate-600 mb-3">Planifié le <b>${escapeHtml(rec.installationDate)}</b> — ${escapeHtml(rec.installationEquipe||'—')}</p>`:''}
-      <button onclick="advanceChantierStage('${id}','termine')" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold">✓ Marquer installation terminée</button>`;
+      ${rec.installationDate?`<p class="text-sm text-slate-600 mb-3">Planifié le <b>${escapeHtml(rec.installationDate)}</b> — ${escapeHtml(rec.installationEquipe||'—')}</p>`:`<p class="text-xs text-red-600 mb-3">⚠️ Aucune installation planifiée — renseignez une date avant de clôturer.</p>`}
+      <button ${!rec.installationDate?'disabled class="opacity-50 cursor-not-allowed"':''} onclick="advanceChantierStage('${id}','termine')" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold">✓ Marquer installation terminée</button>`;
   } else {
     actionPanel=`<p class="text-sm text-emerald-700 font-semibold">✓ Dossier terminé et clôturé.</p>`;
   }
