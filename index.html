@@ -1175,6 +1175,7 @@ window.SANIX_CFG = {
                     <div class="flex justify-between"><span>Remise</span><b id="proDiscount">0 FCFA</b></div>
                     <div class="flex justify-between"><span>TVA</span><b id="proTax">0 FCFA</b></div>
                     <div class="flex justify-between border-t pt-3 text-lg"><span class="font-bold">Total TTC</span><b id="proTotal">0 FCFA</b></div>
+                    <div id="proTvaMentionDoc" class="text-[10px] text-slate-400 mt-1 hidden"></div>
                   </div>
                   <div class="mt-4 pt-4 border-t text-xs text-slate-500">
                     <b class="text-slate-700">Conditions commerciales</b>
@@ -1226,6 +1227,13 @@ window.SANIX_CFG = {
               </label>
               <label class="text-sm font-semibold block">TVA (%)
                 <input id="proTaxRate" type="number" value="18" min="0" max="100" class="mt-1 w-full border rounded-lg px-3 py-2" oninput="updateProforma()">
+              </label>
+              <label class="flex items-center gap-2 text-sm font-semibold bg-slate-50 border rounded-lg px-3 py-2.5">
+                <input id="proTvaApplicable" type="checkbox" checked class="w-4 h-4" onchange="updateProforma()">
+                Client assujetti à la TVA
+              </label>
+              <label id="proTvaMentionField" class="text-sm font-semibold block hidden">Mention légale (TVA non applicable)
+                <input id="proTvaMention" value="TVA non applicable — article 355 du CGI" class="mt-1 w-full border rounded-lg px-3 py-2 text-xs" oninput="updateProforma()">
               </label>
               <label class="flex items-center gap-2 text-sm font-semibold bg-slate-50 border rounded-lg px-3 py-2.5">
                 <input id="proIncludeDossier" type="checkbox" class="w-4 h-4">
@@ -2903,6 +2911,16 @@ async function createChantierFromProforma(){
   const contact=document.getElementById('proContact')?.value||'';
   const clientId=await resolveOrCreateClient(client,contact);
   const montantTotal=parseMoney(document.getElementById('proTotal')?.textContent);
+  const bd=window._proformaBreakdown||{};
+  const facturation={
+    montantHT:Math.round(bd.subtotal||0),
+    remise:Math.round(bd.discount||0),
+    tauxRemise:(bd.discountRate||0)*100,
+    tvaApplicable:bd.tvaApplicable!==false,
+    tauxTVA:(bd.taxRate||0)*100,
+    montantTVA:Math.round(bd.tax||0),
+    tvaMention:bd.tvaMention||''
+  };
 
   // Si un dossier existant (créé depuis le contexte devis) est sélectionné et encore au stade "devis", on le complète au lieu d'en créer un nouveau.
   const chantierExistantId=document.getElementById('devisCtxChantier')?.value||'';
@@ -2914,6 +2932,7 @@ async function createChantierFromProforma(){
       existant.proformaIds=Array.from(new Set([...(existant.proformaIds||[]),...(currentProformaId?[currentProformaId]:[])]));
       existant.client=client; existant.clientId=clientId; existant.contact=contact;
       existant.montantTotal=montantTotal;
+      existant.facturation=facturation;
       existant.lignes=JSON.parse(JSON.stringify(proformaCart));
       await saveChantier(existant);
       if(currentProformaId){
@@ -2935,7 +2954,7 @@ async function createChantierFromProforma(){
   const rec={
     id:numero, numero, devisNumero:numeroDevis, proformaId:currentProformaId||null,
     proformaIds:currentProformaId?[currentProformaId]:[], client, clientId, contact,
-    montantTotal, montantPaye:0, etape:'devis',
+    montantTotal, montantPaye:0, etape:'devis', facturation,
     lignes:JSON.parse(JSON.stringify(proformaCart)),
     historique:[{etape:'devis',date:new Date().toISOString(),user:currentUser?currentUser.email:'—'}],
     dateCreation:new Date().toISOString(), _modifie:new Date().toISOString()
@@ -3126,9 +3145,15 @@ async function handleEditChantier(e,id){
   rec.contact=document.getElementById('ecContact').value.trim();
   let logSuffix='client/contact modifiés';
   if(!locked){
-    const nouveauTotal=editChantierLignes.reduce((s,l)=>s+(l.subtotal||0),0);
+    const montantHT=editChantierLignes.reduce((s,l)=>s+(l.subtotal||0),0);
+    const f=rec.facturation||{tauxRemise:0,tauxTVA:18,tvaApplicable:true};
+    const remise=montantHT*(f.tauxRemise||0)/100;
+    const taxable=montantHT-remise;
+    const montantTVA=f.tvaApplicable!==false ? taxable*(f.tauxTVA||0)/100 : 0;
+    const nouveauTotal=taxable+montantTVA;
     rec.lignes=editChantierLignes;
-    rec.montantTotal=nouveauTotal;
+    rec.montantTotal=Math.round(nouveauTotal);
+    rec.facturation={...f,montantHT:Math.round(montantHT),remise:Math.round(remise),montantTVA:Math.round(montantTVA)};
     logSuffix='client/composants modifiés ('+editChantierLignes.length+' ligne(s), nouveau total '+money(nouveauTotal)+')'+(editChantierUnlocked?' — déverrouillage DG':'');
   }
   rec.montantPaye=+document.getElementById('ecMontantPaye').value||0;
@@ -3260,8 +3285,14 @@ function apercuDossierChantier(chantierId){
       <h3 style="font-size:13px;text-transform:uppercase;color:#475569;border-bottom:1px solid #e2e8f0;padding-bottom:6px">Composants du dossier</h3>
       ${lignesHtml}
       <div class="totaux">
-        <div><span>Montant total</span><b>${money(rec.montantTotal||0)}</b></div>
-        <div><span>Payé</span><b>${money(rec.montantPaye||0)}</b></div>
+        ${rec.facturation?`
+        <div><span>Sous-total HT</span><b>${money(rec.facturation.montantHT||0)}</b></div>
+        <div><span>Remise${rec.facturation.tauxRemise?' ('+rec.facturation.tauxRemise+'%)':''}</span><b>${rec.facturation.remise?'- '+money(rec.facturation.remise):money(0)}</b></div>
+        <div><span>TVA${rec.facturation.tvaApplicable!==false&&rec.facturation.tauxTVA?' ('+rec.facturation.tauxTVA+'%)':''}</span><b>${rec.facturation.tvaApplicable===false?'Non applicable':money(rec.facturation.montantTVA||0)}</b></div>
+        ${rec.facturation.tvaApplicable===false&&rec.facturation.tvaMention?`<div style="font-size:10px;color:#94a3b8;justify-content:flex-end;text-align:right">${escapeHtml(rec.facturation.tvaMention)}</div>`:''}
+        `:''}
+        <div class="grand"><span>Total TTC</span><span>${money(rec.montantTotal||0)}</span></div>
+        <div style="margin-top:8px"><span>Payé</span><b>${money(rec.montantPaye||0)}</b></div>
         <div class="grand"><span>Reste à payer</span><span>${money(Math.max(0,(rec.montantTotal||0)-(rec.montantPaye||0)))}</span></div>
       </div>
       <h3 style="font-size:13px;text-transform:uppercase;color:#475569;border-bottom:1px solid #e2e8f0;padding-bottom:6px;margin-top:24px">Historique du circuit</h3>
@@ -3405,7 +3436,7 @@ async function openChantierDetail(id){
       : `<p class="text-sm text-amber-600">En attente de validation DG — permission requise.</p>
       <button onclick="apercuDossierChantier('${id}')" class="border border-slate-400 text-slate-700 px-4 py-2 rounded-lg font-semibold mt-2">👁️ Aperçu du dossier</button>`;
   } else if(rec.etape==='achats'){
-    const allRecue=achats.length>0 && achats.every(a=>a.statut==='recue');
+    const allRecue=achats.every(a=>a.statut==='recue');
     const besoinsMRP=await calculerBesoinsMRP(id);
     const manquantsMRP=besoinsMRP.filter(b=>b.manquant>0.01);
     const mrpHtml=`
@@ -5622,6 +5653,9 @@ function updateProforma(){
   updateProClientDetails();
   const discountRate = Math.max(0, +document.getElementById('proDiscountRate').value || 0) / 100;
   const taxRate = Math.max(0, +document.getElementById('proTaxRate').value || 0) / 100;
+  const tvaApplicable = document.getElementById('proTvaApplicable')?.checked ?? true;
+  const mentionField=document.getElementById('proTvaMentionField');
+  if(mentionField) mentionField.classList.toggle('hidden',tvaApplicable);
 
   let lines = proformaCart;
   if(!lines.length){
@@ -5643,7 +5677,7 @@ function updateProforma(){
   const subtotal = lines.reduce((s,l)=>s+l.subtotal,0);
   const discount = subtotal * discountRate;
   const taxable = subtotal - discount;
-  const tax = taxable * taxRate;
+  const tax = tvaApplicable ? taxable * taxRate : 0;
   const total = taxable + tax;
 
   const groupes={};
@@ -5667,11 +5701,18 @@ function updateProforma(){
   });
   document.getElementById('proLines').innerHTML = rowsHtml;
   document.getElementById('proSubtotal').textContent = money(subtotal);
-  document.getElementById('proDiscount').textContent = money(discount);
-  document.getElementById('proTax').textContent = money(tax);
+  document.getElementById('proDiscount').textContent = discountRate>0 ? '- '+money(discount) : money(0);
+  const taxEl=document.getElementById('proTax');
+  if(taxEl) taxEl.textContent = tvaApplicable ? money(tax)+' ('+(taxRate*100).toFixed(0)+'%)' : 'Non applicable';
   document.getElementById('proTotal').textContent = money(total);
+  const mentionDocEl=document.getElementById('proTvaMentionDoc');
+  if(mentionDocEl){
+    mentionDocEl.classList.toggle('hidden',tvaApplicable);
+    mentionDocEl.textContent=document.getElementById('proTvaMention')?.value||'';
+  }
   renderConsolidatedNeeds(lines);
   renderProformaQR(total);
+  window._proformaBreakdown={subtotal,discountRate,discount,taxRate,tvaApplicable,tax,total,tvaMention:document.getElementById('proTvaMention')?.value||''};
 }
 
 /* ---------- QR code de sécurité (vérification/intégrité) ---------- */
