@@ -3246,7 +3246,7 @@ async function openChantierDetail(id){
           ${manquantsMRP.length?`<button onclick="genererAchatsDepuisMRP('${id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">⚙️ Générer les DA manquantes (${manquantsMRP.length})</button>`:''}
         </div>
         ${besoinsMRP.length?`<div class="overflow-x-auto"><table class="w-full text-xs"><thead class="bg-white"><tr><th class="text-left p-1.5">Réf.</th><th class="text-left p-1.5">Désignation</th><th class="text-right p-1.5">Besoin</th><th class="text-right p-1.5">Stock dispo</th><th class="text-right p-1.5">Manquant</th><th class="p-1.5">Fournisseur</th></tr></thead><tbody>
-          ${besoinsMRP.map(b=>`<tr class="border-b ${b.manquant>0.01?'bg-red-50/50':''}"><td class="p-1.5 font-semibold">${escapeHtml(b.code)}</td><td class="p-1.5">${escapeHtml(b.designation)}</td><td class="p-1.5 text-right">${b.besoin.toFixed(2)}</td><td class="p-1.5 text-right">${b.dispo.toFixed(2)}</td><td class="p-1.5 text-right ${b.manquant>0.01?'font-bold text-red-600':''}">${b.manquant.toFixed(2)}</td><td class="p-1.5">${escapeHtml(b.fournisseur||'—')}</td></tr>`).join('')}
+          ${besoinsMRP.map(b=>`<tr class="border-b cursor-pointer hover:bg-blue-50 ${b.manquant>0.01?'bg-red-50/50':''}" ondblclick="remplirDAdepuisMRP('${escapeHtml(b.code)}','${escapeHtml(b.designation).replace(/'/g,"\\'")}',${b.manquant.toFixed(2)},${b.prixUnitaire||0},'${escapeHtml(b.fournisseur||'').replace(/'/g,"\\'")}')" title="Double-clic pour préremplir la demande d'achat"><td class="p-1.5 font-semibold">${escapeHtml(b.code)}</td><td class="p-1.5">${escapeHtml(b.designation)}</td><td class="p-1.5 text-right">${b.besoin.toFixed(2)}</td><td class="p-1.5 text-right">${b.dispo.toFixed(2)}</td><td class="p-1.5 text-right ${b.manquant>0.01?'font-bold text-red-600':''}">${b.manquant.toFixed(2)}</td><td class="p-1.5">${escapeHtml(b.fournisseur||'—')}</td></tr>`).join('')}
         </tbody></table></div>`:'<p class="text-xs text-slate-400">Aucune ligne BOM sur ce dossier.</p>'}
       </div>`;
     actionPanel=`
@@ -3372,6 +3372,16 @@ function onAcBomRefChange(){
   document.getElementById('acQte').value = manquant>0 ? Math.ceil(manquant) : 1;
   if(opt.dataset.prix) document.getElementById('acPrix').value=opt.dataset.prix;
   if(opt.dataset.fournisseur) document.getElementById('acFournisseur').value=opt.dataset.fournisseur;
+}
+function remplirDAdepuisMRP(code,designation,manquant,prix,fournisseur){
+  const sel=document.getElementById('acBomRef');
+  if(sel) sel.value=code;
+  document.getElementById('acDesignation').value=designation||'';
+  document.getElementById('acQte').value = manquant>0 ? Math.ceil(manquant) : 1;
+  if(prix) document.getElementById('acPrix').value=prix;
+  if(fournisseur) document.getElementById('acFournisseur').value=fournisseur;
+  document.getElementById('acFournisseur')?.scrollIntoView({behavior:'smooth',block:'center'});
+  document.getElementById('acFournisseur')?.focus();
 }
 
 const ACHAT_STATUT_NEXT={demande:'validee',validee:'commandee',commandee:'recue',partielle:'recue'};
