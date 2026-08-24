@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' data:; connect-src 'self' https://*.supabase.co https://cdn.jsdelivr.net; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self' https://*.supabase.co https://cdn.jsdelivr.net; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
 <title>Sanix AluExpert ERP — Menuiserie Aluminium</title>
 <script src="https://cdn.tailwindcss.com"></script>
@@ -21,6 +21,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 // === CONFIG SUPABASE — à renseigner par Papi ===
 window.SANIX_CFG = {
@@ -84,6 +86,12 @@ window.SANIX_CFG = {
   /* Cards — sobre, discret */
   .card{background:var(--ds-surface);border:1px solid var(--ds-border);box-shadow:var(--ds-shadow-sm);border-radius:var(--ds-radius-lg);transition:box-shadow .15s ease}
   .card:hover{box-shadow:var(--ds-shadow)}
+  .carte-marker{width:20px;height:20px;border-radius:50%;background:var(--mc);border:3px solid #fff;box-shadow:0 1px 4px rgba(15,23,42,.35);transition:transform .15s ease,box-shadow .15s ease;cursor:pointer}
+  .carte-marker-active{width:26px;height:26px;border-width:4px;box-shadow:0 2px 12px rgba(15,23,42,.5);transform:scale(1.05)}
+  .carte-liste-item{border-bottom:1px solid var(--ds-slate-100);border-left:3px solid transparent}
+  .carte-liste-item:hover{background:#fff}
+  .carte-liste-item.selected{background:#fff}
+  .carte-liste-item:last-child{border-bottom:none}
 
   /* Inputs */
   input,select,textarea{outline:none;transition:border-color .12s ease,box-shadow .12s ease;font-family:var(--ds-font)}
@@ -182,6 +190,7 @@ window.SANIX_CFG = {
 
       <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">3 · Engagement commercial</div>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="chantier">🏗️ Circuit Chantier</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="cartechantiers">🗺️ Carte des chantiers</button>
 
       <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">4 · Exécution</div>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="production">🏭 Production</button>
@@ -228,30 +237,98 @@ window.SANIX_CFG = {
 
     <div class="p-4 md:p-8">
       <section id="dashboard" class="page">
-        <div class="flex justify-end mb-3">
+        <!-- ===== Hero — vue d'ensemble ===== -->
+        <div class="rounded-2xl p-6 mb-6 text-white relative overflow-hidden" style="background:linear-gradient(135deg,#0b1220 0%,#1e3a8a 55%,#1d4ed8 100%)">
+          <div class="absolute -right-8 -top-16 w-64 h-64 rounded-full bg-white/5 pointer-events-none"></div>
+          <div class="absolute right-28 -bottom-20 w-44 h-44 rounded-full bg-white/5 pointer-events-none"></div>
+          <div class="relative flex flex-wrap items-center justify-between gap-5">
+            <div>
+              <div class="text-[11px] uppercase tracking-widest text-blue-200 font-bold mb-1">Sanix AluExpert · Vue d'ensemble</div>
+              <h1 id="dashHello" class="text-2xl font-black">Bonjour 👋</h1>
+              <p id="dashDateToday" class="text-sm text-blue-200 mt-1">—</p>
+            </div>
+            <div class="flex flex-wrap gap-6 sm:gap-10">
+              <div>
+                <div id="heroCAPipeline" class="text-2xl sm:text-3xl font-black tabular-nums">—</div>
+                <div class="text-[11px] text-blue-200 uppercase tracking-wide mt-1">CA pipeline actif</div>
+              </div>
+              <div>
+                <div id="heroDossiersActifs" class="text-2xl sm:text-3xl font-black tabular-nums">—</div>
+                <div class="text-[11px] text-blue-200 uppercase tracking-wide mt-1">Dossiers actifs</div>
+              </div>
+              <div>
+                <div id="heroTauxService" class="text-2xl sm:text-3xl font-black tabular-nums">—</div>
+                <div class="text-[11px] text-blue-200 uppercase tracking-wide mt-1">OF livrés à l'heure</div>
+              </div>
+              <div>
+                <div id="heroAlertesCount" class="text-2xl sm:text-3xl font-black tabular-nums">—</div>
+                <div class="text-[11px] text-blue-200 uppercase tracking-wide mt-1">Alertes actives</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== Cockpit dirigeant — actions prioritaires, tous modules ===== -->
+        <div class="card bg-white rounded-2xl p-6 mb-6">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 class="font-bold text-lg flex items-center gap-2">🎛️ Cockpit dirigeant</h2>
+              <p class="text-sm text-slate-500">Ce qui demande votre attention maintenant, tous modules confondus.</p>
+            </div>
+            <div id="cockpitSante" class="px-3 py-1.5 rounded-full text-xs font-bold bg-slate-50 text-slate-500">—</div>
+          </div>
+          <div id="cockpitActions" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3"></div>
+        </div>
+
+        <!-- ===== Analyse par département ===== -->
+        <div class="card bg-white rounded-2xl p-6 mb-6">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div><h2 class="font-bold text-lg">📊 Analyse par département</h2><p class="text-sm text-slate-500">Indicateurs clés par service, en temps réel.</p></div>
+            <div class="flex flex-wrap gap-1 bg-slate-100 rounded-lg p-1">
+              <button onclick="showDeptTab('production')" class="dept-tab-btn active px-3 py-1.5 rounded-md text-xs font-semibold" data-depttab="production">🏭 Production</button>
+              <button onclick="showDeptTab('qualite')" class="dept-tab-btn px-3 py-1.5 rounded-md text-xs font-semibold" data-depttab="qualite">🔍 Qualité</button>
+              <button onclick="showDeptTab('commercial')" class="dept-tab-btn px-3 py-1.5 rounded-md text-xs font-semibold" data-depttab="commercial">💰 Commercial</button>
+              <button onclick="showDeptTab('stock')" class="dept-tab-btn px-3 py-1.5 rounded-md text-xs font-semibold" data-depttab="stock">📦 Stock &amp; Achats</button>
+              <button onclick="showDeptTab('maintenance')" class="dept-tab-btn px-3 py-1.5 rounded-md text-xs font-semibold" data-depttab="maintenance">🛠️ Maintenance</button>
+            </div>
+          </div>
+          <div id="deptTabProduction" class="dept-tab"><p class="text-sm text-slate-400">Chargement…</p></div>
+          <div id="deptTabQualite" class="dept-tab hidden"><p class="text-sm text-slate-400">Chargement…</p></div>
+          <div id="deptTabCommercial" class="dept-tab hidden"><p class="text-sm text-slate-400">Chargement…</p></div>
+          <div id="deptTabStock" class="dept-tab hidden"><p class="text-sm text-slate-400">Chargement…</p></div>
+          <div id="deptTabMaintenance" class="dept-tab hidden"><p class="text-sm text-slate-400">Chargement…</p></div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest">🏭 Production &amp; délais</h2>
           <button onclick="openRapportProductionModal()" class="border border-blue-600 text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold">📄 Rapport de production périodique</button>
         </div>
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">OF en cours</div><div id="kpiOFEnCours" class="text-3xl font-black mt-2">—</div><div id="kpiOFEnCoursSub" class="text-xs text-slate-400 mt-2">&nbsp;</div></div>
-          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Chute (dernier débit)</div><div id="kpiChute" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">objectif &lt; 8%</div></div>
-          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Marge moyenne</div><div id="kpiMarge" class="text-3xl font-black mt-2">—</div><div id="kpiMargeSub" class="text-xs text-slate-400 mt-2">&nbsp;</div></div>
-          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Stock aluminium</div><div id="kpiStock" class="text-3xl font-black mt-2">—</div><div id="kpiStockSub" class="text-xs text-amber-600 mt-2">&nbsp;</div></div>
-        </div>
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">OF en retard</div><div id="kpiRetard" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">date prévue dépassée</div></div>
-          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Temps moyen / ouvrage</div><div id="kpiTempsMoyen" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">création → clôture</div></div>
-          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Taux de non-conformité</div><div id="kpiTauxNC" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">contrôles qualité</div></div>
-          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Écart matière prévu/réel</div><div id="kpiEcartMatiere" class="text-3xl font-black mt-2">—</div><div id="kpiEcartSub" class="text-xs text-slate-400 mt-2">aluminium consommé</div></div>
+          <div class="card bg-white rounded-2xl p-5 flex items-start gap-3"><div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg shrink-0">🧾</div><div class="min-w-0"><div class="text-slate-500 text-sm">OF en cours</div><div id="kpiOFEnCours" class="text-3xl font-black mt-1">—</div><div id="kpiOFEnCoursSub" class="text-xs text-slate-400 mt-1">&nbsp;</div></div></div>
+          <div class="card bg-white rounded-2xl p-5 flex items-start gap-3"><div class="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center text-lg shrink-0">⏰</div><div class="min-w-0"><div class="text-slate-500 text-sm">OF en retard</div><div id="kpiRetard" class="text-3xl font-black mt-1">—</div><div class="text-xs text-slate-400 mt-1">date prévue dépassée</div></div></div>
+          <div class="card bg-white rounded-2xl p-5 flex items-start gap-3"><div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg shrink-0">⏱️</div><div class="min-w-0"><div class="text-slate-500 text-sm">Temps moyen / ouvrage</div><div id="kpiTempsMoyen" class="text-3xl font-black mt-1">—</div><div class="text-xs text-slate-400 mt-1">création → clôture</div></div></div>
+          <div class="card bg-white rounded-2xl p-5 flex items-start gap-3"><div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg shrink-0">✂️</div><div class="min-w-0"><div class="text-slate-500 text-sm">Chute (dernier débit)</div><div id="kpiChute" class="text-3xl font-black mt-1">—</div><div class="text-xs text-slate-400 mt-1">objectif &lt; 8%</div></div></div>
         </div>
+
+        <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">🔍 Qualité &amp; coûts</h2>
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Production du jour</div><div id="kpiProdJour" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">OF clôturés aujourd'hui</div></div>
-          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Production du mois</div><div id="kpiProdMois" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">OF clôturés ce mois-ci</div></div>
-          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Taux de rebut</div><div id="kpiRebut" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">pointages atelier</div></div>
-          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Coût moyen / OF</div><div id="kpiCoutMoyen" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">coût matière théorique</div></div>
+          <div class="card bg-white rounded-2xl p-5 flex items-start gap-3"><div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg shrink-0">🔍</div><div class="min-w-0"><div class="text-slate-500 text-sm">Taux de non-conformité</div><div id="kpiTauxNC" class="text-3xl font-black mt-1">—</div><div class="text-xs text-slate-400 mt-1">contrôles qualité</div></div></div>
+          <div class="card bg-white rounded-2xl p-5 flex items-start gap-3"><div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-lg shrink-0">♻️</div><div class="min-w-0"><div class="text-slate-500 text-sm">Taux de rebut</div><div id="kpiRebut" class="text-3xl font-black mt-1">—</div><div class="text-xs text-slate-400 mt-1">pointages atelier</div></div></div>
+          <div class="card bg-white rounded-2xl p-5 flex items-start gap-3"><div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center text-lg shrink-0">⚖️</div><div class="min-w-0"><div class="text-slate-500 text-sm">Écart matière prévu/réel</div><div id="kpiEcartMatiere" class="text-3xl font-black mt-1">—</div><div id="kpiEcartSub" class="text-xs text-slate-400 mt-1">aluminium consommé</div></div></div>
+          <div class="card bg-white rounded-2xl p-5 flex items-start gap-3"><div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg shrink-0">💵</div><div class="min-w-0"><div class="text-slate-500 text-sm">Coût moyen / OF</div><div id="kpiCoutMoyen" class="text-3xl font-black mt-1">—</div><div class="text-xs text-slate-400 mt-1">coût matière théorique</div></div></div>
         </div>
+
+        <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">💰 Commercial &amp; stock</h2>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div class="card bg-white rounded-2xl p-5 flex items-start gap-3"><div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg shrink-0">📈</div><div class="min-w-0"><div class="text-slate-500 text-sm">Marge moyenne</div><div id="kpiMarge" class="text-3xl font-black mt-1">—</div><div id="kpiMargeSub" class="text-xs text-slate-400 mt-1">&nbsp;</div></div></div>
+          <div class="card bg-white rounded-2xl p-5 flex items-start gap-3"><div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg shrink-0">📦</div><div class="min-w-0"><div class="text-slate-500 text-sm">Stock aluminium</div><div id="kpiStock" class="text-3xl font-black mt-1">—</div><div id="kpiStockSub" class="text-xs text-amber-600 mt-1">&nbsp;</div></div></div>
+          <div class="card bg-white rounded-2xl p-5 flex items-start gap-3"><div class="w-10 h-10 rounded-xl bg-yellow-50 text-yellow-600 flex items-center justify-center text-lg shrink-0">☀️</div><div class="min-w-0"><div class="text-slate-500 text-sm">Production du jour</div><div id="kpiProdJour" class="text-3xl font-black mt-1">—</div><div class="text-xs text-slate-400 mt-1">OF clôturés aujourd'hui</div></div></div>
+          <div class="card bg-white rounded-2xl p-5 flex items-start gap-3"><div class="w-10 h-10 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center text-lg shrink-0">🗓️</div><div class="min-w-0"><div class="text-slate-500 text-sm">Production du mois</div><div id="kpiProdMois" class="text-3xl font-black mt-1">—</div><div class="text-xs text-slate-400 mt-1">OF clôturés ce mois-ci</div></div></div>
+        </div>
+
         <div id="alertesPanel" class="mb-6 hidden"></div>
 
-        <div class="grid lg:grid-cols-3 gap-6">
+        <div class="grid lg:grid-cols-3 gap-6 mb-6">
           <div class="card bg-white rounded-2xl p-6 lg:col-span-2">
             <div class="flex justify-between mb-4"><div><h2 class="font-bold text-lg">Ordres de fabrication par statut</h2><p class="text-sm text-slate-500">Répartition en temps réel</p></div></div>
             <canvas id="costChart" height="120"></canvas>
@@ -259,6 +336,28 @@ window.SANIX_CFG = {
           <div class="card bg-white rounded-2xl p-6">
             <h2 class="font-bold text-lg mb-4">OF récents</h2>
             <div id="recentOF" class="space-y-3"></div>
+          </div>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-6 mb-6">
+          <div class="card bg-white rounded-2xl p-6">
+            <div class="mb-4"><h2 class="font-bold text-lg">Pipeline commercial</h2><p class="text-sm text-slate-500">CA cumulé des dossiers actifs, par étape du circuit</p></div>
+            <canvas id="pipelineChart" height="180"></canvas>
+          </div>
+          <div class="card bg-white rounded-2xl p-6">
+            <div class="mb-4"><h2 class="font-bold text-lg">Cadence de production</h2><p class="text-sm text-slate-500">OF clôturés par jour — 14 derniers jours</p></div>
+            <canvas id="prodTrendChart" height="180"></canvas>
+          </div>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-6">
+          <div class="card bg-white rounded-2xl p-6">
+            <h2 class="font-bold text-lg mb-4">🏗️ Prochaines installations</h2>
+            <div id="dashProchainesInstall" class="space-y-2"></div>
+          </div>
+          <div class="card bg-white rounded-2xl p-6">
+            <h2 class="font-bold text-lg mb-4">🥇 Top clients — CA cumulé</h2>
+            <div id="dashTopClients" class="space-y-2"></div>
           </div>
         </div>
       </section>
@@ -1824,6 +1923,57 @@ window.SANIX_CFG = {
         <div id="chantierDetail" class="hidden"></div>
       </section>
 
+      <section id="cartechantiers" class="page hidden">
+        <div class="flex flex-wrap justify-between items-end gap-3 mb-4">
+          <div>
+            <h2 class="text-lg font-bold flex items-center gap-2">🗺️ Carte des chantiers</h2>
+            <p class="text-sm text-slate-500">Pilotage géographique en temps réel de l'ensemble des dossiers chantier.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="renderCarteChantiers(true)" class="border px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-white hover:bg-slate-50">🔄 Actualiser</button>
+            <button onclick="zoomCarteChantiers()" class="border px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-white hover:bg-slate-50">⤢ Cadrer les points</button>
+          </div>
+        </div>
+
+        <div id="carteKpis" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"></div>
+
+        <div class="card bg-white rounded-2xl p-4 md:p-6">
+          <div class="flex flex-wrap items-center gap-2 mb-4">
+            <input id="carteSearch" oninput="applyCarteFilters()" placeholder="🔎 Rechercher un dossier, un client, une adresse…" class="border rounded-lg px-3 py-2 text-sm flex-1 min-w-[220px]">
+            <select id="carteFiltreEtape" onchange="applyCarteFilters()" class="border rounded-lg px-3 py-2 text-sm">
+              <option value="">Toutes les étapes</option>
+            </select>
+            <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 border rounded-lg px-3 py-2 cursor-pointer select-none bg-slate-50">
+              <input id="carteFiltreActifs" type="checkbox" onchange="applyCarteFilters()"> Actifs uniquement
+            </label>
+          </div>
+
+          <div class="grid lg:grid-cols-[1fr_300px] gap-4">
+            <div>
+              <div id="carteChantiersMap" style="height:60vh;min-height:420px;border-radius:12px;overflow:hidden;border:1px solid var(--ds-border)"></div>
+              <div class="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-xs text-slate-500">
+                <span id="carteChantiersLatLng">Lat/Lng : —</span>
+                <span id="carteChantiersCount" class="text-slate-400"></span>
+              </div>
+              <div class="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-xs text-slate-500">
+                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#64748b"></span> Devis</span>
+                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#d97706"></span> Paiement</span>
+                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#1d4ed8"></span> Dossier / Validation / Achats</span>
+                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#7c3aed"></span> Fabrication</span>
+                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#059669"></span> Installation / Terminé</span>
+                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#dc2626"></span> Annulé</span>
+              </div>
+            </div>
+            <div class="border rounded-xl bg-slate-50 flex flex-col" style="max-height:60vh">
+              <div class="px-3 py-2 border-b bg-white rounded-t-xl text-xs font-semibold text-slate-500 flex items-center justify-between">
+                <span>Dossiers géolocalisés</span><span id="carteListCount" class="text-slate-400"></span>
+              </div>
+              <div id="carteChantiersListe" class="overflow-y-auto flex-1"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section id="clients" class="page hidden">
         <div class="card bg-white rounded-2xl p-6">
           <div class="flex flex-wrap justify-between gap-3 mb-5">
@@ -3059,6 +3209,19 @@ function tauxPiece_display(pct,total){ return total ? pct.toFixed(1)+'%' : '—'
 
 async function updateDashboard(){
   const ofs=await idbGetAll('of');
+
+  // Hero — salutation + date
+  const helloEl=document.getElementById('dashHello');
+  if(helloEl){
+    const heureNow=new Date().getHours();
+    const salut=heureNow<12?'Bonjour':heureNow<18?'Bon après-midi':'Bonsoir';
+    const prenom=currentUser?.email?currentUser.email.split('@')[0].replace(/[._]/g,' '):'';
+    const roleLabel=currentUser?.role?ROLE_PRESETS[currentUser.role]?.label:'';
+    helloEl.textContent=`${salut}${prenom?', '+prenom.charAt(0).toUpperCase()+prenom.slice(1):''} 👋`;
+    const dateEl=document.getElementById('dashDateToday');
+    if(dateEl) dateEl.textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+(roleLabel?' • '+roleLabel:'');
+  }
+
   const enCours=ofs.filter(o=>o.statut!=='Terminé' && o.statut!=='Annulé');
   document.getElementById('kpiOFEnCours').textContent=enCours.length;
   document.getElementById('kpiOFEnCoursSub').textContent=ofs.length+' OF au total';
@@ -3143,6 +3306,7 @@ async function updateDashboard(){
   const chantiersRetardEstime=(await idbGetAll('chantiers')).filter(c=>!c.annule && c.dateMiseADispositionSouhaitee && c.dateFabricationEstimee && c.dateFabricationEstimee>c.dateMiseADispositionSouhaitee && !['installation','termine'].includes(c.etape));
   if(chantiersRetardEstime.length) alertes.push({icon:'📅',color:'red',text:chantiersRetardEstime.length+' dossier(s) au délai client insuffisant : '+chantiersRetardEstime.slice(0,3).map(c=>c.numero).join(', ')});
   const panel=document.getElementById('alertesPanel');
+  const heroAlertes=document.getElementById('heroAlertesCount'); if(heroAlertes) heroAlertes.textContent=alertes.length;
   if(alertes.length){
     panel.classList.remove('hidden');
     panel.innerHTML=`<div class="card bg-white rounded-2xl p-5">
@@ -3152,19 +3316,271 @@ async function updateDashboard(){
   } else {
     panel.classList.add('hidden');
   }
+
+  // ===== Cockpit dirigeant — actions prioritaires, tous modules =====
+  const [chantiersCk,achatsCk,maintsCk,prospectsCk,aosCk]=await Promise.all(['chantiers','achats','maintenances','prospects','appels_offres'].map(idbGetAll));
+  const seuilAchatCk=getCompanyInfo().seuilValidationAchat||500000;
+  let nValidations=0;
+  const peutValider=hasRole('chantier:validate');
+  if(peutValider){
+    nValidations = chantiersCk.filter(c=>!c.annule&&c.etape==='validation').length
+      + chantiersCk.filter(c=>!c.annule&&c.etape==='achats').length
+      + chantiersCk.filter(c=>!c.annule&&c.margeValidationRequise&&c.margeValidationDG?.statut!=='validee').length
+      + achatsCk.filter(a=>a.statut==='demande'&&(a.montant||0)>=seuilAchatCk).length
+      + ofs.filter(o=>o.statut==='Prêt à livrer').length;
+  }
+  const nGmao = maintsCk.filter(m=>(m.statut==='planifiee' && m.datePlanifiee && m.datePlanifiee<=today) || m.statut==='en_cours').length;
+  let nRelances=0;
+  chantiersCk.filter(c=>!c.annule&&c.etape==='paiement').forEach(c=>{
+    const entree=(c.historique||[]).filter(h=>h.etape==='paiement').pop();
+    if(niveauRelance(joursDepuis(entree?.date))) nRelances++;
+  });
+  nRelances += prospectsCk.filter(p=>p.etape!=='gagne'&&p.etape!=='perdu'&&p.echeanceAction&&p.echeanceAction<=today).length;
+  const dans7jCk=new Date(); dans7jCk.setDate(dans7jCk.getDate()+7);
+  const nAO = aosCk.filter(a=>!['gagne','contrat','perdu'].includes(a.etape) && a.dateDepot && new Date(a.dateDepot)<=dans7jCk).length;
+
+  const cockpitEl=document.getElementById('cockpitActions');
+  if(cockpitEl){
+    const tiles=[
+      {icon:'✅',label:'Validations en attente',count:nValidations,color:'blue',page:'validations',show:peutValider},
+      {icon:'🛠️',label:'Maintenance à traiter',count:nGmao,color:'amber',page:'gmao'},
+      {icon:'📞',label:'Relances commerciales',count:nRelances,color:'orange',page:'relances'},
+      {icon:'📋',label:"Appels d'offres < 7j",count:nAO,color:'purple',page:'ao'},
+      {icon:'⏰',label:'OF en retard',count:enRetard.length,color:'red',page:'production'},
+      {icon:'📦',label:'Stock critique',count:faibles,color:'rose',page:'stock'}
+    ].filter(t=>t.show!==false);
+    cockpitEl.innerHTML=tiles.map(t=>{
+      const urgent=t.count>0;
+      return `<button onclick="showPage('${t.page}')" class="text-left border rounded-xl p-3.5 transition-shadow hover:shadow-md ${urgent?'bg-'+t.color+'-50 border-'+t.color+'-200':'bg-slate-50 border-slate-200'}">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-lg">${t.icon}</span>
+          <span class="text-xl font-black ${urgent?'text-'+t.color+'-700':'text-slate-400'}">${t.count}</span>
+        </div>
+        <div class="text-xs font-semibold ${urgent?'text-'+t.color+'-700':'text-slate-500'}">${escapeHtml(t.label)}</div>
+      </button>`;
+    }).join('');
+  }
+  const totalUrgentCk=nValidations+nGmao+nRelances+nAO+enRetard.length+(faibles?1:0);
+  const santeEl=document.getElementById('cockpitSante');
+  if(santeEl){
+    let sante;
+    if(totalUrgentCk===0) sante={label:'🟢 Tout est sous contrôle',cls:'bg-emerald-50 text-emerald-700'};
+    else if(totalUrgentCk<=3) sante={label:'🟡 Vigilance',cls:'bg-amber-50 text-amber-700'};
+    else sante={label:'🔴 Attention requise',cls:'bg-red-50 text-red-700'};
+    santeEl.className='px-3 py-1.5 rounded-full text-xs font-bold '+sante.cls;
+    santeEl.textContent=sante.label;
+  }
+
   ofs.forEach(o=>{ statusCounts[o.statut]=(statusCounts[o.statut]||0)+1; });
   const labels=Object.keys(statusCounts);
   const data=labels.map(l=>statusCounts[l]);
-  const colors=['#2563eb','#3b82f6','#f59e0b','#10b981','#ef4444'];
+  const TAILWIND_HEX={blue:'#2563eb',indigo:'#4f46e5',amber:'#d97706',emerald:'#059669',teal:'#0d9488',slate:'#94a3b8',red:'#dc2626'};
+  const colors=labels.map(l=>TAILWIND_HEX[OF_STATUS_COLOR[l]]||'#64748b');
   const ctx=document.getElementById('costChart');
   if(ctx){
     if(dashboardChart) dashboardChart.destroy();
     dashboardChart=new Chart(ctx,{
       type:'bar',
-      data:{labels,datasets:[{label:'Ordres de fabrication',data,backgroundColor:colors}]},
+      data:{labels,datasets:[{label:'Ordres de fabrication',data,backgroundColor:colors,borderRadius:6,maxBarThickness:42}]},
       options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}
     });
   }
+
+  /* ===== Hero — pipeline commercial & taux de service ===== */
+  const chantiersAll=await idbGetAll('chantiers');
+  const chantiersActifs=chantiersAll.filter(c=>!c.annule && c.etape!=='termine');
+  const caPipeline=chantiersActifs.reduce((s,c)=>s+(c.montantTotal||0),0);
+  const heroCA=document.getElementById('heroCAPipeline'); if(heroCA) heroCA.textContent=money(caPipeline);
+  const heroDA=document.getElementById('heroDossiersActifs'); if(heroDA) heroDA.textContent=chantiersActifs.length;
+
+  const clituresAvecDelai=ofs.filter(o=>(o.statut==='Terminé'||o.statut==='Prêt à livrer'||o.statut==='Livré') && o.dateReelle && o.datePrevue);
+  const aLHeure=clituresAvecDelai.filter(o=>o.dateReelle<=o.datePrevue).length;
+  const heroTS=document.getElementById('heroTauxService');
+  if(heroTS) heroTS.textContent = clituresAvecDelai.length ? Math.round(aLHeure/clituresAvecDelai.length*100)+'%' : '—';
+
+  /* ===== Pipeline commercial — CA cumulé par étape ===== */
+  const pipelineCtx=document.getElementById('pipelineChart');
+  if(pipelineCtx){
+    const stagesActives=CHANTIER_STAGES.filter(s=>s.key!=='termine');
+    const pipelineData=stagesActives.map(s=>chantiersActifs.filter(c=>c.etape===s.key).reduce((sum,c)=>sum+(c.montantTotal||0),0));
+    if(window.dashPipelineChart) window.dashPipelineChart.destroy();
+    window.dashPipelineChart=new Chart(pipelineCtx,{
+      type:'bar',
+      data:{labels:stagesActives.map(s=>s.label),datasets:[{label:'CA (FCFA)',data:pipelineData,backgroundColor:'#1d4ed8',borderRadius:6,maxBarThickness:28}]},
+      options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>money(c.raw)}}},scales:{x:{beginAtZero:true,ticks:{callback:v=>(v>=1000000?(v/1000000).toFixed(1)+'M':v>=1000?(v/1000).toFixed(0)+'k':v)}}}}
+    });
+  }
+
+  /* ===== Cadence de production — 14 derniers jours ===== */
+  const prodTrendCtx=document.getElementById('prodTrendChart');
+  if(prodTrendCtx){
+    const jours=[];
+    for(let i=13;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); jours.push(d.toISOString().slice(0,10)); }
+    const clotures14=ofs.filter(o=>(o.statut==='Terminé'||o.statut==='Prêt à livrer'||o.statut==='Livré') && o.dateReelle);
+    const trendData=jours.map(j=>clotures14.filter(o=>o.dateReelle===j).length);
+    if(window.dashProdTrendChart) window.dashProdTrendChart.destroy();
+    window.dashProdTrendChart=new Chart(prodTrendCtx,{
+      type:'line',
+      data:{labels:jours.map(j=>new Date(j).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})),datasets:[{label:'OF clôturés',data:trendData,borderColor:'#059669',backgroundColor:'rgba(5,150,105,.12)',fill:true,tension:.35,pointRadius:3,pointBackgroundColor:'#059669'}]},
+      options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}
+    });
+  }
+
+  /* ===== Prochaines installations ===== */
+  const installEl=document.getElementById('dashProchainesInstall');
+  if(installEl){
+    const aInstaller=chantiersAll.filter(c=>!c.annule && c.etape==='installation').sort((a,b)=>(a.installationDate||'9999').localeCompare(b.installationDate||'9999')).slice(0,6);
+    installEl.innerHTML = aInstaller.length ? aInstaller.map(c=>`
+      <div class="flex items-center justify-between gap-3 border rounded-lg px-3 py-2 text-sm hover:bg-slate-50 cursor-pointer" onclick="showPage('chantier');openChantierDetail('${c.id}')">
+        <div class="min-w-0">
+          <div class="font-semibold truncate">${escapeHtml(c.numero)} — ${escapeHtml(c.client)}</div>
+          <div class="text-xs text-slate-400 truncate">${c.adresseChantier?escapeHtml(c.adresseChantier):(c.geoLat!=null?'Position GPS enregistrée':'Adresse non renseignée')}</div>
+        </div>
+        <div class="text-right shrink-0">
+          <div class="text-xs font-semibold ${c.installationDate?'text-blue-700':'text-amber-600'}">${c.installationDate?new Date(c.installationDate).toLocaleDateString('fr-FR'):'À planifier'}</div>
+          ${c.equipeInstall||c.installationEquipe?`<div class="text-[11px] text-slate-400">${escapeHtml(c.installationEquipe||c.equipeInstall)}</div>`:''}
+        </div>
+      </div>`).join('') : '<p class="text-sm text-slate-400">Aucun dossier en phase d\'installation actuellement.</p>';
+  }
+
+  /* ===== Top clients — CA cumulé (dossiers non annulés) ===== */
+  const topClientsEl=document.getElementById('dashTopClients');
+  if(topClientsEl){
+    const parClient={};
+    chantiersAll.filter(c=>!c.annule).forEach(c=>{ const k=c.client||'—'; parClient[k]=(parClient[k]||0)+(c.montantTotal||0); });
+    const top=Object.entries(parClient).sort((a,b)=>b[1]-a[1]).slice(0,6);
+    const maxVal=top.length?top[0][1]:0;
+    topClientsEl.innerHTML = top.length ? top.map(([nom,total])=>`
+      <div class="text-sm">
+        <div class="flex justify-between mb-1"><span class="font-semibold truncate">${escapeHtml(nom)}</span><span class="text-slate-500 shrink-0 ml-2">${money(total)}</span></div>
+        <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-blue-600 rounded-full" style="width:${maxVal?Math.max(4,total/maxVal*100):0}%"></div></div>
+      </div>`).join('') : '<p class="text-sm text-slate-400">Aucun dossier chantier pour le moment.</p>';
+  }
+
+  showDeptTab(document.querySelector('.dept-tab-btn.active')?.dataset.depttab||'production');
+}
+
+/* ---------- Analyse par département — onglets du tableau de bord ---------- */
+function deptKpiCard(icon,label,value,sub,color){
+  return `<div class="border rounded-xl p-4"><div class="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1"><span>${icon}</span><span>${escapeHtml(label)}</span></div><div class="text-2xl font-black text-${color||'slate'}-700">${escapeHtml(String(value))}</div>${sub?`<div class="text-[11px] text-slate-400 mt-0.5">${escapeHtml(sub)}</div>`:''}</div>`;
+}
+function showDeptTab(tab){
+  document.querySelectorAll('.dept-tab').forEach(t=>t.classList.add('hidden'));
+  const el=document.getElementById('deptTab'+tab.charAt(0).toUpperCase()+tab.slice(1)); if(el) el.classList.remove('hidden');
+  document.querySelectorAll('.dept-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.depttab===tab));
+  if(tab==='production') renderDeptProduction();
+  if(tab==='qualite') renderDeptQualite();
+  if(tab==='commercial') renderDeptCommercial();
+  if(tab==='stock') renderDeptStock();
+  if(tab==='maintenance') renderDeptMaintenance();
+}
+async function renderDeptProduction(){
+  const el=document.getElementById('deptTabProduction'); if(!el) return;
+  const [ofs,pointages]=await Promise.all(['of','pointages'].map(idbGetAll));
+  const today=new Date().toISOString().slice(0,10);
+  const enCours=ofs.filter(o=>o.statut!=='Terminé'&&o.statut!=='Annulé');
+  const enRetard=enCours.filter(o=>o.datePrevue&&o.datePrevue<today);
+  const termines=ofs.filter(o=>o.statut==='Terminé'&&o.dateReelle);
+  const durations=termines.map(o=>(new Date(o.dateReelle)-new Date(o.date))/86400000).filter(d=>d>=0);
+  const tempsMoyen=durations.length?durations.reduce((a,b)=>a+b,0)/durations.length:null;
+  const totConf=pointages.reduce((s,p)=>s+(p.qteConforme||0),0);
+  const totRebut=pointages.reduce((s,p)=>s+(p.qteRebut||0),0);
+  const totPiece=totConf+totRebut;
+  const tauxRebut=totPiece?(totRebut/totPiece*100):null;
+  const parAtelier={};
+  ofs.forEach(o=>{ const k=o.atelier||'Non défini'; parAtelier[k]=(parAtelier[k]||0)+1; });
+  const topAteliers=Object.entries(parAtelier).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  el.innerHTML=`
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+      ${deptKpiCard('🧾','OF en cours',enCours.length,ofs.length+' OF au total','blue')}
+      ${deptKpiCard('⏰','OF en retard',enRetard.length,'échéance dépassée',enRetard.length?'red':'slate')}
+      ${deptKpiCard('⏱️','Délai moyen',tempsMoyen!=null?tempsMoyen.toFixed(1).replace('.',',')+' j':'—','création → clôture','indigo')}
+      ${deptKpiCard('♻️','Taux de rebut',tauxRebut!=null?tauxRebut.toFixed(1).replace('.',',')+'%':'—','pointages atelier',tauxRebut>5?'red':'emerald')}
+    </div>
+    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Charge par atelier</h3>
+    <div class="space-y-1.5">${topAteliers.length?topAteliers.map(([k,v])=>`<div class="flex items-center justify-between text-sm border-b pb-1.5"><span>${escapeHtml(k)}</span><span class="font-semibold">${v} OF</span></div>`).join(''):'<p class="text-sm text-slate-400">Aucune donnée.</p>'}</div>`;
+}
+async function renderDeptQualite(){
+  const el=document.getElementById('deptTabQualite'); if(!el) return;
+  const [qc,nc]=await Promise.all(['controles_qualite','nonconformites'].map(idbGetAll));
+  const nonConf=qc.filter(q=>q.statut==='non_conforme').length;
+  const tauxNC=qc.length?(nonConf/qc.length*100):null;
+  const ncOuvertes=nc.filter(n=>n.statut!=='cloturee');
+  const parType={};
+  nc.forEach(n=>{ const k=n.type||'Non classé'; parType[k]=(parType[k]||0)+1; });
+  const topTypes=Object.entries(parType).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  el.innerHTML=`
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+      ${deptKpiCard('🔍','Taux de non-conformité',tauxNC!=null?tauxNC.toFixed(1).replace('.',',')+'%':'—',qc.length+' contrôle(s)',tauxNC!=null&&tauxNC>10?'red':'emerald')}
+      ${deptKpiCard('🚫','Fiches NC ouvertes',ncOuvertes.length,'sur '+nc.length+' au total',ncOuvertes.length?'amber':'slate')}
+      ${deptKpiCard('📋','Contrôles effectués',qc.length,'toutes périodes','blue')}
+      ${deptKpiCard('✅','Contrôles conformes',qc.length-nonConf,'sur '+qc.length+' contrôle(s)','emerald')}
+    </div>
+    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Non-conformités par type</h3>
+    <div class="space-y-1.5">${topTypes.length?topTypes.map(([k,v])=>`<div class="flex items-center justify-between text-sm border-b pb-1.5"><span>${escapeHtml(k)}</span><span class="font-semibold">${v}</span></div>`).join(''):'<p class="text-sm text-slate-400">Aucune fiche NC enregistrée.</p>'}</div>`;
+}
+async function renderDeptCommercial(){
+  const el=document.getElementById('deptTabCommercial'); if(!el) return;
+  const [chantiers,prospects]=await Promise.all(['chantiers','prospects'].map(idbGetAll));
+  const actifs=chantiers.filter(c=>!c.annule&&c.etape!=='termine');
+  const caPipeline=actifs.reduce((s,c)=>s+(c.montantTotal||0),0);
+  const gagnes=prospects.filter(p=>p.etape==='gagne').length;
+  const tauxConv=prospects.length?(gagnes/prospects.length*100):null;
+  const parClient={};
+  chantiers.filter(c=>!c.annule).forEach(c=>{ const k=c.client||'—'; parClient[k]=(parClient[k]||0)+(c.montantTotal||0); });
+  const topClients=Object.entries(parClient).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  el.innerHTML=`
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+      ${deptKpiCard('💰','CA pipeline actif',money(caPipeline),actifs.length+' dossier(s) actif(s)','emerald')}
+      ${deptKpiCard('📈','Taux de conversion',tauxConv!=null?tauxConv.toFixed(0)+'%':'—','prospects gagnés','blue')}
+      ${deptKpiCard('🧲','Prospects actifs',prospects.filter(p=>p.etape!=='gagne'&&p.etape!=='perdu').length,'en cours de traitement','purple')}
+      ${deptKpiCard('🏗️','Dossiers actifs',actifs.length,'tous circuits confondus','indigo')}
+    </div>
+    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Top clients — CA cumulé</h3>
+    <div class="space-y-1.5">${topClients.length?topClients.map(([k,v])=>`<div class="flex items-center justify-between text-sm border-b pb-1.5"><span>${escapeHtml(k)}</span><span class="font-semibold">${money(v)}</span></div>`).join(''):'<p class="text-sm text-slate-400">Aucune donnée.</p>'}</div>`;
+}
+async function renderDeptStock(){
+  const el=document.getElementById('deptTabStock'); if(!el) return;
+  const [stock,achats]=await Promise.all(['stock','achats'].map(idbGetAll));
+  const totalDispo=stock.reduce((s,r)=>s+(r.dispo||0),0);
+  const faibles=stock.filter(r=>(r.dispo||0)<30);
+  const today=new Date().toISOString().slice(0,10);
+  const moisStr=today.slice(0,7);
+  const achatsEnAttente=achats.filter(a=>a.statut==='demande');
+  const achatsMois=achats.filter(a=>(a.dateCreation||'').slice(0,7)===moisStr).reduce((s,a)=>s+(a.montant||0),0);
+  el.innerHTML=`
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+      ${deptKpiCard('📦','Stock disponible',totalDispo.toFixed(0)+' ml',stock.length+' référence(s)','blue')}
+      ${deptKpiCard('⚠️','Réf. sous seuil',faibles.length,'seuil critique < 30 ml',faibles.length?'red':'emerald')}
+      ${deptKpiCard('🛒','Achats en attente',achatsEnAttente.length,'demandes non traitées',achatsEnAttente.length?'amber':'slate')}
+      ${deptKpiCard('💵','Achats du mois',money(achatsMois),'montant cumulé','purple')}
+    </div>
+    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Références sous seuil critique</h3>
+    <div class="space-y-1.5">${faibles.length?faibles.slice(0,8).map(r=>`<div class="flex items-center justify-between text-sm border-b pb-1.5"><span>${escapeHtml(r.label||r.ref||'—')}</span><span class="font-semibold text-red-600">${(r.dispo||0).toFixed(1)} ml</span></div>`).join(''):'<p class="text-sm text-slate-400">Aucune référence sous le seuil.</p>'}</div>`;
+}
+async function renderDeptMaintenance(){
+  const el=document.getElementById('deptTabMaintenance'); if(!el) return;
+  const [maints,machines]=await Promise.all(['maintenances','machines'].map(idbGetAll));
+  const depuis=new Date(); depuis.setMonth(depuis.getMonth()-12);
+  const depuisStr=depuis.toISOString().slice(0,10);
+  const curativesTerminees=maints.filter(m=>m.type==='curative'&&m.statut==='terminee'&&m.dateDebut&&m.dateFin&&m.dateDebut>=depuisStr);
+  const mttrH=curativesTerminees.length?curativesTerminees.reduce((s,m)=>s+((new Date(m.dateFin)-new Date(m.dateDebut))/3600000),0)/curativesTerminees.length:null;
+  const dispo=machines.length?(machines.filter(m=>m.statut==='disponible').length/machines.length*100):null;
+  const coutAn=maints.filter(m=>(m.dateFin||m.dateDebut||'')>=depuisStr).reduce((s,m)=>s+(m.coutPieces||0)+(m.coutMO||0),0);
+  const today=new Date().toISOString().slice(0,10);
+  const enRetard=maints.filter(m=>m.statut==='planifiee'&&m.datePlanifiee&&m.datePlanifiee<today).length;
+  const parMachine={};
+  curativesTerminees.forEach(m=>{ (parMachine[m.machineId]=parMachine[m.machineId]||[]).push(m); });
+  const topPannes=Object.entries(parMachine).map(([mid,list])=>({machine:machines.find(m=>m.id===mid),nb:list.length})).filter(x=>x.machine).sort((a,b)=>b.nb-a.nb).slice(0,6);
+  el.innerHTML=`
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+      ${deptKpiCard('⏱️','MTTR',mttrH!=null?mttrH.toFixed(1)+' h':'—','temps moyen de réparation','indigo')}
+      ${deptKpiCard('✅','Disponibilité parc',dispo!=null?dispo.toFixed(0)+'%':'—',machines.length+' machine(s)',dispo!=null&&dispo<80?'red':'emerald')}
+      ${deptKpiCard('💵','Coût maintenance',money(coutAn),'12 derniers mois','purple')}
+      ${deptKpiCard('⏰','Préventifs en retard',enRetard,'à replanifier',enRetard?'red':'slate')}
+    </div>
+    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Top pannes — 12 derniers mois</h3>
+    <div class="space-y-1.5">${topPannes.length?topPannes.map(x=>`<div class="flex items-center justify-between text-sm border-b pb-1.5"><span>${escapeHtml(x.machine.code)} — ${escapeHtml(x.machine.designation||'')}</span><span class="font-semibold text-red-600">${x.nb} panne${x.nb>1?'s':''}</span></div>`).join(''):'<p class="text-sm text-slate-400">Aucune panne curative sur la période.</p>'}</div>`;
 }
 
 /* ---------- Contrôle de gestion — calcul coût réel OF (factorisé, réutilisé par voirCoutReelOF et le cockpit) ---------- */
@@ -7416,7 +7832,7 @@ async function renderChantierList(){
     const c=r.annule?'red':(CHANTIER_STAGE_COLOR[r.etape]||'slate');
     const label=r.annule?'Annulé':(CHANTIER_STAGES.find(s=>s.key===r.etape)?.label||r.etape);
     return `<tr class="border-b hover:bg-slate-50 cursor-pointer" onclick="openChantierDetail('${r.id}')">
-      <td class="p-3 font-semibold">${escapeHtml(r.numero)}</td>
+      <td class="p-3 font-semibold">${(r.adresseChantier||(r.geoLat!=null&&r.geoLng!=null))?'<span title="Localisation chantier enregistrée">📍</span> ':''}${escapeHtml(r.numero)}</td>
       <td class="p-3">${r.clientId?`<button onclick="event.stopPropagation();openEntityDetail('clients','${r.clientId}')" class="text-blue-600 hover:underline">${escapeHtml(r.client)}</button>`:escapeHtml(r.client)}</td>
       <td class="p-3"><span class="badge bg-${c}-50 text-${c}-700">${escapeHtml(label)}</span></td>
       <td class="p-3 text-right">${money(r.montantTotal)}</td>
@@ -7468,6 +7884,27 @@ async function openEditChantierModal(id){
         <label class="text-sm font-semibold block">Contact
           <input id="ecContact" value="${escapeHtml(rec.contact||'')}" class="mt-1 w-full border rounded-lg px-3 py-2">
         </label>
+      </div>
+
+      <div class="border-t pt-3">
+        <h3 class="font-bold text-sm text-slate-700 mb-2">📍 Localisation du chantier</h3>
+        <label class="text-sm font-semibold block">Adresse du chantier
+          <input id="ecAdresseChantier" value="${escapeHtml(rec.adresseChantier||'')}" placeholder="Rue, quartier, ville…" class="mt-1 w-full border rounded-lg px-3 py-2">
+        </label>
+        <div class="grid sm:grid-cols-2 gap-3 mt-2">
+          <label class="text-xs font-semibold block">Latitude
+            <input id="ecLat" type="number" step="any" value="${rec.geoLat??''}" placeholder="ex : 5.359951" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+          </label>
+          <label class="text-xs font-semibold block">Longitude
+            <input id="ecLng" type="number" step="any" value="${rec.geoLng??''}" placeholder="ex : -4.008256" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+          </label>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 mt-2">
+          <button type="button" onclick="geolocaliserChantier()" class="border border-blue-600 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-semibold">📡 Utiliser ma position actuelle</button>
+          <button type="button" onclick="ouvrirCarteEcChantier()" class="border px-3 py-1.5 rounded-lg text-xs font-semibold">🗺️ Voir sur la carte</button>
+          <span id="ecGeoStatus" class="text-xs text-slate-400"></span>
+        </div>
+        <p class="text-xs text-slate-400 mt-1">Saisie manuelle de l'adresse, ou géopositionnement GPS une fois sur place (autorisation de localisation du navigateur requise).</p>
       </div>
 
       <div class="border-t pt-3">
@@ -7575,6 +8012,185 @@ function closeEditChantierModal(){
   document.getElementById('editChantierModal').classList.add('hidden');
   setModalOpen(false);
 }
+/* ---------- Localisation du chantier (adresse manuelle + géopositionnement GPS) ---------- */
+function geolocaliserChantier(){
+  const status=document.getElementById('ecGeoStatus');
+  if(!navigator.geolocation){ if(status) status.textContent='⚠️ Géolocalisation non supportée par ce navigateur.'; return; }
+  if(status) status.textContent='📡 Localisation en cours…';
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      const latEl=document.getElementById('ecLat'), lngEl=document.getElementById('ecLng');
+      if(latEl) latEl.value=pos.coords.latitude.toFixed(6);
+      if(lngEl) lngEl.value=pos.coords.longitude.toFixed(6);
+      if(status) status.textContent=`✓ Position capturée (précision ±${Math.round(pos.coords.accuracy)} m).`;
+    },
+    err=>{
+      if(status) status.textContent='⚠️ Impossible de récupérer la position : '+(err.message||'permission refusée.');
+    },
+    {enableHighAccuracy:true,timeout:10000,maximumAge:0}
+  );
+}
+function ouvrirCartePourLocalisation(lat,lng,adresse){
+  let q='';
+  if(lat!=null && lat!=='' && lng!=null && lng!=='') q=lat+','+lng;
+  else if(adresse && adresse.trim()) q=adresse.trim();
+  else { alert("Renseignez une adresse ou une position GPS avant d'ouvrir la carte."); return; }
+  window.open('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q),'_blank','noopener');
+}
+function ouvrirCarteEcChantier(){
+  ouvrirCartePourLocalisation(
+    document.getElementById('ecLat')?.value,
+    document.getElementById('ecLng')?.value,
+    document.getElementById('ecAdresseChantier')?.value
+  );
+}
+async function voirCarteDossier(id){
+  const rec=await getChantier(id); if(!rec) return;
+  ouvrirCartePourLocalisation(rec.geoLat,rec.geoLng,rec.adresseChantier);
+}
+
+/* ---------- Carte intégrée de tous les chantiers géolocalisés (Leaflet / OSM) ---------- */
+let carteChantiersMap=null;
+let carteChantiersMarkers=[]; // [{marker,rec}]
+let carteChantiersAllRows=null;
+let carteChantiersSelectedId=null;
+const CHANTIER_MAP_COLORS={devis:'#64748b',paiement:'#d97706',dossier:'#1d4ed8',validation:'#1d4ed8',achats:'#1d4ed8',fabrication:'#7c3aed',installation:'#059669',termine:'#059669'};
+function colorPourEtapeChantier(rec){
+  if(rec.annule) return '#dc2626';
+  return CHANTIER_MAP_COLORS[rec.etape]||'#334155';
+}
+function carteChantierIcon(color,selected){
+  return L.divIcon({
+    className:'',
+    html:'<div class="carte-marker'+(selected?' carte-marker-active':'')+'" style="--mc:'+color+'"></div>',
+    iconSize:selected?[26,26]:[20,20],
+    iconAnchor:selected?[13,13]:[10,10]
+  });
+}
+function populateCarteFiltreEtape(){
+  const sel=document.getElementById('carteFiltreEtape'); if(!sel || sel.options.length>1) return;
+  CHANTIER_STAGES.forEach(s=>{ const o=document.createElement('option'); o.value=s.key; o.textContent=s.label; sel.appendChild(o); });
+  const oAnnule=document.createElement('option'); oAnnule.value='__annule'; oAnnule.textContent='Annulés'; sel.appendChild(oAnnule);
+}
+function applyCarteFilters(){ renderCarteChantiers(false); }
+function renderCarteKpis(all,geoloc){
+  const el=document.getElementById('carteKpis'); if(!el) return;
+  const pipelineGeo=geoloc.filter(c=>!c.annule && c.etape!=='termine').reduce((s,c)=>s+(c.montantTotal||0),0);
+  const terrain=geoloc.filter(c=>!c.annule && (c.etape==='fabrication'||c.etape==='installation')).length;
+  const nonGeo=all.filter(c=>!c.annule && (c.geoLat==null||c.geoLng==null)).length;
+  const cards=[
+    {icon:'📍',label:'Dossiers géolocalisés',value:geoloc.length+' / '+all.length,sub:"sur l'ensemble des dossiers",color:'blue'},
+    {icon:'💰',label:'Pipeline géolocalisé',value:money(pipelineGeo),sub:'chantiers actifs localisés',color:'emerald'},
+    {icon:'🏗️',label:'Sur le terrain',value:String(terrain),sub:'fabrication / installation',color:'purple'},
+    {icon:'⚠️',label:'Non géolocalisés',value:String(nonGeo),sub:'à compléter dans Circuit Chantier',color:'amber',action:true}
+  ];
+  el.innerHTML=cards.map(k=>`
+    <div class="card bg-white rounded-xl p-3.5${k.action?' cursor-pointer hover:shadow-md':''}"${k.action?" onclick=\"showPage('chantier')\"":''}>
+      <div class="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1"><span>${k.icon}</span><span>${escapeHtml(k.label)}</span></div>
+      <div class="text-xl font-bold text-${k.color}-700">${escapeHtml(k.value)}</div>
+      <div class="text-[11px] text-slate-400 mt-0.5">${escapeHtml(k.sub)}</div>
+    </div>`).join('');
+}
+function renderCarteListe(rows){
+  const el=document.getElementById('carteChantiersListe'); const countEl=document.getElementById('carteListCount');
+  if(countEl) countEl.textContent=rows.length?String(rows.length):'';
+  if(!el) return;
+  if(!rows.length){ el.innerHTML='<div class="p-4 text-center text-xs text-slate-400">Aucun dossier ne correspond aux filtres.</div>'; return; }
+  const sorted=[...rows].sort((a,b)=>(b.dateCreation||'').localeCompare(a.dateCreation||''));
+  el.innerHTML=sorted.map(c=>{
+    const color=colorPourEtapeChantier(c);
+    const label=c.annule?'Annulé':(CHANTIER_STAGES.find(s=>s.key===c.etape)?.label||c.etape);
+    return `<div class="carte-liste-item px-3 py-2.5 cursor-pointer${c.id===carteChantiersSelectedId?' selected':''}" style="border-left-color:${c.id===carteChantiersSelectedId?color:'transparent'}" onclick="selectCarteChantier('${c.id}',true)">
+      <div class="flex items-center justify-between gap-2">
+        <span class="text-sm font-semibold truncate">${escapeHtml(c.numero)}</span>
+        <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:${color}"></span>
+      </div>
+      <div class="text-xs text-slate-500 truncate">${escapeHtml(c.client||'—')}</div>
+      <div class="text-[11px] text-slate-400 truncate">${escapeHtml(label)}${c.montantTotal?' • '+money(c.montantTotal):''}</div>
+    </div>`;
+  }).join('');
+}
+function selectCarteChantier(id,flyTo){
+  carteChantiersSelectedId=id;
+  carteChantiersMarkers.forEach(m=>{
+    const sel=m.rec.id===id;
+    m.marker.setIcon(carteChantierIcon(colorPourEtapeChantier(m.rec),sel));
+    if(sel && flyTo && carteChantiersMap){ carteChantiersMap.setView(m.marker.getLatLng(),Math.max(carteChantiersMap.getZoom(),13)); m.marker.openPopup(); }
+  });
+  renderCarteListe(carteChantiersMarkers.map(m=>m.rec));
+}
+async function renderCarteChantiers(refetch){
+  const container=document.getElementById('carteChantiersMap'); if(!container) return;
+  if(typeof L==='undefined'){
+    container.innerHTML='<div class="flex items-center justify-center h-full text-sm text-red-600 p-4 text-center">⚠️ Bibliothèque de carte (Leaflet) non chargée — vérifiez la connexion internet, puis rechargez la page.</div>';
+    return;
+  }
+  populateCarteFiltreEtape();
+  const all = (refetch===false && carteChantiersAllRows) ? carteChantiersAllRows : await idbGetAll('chantiers');
+  carteChantiersAllRows=all;
+  const geoloc=all.filter(c=>c.geoLat!=null && c.geoLng!=null && !isNaN(+c.geoLat) && !isNaN(+c.geoLng));
+
+  renderCarteKpis(all,geoloc);
+
+  const search=(document.getElementById('carteSearch')?.value||'').trim().toLowerCase();
+  const etapeFiltre=document.getElementById('carteFiltreEtape')?.value||'';
+  const actifsOnly=document.getElementById('carteFiltreActifs')?.checked||false;
+  const rows=geoloc.filter(c=>{
+    if(actifsOnly && (c.annule || c.etape==='termine')) return false;
+    if(etapeFiltre==='__annule' && !c.annule) return false;
+    else if(etapeFiltre && etapeFiltre!=='__annule' && c.etape!==etapeFiltre) return false;
+    if(search){
+      const hay=[c.numero,c.client,c.adresseChantier].filter(Boolean).join(' ').toLowerCase();
+      if(!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  const countEl=document.getElementById('carteChantiersCount');
+  if(countEl) countEl.textContent = geoloc.length ? rows.length+' / '+geoloc.length+' dossier(s) affiché(s)' : 'Aucun dossier géolocalisé — ajoutez une adresse/GPS depuis "✏️ Modifier" dans Circuit Chantier.';
+
+  if(!carteChantiersMap){
+    carteChantiersMap=L.map('carteChantiersMap',{zoomControl:true}).setView([7.54,-5.55],7); // vue par défaut Côte d'Ivoire
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      maxZoom:19,
+      attribution:'© OpenStreetMap'
+    }).addTo(carteChantiersMap);
+    carteChantiersMap.on('mousemove',e=>{
+      const el=document.getElementById('carteChantiersLatLng');
+      if(el) el.textContent='Lat/Lng : '+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5);
+    });
+  }
+  carteChantiersMarkers.forEach(m=>carteChantiersMap.removeLayer(m.marker));
+  carteChantiersMarkers=[];
+  rows.forEach(c=>{
+    const color=colorPourEtapeChantier(c);
+    const label=c.annule?'Annulé':(CHANTIER_STAGES.find(s=>s.key===c.etape)?.label||c.etape);
+    const marker=L.marker([+c.geoLat,+c.geoLng],{icon:carteChantierIcon(color,c.id===carteChantiersSelectedId)}).addTo(carteChantiersMap);
+    marker.bindPopup(`<div style="font-size:12px;min-width:180px">
+        <b>${escapeHtml(c.numero)}</b><br>
+        ${escapeHtml(c.client||'')}<br>
+        <span style="color:${color};font-weight:600">${escapeHtml(label)}</span>
+        ${c.montantTotal?'<br>'+money(c.montantTotal):''}
+        ${c.adresseChantier?'<br>'+escapeHtml(c.adresseChantier):''}
+        <br><button onclick="showPage('chantier');openChantierDetail('${c.id}')" style="margin-top:4px;color:#1d4ed8;text-decoration:underline;font-weight:600;background:none;border:none;padding:0;cursor:pointer">Ouvrir le dossier →</button>
+      </div>`);
+    marker.on('click',()=>selectCarteChantier(c.id,false));
+    carteChantiersMarkers.push({marker,rec:c});
+  });
+  renderCarteListe(rows);
+  setTimeout(()=>{
+    carteChantiersMap.invalidateSize();
+    if(rows.length===1){
+      carteChantiersMap.setView([+rows[0].geoLat,+rows[0].geoLng],14);
+    } else if(rows.length>1){
+      carteChantiersMap.fitBounds(L.latLngBounds(rows.map(c=>[+c.geoLat,+c.geoLng])).pad(0.25));
+    }
+  },50);
+}
+function zoomCarteChantiers(){
+  if(!carteChantiersMap || !carteChantiersMarkers.length){ alert('Aucun chantier géolocalisé à afficher (avec les filtres actuels).'); return; }
+  carteChantiersMap.fitBounds(L.latLngBounds(carteChantiersMarkers.map(m=>m.marker.getLatLng())).pad(0.25));
+}
 async function handleEditChantier(e,id){
   e.preventDefault();
   if(!hasRole('chantier:create')){ alert('Permission refusée.'); return false; }
@@ -7585,6 +8201,10 @@ async function handleEditChantier(e,id){
   rec.client=nouveauClient;
   rec.clientId=clientId;
   rec.contact=document.getElementById('ecContact').value.trim();
+  rec.adresseChantier=document.getElementById('ecAdresseChantier').value.trim();
+  const ecLatVal=document.getElementById('ecLat').value, ecLngVal=document.getElementById('ecLng').value;
+  rec.geoLat=ecLatVal!==''?+ecLatVal:null;
+  rec.geoLng=ecLngVal!==''?+ecLngVal:null;
   let logSuffix='client/contact modifiés';
   if(!locked){
     const lignesOntChange = JSON.stringify(rec.lignes||[])!==JSON.stringify(editChantierLignes);
@@ -8323,7 +8943,9 @@ async function openChantierDetail(id){
   wrap.innerHTML=`
     <div class="card bg-white rounded-2xl p-6">
       <div class="flex flex-wrap justify-between gap-3 mb-5">
-        <div><h2 class="text-lg font-bold">${escapeHtml(rec.numero)} — ${escapeHtml(rec.client)}</h2><p class="text-sm text-slate-500">Devis ${escapeHtml(rec.devisNumero)} <span class="badge bg-blue-50 text-blue-700">V${rec.versionDevis||1}</span> • ${escapeHtml(rec.contact||'')}${rec.versionsHistorique?.length?` • <button onclick="toggleVersionsHistorique('${id}')" class="text-blue-600 underline">Historique versions (${rec.versionsHistorique.length})</button>`:''}</p></div>
+        <div><h2 class="text-lg font-bold">${escapeHtml(rec.numero)} — ${escapeHtml(rec.client)}</h2><p class="text-sm text-slate-500">Devis ${escapeHtml(rec.devisNumero)} <span class="badge bg-blue-50 text-blue-700">V${rec.versionDevis||1}</span> • ${escapeHtml(rec.contact||'')}${rec.versionsHistorique?.length?` • <button onclick="toggleVersionsHistorique('${id}')" class="text-blue-600 underline">Historique versions (${rec.versionsHistorique.length})</button>`:''}</p>
+          ${(rec.adresseChantier || (rec.geoLat!=null && rec.geoLng!=null)) ? `<p class="text-sm text-slate-600 mt-1">📍 ${escapeHtml(rec.adresseChantier||'Position GPS enregistrée')}${(rec.geoLat!=null && rec.geoLng!=null)?` <span class="text-slate-400 text-xs">(${(+rec.geoLat).toFixed(5)}, ${(+rec.geoLng).toFixed(5)})</span>`:''} <button onclick="voirCarteDossier('${id}')" class="text-blue-600 underline text-xs font-semibold ml-1">Voir sur la carte →</button></p>` : `<p class="text-xs text-amber-600 mt-1">⚠️ Aucune localisation chantier renseignée — <button onclick="openEditChantierModal('${id}')" class="underline font-semibold">ajouter l'adresse / GPS</button></p>`}
+        </div>
         <div class="flex gap-2">
           <button onclick="genererLienSuivi('${id}')" class="border border-teal-600 text-teal-700 px-3 py-2 rounded-lg text-sm font-semibold">🔗 Lien de suivi client</button>
           ${(!rec.annule && rec.etape!=='termine')?`<button onclick="annulerChantier('${id}')" class="border border-amber-500 text-amber-600 px-3 py-2 rounded-lg text-sm font-semibold">✕ Annuler</button>`:''}
@@ -10512,7 +11134,7 @@ const ETUDE_TABS=['config','bom','cut','cost','proforma'];
 function showPage(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
   document.querySelectorAll('.nav').forEach(b=>b.classList.remove('active'));
-  const titles={dashboard:'Tableau de bord',flux:'Schéma des flux',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',atelierMobile:'Vue atelier',stock:'Stock',sav:'SAV & Garantie',chantier:'Circuit Chantier',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs',catalogue:'Catalogue technique',controlegestion:'Contrôle de gestion',validations:'Validations en attente',etatpa:'État proforma & achats',gmao:'GMAO — Maintenance',prospects:'Prospects & Pipeline',relances:'Relances commerciales',analysecommerciale:'Analyse commerciale',partenaires:'Partenaires & commissions',ao:"Appels d'offres"};
+  const titles={dashboard:'Tableau de bord',flux:'Schéma des flux',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',atelierMobile:'Vue atelier',stock:'Stock',sav:'SAV & Garantie',chantier:'Circuit Chantier',cartechantiers:'Carte des chantiers',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs',catalogue:'Catalogue technique',controlegestion:'Contrôle de gestion',validations:'Validations en attente',etatpa:'État proforma & achats',gmao:'GMAO — Maintenance',prospects:'Prospects & Pipeline',relances:'Relances commerciales',analysecommerciale:'Analyse commerciale',partenaires:'Partenaires & commissions',ao:"Appels d'offres"};
 
   if(ETUDE_TABS.includes(page)){
     document.getElementById('etude').classList.remove('hidden');
@@ -10549,6 +11171,7 @@ function showPage(page){
     if(page==='analysecommerciale') renderAnalyseCommerciale();
     if(page==='partenaires') renderPartenaires();
     if(page==='ao') showAOTab('pipeline');
+    if(page==='cartechantiers') renderCarteChantiers();
   }
   document.getElementById('pageTitle').textContent=titles[page];
 }
