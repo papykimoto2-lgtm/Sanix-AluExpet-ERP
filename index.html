@@ -108,7 +108,7 @@ window.SANIX_CFG = {
   .etude-tab-btn,.ref-tab-btn,.flux-view-btn,.cat-tab-btn,.stock-tab-btn,.prod-tab-btn{color:var(--ds-slate-500);background:transparent;border-radius:8px;font-weight:600;transition:background-color .12s ease,color .12s ease}
   .etude-tab-btn:hover,.ref-tab-btn:hover,.cat-tab-btn:hover,.stock-tab-btn:hover,.prod-tab-btn:hover{background:var(--ds-slate-100);color:var(--ds-slate-700)}
   .flux-view-btn:hover{background:#e2e8f0}
-  .etude-tab-btn.active,.ref-tab-btn.active,.cat-tab-btn.active,.stock-tab-btn.active,.prod-tab-btn.active,.gmao-tab-btn.active{background:var(--ds-accent);color:#fff;box-shadow:var(--ds-shadow-sm)}
+  .etude-tab-btn.active,.ref-tab-btn.active,.cat-tab-btn.active,.stock-tab-btn.active,.prod-tab-btn.active,.gmao-tab-btn.active,.prospects-tab-btn.active,.ao-tab-btn.active{background:var(--ds-accent);color:#fff;box-shadow:var(--ds-shadow-sm)}
   .config-view-btn{color:var(--ds-slate-500);background:transparent;border-radius:6px;transition:background-color .12s ease,color .12s ease}
   .config-view-btn:hover{background:var(--ds-slate-100)}
   .config-view-btn.active{background:var(--ds-accent);color:#fff}
@@ -173,6 +173,10 @@ window.SANIX_CFG = {
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="clients">👤 Clients</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="fournisseurs">🏭 Fournisseurs</button>
 
+      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">2 · Prospection</div>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="prospects">🎯 Prospects & Pipeline</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="ao">📑 Appels d'offres <span id="aoBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
+
       <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">2 · Conception & devis</div>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="etude">🧑‍💻 Bureau d'étude</button>
 
@@ -192,6 +196,9 @@ window.SANIX_CFG = {
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="controlegestion">📈 Contrôle de gestion</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="validations">✅ Validations <span id="validationsBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="etatpa">📋 État proforma & achats</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="relances">🔔 Relances commerciales <span id="relancesBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="analysecommerciale">📊 Analyse commerciale</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="partenaires">🤝 Partenaires & commissions</button>
 
       <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">5 · Administration</div>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="utilisateurs">👥 Utilisateurs</button>
@@ -566,6 +573,92 @@ window.SANIX_CFG = {
             <div class="bg-emerald-50 rounded-xl p-3"><b class="text-emerald-700">Génération</b><p class="text-xs text-slate-600 mt-1">Numérotation séquentielle, regroupement par atelier, calcul remise/TVA, QR + hash SHA-256 infalsifiable.</p></div>
             <div class="bg-amber-50 rounded-xl p-3"><b class="text-amber-700">Rattachement</b><p class="text-xs text-slate-600 mt-1">À l'acceptation client, la proforma devient le dossier chantier — ou reste disponible pour rattachement ultérieur.</p></div>
           </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="prospects" class="page hidden">
+        <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1 items-center">
+          <button class="prospects-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prtab="pipeline" onclick="showProspectsTab('pipeline')">🎯 Pipeline</button>
+          <button class="prospects-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prtab="liste" onclick="showProspectsTab('liste')">📋 Liste</button>
+          <button class="prospects-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prtab="dashboard" onclick="showProspectsTab('dashboard')">📊 Dashboard commercial</button>
+          <button onclick="openProspectForm(null)" class="ml-auto bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">+ Nouveau prospect</button>
+        </div>
+
+        <div id="prTabDashboard" class="pr-tab hidden">
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Prospects actifs</div><div id="prKpiActifs" class="text-3xl font-black mt-2">—</div></div>
+            <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Pipeline pondéré</div><div id="prKpiPipeline" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">Σ montant × probabilité</div></div>
+            <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Taux de transformation</div><div id="prKpiTaux" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">gagnés / (gagnés+perdus)</div></div>
+            <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Convertis en devis (30j)</div><div id="prKpiConvertis" class="text-3xl font-black mt-2">—</div></div>
+          </div>
+          <div class="card bg-white rounded-2xl p-6 mb-6">
+            <h2 class="font-bold text-lg mb-4">Pipeline pondéré par étape</h2>
+            <div id="prPipelinePondere" class="space-y-2"></div>
+          </div>
+          <div class="grid lg:grid-cols-2 gap-6">
+            <div class="card bg-white rounded-2xl p-6">
+              <h2 class="font-bold text-lg mb-3">Par source</h2>
+              <div id="prParSource" class="space-y-2 text-sm"></div>
+            </div>
+            <div class="card bg-white rounded-2xl p-6">
+              <h2 class="font-bold text-lg mb-3">⚠️ Relances recommandées</h2>
+              <div id="prRelances" class="space-y-2 text-sm"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="prTabPipeline" class="pr-tab">
+          <div class="overflow-x-auto pb-2">
+            <div id="prPipelineBoard" class="flex gap-3" style="min-width:1100px"></div>
+          </div>
+        </div>
+
+        <div id="prTabListe" class="pr-tab hidden">
+          <div class="card bg-white rounded-2xl p-6">
+            <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
+              <h2 class="text-lg font-bold">Tous les prospects</h2>
+              <input id="prSearch" oninput="renderProspectsListe()" placeholder="Rechercher…" class="border rounded-lg px-3 py-2 text-sm w-56 max-w-full">
+            </div>
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">N°</th><th class="text-left p-3">Nom</th><th class="text-left p-3">Contact</th><th class="text-left p-3">Étape</th><th class="text-left p-3">Source</th><th class="text-right p-3">Montant est.</th><th class="text-right p-3">Proba.</th><th class="p-3"></th></tr></thead><tbody id="prListeBody"></tbody></table></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="ao" class="page hidden">
+        <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1 items-center">
+          <button class="ao-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-aotab="pipeline" onclick="showAOTab('pipeline')">📑 Pipeline</button>
+          <button class="ao-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-aotab="liste" onclick="showAOTab('liste')">📋 Liste</button>
+          <button class="ao-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-aotab="dashboard" onclick="showAOTab('dashboard')">📊 Dashboard</button>
+          <button onclick="openAOForm(null)" class="ml-auto bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">+ Nouvel AO</button>
+        </div>
+
+        <div id="aoTabDashboard" class="ao-tab hidden">
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">AO en cours</div><div id="aoKpiEnCours" class="text-3xl font-black mt-2">—</div></div>
+            <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Montant en jeu</div><div id="aoKpiMontant" class="text-3xl font-black mt-2">—</div></div>
+            <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Montant pondéré</div><div id="aoKpiPondere" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">× probabilité de gain</div></div>
+            <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Taux de réussite</div><div id="aoKpiTaux" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">gagnés / (gagnés+perdus)</div></div>
+          </div>
+          <div class="card bg-white rounded-2xl p-6">
+            <h2 class="font-bold text-lg mb-4">⚠️ Échéances de dépôt proches</h2>
+            <div id="aoEcheances" class="space-y-2"></div>
+          </div>
+        </div>
+
+        <div id="aoTabPipeline" class="ao-tab">
+          <div class="overflow-x-auto pb-2">
+            <div id="aoPipelineBoard" class="flex gap-3" style="min-width:1100px"></div>
+          </div>
+        </div>
+
+        <div id="aoTabListe" class="ao-tab hidden">
+          <div class="card bg-white rounded-2xl p-6">
+            <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
+              <h2 class="text-lg font-bold">Tous les appels d'offres</h2>
+              <input id="aoSearch" oninput="renderAOListe()" placeholder="Rechercher…" class="border rounded-lg px-3 py-2 text-sm w-56 max-w-full">
+            </div>
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">N°</th><th class="text-left p-3">Titre</th><th class="text-left p-3">Maître d'ouvrage</th><th class="text-left p-3">Statut</th><th class="text-left p-3">Dépôt</th><th class="text-right p-3">Montant est.</th><th class="p-3"></th></tr></thead><tbody id="aoListeBody"></tbody></table></div>
           </div>
         </div>
       </section>
@@ -1263,6 +1356,8 @@ window.SANIX_CFG = {
             <div class="bg-blue-50 rounded-xl p-4"><span class="text-sm text-blue-600">Prix de vente (marge incluse)</span><b id="cSale" class="block text-2xl mt-1 text-blue-700">0 FCFA</b></div>
           </div>
 
+          <div id="cMargeBanner" class="hidden mt-4 rounded-lg px-4 py-3 text-sm"></div>
+
           <div class="mt-6 flex flex-wrap justify-end gap-2">
             <button onclick="addToProformaCart()" class="border border-blue-600 text-blue-600 px-5 py-2.5 rounded-lg font-bold">+ Ajouter au devis</button>
             <button onclick="generateProforma()" class="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-bold">🧾 Générer la proforma</button>
@@ -1278,6 +1373,12 @@ window.SANIX_CFG = {
             <label class="text-sm font-semibold">Forfait pose (FCFA)
               <input id="posePrice" type="number" value="0" class="mt-1 w-full border rounded-lg px-3 py-2" oninput="updateCost()">
               <span class="text-xs text-slate-400">0 = pose non incluse dans ce chiffrage.</span>
+            </label>
+            <label class="text-sm font-semibold">Niveau tarifaire
+              <select id="niveauTarifaire" class="mt-1 w-full border rounded-lg px-3 py-2" onchange="applyNiveauTarifaireRemise();updateCost()"></select>
+            </label>
+            <label class="text-sm font-semibold">Remise commerciale (%)
+              <input id="remiseCommerciale" type="number" min="0" max="90" value="0" class="mt-1 w-full border rounded-lg px-3 py-2" oninput="updateCost()">
             </label>
           </div>
         </div>
@@ -1978,6 +2079,91 @@ window.SANIX_CFG = {
         <div id="epaBody" class="space-y-4"></div>
       </section>
 
+      <section id="relances" class="page hidden">
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+          <div><h2 class="text-lg font-bold">Relances commerciales</h2><p class="text-sm text-slate-500">Escalade automatique J+2 → J+5 (2ᵉ relance) → J+10 (alerte responsable).</p></div>
+          <button onclick="renderRelances()" class="border px-3 py-2 rounded-lg text-sm font-semibold">🔄 Actualiser</button>
+        </div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Devis en attente</div><div id="relKpiEnAttente" class="text-3xl font-black mt-2">—</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">🟡 Relance recommandée (J+2)</div><div id="relKpiJ2" class="text-3xl font-black mt-2">—</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">🟠 2ᵉ relance (J+5)</div><div id="relKpiJ5" class="text-3xl font-black mt-2">—</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">🔴 Alerte responsable (J+10)</div><div id="relKpiJ10" class="text-3xl font-black mt-2">—</div></div>
+        </div>
+
+        <div class="card bg-white rounded-2xl p-6 mb-6">
+          <h2 class="font-bold text-lg mb-4">Devis envoyés en attente de réponse</h2>
+          <div id="relDevisBody" class="space-y-3"></div>
+        </div>
+
+        <div class="card bg-white rounded-2xl p-6">
+          <h2 class="font-bold text-lg mb-4">Prospects à relancer</h2>
+          <div id="relProspectsBody" class="space-y-3"></div>
+        </div>
+      </section>
+
+      <section id="analysecommerciale" class="page hidden">
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+          <div><h2 class="text-lg font-bold">Analyse commerciale</h2><p class="text-sm text-slate-500">Par commercial, par client, par produit, par période.</p></div>
+          <select id="acPeriode" onchange="renderAnalyseCommerciale()" class="border rounded-lg px-3 py-2 text-sm">
+            <option value="mois">Ce mois-ci</option>
+            <option value="trimestre">Ce trimestre</option>
+            <option value="annee">Cette année</option>
+            <option value="tout" selected>Depuis le début</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">CA (dossiers actifs)</div><div id="acKpiCA" class="text-3xl font-black mt-2">—</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Nb devis</div><div id="acKpiDevis" class="text-3xl font-black mt-2">—</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Taux conversion</div><div id="acKpiTaux" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">devis → dossier payé</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Panier moyen</div><div id="acKpiPanier" class="text-3xl font-black mt-2">—</div></div>
+        </div>
+
+        <div class="card bg-white rounded-2xl p-6 mb-6">
+          <h2 class="font-bold text-lg mb-4">CA mensuel</h2>
+          <canvas id="acChartCA" height="90"></canvas>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-6 mb-6">
+          <div class="card bg-white rounded-2xl p-6">
+            <h2 class="font-bold text-lg mb-3">Par commercial</h2>
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Commercial</th><th class="text-right p-2">CA</th><th class="text-right p-2">Devis</th><th class="text-right p-2">Conv.</th></tr></thead><tbody id="acParCommercial"></tbody></table></div>
+          </div>
+          <div class="card bg-white rounded-2xl p-6">
+            <h2 class="font-bold text-lg mb-3">Par produit</h2>
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Type ouvrage</th><th class="text-right p-2">Volume</th><th class="text-right p-2">CA</th></tr></thead><tbody id="acParProduit"></tbody></table></div>
+          </div>
+        </div>
+
+        <div class="card bg-white rounded-2xl p-6">
+          <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
+            <h2 class="font-bold text-lg">Par client</h2>
+            <input id="acSearchClient" oninput="renderAnalyseCommerciale()" placeholder="Rechercher…" class="border rounded-lg px-3 py-2 text-sm w-56 max-w-full">
+          </div>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Client</th><th class="text-right p-2">CA</th><th class="text-right p-2">Dossiers</th><th class="text-right p-2">Panier moyen</th><th class="text-right p-2">Impayés</th></tr></thead><tbody id="acParClient"></tbody></table></div>
+        </div>
+      </section>
+
+      <section id="partenaires" class="page hidden">
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+          <div><h2 class="text-lg font-bold">Partenaires & apporteurs d'affaires</h2><p class="text-sm text-slate-500">Architectes, promoteurs, entreprises générales, poseurs — commissions calculées automatiquement.</p></div>
+          <button onclick="openPartenaireForm(null)" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">+ Nouveau partenaire</button>
+        </div>
+        <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Partenaires actifs</div><div id="paKpiActifs" class="text-3xl font-black mt-2">—</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Commissions dues</div><div id="paKpiDues" class="text-3xl font-black mt-2">—</div><div class="text-xs text-slate-400 mt-2">dossiers encaissés, non marquées payées</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Commissions payées</div><div id="paKpiPayees" class="text-3xl font-black mt-2">—</div></div>
+        </div>
+        <div class="card bg-white rounded-2xl p-6 mb-6">
+          <h2 class="font-bold text-lg mb-4">Répertoire</h2>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Nom</th><th class="text-left p-3">Type</th><th class="text-left p-3">Contact</th><th class="text-right p-3">Taux</th><th class="p-3"></th></tr></thead><tbody id="paListeBody"></tbody></table></div>
+        </div>
+        <div class="card bg-white rounded-2xl p-6">
+          <h2 class="font-bold text-lg mb-4">Commissions par dossier</h2>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Dossier</th><th class="text-left p-3">Partenaire</th><th class="text-right p-3">Montant dossier</th><th class="text-right p-3">Commission</th><th class="text-left p-3">Statut</th><th class="p-3"></th></tr></thead><tbody id="paCommissionsBody"></tbody></table></div>
+        </div>
+      </section>
+
       <section id="controlegestion" class="page hidden">
         <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
           <div><h2 class="text-lg font-bold">Contrôle de gestion — temps réel</h2><p class="text-sm text-slate-500">Budget vs réel par chantier, marge réelle, trésorerie. Recalcul à chaque ouverture et action.</p></div>
@@ -2223,6 +2409,18 @@ window.SANIX_CFG = {
   <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[92vh] overflow-y-auto" id="maintenanceContent"></div>
 </div>
 
+<div id="prospectModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 modal-overlay">
+  <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[92vh] overflow-y-auto" id="prospectContent"></div>
+</div>
+
+<div id="partenaireModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 modal-overlay">
+  <div class="bg-white rounded-2xl p-6 max-w-md w-full max-h-[92vh] overflow-y-auto" id="partenaireContent"></div>
+</div>
+
+<div id="aoModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 modal-overlay">
+  <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[92vh] overflow-y-auto" id="aoContent"></div>
+</div>
+
 <script>
 /* =========================================================
    Sanix AluExpert ERP — Couche ERP (Auth Supabase, IndexedDB offline,
@@ -2242,10 +2440,10 @@ function escapeHtml(s){
 /* ---------- IndexedDB ---------- */
 function openDB(){
   return new Promise((resolve,reject)=>{
-    const req=indexedDB.open('alubom_db',18);
+    const req=indexedDB.open('alubom_db',21);
     req.onupgradeneeded=e=>{
       const d=e.target.result;
-      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers','depots','pointages','nonconformites','chutes','postes','gammes','sav','maintenances'].forEach(s=>{
+      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers','depots','pointages','nonconformites','chutes','postes','gammes','sav','maintenances','prospects','partenaires','appels_offres'].forEach(s=>{
         if(!d.objectStoreNames.contains(s)) d.createObjectStore(s,{keyPath:'id'});
       });
     };
@@ -2602,7 +2800,7 @@ async function checkSession(){
 document.addEventListener('DOMContentLoaded',checkSession);
 
 /* ---------- Ordres de Fabrication (OF) ---------- */
-async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable(),renderEnsemblesList(),renderPlansFacadeTable(),renderRevisionsTable(),populateAtelierSelect(),loadParams()]); renderUsersTable(); if(document.getElementById('costChart')) updateDashboard(); if(document.getElementById('prodTabKanban') && !document.getElementById('prodTabKanban').classList.contains('hidden')) renderKanban(); if(document.getElementById('prodTabGantt') && !document.getElementById('prodTabGantt').classList.contains('hidden')) renderGantt(); if(document.getElementById('prodTabCharge') && !document.getElementById('prodTabCharge').classList.contains('hidden')) renderChargePostes(); if(document.getElementById('atelierMobile') && !document.getElementById('atelierMobile').classList.contains('hidden')) renderAtelierMobile(); if(document.getElementById('controlegestion') && !document.getElementById('controlegestion').classList.contains('hidden')) renderControleGestion(); if(document.getElementById('validations') && !document.getElementById('validations').classList.contains('hidden')) renderValidationsQueue(); if(document.getElementById('etatpa') && !document.getElementById('etatpa').classList.contains('hidden')) renderEtatProformaAchats(); if(document.getElementById('gmao') && !document.getElementById('gmao').classList.contains('hidden')) showGmaoTab(document.querySelector('.gmao-tab-btn.active')?.dataset.gmaotab||'machines'); updateGmaoBadge(); updateValidationsBadge(); }
+async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable(),renderEnsemblesList(),renderPlansFacadeTable(),renderRevisionsTable(),populateAtelierSelect(),loadParams()]); renderUsersTable(); if(document.getElementById('costChart')) updateDashboard(); if(document.getElementById('prodTabKanban') && !document.getElementById('prodTabKanban').classList.contains('hidden')) renderKanban(); if(document.getElementById('prodTabGantt') && !document.getElementById('prodTabGantt').classList.contains('hidden')) renderGantt(); if(document.getElementById('prodTabCharge') && !document.getElementById('prodTabCharge').classList.contains('hidden')) renderChargePostes(); if(document.getElementById('atelierMobile') && !document.getElementById('atelierMobile').classList.contains('hidden')) renderAtelierMobile(); if(document.getElementById('controlegestion') && !document.getElementById('controlegestion').classList.contains('hidden')) renderControleGestion(); if(document.getElementById('validations') && !document.getElementById('validations').classList.contains('hidden')) renderValidationsQueue(); if(document.getElementById('etatpa') && !document.getElementById('etatpa').classList.contains('hidden')) renderEtatProformaAchats(); if(document.getElementById('gmao') && !document.getElementById('gmao').classList.contains('hidden')) showGmaoTab(document.querySelector('.gmao-tab-btn.active')?.dataset.gmaotab||'machines'); if(document.getElementById('relances') && !document.getElementById('relances').classList.contains('hidden')) renderRelances(); updateGmaoBadge(); updateValidationsBadge(); updateRelancesBadge(); updateAOBadge(); }
 
 function openNewOFForm(){
   if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
@@ -6352,6 +6550,770 @@ function computeMargeLignes(lignes,montantHT){
   const margePct=montantHT?((montantHT-coutTotal)/montantHT*100):0;
   return {coutTotal,margePct};
 }
+/* ---------- Prospects & Pipeline commercial ---------- */
+const PIPELINE_ETAPES=[
+  {key:'nouveau',label:'Nouveau'},
+  {key:'qualifie',label:'Qualifié'},
+  {key:'besoin_identifie',label:'Besoin identifié'},
+  {key:'visite_metre',label:'Visite / Métré'},
+  {key:'etude_technique',label:'Étude technique'},
+  {key:'gagne',label:'Gagné'},
+  {key:'perdu',label:'Perdu'}
+];
+const PIPELINE_ACTIVES=PIPELINE_ETAPES.filter(e=>!['gagne','perdu'].includes(e.key));
+const PROSPECT_SOURCES={site_web:'Site web',whatsapp:'WhatsApp',appel:'Appel',visite:'Visite',recommandation:'Recommandation',appel_offres:"Appel d'offres",partenaire:'Partenaire',reseaux_sociaux:'Réseaux sociaux',prospection_terrain:'Prospection terrain'};
+const PROSPECT_POTENTIEL={faible:{label:'Faible',c:'slate'},moyen:{label:'Moyen',c:'amber'},fort:{label:'Fort',c:'emerald'}};
+
+function showProspectsTab(tab){
+  document.querySelectorAll('.pr-tab').forEach(t=>t.classList.add('hidden'));
+  const el=document.getElementById('prTab'+tab.charAt(0).toUpperCase()+tab.slice(1)); if(el) el.classList.remove('hidden');
+  document.querySelectorAll('.prospects-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.prtab===tab));
+  if(tab==='pipeline') renderProspectsPipeline();
+  if(tab==='liste') renderProspectsListe();
+  if(tab==='dashboard') renderProspectsDashboard();
+}
+
+async function renderProspectsPipeline(){
+  const board=document.getElementById('prPipelineBoard'); if(!board) return;
+  const prospects=(await idbGetAll('prospects')).filter(p=>p.etape!=='gagne'&&p.etape!=='perdu');
+  board.innerHTML=PIPELINE_ACTIVES.map(etape=>{
+    const items=prospects.filter(p=>p.etape===etape.key).sort((a,b)=>(b._modifie||'').localeCompare(a._modifie||''));
+    const total=items.reduce((s,p)=>s+(p.montantEstime||0),0);
+    return `<div class="bg-slate-50 rounded-xl p-2" style="width:230px;flex:0 0 230px">
+      <div class="px-2 py-1.5 mb-2"><div class="font-bold text-sm">${escapeHtml(etape.label)}</div><div class="text-xs text-slate-400">${items.length} · ${money(total)}</div></div>
+      <div class="space-y-2">
+        ${items.map(p=>{
+          const pot=PROSPECT_POTENTIEL[p.potentiel]||{label:'—',c:'slate'};
+          return `<div onclick="openProspectForm('${p.id}')" class="bg-white border rounded-lg p-2.5 shadow-sm cursor-pointer hover:shadow-md">
+            <div class="font-semibold text-xs mb-1">${escapeHtml(p.nom)}</div>
+            <div class="text-[11px] text-slate-500 mb-1">${escapeHtml(p.contact||'')}</div>
+            <div class="flex justify-between items-center">
+              <span class="badge bg-${pot.c}-50 text-${pot.c}-700 text-[10px]">${pot.label}</span>
+              <span class="text-[11px] font-semibold">${p.montantEstime?money(p.montantEstime):'—'}</span>
+            </div>
+          </div>`;
+        }).join('') || '<p class="text-xs text-slate-300 px-2">Vide</p>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function renderProspectsListe(){
+  const el=document.getElementById('prListeBody'); if(!el) return;
+  const search=(document.getElementById('prSearch')?.value||'').toLowerCase().trim();
+  let rows=(await idbGetAll('prospects')).sort((a,b)=>(b._modifie||'').localeCompare(a._modifie||''));
+  if(search) rows=rows.filter(p=>(p.nom||'').toLowerCase().includes(search)||(p.contact||'').toLowerCase().includes(search));
+  const etapeLabel=k=>PIPELINE_ETAPES.find(e=>e.key===k)?.label||k;
+  el.innerHTML = rows.length ? rows.map(p=>`
+    <tr class="border-b hover:bg-slate-50 cursor-pointer" onclick="openProspectForm('${p.id}')">
+      <td class="p-3 font-semibold">${escapeHtml(p.numero)}</td>
+      <td class="p-3">${escapeHtml(p.nom)}</td>
+      <td class="p-3 text-xs">${escapeHtml(p.contact||'—')}${p.tel?' • '+escapeHtml(p.tel):''}</td>
+      <td class="p-3"><span class="badge ${p.etape==='gagne'?'bg-emerald-50 text-emerald-700':p.etape==='perdu'?'bg-red-50 text-red-700':'bg-slate-100 text-slate-600'}">${escapeHtml(etapeLabel(p.etape))}</span></td>
+      <td class="p-3 text-xs">${escapeHtml(PROSPECT_SOURCES[p.source]||p.source||'—')}</td>
+      <td class="p-3 text-right">${p.montantEstime?money(p.montantEstime):'—'}</td>
+      <td class="p-3 text-right">${p.probabilite!=null?p.probabilite+'%':'—'}</td>
+      <td class="p-3 text-right" onclick="event.stopPropagation()"><button onclick="openProspectForm('${p.id}')" class="text-blue-600 text-xs font-semibold">✏️</button></td>
+    </tr>`).join('') : '<tr><td class="p-3 text-slate-400" colspan="8">Aucun prospect.</td></tr>';
+}
+
+async function renderProspectsDashboard(){
+  const prospects=await idbGetAll('prospects');
+  const actifs=prospects.filter(p=>p.etape!=='gagne'&&p.etape!=='perdu');
+  document.getElementById('prKpiActifs').textContent=actifs.length;
+  const pipelinePondere=actifs.reduce((s,p)=>s+((p.montantEstime||0)*(p.probabilite||0)/100),0);
+  document.getElementById('prKpiPipeline').textContent=money(pipelinePondere);
+  const gagnes=prospects.filter(p=>p.etape==='gagne').length, perdus=prospects.filter(p=>p.etape==='perdu').length;
+  document.getElementById('prKpiTaux').textContent=(gagnes+perdus)?((gagnes/(gagnes+perdus)*100).toFixed(0)+'%'):'—';
+  const depuis30=new Date(); depuis30.setDate(depuis30.getDate()-30);
+  document.getElementById('prKpiConvertis').textContent=prospects.filter(p=>p.etape==='gagne'&&p.dateGagne&&new Date(p.dateGagne)>=depuis30).length;
+
+  document.getElementById('prPipelinePondere').innerHTML=PIPELINE_ACTIVES.map(etape=>{
+    const items=actifs.filter(p=>p.etape===etape.key);
+    const montant=items.reduce((s,p)=>s+(p.montantEstime||0),0);
+    const pondere=items.reduce((s,p)=>s+((p.montantEstime||0)*(p.probabilite||0)/100),0);
+    const maxRef=Math.max(1,...PIPELINE_ACTIVES.map(e=>actifs.filter(p=>p.etape===e.key).reduce((s,p)=>s+(p.montantEstime||0),0)));
+    return `<div>
+      <div class="flex justify-between text-xs mb-1"><span class="font-semibold">${escapeHtml(etape.label)} (${items.length})</span><span>${money(montant)} → pondéré ${money(pondere)}</span></div>
+      <div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-blue-500" style="width:${montant?(montant/maxRef*100):0}%"></div></div>
+    </div>`;
+  }).join('');
+
+  const parSource={};
+  actifs.forEach(p=>{ const k=p.source||'autre'; parSource[k]=(parSource[k]||0)+1; });
+  document.getElementById('prParSource').innerHTML=Object.entries(parSource).sort((a,b)=>b[1]-a[1]).map(([k,n])=>`<div class="flex justify-between border-b pb-1"><span>${escapeHtml(PROSPECT_SOURCES[k]||k)}</span><b>${n}</b></div>`).join('') || '<p class="text-slate-400">Aucune donnée.</p>';
+
+  const today=new Date().toISOString().slice(0,10);
+  const relances=actifs.filter(p=>p.echeanceAction && p.echeanceAction<=today).sort((a,b)=>(a.echeanceAction||'').localeCompare(b.echeanceAction||''));
+  document.getElementById('prRelances').innerHTML=relances.length ? relances.slice(0,10).map(p=>`
+    <div class="flex justify-between items-center border-b pb-1.5 cursor-pointer" onclick="openProspectForm('${p.id}')">
+      <div><span class="font-semibold">${escapeHtml(p.nom)}</span><span class="text-slate-400 text-xs ml-1">${escapeHtml(p.prochaineAction||'')}</span></div>
+      <span class="text-xs ${p.echeanceAction<today?'text-red-600 font-bold':'text-amber-600'}">${new Date(p.echeanceAction).toLocaleDateString('fr-FR')}</span>
+    </div>`).join('') : '<p class="text-slate-400">Aucune relance en retard.</p>';
+}
+
+async function openProspectForm(id){
+  let rec=null;
+  if(id){ const rows=await idbGetAll('prospects'); rec=rows.find(p=>p.id===id); }
+  const etapeOptions=PIPELINE_ETAPES.map(e=>`<option value="${e.key}" ${(rec?.etape||'nouveau')===e.key?'selected':''}>${e.label}</option>`).join('');
+  const sourceOptions=Object.entries(PROSPECT_SOURCES).map(([k,l])=>`<option value="${k}" ${rec?.source===k?'selected':''}>${l}</option>`).join('');
+  const niveauOptions=Object.entries(NIVEAUX_TARIFAIRES).map(([k,v])=>`<option value="${k}" ${(rec?.niveauTarifaire||'standard')===k?'selected':''}>${v.label}</option>`).join('');
+  const chantiers = rec?.etape==='gagne' ? [] : await idbGetAll('chantiers');
+  const html=`
+    <div class="flex justify-between items-start mb-4">
+      <h2 class="text-lg font-bold">${rec?escapeHtml(rec.numero):'Nouveau prospect'}</h2>
+      <button onclick="document.getElementById('prospectModal').classList.add('hidden');setModalOpen(false)" class="text-slate-400 text-xl leading-none">×</button>
+    </div>
+    ${rec?.etape==='perdu' && rec.motifPerte?`<div class="text-xs bg-red-50 text-red-700 rounded-lg px-3 py-2 mb-3">❌ Perdu — ${escapeHtml(rec.motifPerte)}</div>`:''}
+    ${rec?.etape==='gagne'?`<div class="text-xs bg-emerald-50 text-emerald-700 rounded-lg px-3 py-2 mb-3">✅ Gagné${rec.chantierNumero?' — dossier '+escapeHtml(rec.chantierNumero):''}</div>`:''}
+    <form onsubmit="return saveProspect(event,'${id||''}')" class="space-y-3">
+      <div class="grid sm:grid-cols-2 gap-3">
+        <label class="text-xs font-semibold block">Nom / Entreprise
+          <input id="prNom" value="${escapeHtml(rec?.nom||'')}" required class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+        <label class="text-xs font-semibold block">Type
+          <select id="prType" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+            <option value="entreprise" ${rec?.typeClient!=='particulier'?'selected':''}>Entreprise</option>
+            <option value="particulier" ${rec?.typeClient==='particulier'?'selected':''}>Particulier</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <label class="text-xs font-semibold block">Contact
+          <input id="prContact" value="${escapeHtml(rec?.contact||'')}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+        <label class="text-xs font-semibold block">Téléphone / WhatsApp
+          <input id="prTel" value="${escapeHtml(rec?.tel||'')}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <label class="text-xs font-semibold block">Email
+          <input id="prEmail" type="email" value="${escapeHtml(rec?.email||'')}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+        <label class="text-xs font-semibold block">Ville / Adresse
+          <input id="prAdresse" value="${escapeHtml(rec?.adresse||'')}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+      </div>
+      <div class="grid sm:grid-cols-3 gap-3">
+        <label class="text-xs font-semibold block">Source
+          <select id="prSource" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">${sourceOptions}</select>
+        </label>
+        <label class="text-xs font-semibold block">Potentiel
+          <select id="prPotentiel" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+            <option value="faible" ${rec?.potentiel==='faible'?'selected':''}>Faible</option>
+            <option value="moyen" ${(!rec||rec.potentiel==='moyen')?'selected':''}>Moyen</option>
+            <option value="fort" ${rec?.potentiel==='fort'?'selected':''}>Fort</option>
+          </select>
+        </label>
+        <label class="text-xs font-semibold block">Niveau tarifaire
+          <select id="prNiveauTarifaire" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">${niveauOptions}</select>
+        </label>
+      </div>
+      <div class="grid sm:grid-cols-3 gap-3">
+        <label class="text-xs font-semibold block">Étape
+          <select id="prEtape" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">${etapeOptions}</select>
+        </label>
+        <label class="text-xs font-semibold block">Montant estimé (FCFA)
+          <input id="prMontant" type="number" min="0" value="${rec?.montantEstime||0}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+        <label class="text-xs font-semibold block">Probabilité (%)
+          <input id="prProbabilite" type="number" min="0" max="100" value="${rec?.probabilite??20}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <label class="text-xs font-semibold block">Prochaine action
+          <input id="prProchaineAction" value="${escapeHtml(rec?.prochaineAction||'')}" placeholder="Ex : appeler, envoyer devis…" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+        <label class="text-xs font-semibold block">Échéance
+          <input id="prEcheance" type="date" value="${rec?.echeanceAction||''}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+      </div>
+      <label class="text-xs font-semibold block">Commercial responsable
+        <input id="prCommercial" value="${escapeHtml(rec?.commercial||(currentUser?currentUser.email:''))}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <label class="text-xs font-semibold block">Notes
+        <textarea id="prNotes" rows="2" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">${escapeHtml(rec?.notes||'')}</textarea>
+      </label>
+      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold">✓ Enregistrer</button>
+    </form>
+    ${rec && rec.etape!=='gagne' && rec.etape!=='perdu' ? `
+    <div class="mt-4 pt-4 border-t space-y-2">
+      <button onclick="showPage('config')" class="w-full border border-blue-600 text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold">🧮 Ouvrir le Configurateur pour chiffrer</button>
+      <div class="flex gap-2">
+        <select id="prLierChantier" class="flex-1 border rounded-lg px-2 py-1.5 text-sm">
+          <option value="">— Lier à un dossier chantier existant —</option>
+          ${chantiers.map(c=>`<option value="${c.id}">${escapeHtml(c.numero)} — ${escapeHtml(c.client||'')}</option>`).join('')}
+        </select>
+        <button onclick="marquerProspectGagne('${id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap">✅ Gagné</button>
+      </div>
+      <button onclick="marquerProspectPerdu('${id}')" class="w-full border border-red-500 text-red-600 px-4 py-2 rounded-lg text-sm font-semibold">❌ Marquer perdu</button>
+    </div>` : ''}
+    ${rec?.historiqueEtapes?.length ? `
+    <div class="mt-4 pt-4 border-t">
+      <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Historique</h3>
+      <div class="space-y-1 text-xs text-slate-500">${rec.historiqueEtapes.slice().reverse().map(h=>`<div>${new Date(h.date).toLocaleDateString('fr-FR')} — ${escapeHtml(PIPELINE_ETAPES.find(e=>e.key===h.etape)?.label||h.etape)} (${escapeHtml(h.user||'')})</div>`).join('')}</div>
+    </div>` : ''}
+  `;
+  document.getElementById('prospectContent').innerHTML=html;
+  document.getElementById('prospectModal').classList.remove('hidden');
+  setModalOpen(true);
+}
+
+async function saveProspect(e,id){
+  e.preventDefault();
+  let rec=null;
+  if(id){ const rows=await idbGetAll('prospects'); rec=rows.find(p=>p.id===id); }
+  const etapeAvant=rec?.etape;
+  if(!rec){ const seq=nextSeq('prospect'); rec={id:'pr_'+seq.year+'_'+seq.n,numero:'PR-'+seq.year+'-'+String(seq.n).padStart(4,'0'),historiqueEtapes:[],createdAt:new Date().toISOString()}; }
+  const nouvelleEtape=document.getElementById('prEtape').value;
+  Object.assign(rec,{
+    nom:document.getElementById('prNom').value.trim(),
+    typeClient:document.getElementById('prType').value,
+    contact:document.getElementById('prContact').value.trim(),
+    tel:document.getElementById('prTel').value.trim(),
+    email:document.getElementById('prEmail').value.trim(),
+    adresse:document.getElementById('prAdresse').value.trim(),
+    source:document.getElementById('prSource').value,
+    potentiel:document.getElementById('prPotentiel').value,
+    niveauTarifaire:document.getElementById('prNiveauTarifaire').value,
+    etape:nouvelleEtape,
+    montantEstime:+document.getElementById('prMontant').value||0,
+    probabilite:+document.getElementById('prProbabilite').value||0,
+    prochaineAction:document.getElementById('prProchaineAction').value.trim(),
+    echeanceAction:document.getElementById('prEcheance').value||null,
+    commercial:document.getElementById('prCommercial').value.trim(),
+    notes:document.getElementById('prNotes').value.trim(),
+    _modifie:new Date().toISOString()
+  });
+  if(nouvelleEtape!==etapeAvant){
+    rec.historiqueEtapes=rec.historiqueEtapes||[];
+    rec.historiqueEtapes.push({etape:nouvelleEtape,date:new Date().toISOString(),user:currentUser?currentUser.email:'—',montant:rec.montantEstime,probabilite:rec.probabilite});
+  }
+  await idbPut('prospects',rec);
+  queueSync('alubom_prospects',rec);
+  await audit('PROSPECT_'+(id?'MAJ':'CREATION'),rec.numero+' — '+rec.nom);
+  document.getElementById('prospectModal').classList.add('hidden');
+  setModalOpen(false);
+  showProspectsTab(document.querySelector('.prospects-tab-btn.active')?.dataset.prtab||'pipeline');
+  return false;
+}
+
+async function marquerProspectGagne(id){
+  const rows=await idbGetAll('prospects');
+  const rec=rows.find(p=>p.id===id); if(!rec) return;
+  const chantierId=document.getElementById('prLierChantier')?.value||null;
+  let chantierNumero=null;
+  if(chantierId){ const ch=await getChantier(chantierId); chantierNumero=ch?.numero||null; }
+  rec.etape='gagne'; rec.chantierId=chantierId; rec.chantierNumero=chantierNumero; rec.dateGagne=new Date().toISOString();
+  rec.historiqueEtapes=rec.historiqueEtapes||[];
+  rec.historiqueEtapes.push({etape:'gagne',date:new Date().toISOString(),user:currentUser?currentUser.email:'—',montant:rec.montantEstime,probabilite:100});
+  await idbPut('prospects',rec); queueSync('alubom_prospects',rec);
+  await audit('PROSPECT_GAGNE',rec.numero+' — '+rec.nom+(chantierNumero?' → '+chantierNumero:''));
+  document.getElementById('prospectModal').classList.add('hidden'); setModalOpen(false);
+  showProspectsTab('pipeline');
+}
+async function marquerProspectPerdu(id){
+  const motif=prompt('Motif de la perte :',''); if(motif===null) return;
+  const rows=await idbGetAll('prospects');
+  const rec=rows.find(p=>p.id===id); if(!rec) return;
+  rec.etape='perdu'; rec.motifPerte=motif;
+  rec.historiqueEtapes=rec.historiqueEtapes||[];
+  rec.historiqueEtapes.push({etape:'perdu',date:new Date().toISOString(),user:currentUser?currentUser.email:'—'});
+  await idbPut('prospects',rec); queueSync('alubom_prospects',rec);
+  await audit('PROSPECT_PERDU',rec.numero+' — '+rec.nom+' — '+motif);
+  document.getElementById('prospectModal').classList.add('hidden'); setModalOpen(false);
+  showProspectsTab('pipeline');
+}
+
+/* ---------- Relances commerciales — escalade automatique J+2 / J+5 / J+10 ---------- */
+function joursDepuis(dateStr){ if(!dateStr) return null; return Math.floor((Date.now()-new Date(dateStr).getTime())/86400000); }
+function niveauRelance(jours){
+  if(jours==null) return null;
+  if(jours>=10) return {key:'j10',label:'🔴 Alerte responsable',c:'red'};
+  if(jours>=5) return {key:'j5',label:'🟠 2ᵉ relance',c:'amber'};
+  if(jours>=2) return {key:'j2',label:'🟡 Relance recommandée',c:'yellow'};
+  return null;
+}
+
+async function updateRelancesBadge(){
+  const badge=document.getElementById('relancesBadge'); if(!badge) return;
+  const [chantiers,prospects]=await Promise.all(['chantiers','prospects'].map(idbGetAll));
+  const today=new Date().toISOString().slice(0,10);
+  let n=0;
+  chantiers.filter(c=>!c.annule&&c.etape==='paiement').forEach(c=>{
+    const entree=(c.historique||[]).filter(h=>h.etape==='paiement').pop();
+    if(niveauRelance(joursDepuis(entree?.date))) n++;
+  });
+  n+=prospects.filter(p=>p.etape!=='gagne'&&p.etape!=='perdu'&&p.echeanceAction&&p.echeanceAction<=today).length;
+  if(n){ badge.textContent=n; badge.classList.remove('hidden'); } else badge.classList.add('hidden');
+}
+
+async function renderRelances(){
+  const body=document.getElementById('relDevisBody'); if(!body) return;
+  const [chantiers,clients]=await Promise.all(['chantiers','clients'].map(idbGetAll));
+  const enAttente=chantiers.filter(c=>!c.annule&&c.etape==='paiement').map(c=>{
+    const entree=(c.historique||[]).filter(h=>h.etape==='paiement').pop();
+    const jours=joursDepuis(entree?.date);
+    return {c,jours,niveau:niveauRelance(jours)};
+  }).sort((a,b)=>(b.jours||0)-(a.jours||0));
+
+  document.getElementById('relKpiEnAttente').textContent=enAttente.length;
+  document.getElementById('relKpiJ2').textContent=enAttente.filter(x=>x.niveau?.key==='j2').length;
+  document.getElementById('relKpiJ5').textContent=enAttente.filter(x=>x.niveau?.key==='j5').length;
+  document.getElementById('relKpiJ10').textContent=enAttente.filter(x=>x.niveau?.key==='j10').length;
+
+  body.innerHTML = enAttente.length ? enAttente.map(x=>{
+    const client=clients.find(cl=>chantierBelongsToClient(x.c,cl));
+    const derniereRelance=(x.c.relances||[])[x.c.relances?.length-1];
+    return `<div class="border rounded-xl p-4 ${x.niveau?'bg-'+x.niveau.c+'-50':''}">
+      <div class="flex flex-wrap justify-between items-center gap-2">
+        <div>
+          <button onclick="showPage('chantier');openChantierDetail('${x.c.id}')" class="font-semibold text-blue-700 hover:underline">${escapeHtml(x.c.numero)}</button>
+          <span class="text-sm text-slate-500 ml-1">${escapeHtml(x.c.client||'—')}</span>
+          <span class="text-xs text-slate-400 ml-2">${money(x.c.montantTotal||0)}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          ${x.niveau?`<span class="badge bg-${x.niveau.c}-100 text-${x.niveau.c}-700">${x.niveau.label} — ${x.jours} j</span>`:`<span class="text-xs text-slate-400">${x.jours}\u00a0j — pas encore de relance requise</span>`}
+        </div>
+      </div>
+      ${derniereRelance?`<div class="text-xs text-slate-400 mt-1">Dernière relance : ${new Date(derniereRelance.date).toLocaleDateString('fr-FR')} (${escapeHtml(derniereRelance.canal)})</div>`:''}
+      <div class="flex gap-2 mt-2">
+        <button onclick="relancerChantier('${x.c.id}','whatsapp')" class="border border-emerald-600 text-emerald-700 px-3 py-1.5 rounded-lg text-xs font-semibold">📱 WhatsApp</button>
+        <button onclick="relancerChantier('${x.c.id}','appel')" class="border px-3 py-1.5 rounded-lg text-xs font-semibold">📞 Marquer appelé</button>
+        <button onclick="relancerChantier('${x.c.id}','autre')" class="border px-3 py-1.5 rounded-lg text-xs font-semibold">📝 Autre relance</button>
+      </div>
+    </div>`;
+  }).join('') : '<p class="text-sm text-slate-400">Aucun devis en attente de réponse.</p>';
+
+  const prospects=(await idbGetAll('prospects')).filter(p=>p.etape!=='gagne'&&p.etape!=='perdu');
+  const today=new Date().toISOString().slice(0,10);
+  const prospectsEnRetard=prospects.filter(p=>p.echeanceAction&&p.echeanceAction<=today).sort((a,b)=>(a.echeanceAction||'').localeCompare(b.echeanceAction||''));
+  document.getElementById('relProspectsBody').innerHTML = prospectsEnRetard.length ? prospectsEnRetard.map(p=>`
+    <div class="border rounded-xl p-3 flex flex-wrap justify-between items-center gap-2 ${p.echeanceAction<today?'bg-red-50':'bg-amber-50'}">
+      <div>
+        <button onclick="openProspectForm('${p.id}')" class="font-semibold text-blue-700 hover:underline">${escapeHtml(p.nom)}</button>
+        <span class="text-xs text-slate-500 ml-1">${escapeHtml(p.prochaineAction||'')}</span>
+      </div>
+      <span class="text-xs ${p.echeanceAction<today?'text-red-600 font-bold':'text-amber-600'}">Échéance ${new Date(p.echeanceAction).toLocaleDateString('fr-FR')}</span>
+    </div>`).join('') : '<p class="text-sm text-slate-400">Aucun prospect en retard de relance.</p>';
+
+  await updateRelancesBadge();
+}
+
+async function relancerChantier(id,canal){
+  const rec=await getChantier(id); if(!rec) return;
+  if(canal==='whatsapp'){ await envoyerDevisWhatsApp(id); }
+  rec.relances=rec.relances||[];
+  rec.relances.push({date:new Date().toISOString(),canal,user:currentUser?currentUser.email:'—'});
+  await saveChantier(rec);
+  await audit('RELANCE_DEVIS',rec.numero+' — '+canal);
+  await renderRelances();
+}
+
+/* ---------- Analyse commerciale — par commercial / client / produit / période ---------- */
+function periodeRange(periode){
+  const now=new Date();
+  let from=null;
+  if(periode==='mois'){ from=new Date(now.getFullYear(),now.getMonth(),1); }
+  else if(periode==='trimestre'){ from=new Date(now.getFullYear(),Math.floor(now.getMonth()/3)*3,1); }
+  else if(periode==='annee'){ from=new Date(now.getFullYear(),0,1); }
+  return from?from.toISOString():null;
+}
+let acChart=null;
+async function renderAnalyseCommerciale(){
+  if(!document.getElementById('analysecommerciale')) return;
+  const periode=document.getElementById('acPeriode')?.value||'tout';
+  const from=periodeRange(periode);
+  const searchClient=(document.getElementById('acSearchClient')?.value||'').toLowerCase().trim();
+  const [chantiersAll,clients]=await Promise.all(['chantiers','clients'].map(idbGetAll));
+  const chantiers=chantiersAll.filter(c=>!c.annule && (!from || (c.dateCreation||'')>=from));
+
+  const ca=chantiers.reduce((s,c)=>s+(c.montantTotal||0),0);
+  document.getElementById('acKpiCA').textContent=money(ca);
+  document.getElementById('acKpiDevis').textContent=chantiers.length;
+  const convertis=chantiers.filter(c=>c.etape!=='devis').length;
+  document.getElementById('acKpiTaux').textContent=chantiers.length?((convertis/chantiers.length*100).toFixed(0)+'%'):'—';
+  document.getElementById('acKpiPanier').textContent=chantiers.length?money(ca/chantiers.length):'—';
+
+  // CA mensuel (12 derniers mois, tous dossiers non annulés confondus)
+  const parMois={};
+  const depuis12=new Date(); depuis12.setMonth(depuis12.getMonth()-11); depuis12.setDate(1);
+  chantiersAll.filter(c=>!c.annule && (c.dateCreation||'')>=depuis12.toISOString()).forEach(c=>{
+    const k=(c.dateCreation||'').slice(0,7);
+    parMois[k]=(parMois[k]||0)+(c.montantTotal||0);
+  });
+  const moisLabels=[]; for(let i=11;i>=0;i--){ const d=new Date(); d.setMonth(d.getMonth()-i); moisLabels.push(d.toISOString().slice(0,7)); }
+  const ctx=document.getElementById('acChartCA');
+  if(ctx){
+    if(acChart) acChart.destroy();
+    acChart=new Chart(ctx,{type:'bar',data:{labels:moisLabels.map(m=>new Date(m+'-01').toLocaleDateString('fr-FR',{month:'short',year:'2-digit'})),datasets:[{label:'CA',data:moisLabels.map(m=>parMois[m]||0),backgroundColor:'#2563eb'}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>(v/1e6).toFixed(1)+'M'}}}}});
+  }
+
+  // Par commercial
+  const parCommercial={};
+  chantiers.forEach(c=>{ const k=c.commercial||'Non attribué'; parCommercial[k]=parCommercial[k]||{ca:0,devis:0,convertis:0}; parCommercial[k].ca+=c.montantTotal||0; parCommercial[k].devis++; if(c.etape!=='devis') parCommercial[k].convertis++; });
+  document.getElementById('acParCommercial').innerHTML=Object.entries(parCommercial).sort((a,b)=>b[1].ca-a[1].ca).map(([nom,d])=>`
+    <tr class="border-b"><td class="p-2 font-semibold">${escapeHtml(nom)}</td><td class="p-2 text-right">${money(d.ca)}</td><td class="p-2 text-right">${d.devis}</td><td class="p-2 text-right">${d.devis?((d.convertis/d.devis*100).toFixed(0)+'%'):'—'}</td></tr>`).join('') || '<tr><td class="p-2 text-slate-400" colspan="4">Aucune donnée.</td></tr>';
+
+  // Par produit (type d'ouvrage)
+  const parProduit={};
+  chantiers.forEach(c=>(c.lignes||[]).forEach(l=>{ const k=l.type||'Autre'; parProduit[k]=parProduit[k]||{volume:0,ca:0}; parProduit[k].volume+=(l.qty||1); parProduit[k].ca+=(l.subtotal||0); }));
+  document.getElementById('acParProduit').innerHTML=Object.entries(parProduit).sort((a,b)=>b[1].ca-a[1].ca).map(([type,d])=>`
+    <tr class="border-b"><td class="p-2 font-semibold">${escapeHtml(type)}</td><td class="p-2 text-right">${d.volume}</td><td class="p-2 text-right">${money(d.ca)}</td></tr>`).join('') || '<tr><td class="p-2 text-slate-400" colspan="3">Aucune donnée.</td></tr>';
+
+  // Par client
+  let parClient=clients.map(cl=>{
+    const chCl=chantiers.filter(c=>chantierBelongsToClient(c,cl));
+    const caCl=chCl.reduce((s,c)=>s+(c.montantTotal||0),0);
+    const impayes=chCl.reduce((s,c)=>s+Math.max(0,(c.montantTotal||0)-(c.montantPaye||0)),0);
+    return {client:cl,ca:caCl,nb:chCl.length,impayes};
+  }).filter(x=>x.nb>0);
+  if(searchClient) parClient=parClient.filter(x=>(x.client.nom||'').toLowerCase().includes(searchClient));
+  parClient.sort((a,b)=>b.ca-a.ca);
+  document.getElementById('acParClient').innerHTML=parClient.length?parClient.map(x=>`
+    <tr class="border-b"><td class="p-2 font-semibold">${escapeHtml(x.client.nom)}</td><td class="p-2 text-right">${money(x.ca)}</td><td class="p-2 text-right">${x.nb}</td><td class="p-2 text-right">${money(x.nb?x.ca/x.nb:0)}</td><td class="p-2 text-right ${x.impayes>0?'text-amber-600 font-semibold':''}">${money(x.impayes)}</td></tr>`).join('') : '<tr><td class="p-2 text-slate-400" colspan="5">Aucune donnée.</td></tr>';
+}
+
+/* ---------- Partenaires & apporteurs d'affaires — commissions ---------- */
+const PARTENAIRE_TYPES={apporteur:"Apporteur d'affaires",architecte:'Architecte',promoteur:'Promoteur',entreprise_generale:'Entreprise générale',bureau_etudes:"Bureau d'études",poseur:'Poseur partenaire'};
+
+async function renderPartenaires(){
+  const [partenaires,chantiers]=await Promise.all(['partenaires','chantiers'].map(idbGetAll));
+  document.getElementById('paKpiActifs').textContent=partenaires.filter(p=>p.actif!==false).length;
+
+  document.getElementById('paListeBody').innerHTML = partenaires.length ? partenaires.map(p=>`
+    <tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(p.nom)}</td><td class="p-3 text-xs">${escapeHtml(PARTENAIRE_TYPES[p.type]||p.type)}</td><td class="p-3 text-xs">${escapeHtml(p.tel||p.email||'—')}</td><td class="p-3 text-right">${p.tauxCommission}%</td>
+    <td class="p-3 text-right"><button onclick="openPartenaireForm('${p.id}')" class="text-blue-600 text-xs font-semibold mr-2">✏️</button><button onclick="deletePartenaire('${p.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td></tr>`).join('') : '<tr><td class="p-3 text-slate-400" colspan="5">Aucun partenaire enregistré.</td></tr>';
+
+  const dossiersAvecPartenaire=chantiers.filter(c=>!c.annule && c.partenaireId);
+  let duesTotal=0, payeesTotal=0;
+  document.getElementById('paCommissionsBody').innerHTML = dossiersAvecPartenaire.length ? dossiersAvecPartenaire.map(c=>{
+    const partenaire=partenaires.find(p=>p.id===c.partenaireId);
+    if(!partenaire) return '';
+    const commission=(c.montantTotal||0)*(partenaire.tauxCommission||0)/100;
+    const encaisseTotal=(c.montantPaye||0)>=(c.montantTotal||0) && (c.montantTotal||0)>0;
+    const statut = c.commissionPayee ? 'payee' : encaisseTotal ? 'due' : 'attente';
+    if(statut==='due') duesTotal+=commission;
+    if(statut==='payee') payeesTotal+=commission;
+    const statutBadge={payee:'<span class="badge bg-emerald-50 text-emerald-700">Payée</span>',due:'<span class="badge bg-amber-50 text-amber-700">Due</span>',attente:'<span class="badge bg-slate-100 text-slate-500">En attente encaissement</span>'}[statut];
+    return `<tr class="border-b">
+      <td class="p-3 font-semibold">${escapeHtml(c.numero)} — ${escapeHtml(c.client||'')}</td>
+      <td class="p-3 text-xs">${escapeHtml(partenaire.nom)} (${partenaire.tauxCommission}%)</td>
+      <td class="p-3 text-right">${money(c.montantTotal||0)}</td>
+      <td class="p-3 text-right font-semibold">${money(commission)}</td>
+      <td class="p-3">${statutBadge}</td>
+      <td class="p-3 text-right">${statut==='due'?`<button onclick="marquerCommissionPayee('${c.id}')" class="text-emerald-600 text-xs font-semibold">✓ Marquer payée</button>`:''}</td>
+    </tr>`;
+  }).join('') : '<tr><td class="p-3 text-slate-400" colspan="6">Aucun dossier lié à un partenaire.</td></tr>';
+  document.getElementById('paKpiDues').textContent=money(duesTotal);
+  document.getElementById('paKpiPayees').textContent=money(payeesTotal);
+}
+
+async function marquerCommissionPayee(chantierId){
+  const rec=await getChantier(chantierId); if(!rec) return;
+  if(!confirm('Marquer la commission de ce dossier comme payée ?')) return;
+  rec.commissionPayee=true; rec.commissionPayeeDate=new Date().toISOString();
+  await saveChantier(rec);
+  await audit('COMMISSION_PAYEE',rec.numero);
+  await renderPartenaires();
+}
+
+async function openPartenaireForm(id){
+  let rec=null;
+  if(id){ const rows=await idbGetAll('partenaires'); rec=rows.find(p=>p.id===id); }
+  const typeOptions=Object.entries(PARTENAIRE_TYPES).map(([k,l])=>`<option value="${k}" ${rec?.type===k?'selected':''}>${l}</option>`).join('');
+  const html=`
+    <div class="flex justify-between items-start mb-4">
+      <h2 class="text-lg font-bold">${rec?'Modifier':'Nouveau'} partenaire</h2>
+      <button onclick="document.getElementById('partenaireModal').classList.add('hidden');setModalOpen(false)" class="text-slate-400 text-xl leading-none">×</button>
+    </div>
+    <form onsubmit="return savePartenaire(event,'${id||''}')" class="space-y-3">
+      <label class="text-xs font-semibold block">Nom
+        <input id="paNom" value="${escapeHtml(rec?.nom||'')}" required class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <label class="text-xs font-semibold block">Type
+        <select id="paType" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">${typeOptions}</select>
+      </label>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <label class="text-xs font-semibold block">Téléphone
+          <input id="paTel" value="${escapeHtml(rec?.tel||'')}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+        <label class="text-xs font-semibold block">Email
+          <input id="paEmail" type="email" value="${escapeHtml(rec?.email||'')}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+      </div>
+      <label class="text-xs font-semibold block">Taux de commission (%)
+        <input id="paTaux" type="number" min="0" max="100" step="0.5" value="${rec?.tauxCommission??3}" required class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <label class="flex items-center gap-2 text-xs font-semibold"><input id="paActif" type="checkbox" ${rec?.actif!==false?'checked':''}> Partenaire actif</label>
+      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold">✓ Enregistrer</button>
+    </form>`;
+  document.getElementById('partenaireContent').innerHTML=html;
+  document.getElementById('partenaireModal').classList.remove('hidden');
+  setModalOpen(true);
+}
+async function savePartenaire(e,id){
+  e.preventDefault();
+  let rec=null;
+  if(id){ const rows=await idbGetAll('partenaires'); rec=rows.find(p=>p.id===id); }
+  if(!rec){ const seq=nextSeq('partenaire'); rec={id:'pa_'+seq.year+'_'+seq.n,numero:'PA-'+seq.year+'-'+String(seq.n).padStart(4,'0'),createdAt:new Date().toISOString()}; }
+  Object.assign(rec,{
+    nom:document.getElementById('paNom').value.trim(),
+    type:document.getElementById('paType').value,
+    tel:document.getElementById('paTel').value.trim(),
+    email:document.getElementById('paEmail').value.trim(),
+    tauxCommission:+document.getElementById('paTaux').value||0,
+    actif:document.getElementById('paActif').checked,
+    _modifie:new Date().toISOString()
+  });
+  await idbPut('partenaires',rec);
+  queueSync('alubom_partenaires',rec);
+  await audit('PARTENAIRE_'+(id?'MAJ':'CREATION'),rec.nom);
+  document.getElementById('partenaireModal').classList.add('hidden');
+  setModalOpen(false);
+  await renderPartenaires();
+  return false;
+}
+async function deletePartenaire(id){
+  if(!confirm('Supprimer ce partenaire ? Les dossiers déjà liés conserveront leur référence.')) return;
+  await idbDelete('partenaires',id);
+  await audit('PARTENAIRE_SUPPRESSION',id);
+  await renderPartenaires();
+}
+
+/* ---------- Appels d'offres ---------- */
+const AO_ETAPES=[
+  {key:'analyse',label:'Analyse'},
+  {key:'chiffrage',label:'GO — Chiffrage'},
+  {key:'soumission',label:'Soumission déposée'},
+  {key:'gagne',label:'Gagné'},
+  {key:'contrat',label:'Contrat / Commande'},
+  {key:'perdu',label:'Perdu / NoGo'}
+];
+const AO_ACTIVES=AO_ETAPES.filter(e=>!['gagne','contrat','perdu'].includes(e.key));
+
+function showAOTab(tab){
+  document.querySelectorAll('.ao-tab').forEach(t=>t.classList.add('hidden'));
+  const el=document.getElementById('aoTab'+tab.charAt(0).toUpperCase()+tab.slice(1)); if(el) el.classList.remove('hidden');
+  document.querySelectorAll('.ao-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.aotab===tab));
+  if(tab==='pipeline') renderAOPipeline();
+  if(tab==='liste') renderAOListe();
+  if(tab==='dashboard') renderAODashboard();
+}
+
+async function updateAOBadge(){
+  const badge=document.getElementById('aoBadge'); if(!badge) return;
+  const aos=await idbGetAll('appels_offres');
+  const dans7j=new Date(); dans7j.setDate(dans7j.getDate()+7);
+  const n=aos.filter(a=>!['gagne','contrat','perdu'].includes(a.etape) && a.dateDepot && new Date(a.dateDepot)<=dans7j).length;
+  if(n){ badge.textContent=n; badge.classList.remove('hidden'); } else badge.classList.add('hidden');
+}
+
+async function renderAOPipeline(){
+  const board=document.getElementById('aoPipelineBoard'); if(!board) return;
+  const aos=(await idbGetAll('appels_offres')).filter(a=>!['gagne','contrat','perdu'].includes(a.etape));
+  const today=new Date().toISOString().slice(0,10);
+  board.innerHTML=AO_ACTIVES.map(etape=>{
+    const items=aos.filter(a=>a.etape===etape.key).sort((a,b)=>(a.dateDepot||'').localeCompare(b.dateDepot||''));
+    const total=items.reduce((s,a)=>s+(a.montantEstime||0),0);
+    return `<div class="bg-slate-50 rounded-xl p-2" style="width:240px;flex:0 0 240px">
+      <div class="px-2 py-1.5 mb-2"><div class="font-bold text-sm">${escapeHtml(etape.label)}</div><div class="text-xs text-slate-400">${items.length} · ${money(total)}</div></div>
+      <div class="space-y-2">
+        ${items.map(a=>{
+          const retard=a.dateDepot && a.dateDepot<today;
+          return `<div onclick="openAOForm('${a.id}')" class="bg-white border rounded-lg p-2.5 shadow-sm cursor-pointer hover:shadow-md ${retard?'border-red-300':''}">
+            <div class="font-semibold text-xs mb-1">${escapeHtml(a.titre)}</div>
+            <div class="text-[11px] text-slate-500 mb-1">${escapeHtml(a.maitreOuvrage||'')}</div>
+            <div class="flex justify-between items-center">
+              <span class="text-[11px] ${retard?'text-red-600 font-bold':'text-slate-400'}">${a.dateDepot?new Date(a.dateDepot).toLocaleDateString('fr-FR'):'—'}</span>
+              <span class="text-[11px] font-semibold">${a.montantEstime?money(a.montantEstime):'—'}</span>
+            </div>
+          </div>`;
+        }).join('') || '<p class="text-xs text-slate-300 px-2">Vide</p>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function renderAOListe(){
+  const el=document.getElementById('aoListeBody'); if(!el) return;
+  const search=(document.getElementById('aoSearch')?.value||'').toLowerCase().trim();
+  let rows=(await idbGetAll('appels_offres')).sort((a,b)=>(b._modifie||'').localeCompare(a._modifie||''));
+  if(search) rows=rows.filter(a=>(a.titre||'').toLowerCase().includes(search)||(a.maitreOuvrage||'').toLowerCase().includes(search));
+  const etapeLabel=k=>AO_ETAPES.find(e=>e.key===k)?.label||k;
+  el.innerHTML = rows.length ? rows.map(a=>`
+    <tr class="border-b hover:bg-slate-50 cursor-pointer" onclick="openAOForm('${a.id}')">
+      <td class="p-3 font-semibold">${escapeHtml(a.numero)}</td>
+      <td class="p-3">${escapeHtml(a.titre)}</td>
+      <td class="p-3 text-xs">${escapeHtml(a.maitreOuvrage||'—')}</td>
+      <td class="p-3"><span class="badge ${a.etape==='gagne'||a.etape==='contrat'?'bg-emerald-50 text-emerald-700':a.etape==='perdu'?'bg-red-50 text-red-700':'bg-slate-100 text-slate-600'}">${escapeHtml(etapeLabel(a.etape))}</span></td>
+      <td class="p-3 text-xs">${a.dateDepot?new Date(a.dateDepot).toLocaleDateString('fr-FR'):'—'}</td>
+      <td class="p-3 text-right">${a.montantEstime?money(a.montantEstime):'—'}</td>
+      <td class="p-3 text-right" onclick="event.stopPropagation()"><button onclick="openAOForm('${a.id}')" class="text-blue-600 text-xs font-semibold">✏️</button></td>
+    </tr>`).join('') : '<tr><td class="p-3 text-slate-400" colspan="7">Aucun appel d\'offres.</td></tr>';
+}
+
+async function renderAODashboard(){
+  const aos=await idbGetAll('appels_offres');
+  const enCours=aos.filter(a=>!['gagne','contrat','perdu'].includes(a.etape));
+  document.getElementById('aoKpiEnCours').textContent=enCours.length;
+  document.getElementById('aoKpiMontant').textContent=money(enCours.reduce((s,a)=>s+(a.montantEstime||0),0));
+  document.getElementById('aoKpiPondere').textContent=money(enCours.reduce((s,a)=>s+((a.montantEstime||0)*(a.probabilite||0)/100),0));
+  const gagnes=aos.filter(a=>a.etape==='gagne'||a.etape==='contrat').length, perdus=aos.filter(a=>a.etape==='perdu').length;
+  document.getElementById('aoKpiTaux').textContent=(gagnes+perdus)?((gagnes/(gagnes+perdus)*100).toFixed(0)+'%'):'—';
+
+  const dans15j=new Date(); dans15j.setDate(dans15j.getDate()+15);
+  const proches=enCours.filter(a=>a.dateDepot && new Date(a.dateDepot)<=dans15j).sort((a,b)=>(a.dateDepot||'').localeCompare(b.dateDepot||''));
+  const today=new Date().toISOString().slice(0,10);
+  document.getElementById('aoEcheances').innerHTML = proches.length ? proches.map(a=>`
+    <div class="flex justify-between items-center border-b pb-1.5 cursor-pointer" onclick="openAOForm('${a.id}')">
+      <div><span class="font-semibold">${escapeHtml(a.titre)}</span><span class="text-slate-400 text-xs ml-1">${escapeHtml(a.maitreOuvrage||'')}</span></div>
+      <span class="text-xs ${a.dateDepot<today?'text-red-600 font-bold':'text-amber-600'}">${new Date(a.dateDepot).toLocaleDateString('fr-FR')}</span>
+    </div>`).join('') : '<p class="text-slate-400">Aucune échéance proche.</p>';
+}
+
+async function openAOForm(id){
+  let rec=null;
+  if(id){ const rows=await idbGetAll('appels_offres'); rec=rows.find(a=>a.id===id); }
+  const etapeOptions=AO_ETAPES.map(e=>`<option value="${e.key}" ${(rec?.etape||'analyse')===e.key?'selected':''}>${e.label}</option>`).join('');
+  const chantiers = rec?.etape==='contrat' ? [] : await idbGetAll('chantiers');
+  const html=`
+    <div class="flex justify-between items-start mb-4">
+      <h2 class="text-lg font-bold">${rec?escapeHtml(rec.numero):'Nouvel appel d\'offres'}</h2>
+      <button onclick="document.getElementById('aoModal').classList.add('hidden');setModalOpen(false)" class="text-slate-400 text-xl leading-none">×</button>
+    </div>
+    ${rec?.etape==='perdu' && rec.motifPerte?`<div class="text-xs bg-red-50 text-red-700 rounded-lg px-3 py-2 mb-3">❌ ${escapeHtml(rec.motifPerte)}</div>`:''}
+    ${rec?.etape==='contrat'?`<div class="text-xs bg-emerald-50 text-emerald-700 rounded-lg px-3 py-2 mb-3">✅ Gagné${rec.chantierNumero?' — dossier '+escapeHtml(rec.chantierNumero):''}</div>`:''}
+    <form onsubmit="return saveAO(event,'${id||''}')" class="space-y-3">
+      <label class="text-xs font-semibold block">Titre du projet
+        <input id="aoTitre" value="${escapeHtml(rec?.titre||'')}" required class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <label class="text-xs font-semibold block">Maître d'ouvrage
+        <input id="aoMaitreOuvrage" value="${escapeHtml(rec?.maitreOuvrage||'')}" required class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <label class="text-xs font-semibold block">Date limite de dépôt
+          <input id="aoDateDepot" type="date" value="${rec?.dateDepot||''}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+        <label class="text-xs font-semibold block">Étape
+          <select id="aoEtape" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">${etapeOptions}</select>
+        </label>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <label class="text-xs font-semibold block">Montant estimé (FCFA)
+          <input id="aoMontantEstime" type="number" min="0" value="${rec?.montantEstime||0}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+        <label class="text-xs font-semibold block">Probabilité de gain (%)
+          <input id="aoProbabilite" type="number" min="0" max="100" value="${rec?.probabilite??30}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+      </div>
+      <label class="text-xs font-semibold block">Concurrents identifiés
+        <input id="aoConcurrents" value="${escapeHtml(rec?.concurrents||'')}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <label class="text-xs font-semibold block">Responsable
+        <input id="aoResponsable" value="${escapeHtml(rec?.responsable||(currentUser?currentUser.email:''))}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <div class="border rounded-lg p-3 bg-slate-50">
+        <div class="text-xs font-semibold mb-2">Pièces administratives</div>
+        <div class="grid sm:grid-cols-2 gap-1.5 text-xs">
+          ${['Caution provisoire','Attestation fiscale','Attestation CNPS','RCCM / NCC','Mémoire technique','Références chantiers'].map(p=>`<label class="flex items-center gap-1.5"><input type="checkbox" class="ao-piece" value="${p}" ${(rec?.piecesFournies||[]).includes(p)?'checked':''}> ${p}</label>`).join('')}
+        </div>
+      </div>
+      <label class="text-xs font-semibold block">Montant soumis (FCFA, si dépôt effectué)
+        <input id="aoMontantSoumis" type="number" min="0" value="${rec?.montantSoumis||0}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <label class="text-xs font-semibold block">Notes
+        <textarea id="aoNotes" rows="2" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">${escapeHtml(rec?.notes||'')}</textarea>
+      </label>
+      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold">✓ Enregistrer</button>
+    </form>
+    ${rec && !['gagne','contrat','perdu'].includes(rec.etape) ? `
+    <div class="mt-4 pt-4 border-t space-y-2">
+      <div class="flex gap-2">
+        <select id="aoLierChantier" class="flex-1 border rounded-lg px-2 py-1.5 text-sm">
+          <option value="">— Lier à un dossier chantier (contrat) —</option>
+          ${chantiers.map(c=>`<option value="${c.id}">${escapeHtml(c.numero)} — ${escapeHtml(c.client||'')}</option>`).join('')}
+        </select>
+        <button onclick="marquerAOGagne('${id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap">✅ Gagné</button>
+      </div>
+      <button onclick="marquerAOPerdu('${id}')" class="w-full border border-red-500 text-red-600 px-4 py-2 rounded-lg text-sm font-semibold">❌ Perdu / NoGo</button>
+    </div>` : ''}
+    ${rec?.historique?.length ? `
+    <div class="mt-4 pt-4 border-t">
+      <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Historique</h3>
+      <div class="space-y-1 text-xs text-slate-500">${rec.historique.slice().reverse().map(h=>`<div>${new Date(h.date).toLocaleDateString('fr-FR')} — ${escapeHtml(AO_ETAPES.find(e=>e.key===h.etape)?.label||h.etape)} (${escapeHtml(h.user||'')})</div>`).join('')}</div>
+    </div>` : ''}
+  `;
+  document.getElementById('aoContent').innerHTML=html;
+  document.getElementById('aoModal').classList.remove('hidden');
+  setModalOpen(true);
+}
+
+async function saveAO(e,id){
+  e.preventDefault();
+  let rec=null;
+  if(id){ const rows=await idbGetAll('appels_offres'); rec=rows.find(a=>a.id===id); }
+  const etapeAvant=rec?.etape;
+  if(!rec){ const seq=nextSeq('ao'); rec={id:'ao_'+seq.year+'_'+seq.n,numero:'AO-'+seq.year+'-'+String(seq.n).padStart(4,'0'),historique:[],createdAt:new Date().toISOString()}; }
+  const nouvelleEtape=document.getElementById('aoEtape').value;
+  const pieces=Array.from(document.querySelectorAll('.ao-piece:checked')).map(c=>c.value);
+  Object.assign(rec,{
+    titre:document.getElementById('aoTitre').value.trim(),
+    maitreOuvrage:document.getElementById('aoMaitreOuvrage').value.trim(),
+    dateDepot:document.getElementById('aoDateDepot').value||null,
+    etape:nouvelleEtape,
+    montantEstime:+document.getElementById('aoMontantEstime').value||0,
+    probabilite:+document.getElementById('aoProbabilite').value||0,
+    concurrents:document.getElementById('aoConcurrents').value.trim(),
+    responsable:document.getElementById('aoResponsable').value.trim(),
+    piecesFournies:pieces,
+    montantSoumis:+document.getElementById('aoMontantSoumis').value||0,
+    notes:document.getElementById('aoNotes').value.trim(),
+    _modifie:new Date().toISOString()
+  });
+  if(nouvelleEtape!==etapeAvant){
+    rec.historique=rec.historique||[];
+    rec.historique.push({etape:nouvelleEtape,date:new Date().toISOString(),user:currentUser?currentUser.email:'—'});
+  }
+  await idbPut('appels_offres',rec);
+  queueSync('alubom_appels_offres',rec);
+  await audit('AO_'+(id?'MAJ':'CREATION'),rec.numero+' — '+rec.titre);
+  document.getElementById('aoModal').classList.add('hidden');
+  setModalOpen(false);
+  showAOTab(document.querySelector('.ao-tab-btn.active')?.dataset.aotab||'pipeline');
+  await updateAOBadge();
+  return false;
+}
+
+async function marquerAOGagne(id){
+  const rows=await idbGetAll('appels_offres');
+  const rec=rows.find(a=>a.id===id); if(!rec) return;
+  const chantierId=document.getElementById('aoLierChantier')?.value||null;
+  let chantierNumero=null;
+  if(chantierId){ const ch=await getChantier(chantierId); chantierNumero=ch?.numero||null; }
+  rec.etape=chantierId?'contrat':'gagne'; rec.chantierId=chantierId; rec.chantierNumero=chantierNumero; rec.dateGagne=new Date().toISOString();
+  rec.historique=rec.historique||[];
+  rec.historique.push({etape:rec.etape,date:new Date().toISOString(),user:currentUser?currentUser.email:'—'});
+  await idbPut('appels_offres',rec); queueSync('alubom_appels_offres',rec);
+  await audit('AO_GAGNE',rec.numero+' — '+rec.titre+(chantierNumero?' → '+chantierNumero:''));
+  document.getElementById('aoModal').classList.add('hidden'); setModalOpen(false);
+  showAOTab('pipeline');
+  await updateAOBadge();
+}
+async function marquerAOPerdu(id){
+  const motif=prompt('Motif (NoGo interne ou perdu après dépôt) :',''); if(motif===null) return;
+  const rows=await idbGetAll('appels_offres');
+  const rec=rows.find(a=>a.id===id); if(!rec) return;
+  rec.etape='perdu'; rec.motifPerte=motif;
+  rec.historique=rec.historique||[];
+  rec.historique.push({etape:'perdu',date:new Date().toISOString(),user:currentUser?currentUser.email:'—'});
+  await idbPut('appels_offres',rec); queueSync('alubom_appels_offres',rec);
+  await audit('AO_PERDU',rec.numero+' — '+rec.titre+' — '+motif);
+  document.getElementById('aoModal').classList.add('hidden'); setModalOpen(false);
+  showAOTab('pipeline');
+  await updateAOBadge();
+}
+
 async function createChantierFromProforma(){
   if(!hasRole('chantier:create')){ alert('Permission refusée.'); return; }
   const numeroDevis=document.getElementById('proNumber')?.textContent||'';
@@ -6395,6 +7357,7 @@ async function createChantierFromProforma(){
       existant.margeEstimeePct=margeExist.margePct;
       existant.margeValidationRequise=margeExist.margePct<(getCompanyInfo().seuilMargeCommerciale||25);
       existant.margeValidationDG=existant.margeValidationRequise?null:existant.margeValidationDG;
+      existant.commercial=existant.commercial||(currentUser?currentUser.email:'—');
       await saveChantier(existant);
       if(currentProformaId){
         const proRows=await idbGetAll('proforma');
@@ -6418,6 +7381,7 @@ async function createChantierFromProforma(){
     proformaIds:currentProformaId?[currentProformaId]:[], client, clientId, contact,
     montantTotal, montantPaye:0, etape:'devis', facturation,
     margeEstimeePct:margeNv.margePct, margeValidationRequise:margeNv.margePct<(getCompanyInfo().seuilMargeCommerciale||25), margeValidationDG:null,
+    commercial:currentUser?currentUser.email:'—', partenaireId:null,
     lignes:JSON.parse(JSON.stringify(proformaCart)),
     dateMiseADispositionSouhaitee, dateFabricationEstimee:estimPlanning.dateFabricationEstimee,
     dureeFabricationJours:estimPlanning.dureeFabricationJours, delaiApproJours:estimPlanning.delaiApproJours,
@@ -6482,6 +7446,7 @@ async function openEditChantierModal(id){
   editChantierId=id;
   editChantierLignes=JSON.parse(JSON.stringify(rec.lignes||[]));
   editChantierUnlocked=false;
+  const partenaires=await idbGetAll('partenaires');
   const modal=document.getElementById('editChantierModal');
   const content=document.getElementById('editChantierContent');
   const ofDejaGeneres = rec.ofGeneres && rec.ofGeneres.length;
@@ -6520,6 +7485,17 @@ async function openEditChantierModal(id){
         </label>
         <label class="text-sm font-semibold block">Montant payé (FCFA)
           <input id="ecMontantPaye" type="number" min="0" value="${rec.montantPaye||0}" required class="mt-1 w-full border rounded-lg px-3 py-2">
+        </label>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <label class="text-sm font-semibold block">Commercial responsable
+          <input id="ecCommercial" value="${escapeHtml(rec.commercial||'')}" class="mt-1 w-full border rounded-lg px-3 py-2">
+        </label>
+        <label class="text-sm font-semibold block">Partenaire / apporteur
+          <select id="ecPartenaire" class="mt-1 w-full border rounded-lg px-3 py-2">
+            <option value="">— Aucun —</option>
+            ${partenaires.map(p=>`<option value="${p.id}" ${rec.partenaireId===p.id?'selected':''}>${escapeHtml(p.nom)} (${p.tauxCommission}%)</option>`).join('')}
+          </select>
         </label>
       </div>
       <div class="flex justify-end gap-2 pt-2">
@@ -6611,6 +7587,24 @@ async function handleEditChantier(e,id){
   rec.contact=document.getElementById('ecContact').value.trim();
   let logSuffix='client/contact modifiés';
   if(!locked){
+    const lignesOntChange = JSON.stringify(rec.lignes||[])!==JSON.stringify(editChantierLignes);
+    if(lignesOntChange){
+      const motif=prompt('Motif de la révision (ex : ajout ouvrage, remise renégociée, dimensions modifiées) :','');
+      if(motif===null){ return false; } // annulation explicite
+      rec.versionsHistorique=rec.versionsHistorique||[];
+      rec.versionsHistorique.push({
+        version: rec.versionDevis||1,
+        date: rec._modifie||rec.dateCreation||new Date().toISOString(),
+        user: rec.derniereModifPar||(currentUser?currentUser.email:'—'),
+        lignes: rec.lignes||[],
+        montantTotal: rec.montantTotal||0,
+        montantHT: rec.facturation?.montantHT||0,
+        margeEstimeePct: rec.margeEstimeePct??null,
+        motif: motif.trim()||'—'
+      });
+      rec.versionDevis=(rec.versionDevis||1)+1;
+      rec.derniereModifPar=currentUser?currentUser.email:'—';
+    }
     const montantHT=editChantierLignes.reduce((s,l)=>s+(l.subtotal||0),0);
     const f=rec.facturation||{tauxRemise:0,tauxTVA:18,tvaApplicable:true};
     const remise=montantHT*(f.tauxRemise||0)/100;
@@ -6620,9 +7614,15 @@ async function handleEditChantier(e,id){
     rec.lignes=editChantierLignes;
     rec.montantTotal=Math.round(nouveauTotal);
     rec.facturation={...f,montantHT:Math.round(montantHT),remise:Math.round(remise),montantTVA:Math.round(montantTVA)};
-    logSuffix='client/composants modifiés ('+editChantierLignes.length+' ligne(s), nouveau total '+money(nouveauTotal)+')'+(editChantierUnlocked?' — déverrouillage DG':'');
+    const margeNouv=computeMargeLignes(editChantierLignes,nouveauTotal);
+    rec.margeEstimeePct=margeNouv.margePct;
+    rec.margeValidationRequise=margeNouv.margePct<(getCompanyInfo().seuilMargeCommerciale||25);
+    if(lignesOntChange) rec.margeValidationDG=rec.margeValidationRequise?null:rec.margeValidationDG;
+    logSuffix='client/composants modifiés ('+editChantierLignes.length+' ligne(s), nouveau total '+money(nouveauTotal)+')'+(lignesOntChange?' — V'+rec.versionDevis:'')+(editChantierUnlocked?' — déverrouillage DG':'');
   }
   rec.montantPaye=+document.getElementById('ecMontantPaye').value||0;
+  rec.commercial=document.getElementById('ecCommercial').value.trim();
+  rec.partenaireId=document.getElementById('ecPartenaire').value||null;
   await saveChantier(rec);
   await audit('MAJ_CHANTIER',rec.numero+' — '+logSuffix);
   closeEditChantierModal();
@@ -6738,7 +7738,7 @@ function apercuDossierChantier(chantierId){
       <div class="head">
         <div>
           <h1>Dossier ${escapeHtml(rec.numero)}</h1>
-          <div class="sub">Devis lié : ${escapeHtml(rec.devisNumero||'—')} • Généré le ${dateStr}</div>
+          <div class="sub">Devis lié : ${escapeHtml(rec.devisNumero||'—')}${rec.versionDevis>1?' — V'+rec.versionDevis:''} • Généré le ${dateStr}</div>
         </div>
         <div style="text-align:right"><span class="badge">${escapeHtml(stageLabel)}</span></div>
       </div>
@@ -6830,7 +7830,7 @@ async function envoyerDevisEmail(chantierId){
     email=saisie.trim();
     if(rec.clientId && client){ client.email=email; await idbPut('clients',client); queueSync('alubom_clients',client); }
   }
-  const sujet='Devis '+(rec.devisNumero||rec.numero)+' — SANIX AFRICA';
+  const sujet='Devis '+(rec.devisNumero||rec.numero)+(rec.versionDevis>1?' V'+rec.versionDevis:'')+' — SANIX AFRICA';
   const corps=buildDevisMessageTexte(rec);
   window.location.href='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent(sujet)+'&body='+encodeURIComponent(corps);
   await audit('ENVOI_DEVIS_EMAIL',rec.numero+' → '+rec.client);
@@ -7105,6 +8105,9 @@ async function annulerChantier(id){
   await openChantierDetail(id);
 }
 
+function toggleVersionsHistorique(id){
+  document.getElementById('versionsHistoriquePanel_'+id)?.classList.toggle('hidden');
+}
 async function openChantierDetail(id){
   currentChantierId=id;
   const rec=await getChantier(id); if(!rec) return;
@@ -7320,13 +8323,32 @@ async function openChantierDetail(id){
   wrap.innerHTML=`
     <div class="card bg-white rounded-2xl p-6">
       <div class="flex flex-wrap justify-between gap-3 mb-5">
-        <div><h2 class="text-lg font-bold">${escapeHtml(rec.numero)} — ${escapeHtml(rec.client)}</h2><p class="text-sm text-slate-500">Devis ${escapeHtml(rec.devisNumero)} • ${escapeHtml(rec.contact||'')}</p></div>
+        <div><h2 class="text-lg font-bold">${escapeHtml(rec.numero)} — ${escapeHtml(rec.client)}</h2><p class="text-sm text-slate-500">Devis ${escapeHtml(rec.devisNumero)} <span class="badge bg-blue-50 text-blue-700">V${rec.versionDevis||1}</span> • ${escapeHtml(rec.contact||'')}${rec.versionsHistorique?.length?` • <button onclick="toggleVersionsHistorique('${id}')" class="text-blue-600 underline">Historique versions (${rec.versionsHistorique.length})</button>`:''}</p></div>
         <div class="flex gap-2">
           <button onclick="genererLienSuivi('${id}')" class="border border-teal-600 text-teal-700 px-3 py-2 rounded-lg text-sm font-semibold">🔗 Lien de suivi client</button>
           ${(!rec.annule && rec.etape!=='termine')?`<button onclick="annulerChantier('${id}')" class="border border-amber-500 text-amber-600 px-3 py-2 rounded-lg text-sm font-semibold">✕ Annuler</button>`:''}
           <button onclick="openEditChantierModal('${id}')" class="border border-blue-600 text-blue-600 px-3 py-2 rounded-lg text-sm font-semibold">✏️ Modifier</button>
           <button onclick="deleteChantier('${id}')" class="border border-red-500 text-red-500 px-3 py-2 rounded-lg text-sm font-semibold">🗑️ Supprimer</button>
           <button onclick="document.getElementById('chantierDetail').classList.add('hidden')" class="border px-3 py-2 rounded-lg text-sm font-semibold">Fermer</button>
+        </div>
+      </div>
+
+      <div id="versionsHistoriquePanel_${id}" class="hidden border rounded-xl p-4 mb-5 bg-slate-50">
+        <h3 class="font-bold text-sm mb-3">📜 Historique des versions du devis</h3>
+        <div class="space-y-2">
+          ${(rec.versionsHistorique||[]).slice().reverse().map(v=>`
+            <div class="bg-white border rounded-lg p-3 text-sm">
+              <div class="flex flex-wrap justify-between gap-2">
+                <span class="font-bold">V${v.version}</span>
+                <span class="text-xs text-slate-400">${new Date(v.date).toLocaleString('fr-FR')} — ${escapeHtml(v.user||'—')}</span>
+              </div>
+              <div class="text-xs text-slate-600 mt-1">Montant : ${money(v.montantTotal||0)}${v.margeEstimeePct!=null?' • Marge estimée : '+v.margeEstimeePct.toFixed(1)+'%':''} • ${(v.lignes||[]).length} ligne(s)</div>
+              <div class="text-xs text-slate-500 italic mt-1">Motif de la révision suivante : ${escapeHtml(v.motif||'—')}</div>
+            </div>`).join('')}
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+            <div class="flex flex-wrap justify-between gap-2"><span class="font-bold text-blue-700">V${rec.versionDevis||1} (version actuelle)</span><span class="text-xs text-slate-400">${rec._modifie?new Date(rec._modifie).toLocaleString('fr-FR'):''} — ${escapeHtml(rec.derniereModifPar||'—')}</span></div>
+            <div class="text-xs text-slate-600 mt-1">Montant : ${money(rec.montantTotal||0)}${rec.margeEstimeePct!=null?' • Marge estimée : '+rec.margeEstimeePct.toFixed(1)+'%':''} • ${(rec.lignes||[]).length} ligne(s)</div>
+          </div>
         </div>
       </div>
       <div class="flex mb-6">${stepperHtml}</div>
@@ -9490,7 +10512,7 @@ const ETUDE_TABS=['config','bom','cut','cost','proforma'];
 function showPage(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
   document.querySelectorAll('.nav').forEach(b=>b.classList.remove('active'));
-  const titles={dashboard:'Tableau de bord',flux:'Schéma des flux',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',atelierMobile:'Vue atelier',stock:'Stock',sav:'SAV & Garantie',chantier:'Circuit Chantier',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs',catalogue:'Catalogue technique',controlegestion:'Contrôle de gestion',validations:'Validations en attente',etatpa:'État proforma & achats',gmao:'GMAO — Maintenance'};
+  const titles={dashboard:'Tableau de bord',flux:'Schéma des flux',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',atelierMobile:'Vue atelier',stock:'Stock',sav:'SAV & Garantie',chantier:'Circuit Chantier',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs',catalogue:'Catalogue technique',controlegestion:'Contrôle de gestion',validations:'Validations en attente',etatpa:'État proforma & achats',gmao:'GMAO — Maintenance',prospects:'Prospects & Pipeline',relances:'Relances commerciales',analysecommerciale:'Analyse commerciale',partenaires:'Partenaires & commissions',ao:"Appels d'offres"};
 
   if(ETUDE_TABS.includes(page)){
     document.getElementById('etude').classList.remove('hidden');
@@ -9508,7 +10530,7 @@ function showPage(page){
         updateDevisContextStatus();
       }
     }
-    if(page==='config') populateAtelierSelect();
+    if(page==='config'){ populateAtelierSelect(); if(!document.getElementById('niveauTarifaire').options.length) populateNiveauTarifaireSelect('standard'); }
     if(page==='flux') setFluxViewMode('global');
     if(page==='stock') showStockTab('liste');
     if(page==='production') showProdTab('liste');
@@ -9522,6 +10544,11 @@ function showPage(page){
     if(page==='validations') renderValidationsQueue();
     if(page==='etatpa') renderEtatProformaAchats();
     if(page==='gmao') showGmaoTab('machines');
+    if(page==='prospects') showProspectsTab('pipeline');
+    if(page==='relances') renderRelances();
+    if(page==='analysecommerciale') renderAnalyseCommerciale();
+    if(page==='partenaires') renderPartenaires();
+    if(page==='ao') showAOTab('pipeline');
   }
   document.getElementById('pageTitle').textContent=titles[page];
 }
@@ -11695,7 +12722,9 @@ function updateCost(){
 
   const total=direct+indirect;
   const margin=(+document.getElementById('margin').value||0)/100;
-  const sale=total*(1+margin);
+  const saleBrute=total*(1+margin);
+  const remisePct=Math.min(90,Math.max(0,+document.getElementById('remiseCommerciale')?.value||0));
+  const sale=saleBrute*(1-remisePct/100);
 
   document.getElementById('cMat').textContent=money(lastCost);
   document.getElementById('cLab').textContent=money(labor);
@@ -11709,7 +12738,41 @@ function updateCost(){
   document.getElementById('cIndirect').textContent=money(indirect);
   document.getElementById('cTotal').textContent=money(total);
   document.getElementById('cSale').textContent=money(sale);
+  renderMargeBanner(total,sale,remisePct);
   renderEstimationHistorique(total);
+}
+
+/* ---------- Tarification multi-niveaux + contrôle marge minimum ---------- */
+const NIVEAUX_TARIFAIRES={
+  standard:{label:'Standard',remiseDefaut:0},
+  professionnel:{label:'Professionnel',remiseDefaut:5},
+  revendeur:{label:'Revendeur',remiseDefaut:12},
+  projet:{label:'Projet',remiseDefaut:8},
+  grand_compte:{label:'Grand compte',remiseDefaut:10},
+  promotionnel:{label:'Promotionnel',remiseDefaut:15}
+};
+function populateNiveauTarifaireSelect(selectedVal){
+  const sel=document.getElementById('niveauTarifaire'); if(!sel) return;
+  sel.innerHTML=Object.entries(NIVEAUX_TARIFAIRES).map(([k,v])=>`<option value="${k}" ${selectedVal===k?'selected':''}>${v.label} (remise déf. ${v.remiseDefaut}%)</option>`).join('');
+}
+function applyNiveauTarifaireRemise(){
+  const niveau=document.getElementById('niveauTarifaire')?.value;
+  const remiseEl=document.getElementById('remiseCommerciale');
+  if(niveau && remiseEl) remiseEl.value=NIVEAUX_TARIFAIRES[niveau]?.remiseDefaut ?? 0;
+}
+function renderMargeBanner(coutRevient,prixVenteFinal,remisePct){
+  const banner=document.getElementById('cMargeBanner'); if(!banner) return;
+  const margeReelle=prixVenteFinal?((prixVenteFinal-coutRevient)/prixVenteFinal*100):0;
+  const seuil=getCompanyInfo().seuilMargeCommerciale||25;
+  if(remisePct<=0){ banner.classList.add('hidden'); return; }
+  banner.classList.remove('hidden');
+  if(margeReelle<seuil){
+    banner.className='mt-4 rounded-lg px-4 py-3 text-sm bg-red-50 text-red-700 border border-red-200';
+    banner.innerHTML=`🔴 Remise demandée : <b>${remisePct}%</b> — Marge résultante : <b>${margeReelle.toFixed(1)}%</b> (seuil ${seuil}%) — <b>autorisation direction requise</b> à l'envoi du devis.`;
+  } else {
+    banner.className='mt-4 rounded-lg px-4 py-3 text-sm bg-emerald-50 text-emerald-700 border border-emerald-200';
+    banner.innerHTML=`✅ Remise appliquée : <b>${remisePct}%</b> — Marge résultante : <b>${margeReelle.toFixed(1)}%</b> (seuil ${seuil}%).`;
+  }
 }
 
 /* ---------- Estimation statistique basée sur l'historique réel (honnête : pas d'IA, juste des faits) ---------- */
