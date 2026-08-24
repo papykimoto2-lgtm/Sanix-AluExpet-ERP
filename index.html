@@ -23,6 +23,10 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Leaflet MarkerCluster pour optimiser l'affichage de nombreux points -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.0/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.0/dist/MarkerCluster.Default.css">
+<script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.0/dist/leaflet.markercluster.js"></script>
 <script>
 // === CONFIG SUPABASE — à renseigner par Papi ===
 window.SANIX_CFG = {
@@ -132,6 +136,40 @@ window.SANIX_CFG = {
   .text-3xl.font-black{letter-spacing:-.02em;font-variant-numeric:tabular-nums}
   .card:has(.text-3xl.font-black){border-left:3px solid var(--ds-accent)}
 
+  /* === OPTIMISATIONS CARTE DES CHANTIERS === */
+  #carteChantiersMap{font-family:var(--ds-font)!important;z-index:1}
+  #carteChantiersMap .leaflet-popup-content{font-size:12px;color:var(--ds-ink);max-width:220px}
+  #carteChantiersMap .leaflet-popup-content b{color:var(--ds-accent-ink);font-size:13px;display:block;margin-bottom:4px}
+  #carteChantiersMap .leaflet-popup-content-wrapper{border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);border:1px solid var(--ds-slate-200)}
+  #carteChantiersMap .leaflet-popup-tip{background:white;border:1px solid var(--ds-slate-200)}
+  #carteChantiersMap .leaflet-popup-close-button{color:var(--ds-slate-500);opacity:.8;padding:2px 4px}
+  
+  /* Marqueurs personnalisés */
+  .carte-marker-custom{width:32px;height:40px;margin-left:-16px;margin-top:-40px}
+  .carte-marker-shadow{width:30px;height:8px;margin-left:-15px;opacity:.3;background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 8"><ellipse cx="15" cy="4" rx="15" ry="4" fill="black"/></svg>')}
+  
+  /* Clusters de marqueurs */
+  .marker-cluster{border-radius:20px;border:2px solid rgba(255,255,255,.8);font-weight:600;text-align:center;display:flex;align-items:center;justify-content:center;color:white;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+  .marker-cluster-small{background:#2563eb;width:36px;height:36px}
+  .marker-cluster-medium{background:#1d4ed8;width:44px;height:44px}
+  .marker-cluster-large{background:#1e40af;width:52px;height:52px}
+  
+  /* Légende interactive */
+  .carte-legend{background:white;border:1px solid var(--ds-border);border-radius:8px;padding:12px;box-shadow:var(--ds-shadow-sm);font-size:12px}
+  .carte-legend-item{display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer;border-radius:4px;padding:6px 8px;transition:background .1s}
+  .carte-legend-item:hover{background:var(--ds-slate-100)}
+  .carte-legend-item.disabled{opacity:.5;text-decoration:line-through}
+  .carte-legend-item input[type="checkbox"]{cursor:pointer;width:16px;height:16px}
+  
+  /* Amélioration des KPI de la carte */
+  #carteKpis .card{transition:all .15s ease}
+  #carteKpis .card:hover{transform:translateY(-2px);box-shadow:var(--ds-shadow)}
+  
+  /* Liste des chantiers */
+  #carteChantiersListe{scrollbar-width:thin;scrollbar-color:#cbd5e1 transparent}
+  #carteChantiersListe::-webkit-scrollbar{width:6px}
+  #carteChantiersListe::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+  
   @media (max-width:767px){
     .sidebar{position:fixed;inset:0 25% 0 0;z-index:40;transform:translateX(-100%);transition:transform .25s ease;overflow-y:auto;display:block!important}
     .sidebar.open{transform:translateX(0)}
@@ -1949,19 +1987,22 @@ window.SANIX_CFG = {
           </div>
 
           <div class="grid lg:grid-cols-[1fr_300px] gap-4">
-            <div>
+            <div class="relative">
               <div id="carteChantiersMap" style="height:60vh;min-height:420px;border-radius:12px;overflow:hidden;border:1px solid var(--ds-border)"></div>
+              <div class="absolute top-3 right-3 carte-legend z-[400] hidden md:block max-w-xs">
+                <div class="text-xs font-semibold text-slate-600 mb-2.5">Légende (clic pour filtrer)</div>
+                <div id="carteLegendItems" class="space-y-1">
+                  <label class="carte-legend-item"><input type="checkbox" class="carte-legend-filter" data-etape="devis" checked> <span class="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style="background:#64748b"></span> <span>Devis</span></label>
+                  <label class="carte-legend-item"><input type="checkbox" class="carte-legend-filter" data-etape="paiement" checked> <span class="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style="background:#d97706"></span> <span>Paiement</span></label>
+                  <label class="carte-legend-item"><input type="checkbox" class="carte-legend-filter" data-etape="dossier" checked> <span class="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style="background:#1d4ed8"></span> <span>Dossier/Achats</span></label>
+                  <label class="carte-legend-item"><input type="checkbox" class="carte-legend-filter" data-etape="fabrication" checked> <span class="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style="background:#7c3aed"></span> <span>Fabrication</span></label>
+                  <label class="carte-legend-item"><input type="checkbox" class="carte-legend-filter" data-etape="installation" checked> <span class="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style="background:#059669"></span> <span>Installation</span></label>
+                  <label class="carte-legend-item"><input type="checkbox" class="carte-legend-filter" data-etape="annule" checked> <span class="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style="background:#dc2626"></span> <span>Annulé</span></label>
+                </div>
+              </div>
               <div class="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-xs text-slate-500">
                 <span id="carteChantiersLatLng">Lat/Lng : —</span>
-                <span id="carteChantiersCount" class="text-slate-400"></span>
-              </div>
-              <div class="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-xs text-slate-500">
-                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#64748b"></span> Devis</span>
-                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#d97706"></span> Paiement</span>
-                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#1d4ed8"></span> Dossier / Validation / Achats</span>
-                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#7c3aed"></span> Fabrication</span>
-                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#059669"></span> Installation / Terminé</span>
-                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#dc2626"></span> Annulé</span>
+                <span id="carteChantiersCount" class="text-slate-400 font-semibold"></span>
               </div>
             </div>
             <div class="border rounded-xl bg-slate-50 flex flex-col" style="max-height:60vh">
@@ -8073,6 +8114,16 @@ function populateCarteFiltreEtape(){
   const oAnnule=document.createElement('option'); oAnnule.value='__annule'; oAnnule.textContent='Annulés'; sel.appendChild(oAnnule);
 }
 function applyCarteFilters(){ renderCarteChantiers(false); }
+
+// Événements pour filtrer par légende
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('.carte-legend-filter').forEach(cb=>{
+    cb.addEventListener('change',()=>{
+      cb.parentElement.classList.toggle('disabled',!cb.checked);
+      renderCarteChantiers(false);
+    });
+  });
+});
 function renderCarteKpis(all,geoloc){
   const el=document.getElementById('carteKpis'); if(!el) return;
   const pipelineGeo=geoloc.filter(c=>!c.annule && c.etape!=='termine').reduce((s,c)=>s+(c.montantTotal||0),0);
@@ -8135,10 +8186,23 @@ async function renderCarteChantiers(refetch){
   const search=(document.getElementById('carteSearch')?.value||'').trim().toLowerCase();
   const etapeFiltre=document.getElementById('carteFiltreEtape')?.value||'';
   const actifsOnly=document.getElementById('carteFiltreActifs')?.checked||false;
+  
+  // Nouveau système de filtrage par légende
+  const legendFilters=new Set();
+  document.querySelectorAll('.carte-legend-filter:checked').forEach(cb=>{
+    legendFilters.add(cb.dataset.etape);
+  });
+  
   const rows=geoloc.filter(c=>{
     if(actifsOnly && (c.annule || c.etape==='termine')) return false;
     if(etapeFiltre==='__annule' && !c.annule) return false;
     else if(etapeFiltre && etapeFiltre!=='__annule' && c.etape!==etapeFiltre) return false;
+    
+    // Filtrage par légende
+    const cEtape=c.annule?'annule':c.etape;
+    const legendKey=cEtape==='devis'?'devis':(cEtape==='paiement'?'paiement':(cEtape==='dossier'||cEtape==='validation'||cEtape==='achats'?'dossier':(cEtape==='fabrication'?'fabrication':(cEtape==='installation'?'installation':'annule'))));
+    if(legendFilters.size>0 && !legendFilters.has(legendKey)) return false;
+    
     if(search){
       const hay=[c.numero,c.client,c.adresseChantier].filter(Boolean).join(' ').toLowerCase();
       if(!hay.includes(search)) return false;
@@ -8147,46 +8211,78 @@ async function renderCarteChantiers(refetch){
   });
 
   const countEl=document.getElementById('carteChantiersCount');
-  if(countEl) countEl.textContent = geoloc.length ? rows.length+' / '+geoloc.length+' dossier(s) affiché(s)' : 'Aucun dossier géolocalisé — ajoutez une adresse/GPS depuis "✏️ Modifier" dans Circuit Chantier.';
+  if(countEl){
+    const pct=geoloc.length?Math.round(100*rows.length/geoloc.length):0;
+    countEl.textContent = geoloc.length ? `📍 ${rows.length}/${geoloc.length} (${pct}%)` : '⚠️ Aucun dossier géolocalisé';
+  }
 
   if(!carteChantiersMap){
-    carteChantiersMap=L.map('carteChantiersMap',{zoomControl:true}).setView([7.54,-5.55],7); // vue par défaut Côte d'Ivoire
+    carteChantiersMap=L.map('carteChantiersMap',{zoomControl:true,attributionControl:true}).setView([7.54,-5.55],7);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
       maxZoom:19,
-      attribution:'© OpenStreetMap'
+      minZoom:2,
+      attribution:'&copy; OpenStreetMap'
     }).addTo(carteChantiersMap);
     carteChantiersMap.on('mousemove',e=>{
       const el=document.getElementById('carteChantiersLatLng');
-      if(el) el.textContent='Lat/Lng : '+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5);
+      if(el) el.textContent='📍 '+e.latlng.lat.toFixed(5)+' / '+e.latlng.lng.toFixed(5);
     });
   }
-  carteChantiersMarkers.forEach(m=>carteChantiersMap.removeLayer(m.marker));
+  
+  // Supprimer l'ancien cluster group si existant
+  if(carteChantiersClusterGroup){
+    carteChantiersMap.removeLayer(carteChantiersClusterGroup);
+  }
+  
+  // Créer un nouveau cluster group avec L.MarkerClusterGroup
+  carteChantiersClusterGroup=typeof L.markerClusterGroup==='function'?L.markerClusterGroup({
+    maxClusterRadius:60,
+    disableClusteringAtZoom:15,
+    iconCreateFunction:cluster=>{
+      const count=cluster.getChildCount();
+      const size=count<10?'small':(count<100?'medium':'large');
+      return L.divIcon({className:'marker-cluster marker-cluster-'+size,html:'<b>'+count+'</b>',iconSize:[36,36]});
+    }
+  }):null;
+  
   carteChantiersMarkers=[];
   rows.forEach(c=>{
     const color=colorPourEtapeChantier(c);
     const label=c.annule?'Annulé':(CHANTIER_STAGES.find(s=>s.key===c.etape)?.label||c.etape);
-    const marker=L.marker([+c.geoLat,+c.geoLng],{icon:carteChantierIcon(color,c.id===carteChantiersSelectedId)}).addTo(carteChantiersMap);
-    marker.bindPopup(`<div style="font-size:12px;min-width:180px">
-        <b>${escapeHtml(c.numero)}</b><br>
-        ${escapeHtml(c.client||'')}<br>
-        <span style="color:${color};font-weight:600">${escapeHtml(label)}</span>
-        ${c.montantTotal?'<br>'+money(c.montantTotal):''}
-        ${c.adresseChantier?'<br>'+escapeHtml(c.adresseChantier):''}
-        <br><button onclick="showPage('chantier');openChantierDetail('${c.id}')" style="margin-top:4px;color:#1d4ed8;text-decoration:underline;font-weight:600;background:none;border:none;padding:0;cursor:pointer">Ouvrir le dossier →</button>
+    const marker=L.marker([+c.geoLat,+c.geoLng],{icon:carteChantierIcon(color,c.id===carteChantiersSelectedId)});
+    marker.bindPopup(`<div style="font-size:12px;min-width:200px;color:var(--ds-ink)">
+        <b>${escapeHtml(c.numero)}</b>
+        <div style="color:var(--ds-slate-500);font-size:11px;margin:4px 0">${escapeHtml(c.client||'—')}</div>
+        <div style="color:${color};font-weight:600;font-size:12px">${escapeHtml(label)}</div>
+        ${c.montantTotal?'<div style="margin:4px 0;font-weight:600">'+money(c.montantTotal)+'</div>':''}
+        ${c.adresseChantier?'<div style="font-size:11px;color:var(--ds-slate-400);margin:4px 0">📍 '+escapeHtml(c.adresseChantier)+'</div>':''}
+        <button onclick="showPage('chantier');openChantierDetail('${c.id}')" style="margin-top:6px;width:100%;color:#1d4ed8;text-decoration:underline;font-weight:600;background:none;border:1px solid #1d4ed8;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px">Ouvrir dossier →</button>
       </div>`);
     marker.on('click',()=>selectCarteChantier(c.id,false));
+    if(carteChantiersClusterGroup) carteChantiersClusterGroup.addLayer(marker);
+    else marker.addTo(carteChantiersMap);
     carteChantiersMarkers.push({marker,rec:c});
   });
+  
+  if(carteChantiersClusterGroup && !carteChantiersMap.hasLayer(carteChantiersClusterGroup)){
+    carteChantiersMap.addLayer(carteChantiersClusterGroup);
+  }
+  
   renderCarteListe(rows);
   setTimeout(()=>{
     carteChantiersMap.invalidateSize();
     if(rows.length===1){
       carteChantiersMap.setView([+rows[0].geoLat,+rows[0].geoLng],14);
     } else if(rows.length>1){
-      carteChantiersMap.fitBounds(L.latLngBounds(rows.map(c=>[+c.geoLat,+c.geoLng])).pad(0.25));
+      try{
+        carteChantiersMap.fitBounds(L.latLngBounds(rows.map(c=>[+c.geoLat,+c.geoLng])).pad(0.15),{maxZoom:14});
+      }catch(e){}
     }
   },50);
 }
+
+// Variable globale pour le cluster group
+let carteChantiersClusterGroup=null;
 function zoomCarteChantiers(){
   if(!carteChantiersMap || !carteChantiersMarkers.length){ alert('Aucun chantier géolocalisé à afficher (avec les filtres actuels).'); return; }
   carteChantiersMap.fitBounds(L.latLngBounds(carteChantiersMarkers.map(m=>m.marker.getLatLng())).pad(0.25));
