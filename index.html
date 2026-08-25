@@ -1790,12 +1790,10 @@ window.SANIX_CFG = {
           <div class="flex flex-wrap justify-between gap-3 mb-4">
             <div><h2 class="text-lg font-bold">Catalogue d'articles normalisés</h2><p class="text-sm text-slate-500">Référentiel centralisé — famille, spécifications techniques, fournisseurs, historique des prix.</p></div>
             <div class="flex gap-2">
-              <button onclick="syncArticlesFromCatalogueTechnique()" class="border border-teal-600 text-teal-600 px-3 py-2 rounded-lg text-sm font-semibold">🔄 Depuis le catalogue technique</button>
               <button onclick="showArticleHistoriqueTab()" class="border border-amber-600 text-amber-600 px-3 py-2 rounded-lg text-sm font-semibold">📊 Historique prix</button>
               <button onclick="openArticleForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">➕ Nouvel article</button>
             </div>
           </div>
-          <p class="text-xs text-slate-500 bg-slate-50 border rounded-lg p-2 mb-4">ℹ️ Ce catalogue est alimenté automatiquement par le référentiel technique (profils, vitrages, quincaillerie, joints, consommables) : toute création ou modification là-bas crée ou met à jour l'article correspondant ici (même référence = même produit). "Depuis le catalogue technique" rattrape les éléments déjà existants qui n'auraient pas encore d'article.</p>
           <div class="grid sm:grid-cols-4 gap-2 mb-4">
             <input id="artSearchRef" placeholder="🔍 Référence" onkeyup="renderArticleTable()" class="border rounded-lg px-2 py-1.5 text-sm">
             <input id="artSearchDesig" placeholder="🔍 Désignation" onkeyup="renderArticleTable()" class="border rounded-lg px-2 py-1.5 text-sm">
@@ -6450,60 +6448,6 @@ async function seedArticlesIfEmpty(){
   for(const d of defaults){ d._modifie=new Date().toISOString(); await idbPut('articles',d); queueSync('alubom_articles',d); }
 }
 
-/* ---------- Liaison automatique catalogue technique → catalogue articles normalisés ---------- */
-// Les profils/vitrages/quincaillerie/joints/consommables du référentiel technique sont les mêmes
-// produits que ceux du catalogue articles normalisés : toute création/modification d'un élément
-// technique met automatiquement à jour (ou crée) l'article correspondant, identifié par sa référence (= code).
-const ARTICLE_SYNC_CONFIG={
-  profils:{famille:'Profils aluminium',priceField:'prixMl',unite:'ml',sousFamilleField:'serie'},
-  vitrages:{famille:'Vitrages',priceField:'prixM2',unite:'m²',sousFamilleField:'type'},
-  quincaillerie:{famille:'Quincaillerie',priceField:'prixUnitaire',unite:'pcs',sousFamilleField:'categorie'},
-  joints:{famille:'Joints',priceField:'prixMl',unite:'ml',sousFamilleField:'type'},
-  consommables:{famille:'Consommables',priceField:'prix',uniteField:'unite',sousFamilleField:null}
-};
-async function syncTechniqueToArticle(storeKey,rec){
-  const cfg=ARTICLE_SYNC_CONFIG[storeKey];
-  if(!cfg || !rec.code) return;
-  const reference=rec.code.trim().toUpperCase();
-  const articles=await idbGetAll('articles');
-  const existant=articles.find(a=>a.reference===reference);
-  const nouveauPrix=+rec[cfg.priceField]||0;
-  const article={
-    id: existant?existant.id:('art_'+storeKey+'_'+Date.now()),
-    reference,
-    famille:cfg.famille,
-    sousFamille: cfg.sousFamilleField ? (rec[cfg.sousFamilleField]||'') : (existant?.sousFamille||''),
-    designation: rec.designation||existant?.designation||'',
-    unite: cfg.uniteField ? (rec[cfg.uniteField]||'unité') : cfg.unite,
-    fournisseur: rec.fournisseur||existant?.fournisseur||'',
-    specTechnique: existant?.specTechnique||'',
-    dernierPrix: nouveauPrix||existant?.dernierPrix||0,
-    prixMoyen: existant?.prixMoyen||nouveauPrix||0,
-    qteMinimale: existant?.qteMinimale||0,
-    prixMin: nouveauPrix ? Math.min(nouveauPrix,existant?.prixMin||nouveauPrix) : (existant?.prixMin||0),
-    prixMax: nouveauPrix ? Math.max(nouveauPrix,existant?.prixMax||nouveauPrix) : (existant?.prixMax||0),
-    datePrix:new Date().toISOString(),
-    origineCatalogueTechnique:storeKey,
-    _modifie:new Date().toISOString()
-  };
-  await idbPut('articles',article);
-  queueSync('alubom_articles',article);
-  await syncArticleToStock(article);
-}
-// Ressynchronise en masse tous les éléments actifs du référentiel technique vers le catalogue articles
-// (utile pour rattraper les éléments créés avant l'activation de cette liaison automatique).
-async function syncArticlesFromCatalogueTechnique(){
-  if(!hasRole('referentiel:manage') && !hasRole('stock:write')){ alert('Permission refusée.'); return; }
-  let count=0;
-  for(const storeKey of Object.keys(ARTICLE_SYNC_CONFIG)){
-    const items=(await idbGetAll(storeKey)).filter(i=>i.statut!=='inactif');
-    for(const item of items){ await syncTechniqueToArticle(storeKey,item); count++; }
-  }
-  await audit('SYNC_ARTICLES_DEPUIS_CATALOGUE_TECHNIQUE',count+' élément(s) synchronisé(s) vers le catalogue articles');
-  await renderArticleTable();
-  alert(count?count+' article(s) créé(s) ou mis à jour depuis le catalogue technique.':'Aucun élément actif trouvé dans le catalogue technique.');
-}
-
 async function renderArticleTable(){
   const el=document.getElementById('articleBody'); if(!el) return;
   const articles=await idbGetAll('articles');
@@ -6634,30 +6578,9 @@ async function saveArticle(ev){
   
   await idbPut('articles',article);
   queueSync('alubom_articles',article);
-  await syncArticleToStock(article);
   await audit('ARTICLE_'+(oldArticle?'UPDATE':'CREATE'),article.reference+' — '+article.designation+' ('+nouveauPrix+' FCFA)');
   document.getElementById('articleFormOverlay').remove();
   await renderArticleTable();
-  if(document.getElementById('stockTabListe') && !document.getElementById('stockTabListe').classList.contains('hidden')) await renderStockTable();
-}
-
-/* ---------- Liaison automatique catalogue articles → stock ---------- */
-// Crée ou met à jour la fiche stock (Dépôt Principal) correspondant à un article du catalogue.
-// La quantité disponible n'est jamais modifiée ici (seule une entrée/réception de stock doit changer une quantité) :
-// seuls la référence, le libellé et le prix sont tenus synchronisés avec le catalogue.
-async function syncArticleToStock(article){
-  if(!article.reference) return;
-  const stockRows=await idbGetAll('stock');
-  let rec=stockRows.find(s=>s.ref===article.reference && (s.depot||'PRINC')==='PRINC');
-  if(!rec){
-    rec={id:stockRowId(article.reference,'PRINC'),ref:article.reference,label:article.designation,dispo:0,reserve:0,prix:article.dernierPrix||0,depot:'PRINC'};
-  } else {
-    rec.label=article.designation;
-    if(article.dernierPrix) rec.prix=article.dernierPrix;
-  }
-  rec._modifie=new Date().toISOString();
-  await idbPut('stock',rec);
-  queueSync('alubom_stock',rec);
 }
 
 async function editArticle(id){
@@ -6836,19 +6759,17 @@ async function syncStockFromReferentiel(){
     {store:'vitrages',priceField:'prixM2'},
     {store:'quincaillerie',priceField:'prixUnitaire'},
     {store:'joints',priceField:'prixMl'},
-    {store:'consommables',priceField:'prix'},
-    {store:'articles',priceField:'dernierPrix',codeField:'reference'}
+    {store:'consommables',priceField:'prix'}
   ];
   let added=0;
   for(const src of sources){
     const items=(await idbGetAll(src.store)).filter(i=>i.statut!=='inactif');
     for(const item of items){
-      const code=item[src.codeField||'code'];
-      if(!code || existing.has(code)) continue;
-      const rec={id:code,ref:code,label:item.designation,dispo:0,reserve:0,prix:item[src.priceField]||0,depot:'PRINC',_modifie:new Date().toISOString()};
+      if(!item.code || existing.has(item.code)) continue;
+      const rec={id:item.code,ref:item.code,label:item.designation,dispo:0,reserve:0,prix:item[src.priceField]||0,depot:'PRINC',_modifie:new Date().toISOString()};
       await idbPut('stock',rec);
       queueSync('alubom_stock',rec);
-      existing.add(code);
+      existing.add(item.code);
       added++;
     }
   }
@@ -9600,7 +9521,6 @@ async function openChantierDetail(id){
     const allRecue=achats.every(a=>a.statut==='recue');
     const besoinsMRP=await calculerBesoinsMRP(id);
     const manquantsMRP=besoinsMRP.filter(b=>b.manquant>0.01);
-    const catalogueArticles=(await idbGetAll('articles')).sort((a,b)=>(a.reference||'').localeCompare(b.reference||''));
     const mrpHtml=`
       <div class="mb-4 border rounded-xl p-3 bg-blue-50/40">
         <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
@@ -9618,13 +9538,8 @@ async function openChantierDetail(id){
         <div class="bg-slate-50 border rounded-xl p-3 mb-3">
           <div class="grid sm:grid-cols-6 gap-2 mb-2">
             <select id="acBomRef" onchange="onAcBomRefChange()" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
-              <option value="">— Composant BOM / article catalogue (ou saisie libre) —</option>
-              ${besoinsMRP.length?`<optgroup label="Besoins BOM (MRP)">
+              <option value="">— Composant BOM (ou saisie libre) —</option>
               ${besoinsMRP.map(b=>`<option value="${escapeHtml(b.code)}" data-designation="${escapeHtml(b.designation)}" data-manquant="${b.manquant.toFixed(2)}" data-prix="${b.prixUnitaire||0}" data-fournisseur="${escapeHtml(b.fournisseur||'')}">${escapeHtml(b.code)} — ${escapeHtml(b.designation)}${b.manquant>0.01?' (manque '+b.manquant.toFixed(2)+')':''}</option>`).join('')}
-              </optgroup>`:''}
-              ${catalogueArticles.length?`<optgroup label="Catalogue articles">
-              ${catalogueArticles.map(a=>`<option value="${escapeHtml(a.reference)}" data-designation="${escapeHtml(a.designation)}" data-manquant="" data-prix="${a.dernierPrix||0}" data-fournisseur="${escapeHtml(a.fournisseur||'')}">${escapeHtml(a.reference)} — ${escapeHtml(a.designation)}</option>`).join('')}
-              </optgroup>`:''}
             </select>
             <input id="acDesignation" placeholder="Désignation article" class="border rounded-lg px-2 py-1.5 text-sm">
             <input id="acQte" type="number" min="1" value="1" placeholder="Qté" class="border rounded-lg px-2 py-1.5 text-sm">
@@ -10818,7 +10733,6 @@ async function handleAddProfil(e){
   };
   await idbPut('profils',rec);
   queueSync('alubom_profils',rec);
-  await syncTechniqueToArticle('profils',rec);
   await audit(editId?'MAJ_PROFIL':'CREATE_PROFIL',code+' — '+designation);
   cancelEditProfil();
   await renderProfilsTable();
@@ -10923,7 +10837,6 @@ async function handleImportProfilsCSV(e){
     };
     await idbPut('profils',rec);
     queueSync('alubom_profils',rec);
-    await syncTechniqueToArticle('profils',rec);
     if(existant) updated++; else created++;
   }
   await audit('IMPORT_PROFILS_CSV',`${created} créé(s), ${updated} mis à jour, ${errors} erreur(s)`);
@@ -11267,7 +11180,6 @@ async function handleAddGenericRef(e,key){
   });
   await idbPut(key,rec);
   queueSync('alubom_'+key,rec);
-  if(ARTICLE_SYNC_CONFIG[key]) await syncTechniqueToArticle(key,rec);
   await audit((editId?'MAJ_':'CREATE_')+key.toUpperCase(),code+' — '+designation);
   cancelEditGenericRef(key);
   await renderGenericRefTable(key);
