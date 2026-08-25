@@ -6578,9 +6578,30 @@ async function saveArticle(ev){
   
   await idbPut('articles',article);
   queueSync('alubom_articles',article);
+  await syncArticleToStock(article);
   await audit('ARTICLE_'+(oldArticle?'UPDATE':'CREATE'),article.reference+' — '+article.designation+' ('+nouveauPrix+' FCFA)');
   document.getElementById('articleFormOverlay').remove();
   await renderArticleTable();
+  if(document.getElementById('stockTabListe') && !document.getElementById('stockTabListe').classList.contains('hidden')) await renderStockTable();
+}
+
+/* ---------- Liaison automatique catalogue articles → stock ---------- */
+// Crée ou met à jour la fiche stock (Dépôt Principal) correspondant à un article du catalogue.
+// La quantité disponible n'est jamais modifiée ici (seule une entrée/réception de stock doit changer une quantité) :
+// seuls la référence, le libellé et le prix sont tenus synchronisés avec le catalogue.
+async function syncArticleToStock(article){
+  if(!article.reference) return;
+  const stockRows=await idbGetAll('stock');
+  let rec=stockRows.find(s=>s.ref===article.reference && (s.depot||'PRINC')==='PRINC');
+  if(!rec){
+    rec={id:stockRowId(article.reference,'PRINC'),ref:article.reference,label:article.designation,dispo:0,reserve:0,prix:article.dernierPrix||0,depot:'PRINC'};
+  } else {
+    rec.label=article.designation;
+    if(article.dernierPrix) rec.prix=article.dernierPrix;
+  }
+  rec._modifie=new Date().toISOString();
+  await idbPut('stock',rec);
+  queueSync('alubom_stock',rec);
 }
 
 async function editArticle(id){
@@ -6759,17 +6780,19 @@ async function syncStockFromReferentiel(){
     {store:'vitrages',priceField:'prixM2'},
     {store:'quincaillerie',priceField:'prixUnitaire'},
     {store:'joints',priceField:'prixMl'},
-    {store:'consommables',priceField:'prix'}
+    {store:'consommables',priceField:'prix'},
+    {store:'articles',priceField:'dernierPrix',codeField:'reference'}
   ];
   let added=0;
   for(const src of sources){
     const items=(await idbGetAll(src.store)).filter(i=>i.statut!=='inactif');
     for(const item of items){
-      if(!item.code || existing.has(item.code)) continue;
-      const rec={id:item.code,ref:item.code,label:item.designation,dispo:0,reserve:0,prix:item[src.priceField]||0,depot:'PRINC',_modifie:new Date().toISOString()};
+      const code=item[src.codeField||'code'];
+      if(!code || existing.has(code)) continue;
+      const rec={id:code,ref:code,label:item.designation,dispo:0,reserve:0,prix:item[src.priceField]||0,depot:'PRINC',_modifie:new Date().toISOString()};
       await idbPut('stock',rec);
       queueSync('alubom_stock',rec);
-      existing.add(item.code);
+      existing.add(code);
       added++;
     }
   }
@@ -9521,6 +9544,7 @@ async function openChantierDetail(id){
     const allRecue=achats.every(a=>a.statut==='recue');
     const besoinsMRP=await calculerBesoinsMRP(id);
     const manquantsMRP=besoinsMRP.filter(b=>b.manquant>0.01);
+    const catalogueArticles=(await idbGetAll('articles')).sort((a,b)=>(a.reference||'').localeCompare(b.reference||''));
     const mrpHtml=`
       <div class="mb-4 border rounded-xl p-3 bg-blue-50/40">
         <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
@@ -9538,8 +9562,13 @@ async function openChantierDetail(id){
         <div class="bg-slate-50 border rounded-xl p-3 mb-3">
           <div class="grid sm:grid-cols-6 gap-2 mb-2">
             <select id="acBomRef" onchange="onAcBomRefChange()" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
-              <option value="">— Composant BOM (ou saisie libre) —</option>
+              <option value="">— Composant BOM / article catalogue (ou saisie libre) —</option>
+              ${besoinsMRP.length?`<optgroup label="Besoins BOM (MRP)">
               ${besoinsMRP.map(b=>`<option value="${escapeHtml(b.code)}" data-designation="${escapeHtml(b.designation)}" data-manquant="${b.manquant.toFixed(2)}" data-prix="${b.prixUnitaire||0}" data-fournisseur="${escapeHtml(b.fournisseur||'')}">${escapeHtml(b.code)} — ${escapeHtml(b.designation)}${b.manquant>0.01?' (manque '+b.manquant.toFixed(2)+')':''}</option>`).join('')}
+              </optgroup>`:''}
+              ${catalogueArticles.length?`<optgroup label="Catalogue articles">
+              ${catalogueArticles.map(a=>`<option value="${escapeHtml(a.reference)}" data-designation="${escapeHtml(a.designation)}" data-manquant="" data-prix="${a.dernierPrix||0}" data-fournisseur="${escapeHtml(a.fournisseur||'')}">${escapeHtml(a.reference)} — ${escapeHtml(a.designation)}</option>`).join('')}
+              </optgroup>`:''}
             </select>
             <input id="acDesignation" placeholder="Désignation article" class="border rounded-lg px-2 py-1.5 text-sm">
             <input id="acQte" type="number" min="1" value="1" placeholder="Qté" class="border rounded-lg px-2 py-1.5 text-sm">
