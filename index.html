@@ -1777,6 +1777,7 @@ window.SANIX_CFG = {
 
       <section id="stock" class="page hidden">
         <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1">
+          <button class="stock-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-stocktab="catalogue" onclick="showStockTab('catalogue')">📚 Catalogue articles</button>
           <button class="stock-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-stocktab="liste" onclick="showStockTab('liste')">📦 Stock</button>
           <button class="stock-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-stocktab="valorisation" onclick="showStockTab('valorisation')">💰 Valorisation</button>
           <button class="stock-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-stocktab="inventaireDepot" onclick="showStockTab('inventaireDepot')">🏬 Inventaire par dépôt</button>
@@ -1784,7 +1785,38 @@ window.SANIX_CFG = {
           <a href="#" onclick="showPage('catalogue');setTimeout(()=>showCatalogueTab('mouvements'),50);return false;" class="ml-auto self-center text-xs text-blue-600 font-semibold px-3">📖 Journal de mouvement périodique →</a>
         </div>
 
-        <div id="stockTabListe" class="stock-tab">
+        <div id="stockTabCatalogue" class="stock-tab">
+        <div class="card bg-white rounded-2xl p-6">
+          <div class="flex flex-wrap justify-between gap-3 mb-4">
+            <div><h2 class="text-lg font-bold">Catalogue d'articles normalisés</h2><p class="text-sm text-slate-500">Référentiel centralisé — famille, spécifications techniques, fournisseurs, historique des prix.</p></div>
+            <div class="flex gap-2">
+              <button onclick="showArticleHistoriqueTab()" class="border border-amber-600 text-amber-600 px-3 py-2 rounded-lg text-sm font-semibold">📊 Historique prix</button>
+              <button onclick="openArticleForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">➕ Nouvel article</button>
+            </div>
+          </div>
+          <div class="grid sm:grid-cols-4 gap-2 mb-4">
+            <input id="artSearchRef" placeholder="🔍 Référence" onkeyup="renderArticleTable()" class="border rounded-lg px-2 py-1.5 text-sm">
+            <input id="artSearchDesig" placeholder="🔍 Désignation" onkeyup="renderArticleTable()" class="border rounded-lg px-2 py-1.5 text-sm">
+            <select id="artFilterFamille" onchange="renderArticleTable()" class="border rounded-lg px-2 py-1.5 text-sm"><option value="">— Famille —</option></select>
+            <select id="artFilterFournisseur" onchange="renderArticleTable()" class="border rounded-lg px-2 py-1.5 text-sm"><option value="">— Fournisseur —</option></select>
+          </div>
+          <div class="overflow-x-auto"><table class="w-full text-sm border rounded-lg overflow-hidden">
+            <thead class="bg-slate-100"><tr>
+              <th class="p-2 text-left">Référence</th>
+              <th class="p-2 text-left">Famille</th>
+              <th class="p-2 text-left">Sous-famille</th>
+              <th class="p-2 text-left">Désignation</th>
+              <th class="p-2">Unité</th>
+              <th class="p-2 text-right">Dernier prix</th>
+              <th class="p-2 text-right">Prix moyen</th>
+              <th class="p-2 text-right">Qté min</th>
+              <th class="p-2">Fournisseur</th>
+              <th class="p-2">Actions</th>
+            </tr></thead>
+            <tbody id="articleBody"></tbody>
+          </table></div>
+        </div>
+        </div>
         <div class="card bg-white rounded-2xl p-6">
           <div class="flex flex-wrap justify-between gap-3 mb-2">
             <div><h2 class="text-lg font-bold">Stock matières</h2><p class="text-sm text-slate-500">Disponibilité, réservation et chutes réutilisables — liste de composants issue de la BOM et du référentiel.</p></div>
@@ -2671,6 +2703,20 @@ window.SANIX_CFG = {
                 <div><label class="text-xs font-semibold text-slate-600 block mb-1">CMU — part salariale (FCFA)</label><input id="rpCmuSalarie" type="number" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
                 <div><label class="text-xs font-semibold text-slate-600 block mb-1">CMU — part employeur (FCFA)</label><input id="rpCmuEmployeur" type="number" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
               </div>
+              <h3 class="font-bold text-sm text-slate-700 mb-3 mt-4">Convention Collective & Grille Salariale</h3>
+              <div class="mb-4">
+                <label class="text-xs font-semibold text-slate-600 block mb-1">Convention Collective</label>
+                <input id="rpConvention" type="text" class="border rounded-lg px-2 py-1.5 text-sm w-full" placeholder="Ex: Convention Nationale Menuiserie Aluminium">
+              </div>
+              <div class="mb-4">
+                <label class="text-xs font-semibold text-slate-600 block mb-1">Secteur</label>
+                <input id="rpSecteur" type="text" class="border rounded-lg px-2 py-1.5 text-sm w-full" placeholder="Ex: Fabrication - Menuiserie Aluminium">
+              </div>
+              <div class="mb-4">
+                <label class="text-xs font-semibold text-slate-600 block mb-2">Grille Salariale (Catégories)</label>
+                <div id="grilleTableau" class="overflow-x-auto mb-2"></div>
+                <button type="button" onclick="addGrilleCategorie()" class="text-blue-600 text-xs font-semibold">+ Ajouter catégorie</button>
+              </div>
               <h3 class="font-bold text-sm text-slate-700 mb-2">Barème ITS (progressif, appliqué sur le salaire brut mensuel)</h3>
               <div id="itsBaremeRows" class="mb-2"></div>
               <button type="button" onclick="addItsTranche()" class="text-blue-600 text-xs font-semibold mb-4">+ Ajouter une tranche</button>
@@ -2855,7 +2901,7 @@ function openDB(){
     const req=indexedDB.open('alubom_db',23);
     req.onupgradeneeded=e=>{
       const d=e.target.result;
-      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers','depots','pointages','nonconformites','chutes','postes','gammes','sav','maintenances','prospects','partenaires','appels_offres','employes','conges','paies','pointages_rh'].forEach(s=>{
+      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers','depots','pointages','nonconformites','chutes','postes','gammes','sav','maintenances','prospects','partenaires','appels_offres','employes','conges','paies','pointages_rh','articles','articles_prix_historique'].forEach(s=>{
         if(!d.objectStoreNames.contains(s)) d.createObjectStore(s,{keyPath:'id'});
       });
     };
@@ -3215,7 +3261,7 @@ async function checkSession(){
 document.addEventListener('DOMContentLoaded',checkSession);
 
 /* ---------- Ordres de Fabrication (OF) ---------- */
-async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable(),renderEnsemblesList(),renderPlansFacadeTable(),renderRevisionsTable(),populateAtelierSelect(),loadParams()]); renderUsersTable(); if(document.getElementById('costChart')) updateDashboard(); if(document.getElementById('prodTabKanban') && !document.getElementById('prodTabKanban').classList.contains('hidden')) renderKanban(); if(document.getElementById('prodTabGantt') && !document.getElementById('prodTabGantt').classList.contains('hidden')) renderGantt(); if(document.getElementById('prodTabCharge') && !document.getElementById('prodTabCharge').classList.contains('hidden')) renderChargePostes(); if(document.getElementById('atelierMobile') && !document.getElementById('atelierMobile').classList.contains('hidden')) renderAtelierMobile(); if(document.getElementById('controlegestion') && !document.getElementById('controlegestion').classList.contains('hidden')) renderControleGestion(); if(document.getElementById('validations') && !document.getElementById('validations').classList.contains('hidden')) renderValidationsQueue(); if(document.getElementById('etatpa') && !document.getElementById('etatpa').classList.contains('hidden')) renderEtatProformaAchats(); if(document.getElementById('gmao') && !document.getElementById('gmao').classList.contains('hidden')) showGmaoTab(document.querySelector('.gmao-tab-btn.active')?.dataset.gmaotab||'machines'); if(document.getElementById('relances') && !document.getElementById('relances').classList.contains('hidden')) renderRelances(); updateGmaoBadge(); updateValidationsBadge(); updateRelancesBadge(); updateAOBadge(); if(document.getElementById('rh') && !document.getElementById('rh').classList.contains('hidden')) showRHTab(document.querySelector('.rh-tab-btn.active')?.dataset.rhtab||'employes'); updateCongesBadge(); }
+async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),seedArticlesIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable(),renderEnsemblesList(),renderPlansFacadeTable(),renderRevisionsTable(),populateAtelierSelect(),loadParams()]); renderUsersTable(); if(document.getElementById('costChart')) updateDashboard(); if(document.getElementById('prodTabKanban') && !document.getElementById('prodTabKanban').classList.contains('hidden')) renderKanban(); if(document.getElementById('prodTabGantt') && !document.getElementById('prodTabGantt').classList.contains('hidden')) renderGantt(); if(document.getElementById('prodTabCharge') && !document.getElementById('prodTabCharge').classList.contains('hidden')) renderChargePostes(); if(document.getElementById('atelierMobile') && !document.getElementById('atelierMobile').classList.contains('hidden')) renderAtelierMobile(); if(document.getElementById('controlegestion') && !document.getElementById('controlegestion').classList.contains('hidden')) renderControleGestion(); if(document.getElementById('validations') && !document.getElementById('validations').classList.contains('hidden')) renderValidationsQueue(); if(document.getElementById('etatpa') && !document.getElementById('etatpa').classList.contains('hidden')) renderEtatProformaAchats(); if(document.getElementById('gmao') && !document.getElementById('gmao').classList.contains('hidden')) showGmaoTab(document.querySelector('.gmao-tab-btn.active')?.dataset.gmaotab||'machines'); if(document.getElementById('relances') && !document.getElementById('relances').classList.contains('hidden')) renderRelances(); updateGmaoBadge(); updateValidationsBadge(); updateRelancesBadge(); updateAOBadge(); if(document.getElementById('rh') && !document.getElementById('rh').classList.contains('hidden')) showRHTab(document.querySelector('.rh-tab-btn.active')?.dataset.rhtab||'employes'); updateCongesBadge(); }
 
 function openNewOFForm(){
   if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
@@ -6387,6 +6433,287 @@ async function loadRecentOF(){
   }).join('') : '<div class="text-sm text-slate-400">Aucun OF récent.</div>';
 }
 
+
+/* ---------- CATALOGUE ARTICLES NORMALISÉS ---------- */
+async function seedArticlesIfEmpty(){
+  const rows=await idbGetAll('articles');
+  if(rows.length) return;
+  const defaults=[
+    {id:'ART-ALU-001',reference:'P-ALU-001',famille:'Profils aluminium',sousFamille:'Dormants',designation:'Profil dormant série 120 standard',unite:'ml',fournisseur:'Alcan Côte d\'Ivoire',specTechnique:'Aluminium 6063-T5, 120mm, anodisé standard',dernierPrix:8500,prixMoyen:8500,qteMinimale:100,prixMin:8500,prixMax:8500,datePrix:new Date().toISOString()},
+    {id:'ART-ALU-002',reference:'P-ALU-002',famille:'Profils aluminium',sousFamille:'Ouvrants',designation:'Profil ouvrant série 120 standard',unite:'ml',fournisseur:'Alcan Côte d\'Ivoire',specTechnique:'Aluminium 6063-T5, 120mm, anodisé standard',dernierPrix:9200,prixMoyen:9200,qteMinimale:100,prixMin:9200,prixMax:9200,datePrix:new Date().toISOString()},
+    {id:'ART-VITR-001',reference:'V-CLAIR-3',famille:'Vitrages',sousFamille:'Monolithique',designation:'Verre clair 3mm',unite:'m²',fournisseur:'Saint-Gobain',specTechnique:'Verre sodocalcique clair, 3mm, ISO 2287',dernierPrix:5500,prixMoyen:5500,qteMinimale:50,prixMin:5500,prixMax:5500,datePrix:new Date().toISOString()},
+    {id:'ART-QUINCAIL-001',reference:'Q-CHARN-ALU',famille:'Quincaillerie',sousFamille:'Charnières',designation:'Charnière aluminium 100mm nickelée',unite:'pcs',fournisseur:'Quincaillerie Export',specTechnique:'Aluminium, 100mm, fermeture douce',dernierPrix:3200,prixMoyen:3200,qteMinimale:500,prixMin:3200,prixMax:3200,datePrix:new Date().toISOString()},
+    {id:'ART-JOINT-001',reference:'J-CAOUT-8',famille:'Joints',sousFamille:'Caoutchouc',designation:'Joint caoutchouc 8mm',unite:'ml',fournisseur:'Geco Industries',specTechnique:'EPDM, 8x6mm, densité 0.8',dernierPrix:450,prixMoyen:450,qteMinimale:500,prixMin:450,prixMax:450,datePrix:new Date().toISOString()}
+  ];
+  for(const d of defaults){ d._modifie=new Date().toISOString(); await idbPut('articles',d); queueSync('alubom_articles',d); }
+}
+
+async function renderArticleTable(){
+  const el=document.getElementById('articleBody'); if(!el) return;
+  const articles=await idbGetAll('articles');
+  const searchRef=(document.getElementById('artSearchRef')?.value||'').toLowerCase();
+  const searchDesig=(document.getElementById('artSearchDesig')?.value||'').toLowerCase();
+  const filtreFamille=document.getElementById('artFilterFamille')?.value||'';
+  const filtreFournisseur=document.getElementById('artFilterFournisseur')?.value||'';
+  
+  let filtered=articles;
+  if(searchRef) filtered=filtered.filter(a=>(a.reference||'').toLowerCase().includes(searchRef));
+  if(searchDesig) filtered=filtered.filter(a=>(a.designation||'').toLowerCase().includes(searchDesig));
+  if(filtreFamille) filtered=filtered.filter(a=>a.famille===filtreFamille);
+  if(filtreFournisseur) filtered=filtered.filter(a=>a.fournisseur===filtreFournisseur);
+  
+  el.innerHTML=filtered.length?filtered.map(a=>`<tr class="border-b hover:bg-slate-50">
+    <td class="p-2 font-mono text-blue-600">${escapeHtml(a.reference||'—')}</td>
+    <td class="p-2">${escapeHtml(a.famille||'—')}</td>
+    <td class="p-2 text-sm text-slate-600">${escapeHtml(a.sousFamille||'—')}</td>
+    <td class="p-2">${escapeHtml(a.designation||'—')}</td>
+    <td class="p-2 text-center">${escapeHtml(a.unite||'U')}</td>
+    <td class="p-2 text-right font-semibold">${(a.dernierPrix||0).toLocaleString('fr-FR')}</td>
+    <td class="p-2 text-right">${(a.prixMoyen||0).toLocaleString('fr-FR')}</td>
+    <td class="p-2 text-right text-sm">${a.qteMinimale||0}</td>
+    <td class="p-2 text-sm text-slate-600">${escapeHtml(a.fournisseur||'—')}</td>
+    <td class="p-2 text-xs"><button onclick="editArticle('${a.id}')" class="text-blue-600 font-semibold mr-2">✏️</button><button onclick="deleteArticle('${a.id}')" class="text-red-600 font-semibold">🗑️</button></td>
+  </tr>`).join(''):
+  '<tr><td class="p-3 text-slate-400" colspan="10">Aucun article.</td></tr>';
+  
+  updateArticleFilters(articles);
+}
+
+function updateArticleFilters(articles){
+  const familles=[...new Set(articles.map(a=>a.famille).filter(Boolean))].sort();
+  const fournisseurs=[...new Set(articles.map(a=>a.fournisseur).filter(Boolean))].sort();
+  
+  const familleEl=document.getElementById('artFilterFamille');
+  if(familleEl){
+    const cur=familleEl.value;
+    familleEl.innerHTML='<option value="">— Famille —</option>'+familles.map(f=>`<option>${f}</option>`).join('');
+    if(cur) familleEl.value=cur;
+  }
+  
+  const fournisseurEl=document.getElementById('artFilterFournisseur');
+  if(fournisseurEl){
+    const cur=fournisseurEl.value;
+    fournisseurEl.innerHTML='<option value="">— Fournisseur —</option>'+fournisseurs.map(f=>`<option>${f}</option>`).join('');
+    if(cur) fournisseurEl.value=cur;
+  }
+}
+
+async function openArticleForm(id){
+  const article=id?(await idbGetAll('articles')).find(a=>a.id===id):null;
+  const formHtml=`
+    <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" id="articleFormOverlay">
+      <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-96 overflow-y-auto">
+        <div class="flex justify-between items-center p-4 border-b sticky top-0 bg-white">
+          <h2 class="text-lg font-bold">${article?'Modifier':'Nouvel'} article</h2>
+          <button type="button" onclick="document.getElementById('articleFormOverlay').remove()" class="text-slate-400 text-2xl">✕</button>
+        </div>
+        <form onsubmit="return saveArticle(event)" class="p-4 space-y-3">
+          <div class="grid sm:grid-cols-2 gap-3">
+            <div><label class="text-xs font-semibold block mb-1">Référence *</label><input id="artRef" value="${escapeHtml(article?.reference||'')}" required class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+            <div><label class="text-xs font-semibold block mb-1">Famille *</label><input id="artFamille" value="${escapeHtml(article?.famille||'')}" required class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+            <div><label class="text-xs font-semibold block mb-1">Sous-famille</label><input id="artSousFamille" value="${escapeHtml(article?.sousFamille||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+            <div><label class="text-xs font-semibold block mb-1">Désignation *</label><input id="artDesignation" value="${escapeHtml(article?.designation||'')}" required class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+            <div><label class="text-xs font-semibold block mb-1">Unité *</label><input id="artUnite" value="${escapeHtml(article?.unite||'U')}" required class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+            <div><label class="text-xs font-semibold block mb-1">Fournisseur</label><input id="artFournisseur" value="${escapeHtml(article?.fournisseur||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+          </div>
+          <div><label class="text-xs font-semibold block mb-1">Spécification technique</label><textarea id="artSpecTech" rows="2" class="border rounded-lg px-2 py-1.5 text-sm w-full">${escapeHtml(article?.specTechnique||'')}</textarea></div>
+          <div class="grid sm:grid-cols-3 gap-3">
+            <div><label class="text-xs font-semibold block mb-1">Dernier prix (FCFA)</label><input id="artDernierPrix" type="number" step="0.01" value="${article?.dernierPrix||0}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+            <div><label class="text-xs font-semibold block mb-1">Prix moyen (FCFA)</label><input id="artPrixMoyen" type="number" step="0.01" value="${article?.prixMoyen||0}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+            <div><label class="text-xs font-semibold block mb-1">Quantité minimale</label><input id="artQteMin" type="number" step="0.01" value="${article?.qteMinimale||0}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+          </div>
+          ${article?'<div><label class="text-xs font-semibold block mb-1">Motif du changement de prix</label><select id="artMotifPrix" class="border rounded-lg px-2 py-1.5 text-sm w-full"><option>Augmentation fournisseur</option><option selected>Mise à jour</option><option>Réduction volume</option><option>Négociation</option><option>Changement fournisseur</option><option>Ajustement marché</option><option>Autre</option></select></div>':''}
+          ${article?'<input type="hidden" id="artId" value="'+article.id+'">':''}
+          <div class="flex gap-2 justify-end pt-2">
+            <button type="button" onclick="document.getElementById('articleFormOverlay').remove()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Annuler</button>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">💾 Enregistrer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend',formHtml);
+}
+
+async function saveArticle(ev){
+  ev.preventDefault();
+  const id=document.getElementById('artId')?.value||'art_'+Date.now();
+  const nouveauPrix=+document.getElementById('artDernierPrix').value||0;
+  const oldArticle=id.startsWith('art_')?null:((await idbGetAll('articles')).find(a=>a.id===id));
+  
+  const article={
+    id,
+    reference:document.getElementById('artRef').value.trim().toUpperCase(),
+    famille:document.getElementById('artFamille').value.trim(),
+    sousFamille:document.getElementById('artSousFamille').value.trim(),
+    designation:document.getElementById('artDesignation').value.trim(),
+    unite:document.getElementById('artUnite').value.trim().toUpperCase(),
+    fournisseur:document.getElementById('artFournisseur').value.trim(),
+    specTechnique:document.getElementById('artSpecTech').value.trim(),
+    dernierPrix:nouveauPrix,
+    prixMoyen:+document.getElementById('artPrixMoyen').value||0,
+    qteMinimale:+document.getElementById('artQteMin').value||0,
+    prixMin:Math.min(nouveauPrix,(+document.getElementById('artPrixMoyen').value||0)),
+    prixMax:Math.max(nouveauPrix,(+document.getElementById('artPrixMoyen').value||0)),
+    datePrix:new Date().toISOString(),
+    _modifie:new Date().toISOString()
+  };
+  
+  // Enregistrer historique si changement de prix
+  if(!oldArticle || oldArticle.dernierPrix!==nouveauPrix){
+    const historique={
+      id:'hist_'+article.id+'_'+Date.now(),
+      articleId:article.id,
+      reference:article.reference,
+      fournisseur:article.fournisseur,
+      ancienPrix:oldArticle?.dernierPrix||null,
+      nouveauPrix:nouveauPrix,
+      date:new Date().toISOString(),
+      utilisateur:JSON.parse(localStorage.getItem('alubom_user')||'{}').nom||'Système',
+      motif:document.getElementById('artMotifPrix')?.value||'Mise à jour'
+    };
+    await idbPut('articles_prix_historique',historique);
+    queueSync('alubom_articles_prix_historique',historique);
+  }
+  
+  await idbPut('articles',article);
+  queueSync('alubom_articles',article);
+  await audit('ARTICLE_'+(oldArticle?'UPDATE':'CREATE'),article.reference+' — '+article.designation+' ('+nouveauPrix+' FCFA)');
+  document.getElementById('articleFormOverlay').remove();
+  await renderArticleTable();
+}
+
+async function editArticle(id){
+  await openArticleForm(id);
+}
+
+async function showArticleHistoriqueTab(){
+  const articles=await idbGetAll('articles');
+  const historique=await idbGetAll('articles_prix_historique');
+  
+  const html=`
+    <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" id="historiqueOverlay">
+      <div class="bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-96 overflow-y-auto">
+        <div class="flex justify-between items-center p-4 border-b sticky top-0 bg-white">
+          <h2 class="text-lg font-bold">Historique des prix</h2>
+          <button onclick="document.getElementById('historiqueOverlay').remove()" class="text-slate-400 text-2xl">✕</button>
+        </div>
+        <div class="p-4 space-y-4">
+          <div class="grid sm:grid-cols-3 gap-2">
+            <input id="histSearchRef" placeholder="🔍 Référence" onkeyup="updateHistoriqueTable()" class="border rounded-lg px-2 py-1.5 text-sm">
+            <input id="histSearchFournisseur" placeholder="🔍 Fournisseur" onkeyup="updateHistoriqueTable()" class="border rounded-lg px-2 py-1.5 text-sm">
+            <select id="histFilterArticle" onchange="updateHistoriqueTable()" class="border rounded-lg px-2 py-1.5 text-sm">
+              <option value="">— Tous articles —</option>
+              ${[...new Set(articles.map(a=>a.id))].map(id=>{const a=articles.find(x=>x.id===id);return '<option value="'+a.id+'">'+a.reference+' — '+a.designation+'</option>';}).join('')}
+            </select>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm border rounded-lg overflow-hidden">
+              <thead class="bg-slate-100">
+                <tr>
+                  <th class="p-2 text-left">Date</th>
+                  <th class="p-2 text-left">Référence</th>
+                  <th class="p-2 text-left">Fournisseur</th>
+                  <th class="p-2 text-right">Ancien prix</th>
+                  <th class="p-2 text-right">Nouveau prix</th>
+                  <th class="p-2 text-right">Variation %</th>
+                  <th class="p-2 text-left">Motif</th>
+                  <th class="p-2">Par</th>
+                </tr>
+              </thead>
+              <tbody id="historiqueBody"></tbody>
+            </table>
+          </div>
+          <div id="graphiqueArticle" style="display:none;" class="mt-4 p-4 bg-slate-50 border rounded-lg">
+            <canvas id="chartPrixEvolution" style="max-height:300px;"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend',html);
+  await updateHistoriqueTable();
+}
+
+async function updateHistoriqueTable(){
+  const el=document.getElementById('historiqueBody'); if(!el) return;
+  const articles=await idbGetAll('articles');
+  const historique=(await idbGetAll('articles_prix_historique')).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  
+  const searchRef=(document.getElementById('histSearchRef')?.value||'').toUpperCase();
+  const searchFournisseur=(document.getElementById('histSearchFournisseur')?.value||'').toUpperCase();
+  const filterArticle=document.getElementById('histFilterArticle')?.value||'';
+  
+  let filtered=historique;
+  if(searchRef) filtered=filtered.filter(h=>h.reference.includes(searchRef));
+  if(searchFournisseur) filtered=filtered.filter(h=>h.fournisseur.toUpperCase().includes(searchFournisseur));
+  if(filterArticle) filtered=filtered.filter(h=>h.articleId===filterArticle);
+  
+  el.innerHTML=filtered.length?filtered.map(h=>{
+    const variation=h.ancienPrix?Math.round(((h.nouveauPrix-h.ancienPrix)/h.ancienPrix)*100):'—';
+    const badgeColor=variation==='—'?'gray':variation>0?'red':variation<0?'green':'gray';
+    return `<tr class="border-b hover:bg-slate-50" onclick="renderChartPrixArticle('${h.articleId}')">
+      <td class="p-2 text-xs text-slate-500">${new Date(h.date).toLocaleDateString('fr-FR')}</td>
+      <td class="p-2 font-mono text-blue-600">${escapeHtml(h.reference)}</td>
+      <td class="p-2 text-sm">${escapeHtml(h.fournisseur)}</td>
+      <td class="p-2 text-right text-sm">${h.ancienPrix?h.ancienPrix.toLocaleString('fr-FR'):'—'}</td>
+      <td class="p-2 text-right font-semibold">${h.nouveauPrix.toLocaleString('fr-FR')}</td>
+      <td class="p-2 text-right"><span class="badge bg-${badgeColor}-50 text-${badgeColor}-700">${variation}%</span></td>
+      <td class="p-2 text-xs text-slate-600">${escapeHtml(h.motif)}</td>
+      <td class="p-2 text-xs text-slate-600">${escapeHtml(h.utilisateur)}</td>
+    </tr>`;
+  }).join(''):
+  '<tr><td class="p-3 text-slate-400" colspan="8">Aucun historique.</td></tr>';
+}
+
+async function renderChartPrixArticle(articleId){
+  const articles=await idbGetAll('articles');
+  const historique=(await idbGetAll('articles_prix_historique')).filter(h=>h.articleId===articleId).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const article=articles.find(a=>a.id===articleId);
+  
+  if(!historique.length){
+    alert('Pas d\'historique pour cet article.');
+    return;
+  }
+  
+  const dates=historique.map(h=>new Date(h.date).toLocaleDateString('fr-FR'));
+  const prix=historique.map(h=>h.nouveauPrix);
+  
+  const ctx=document.getElementById('chartPrixEvolution');
+  if(!ctx) return;
+  
+  if(window.chartPrixInstance) window.chartPrixInstance.destroy();
+  
+  window.chartPrixInstance=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:dates,
+      datasets:[{
+        label:'Évolution du prix — '+article.reference,
+        data:prix,
+        borderColor:'#2563eb',
+        backgroundColor:'rgba(37,99,235,0.1)',
+        borderWidth:2,
+        fill:true,
+        tension:0.4,
+        pointRadius:5,
+        pointHoverRadius:7,
+        pointBackgroundColor:'#2563eb'
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{legend:{labels:{color:'#334155'}}},
+      scales:{
+        y:{title:{display:true,text:'Prix (FCFA)',color:'#334155'},ticks:{color:'#64748b'}},
+        x:{ticks:{color:'#64748b'}}
+      }
+    }
+  });
+  
+  document.getElementById('graphiqueArticle').style.display='block';
+}
+
 /* ---------- Stock ---------- */
 async function seedStockIfEmpty(){
   const rows=await idbGetAll('stock');
@@ -6461,6 +6788,7 @@ function showStockTab(tab){
   document.getElementById('stockTab'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.remove('hidden');
   document.querySelectorAll('.stock-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.stocktab===tab));
   populateDepotSelects();
+  if(tab==='catalogue') renderArticleTable();
   if(tab==='liste') renderStockTable();
   if(tab==='valorisation') renderValorisation();
   if(tab==='inventaireDepot') renderInventaireDepot();
@@ -6470,22 +6798,40 @@ async function renderStockTable(){
   const el=document.getElementById('stockBody'); if(!el) return;
   await populateDepotSelects();
   const depotFilter=document.getElementById('stockDepotFilter')?.value||'';
+  const articles=await idbGetAll('articles');
+  const articleMap=new Map(articles.map(a=>[a.reference,a]));
+  
   let rows=(await idbGetAll('stock')).slice().sort((a,b)=>a.ref.localeCompare(b.ref)||(a.depot||'PRINC').localeCompare(b.depot||'PRINC'));
   const depots=await getDepotsActifs();
   const depotNom={}; depots.forEach(d=>depotNom[d.code]=d.nom);
+  
   if(depotFilter){
     rows=rows.filter(r=>(r.depot||'PRINC')===depotFilter);
     const cells=await Promise.all(rows.map(async r=>{
+      const art=articleMap.get(r.ref);
       const [label,color]=stockEtat(r.dispo);
       const cump=await computeCUMP(r.ref);
-      return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.ref)}</td><td class="p-3">${escapeHtml(r.label)}</td><td class="p-3"><span class="badge bg-slate-50 text-slate-600">${escapeHtml(depotNom[r.depot||'PRINC']||r.depot||'PRINC')}</span></td><td class="p-3 text-right">${r.dispo.toFixed(1)} ml</td><td class="p-3 text-right">${(r.reserve||0).toFixed(1)} ml</td><td class="p-3 text-right">${money(r.prix)}</td><td class="p-3 text-right">${cump!=null?money(cump):'<span class="text-slate-400">—</span>'}</td><td class="p-3"><span class="badge bg-${color}-50 text-${color}-700">${label}</span></td></tr>`;
+      const alerteQte=art && r.dispo<art.qteMinimale;
+      const alerteBadge=alerteQte?'<span class="badge bg-red-100 text-red-700 ml-2">⚠️ Stock faible (min: '+art.qteMinimale+')</span>':'';
+      return `<tr class="border-b ${alerteQte?'bg-red-50':''}">
+        <td class="p-3 font-mono text-blue-600">${escapeHtml(r.ref)}</td>
+        <td class="p-3">${escapeHtml(r.label)}${art?'<div class="text-xs text-slate-500 mt-1">'+escapeHtml(art.sousFamille||art.famille)+'</div>':''}</td>
+        <td class="p-3"><span class="badge bg-slate-50 text-slate-600">${escapeHtml(depotNom[r.depot||'PRINC']||r.depot||'PRINC')}</span></td>
+        <td class="p-3 text-right"><strong>${r.dispo.toFixed(1)}</strong> ${art?.unite||'ml'}</td>
+        <td class="p-3 text-right">${(r.reserve||0).toFixed(1)} ${art?.unite||'ml'}</td>
+        <td class="p-3 text-right text-sm">${art?escapeHtml(art.fournisseur||'—'):'—'}</td>
+        <td class="p-3 text-right">${money(r.prix)}</td>
+        <td class="p-3 text-right">${cump!=null?money(cump):'—'}</td>
+        <td class="p-3"><span class="badge bg-${color}-50 text-${color}-700">${label}</span>${alerteBadge}</td>
+      </tr>`;
     }));
-    el.innerHTML = cells.length ? cells.join('') : `<tr><td class="p-3 text-slate-400" colspan="8">Aucune référence dans ce dépôt.</td></tr>`;
+    el.innerHTML = cells.length ? cells.join('') : `<tr><td class="p-3 text-slate-400" colspan="9">Aucune référence dans ce dépôt.</td></tr>`;
   } else {
     // Agrégation tous dépôts confondus par référence
     const map=new Map();
     rows.forEach(r=>{
-      const cur=map.get(r.ref)||{ref:r.ref,label:r.label,dispo:0,reserve:0,prix:r.prix,nbDepots:0};
+      const art=articleMap.get(r.ref);
+      const cur=map.get(r.ref)||{ref:r.ref,label:r.label,article:art,dispo:0,reserve:0,prix:r.prix,nbDepots:0};
       cur.dispo+=r.dispo||0; cur.reserve+=r.reserve||0; cur.nbDepots++;
       if(r.prix) cur.prix=r.prix;
       map.set(r.ref,cur);
@@ -6494,9 +6840,21 @@ async function renderStockTable(){
     const cells=await Promise.all(agg.map(async r=>{
       const [label,color]=stockEtat(r.dispo);
       const cump=await computeCUMP(r.ref);
-      return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.ref)}</td><td class="p-3">${escapeHtml(r.label)}</td><td class="p-3 text-xs text-slate-400">${r.nbDepots} dépôt${r.nbDepots>1?'s':''}</td><td class="p-3 text-right">${r.dispo.toFixed(1)} ml</td><td class="p-3 text-right">${r.reserve.toFixed(1)} ml</td><td class="p-3 text-right">${money(r.prix)}</td><td class="p-3 text-right">${cump!=null?money(cump):'<span class="text-slate-400">—</span>'}</td><td class="p-3"><span class="badge bg-${color}-50 text-${color}-700">${label}</span></td></tr>`;
+      const alerteQte=r.article && r.dispo<r.article.qteMinimale;
+      const alerteBadge=alerteQte?'<span class="badge bg-red-100 text-red-700 ml-2">⚠️ Stock faible</span>':'';
+      return `<tr class="border-b ${alerteQte?'bg-red-50':''}">
+        <td class="p-3 font-mono text-blue-600">${escapeHtml(r.ref)}</td>
+        <td class="p-3">${escapeHtml(r.label)}${r.article?'<div class="text-xs text-slate-500 mt-1">'+escapeHtml(r.article.sousFamille||r.article.famille)+'</div>':''}</td>
+        <td class="p-3 text-xs text-slate-400">${r.nbDepots} dépôt${r.nbDepots>1?'s':''}</td>
+        <td class="p-3 text-right"><strong>${r.dispo.toFixed(1)}</strong> ${r.article?.unite||'ml'}</td>
+        <td class="p-3 text-right">${r.reserve.toFixed(1)} ${r.article?.unite||'ml'}</td>
+        <td class="p-3 text-right text-sm">${r.article?escapeHtml(r.article.fournisseur||'—'):'—'}</td>
+        <td class="p-3 text-right">${money(r.prix)}</td>
+        <td class="p-3 text-right">${cump!=null?money(cump):'—'}</td>
+        <td class="p-3"><span class="badge bg-${color}-50 text-${color}-700">${label}</span>${alerteBadge}</td>
+      </tr>`;
     }));
-    el.innerHTML = cells.length ? cells.join('') : `<tr><td class="p-3 text-slate-400" colspan="8">Aucune référence en stock.</td></tr>`;
+    el.innerHTML = cells.length ? cells.join('') : `<tr><td class="p-3 text-slate-400" colspan="9">Aucune référence en stock.</td></tr>`;
   }
   const dl=document.getElementById('stockRefsDatalist');
   if(dl){ const uniqRefs=[...new Set(rows.map(r=>r.ref))]; dl.innerHTML=uniqRefs.map(ref=>`<option value="${escapeHtml(ref)}">`).join(''); }
@@ -6504,46 +6862,84 @@ async function renderStockTable(){
 async function handleStockMove(e){
   e.preventDefault();
   if(!hasRole('stock:write')){ alert('Permission refusée.'); return false; }
-  const ref=document.getElementById('mvRef').value.trim();
-  const label=document.getElementById('mvLabel').value.trim();
+  const ref=document.getElementById('mvRef').value.trim().toUpperCase();
+  let label=document.getElementById('mvLabel').value.trim();
   const depot=document.getElementById('mvDepot')?.value||'PRINC';
   const type=document.getElementById('mvType').value;
   const qty=Math.abs(+document.getElementById('mvQty').value||0);
-  const prixUnitaire=+document.getElementById('mvPrix').value||0;
+  let prixUnitaire=+document.getElementById('mvPrix').value||0;
+  
   if(!ref||!qty) return false;
+  
+  // Chercher article dans catalogue
+  const articles=await idbGetAll('articles');
+  const art=articles.find(a=>a.reference===ref);
+  
+  if(art){
+    if(!label) label=art.designation;
+    if(type==='entree' && !prixUnitaire) prixUnitaire=art.dernierPrix||0;
+  }
+  
   const rows=await idbGetAll('stock');
   const id=stockRowId(ref,depot);
-  let row=rows.find(r=>r.id===id) || {id,ref,label:label||ref,dispo:0,reserve:0,prix:0,depot};
+  let row=rows.find(r=>r.id===id) || {id,ref,label:label||ref,articleId:art?.id||null,dispo:0,reserve:0,prix:0,depot};
+  
+  // Mettre à jour articleId si l'article existe
+  if(art) row.articleId=art.id;
+  
   row.dispo = type==='entree' ? row.dispo+qty : Math.max(0,row.dispo-qty);
   if(type==='entree' && prixUnitaire>0) row.prix=prixUnitaire;
   row.depot=depot;
   row._modifie=new Date().toISOString();
+  
   await idbPut('stock',row);
   queueSync('alubom_stock',row);
-  const mv={id:'m_'+Date.now(),ref,depot,type,qty,prixUnitaire:type==='entree'?prixUnitaire:0,ts:new Date().toISOString(),user:currentUser?currentUser.email:undefined};
+  
+  const mv={
+    id:'m_'+Date.now(),
+    ref,
+    articleId:art?.id||null,
+    depot,
+    type,
+    qty,
+    prixUnitaire:type==='entree'?prixUnitaire:0,
+    ts:new Date().toISOString(),
+    user:currentUser?currentUser.email:undefined
+  };
   await idbPut('stock_mouvements',mv);
   queueSync('alubom_stock_mouvements',mv);
-  await audit('MOUVEMENT_STOCK',`${type} ${qty}ml ${ref} (${depot})`+(prixUnitaire?` @ ${money(prixUnitaire)}`:''));
+  
+  await audit('MOUVEMENT_STOCK',`${type} ${qty}${art?.unite||'ml'} ${ref}${label?' ('+label+')':''} (${depot})`+(prixUnitaire?` @ ${money(prixUnitaire)}`:''));
+  
   document.getElementById('stockMoveForm').reset();
   document.getElementById('mvPrix').classList.remove('hidden');
   await populateDepotSelects();
   await renderStockTable();
+  
+  // Alerte si quantité < minimale
+  if(art && row.dispo<art.qteMinimale){
+    alert('⚠️ ALERTE: Stock faible!\n'+ref+' ('+row.dispo+') < Minimum requis ('+art.qteMinimale+')');
+  }
+  
   return false;
 }
 
 /* ---------- Valorisation du stock (CUMP × quantité, par référence et dépôt) ---------- */
 async function renderValorisation(){
   const el=document.getElementById('valorisationBody'); if(!el) return;
+  const articles=await idbGetAll('articles');
+  const articleMap=new Map(articles.map(a=>[a.reference,a]));
   const rows=(await idbGetAll('stock')).filter(r=>r.dispo>0).sort((a,b)=>a.ref.localeCompare(b.ref));
   const depots=await getDepotsActifs();
   const depotNom={}; depots.forEach(d=>depotNom[d.code]=d.nom);
   let total=0;
   const cells=await Promise.all(rows.map(async r=>{
+    const art=articleMap.get(r.ref);
     const cump=await computeCUMP(r.ref);
-    const valeurUnitaire = cump!=null ? cump : (r.prix||0);
+    const valeurUnitaire = cump!=null ? cump : (r.prix||art?.dernierPrix||0);
     const valeur=r.dispo*valeurUnitaire;
     total+=valeur;
-    return `<tr class="border-b"><td class="p-3 font-semibold">${escapeHtml(r.ref)}</td><td class="p-3">${escapeHtml(r.label)}</td><td class="p-3"><span class="badge bg-slate-50 text-slate-600">${escapeHtml(depotNom[r.depot||'PRINC']||r.depot||'PRINC')}</span></td><td class="p-3 text-right">${r.dispo.toFixed(2)} ml</td><td class="p-3 text-right">${money(valeurUnitaire)}${cump==null?' <span class="text-slate-400 text-xs">(prix réf.)</span>':''}</td><td class="p-3 text-right font-semibold">${money(valeur)}</td></tr>`;
+    return `<tr class="border-b"><td class="p-3 font-mono text-blue-600">${escapeHtml(r.ref)}</td><td class="p-3">${escapeHtml(r.label)}${art?'<div class="text-xs text-slate-500">'+escapeHtml(art.fournisseur||'')+'</div>':''}</td><td class="p-3"><span class="badge bg-slate-50 text-slate-600">${escapeHtml(depotNom[r.depot||'PRINC']||r.depot||'PRINC')}</span></td><td class="p-3 text-right">${r.dispo.toFixed(2)} ${art?.unite||'ml'}</td><td class="p-3 text-right">${money(valeurUnitaire)}${cump==null?' <span class="text-slate-400 text-xs">(prix réf.)</span>':''}</td><td class="p-3 text-right font-semibold">${money(valeur)}</td></tr>`;
   }));
   el.innerHTML = cells.length ? cells.join('') : `<tr><td class="p-3 text-slate-400" colspan="6">Aucun stock disponible à valoriser.</td></tr>`;
   document.getElementById('valorisationTotal').textContent=money(total);
@@ -14906,15 +15302,29 @@ toggleTypeFields();
 function getRHParams(){
   const def={
     smig:75000,
+    smag:36607,
     joursOuvrablesMois:26,
     congesAccrualParMois:2.2,
     tauxCnpsSalarie:6.3,
+    cmuForfaitSalarie:1000,
     tauxCnpsEmployeurRetraite:7.7,
-    tauxCnpsAutresEmployeur:9,
-    plafondCnps:3375000,
-    cmuSalarie:500,
-    cmuEmployeur:500,
-    conventionCollective:'Convention Nationale des Industries de la Menuiserie Métallique et Aluminium',
+    tauxCnpsEmployeurAT:9,
+    tauxCnpsEmployeurAutres:2.4,
+    tauxCmuEmployeur:3,
+    plafondCnps:1647315,
+    ricfParDemiPart:5500,
+    ricfMax:44000,
+    tauxHeuresSup6h:15,
+    tauxHeuresSup50:50,
+    itsBareme:[
+      {jusqua:75000,taux:0},
+      {jusqua:240000,taux:16},
+      {jusqua:800000,taux:21},
+      {jusqua:2400000,taux:24},
+      {jusqua:8000000,taux:28},
+      {jusqua:null,taux:32}
+    ],
+    conventionCollective:'Convention Collective Nationale — Côte d\'Ivoire',
     secteur:'Fabrication - Menuiserie Aluminium',
     grilleSalariale:{
       apprenti:{label:'Apprenti',coeff:1.0,salaire:75000},
@@ -14923,15 +15333,7 @@ function getRHParams(){
       technicien:{label:'Technicien',coeff:2.0,salaire:150000},
       chef_atelier:{label:'Chef d\'Atelier',coeff:2.5,salaire:187500},
       ingenieur:{label:'Ingénieur',coeff:3.0,salaire:225000}
-    },
-    itsBareme:[
-      {jusqua:75000,taux:0},
-      {jusqua:240000,taux:16},
-      {jusqua:800000,taux:21},
-      {jusqua:2400000,taux:24},
-      {jusqua:8000000,taux:28},
-      {jusqua:null,taux:32}
-    ]
+    }
   };
   try{
     const raw=localStorage.getItem('alubom_rh_params');
@@ -14964,27 +15366,51 @@ async function calculPaie(employe, periode, opts){
   const p=getRHParams();
   const joursTravailles = opts.joursTravailles!=null ? opts.joursTravailles : p.joursOuvrablesMois;
   const joursAbsenceNonPayee = opts.joursAbsenceNonPayee||0;
-  const salaireBase = +employe.salaireBase||0;
+  const nbrPartsFiscales = opts.nbrPartsFiscales||1;
+  let salaireBase = +employe.salaireBase||0;
+  
+  // Validation SMIG minimum
+  if(salaireBase<p.smig) salaireBase=p.smig;
+  
   const deductionAbsences = joursAbsenceNonPayee>0 ? Math.round(salaireBase/p.joursOuvrablesMois*joursAbsenceNonPayee) : 0;
   const primeTransport = +employe.primeTransport||0;
   const primeLogement = +employe.primeLogement||0;
   const primesFixesAutres = +employe.primesFixesAutres||0;
   const primeExceptionnelle = +opts.primeExceptionnelle||0;
   const brut = Math.max(0, salaireBase - deductionAbsences + primeTransport + primeLogement + primesFixesAutres + primeExceptionnelle);
+  
+  // CNPS salarié (6.3% du brut, plafonné)
   const baseCotisableCNPS = Math.min(brut, p.plafondCnps||brut);
   const cnpsSalarie = Math.round(baseCotisableCNPS * (p.tauxCnpsSalarie/100));
+  
+  // CMU: forfait salarié + contributio employeur 3%
+  const cmuForfaitSalarie = p.cmuForfaitSalarie||1000;
+  const cmuEmployeur = Math.round(brut * (p.tauxCmuEmployeur/100));
+  
+  // CNPS employeur
   const cnpsEmployeurRetraite = Math.round(baseCotisableCNPS * (p.tauxCnpsEmployeurRetraite/100));
-  const cnpsEmployeurAutres = Math.round(baseCotisableCNPS * (p.tauxCnpsAutresEmployeur/100));
-  const cmuSalarie = p.cmuSalarie||0;
-  const cmuEmployeur = p.cmuEmployeur||0;
-  const its = calcITS(brut, p.itsBareme);
+  const cnpsEmployeurAT = Math.round(baseCotisableCNPS * (p.tauxCnpsEmployeurAT/100));
+  const cnpsEmployeurAutres = Math.round(baseCotisableCNPS * (p.tauxCnpsEmployeurAutres/100));
+  
+  // ITS: réforme 2024 (sur brut, plus d'abattement)
+  let its = calcITS(brut, p.itsBareme);
+  
+  // RICF: réduction forfaitaire par demi-part de charge familiale
+  const ricf = Math.min((nbrPartsFiscales-1)*0.5*p.ricfParDemiPart, p.ricfMax||44000);
+  its = Math.max(0, its - ricf);
+  
   const avanceSurSalaire = +opts.avanceSurSalaire||0;
-  const totalRetenues = cnpsSalarie + cmuSalarie + its + avanceSurSalaire;
+  const totalRetenues = cnpsSalarie + cmuForfaitSalarie + its + avanceSurSalaire;
   const net = Math.round(brut - totalRetenues);
-  const coutTotalEmployeur = Math.round(brut + cnpsEmployeurRetraite + cnpsEmployeurAutres + cmuEmployeur);
-  return {joursTravailles,joursAbsenceNonPayee,deductionAbsences,salaireBase,primeTransport,primeLogement,primesFixesAutres,primeExceptionnelle,
-    brut,baseCotisableCNPS,cnpsSalarie,cnpsEmployeurRetraite,cnpsEmployeurAutres,cmuSalarie,cmuEmployeur,its,avanceSurSalaire,
-    totalRetenues,net,coutTotalEmployeur};
+  const coutTotalEmployeur = Math.round(brut + cnpsEmployeurRetraite + cnpsEmployeurAT + cnpsEmployeurAutres + cmuEmployeur);
+  
+  return {
+    joursTravailles,joursAbsenceNonPayee,nbrPartsFiscales,
+    deductionAbsences,salaireBase,primeTransport,primeLogement,primesFixesAutres,primeExceptionnelle,
+    brut,baseCotisableCNPS,
+    cnpsSalarie,cmuForfaitSalarie,ricf,its,avanceSurSalaire,totalRetenues,net,
+    cnpsEmployeurRetraite,cnpsEmployeurAT,cnpsEmployeurAutres,cmuEmployeur,coutTotalEmployeur
+  };
 }
 
 /* ---------- Employés ---------- */
@@ -15148,6 +15574,15 @@ async function openFicheEmploye(id){
         <div><label class="text-xs font-semibold text-slate-600 block mb-1">Autres primes fixes mensuelles (FCFA)</label><input id="fePrimesFixesAutres" type="number" value="${e?.primesFixesAutres||0}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
         <div><label class="text-xs font-semibold text-slate-600 block mb-1">N° CNPS</label><input id="feNumeroCNPS" value="${escapeHtml(e?.numeroCNPS||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
         <div><label class="text-xs font-semibold text-slate-600 block mb-1">N° CMU</label><input id="feNumeroCMU" value="${escapeHtml(e?.numeroCMU||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+      </div>
+      <div class="border-t pt-3 mt-3 grid sm:grid-cols-3 gap-2">
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Situation matrimoniale</label>
+          <select id="feStatutMatrimonial" class="border rounded-lg px-2 py-1.5 text-sm w-full">
+            ${["Célibataire","Marié(e)","Pacsé(e)","Veuf(ve)","Divorcé(e)"].map(s=>`<option ${e?.statutMatrimonial===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Nombre d'enfants à charge</label><input id="feNbrEnfants" type="number" min="0" value="${e?.nbrEnfants||0}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Parts fiscales pour RICF *</label><input id="feNbrPartsFiscales" type="number" step="0.5" min="1" value="${e?.nbrPartsFiscales||1}" class="border rounded-lg px-2 py-1.5 text-sm w-full" title="1 = célibataire, 1.5 = marié(e), +0.5 par enfant"></div>
       </div>
     </div>
 
@@ -15314,7 +15749,7 @@ function feBuildRecordFromForm(rows,id){
     nom: feVal('feNom'), prenoms: feVal('fePrenoms'),
     photo: fePhotoDataUrl,
     sexe: feG('feSexe').value, dateNaissance: feVal('feDateNaissance'), lieuNaissance: feVal('feLieuNaissance'), nationalite: feVal('feNationalite'),
-    situationMatrimoniale: feG('feSituationMatrimoniale').value, nombreEnfants: feNum('feNombreEnfants'),
+    statutMatrimonial: feG('feStatutMatrimonial').value||'Célibataire', nbrEnfants: feNum('feNbrEnfants'), nbrPartsFiscales: +(document.getElementById('feNbrPartsFiscales')?.value||1),
     typePiece: feG('feTypePiece').value, numeroPiece: feVal('feNumeroPiece'),
     telephone: feVal('feTelephone'), email: feVal('feEmail'), adresse: feVal('feAdresse'),
     contactUrgenceNom: feVal('feContactUrgenceNom'), contactUrgenceTel: feVal('feContactUrgenceTel'),
@@ -15507,7 +15942,7 @@ async function genererBulletinsPeriode(){
     const joursAbsenceNonPayee = emp.modePaie==='pointage'
       ? await joursAbsencePointageNonCouverts(emp.id,periode)
       : await absencesNonPayeesPeriode(emp.id,periode);
-    const calc=await calculPaie(emp,periode,{joursAbsenceNonPayee});
+    const calc=await calculPaie(emp,periode,{joursAbsenceNonPayee,nbrPartsFiscales:emp.nbrPartsFiscales||1});
     const rec={
       id:'pa_'+emp.id+'_'+periode,
       employeId:emp.id, employeNom:(emp.prenoms||'')+' '+(emp.nom||''), matricule:emp.matricule, fonction:emp.fonction,
@@ -15642,7 +16077,7 @@ async function saveEditPaie(id){
   const primeExceptionnelle=+document.getElementById('epPrime').value||0;
   const avanceSurSalaire=+document.getElementById('epAvance').value||0;
   const joursAbsenceNonPayee=Math.max(0,params.joursOuvrablesMois-joursTravailles);
-  const calc=await calculPaie(emp,pa.periode,{joursTravailles,joursAbsenceNonPayee,primeExceptionnelle,avanceSurSalaire});
+  const calc=await calculPaie(emp,pa.periode,{joursTravailles,joursAbsenceNonPayee,primeExceptionnelle,avanceSurSalaire,nbrPartsFiscales:emp.nbrPartsFiscales||1});
   const updated={...pa,...calc,_modifie:new Date().toISOString()};
   await idbPut('paies',updated);
   queueSync('alubom_paies',updated);
@@ -15784,9 +16219,17 @@ async function printBulletin(id){
       <div>📧 ${escapeHtml(emp?.email||'—')} | 📱 ${escapeHtml(emp?.telephone||'—')}</div>
     </div>
     
+    <div style="background:#f0f9ff;border:1px solid #0ea5e9;border-radius:6px;padding:10px;margin:12px 0;font-size:11px">
+      <div><b>📋 Convention Collective :</b> ${escapeHtml(p.conventionCollective||'—')}</div>
+      <div><b>🏭 Secteur :</b> ${escapeHtml(p.secteur||'—')}</div>
+      ${emp?.categorie?'<div><b>🏷️ Catégorie :</b> '+escapeHtml(emp.categorie)+'</div>':''}
+    </div>
+    
     <div class="bp-info">
       <div><b>Période :</b> ${escapeHtml(moisLabel)}</div>
       <div><b>Jours travaillés :</b> ${pa.joursTravailles}j / ${pa.joursCalendrier||22}j</div>
+      ${pa.nbrPartsFiscales?'<div><b>Parts fiscales (RICF) :</b> '+pa.nbrPartsFiscales+'</div>':''}
+      ${emp?.statutMatrimonial?'<div><b>Situation :</b> '+escapeHtml(emp.statutMatrimonial)+(emp.nbrEnfants?' • '+emp.nbrEnfants+' enfant(s)':'')+'</div>':''}
     </div>
     
     <table>
@@ -15796,11 +16239,16 @@ async function printBulletin(id){
         ${pa.deductionAbsences?ligne('Déduction absences ('+pa.joursAbsenceNonPayee+'j)',-pa.deductionAbsences,true):''}
         ${pa.primeTransport?ligne('Prime transport',pa.primeTransport):''}
         ${pa.primeLogement?ligne('Prime logement',pa.primeLogement):''}
+        ${pa.primesFixesAutres?ligne('Autres primes',pa.primesFixesAutres):''}
         ${pa.primeExceptionnelle?ligne('Prime exceptionnelle',pa.primeExceptionnelle):''}
         <tr style="font-weight:700;background:#f8fafc"><td class="p-2">💰 Salaire brut</td><td class="p-2" style="text-align:right">${pa.brut.toLocaleString('fr-FR')} F</td></tr>
-        ${ligne('CNPS — part salariale ('+(p.tauxCnpsSalarie||6)+'%)',-pa.cnpsSalarie,true)}
-        ${ligne('CMU — part salariale',-pa.cmuSalarie,true)}
-        ${ligne('ITS (impôt/salaires)',-pa.its,true)}
+        <tr style="background:#fef3c7;font-size:10px"><td class="p-2" colspan="2"><i>Cotisations sociales obligatoires</i></td></tr>
+        ${ligne('CNPS — part salariale (6.3%)',-pa.cnpsSalarie,true)}
+        ${ligne('CMU — forfait salarié',-pa.cmuForfaitSalarie,true)}
+        <tr style="background:#fef3c7;font-size:10px"><td class="p-2" colspan="2"><i>Impôts (ITS) et réductions</i></td></tr>
+        <tr style="color:#dc2626"><td class="p-2">ITS (Impôt sur salaires)</td><td class="p-2" style="text-align:right">− ${pa.its.toLocaleString('fr-FR')} F</td></tr>
+        ${pa.ricf?'<tr style="color:#059669"><td class="p-2">RICF (−'+pa.nbrPartsFiscales+' parts)</td><td class="p-2" style="text-align:right">+ '+pa.ricf.toLocaleString('fr-FR')+' F</td></tr>':''}
+        <tr style="color:#dc2626"><td class="p-2"><b>ITS net après RICF</b></td><td class="p-2" style="text-align:right">− ${(pa.its-pa.ricf).toLocaleString('fr-FR')} F</td></tr>
         ${pa.avanceSurSalaire?ligne('Avance sur salaire',-pa.avanceSurSalaire,true):''}
         <tr style="font-weight:700;background:#fee2e2"><td class="p-2">📊 Total retenues</td><td class="p-2" style="text-align:right;color:#dc2626">${pa.totalRetenues.toLocaleString('fr-FR')} F</td></tr>
       </tbody>
@@ -16411,7 +16859,10 @@ function renderRHParamsForm(){
   set('rpSmig',p.smig); set('rpJoursOuvrables',p.joursOuvrablesMois); set('rpCongesAccrual',p.congesAccrualParMois);
   set('rpTauxCnpsSalarie',p.tauxCnpsSalarie); set('rpTauxCnpsEmployeurRetraite',p.tauxCnpsEmployeurRetraite); set('rpTauxCnpsAutres',p.tauxCnpsAutresEmployeur);
   set('rpPlafondCnps',p.plafondCnps); set('rpCmuSalarie',p.cmuSalarie); set('rpCmuEmployeur',p.cmuEmployeur);
+  set('rpConvention',p.conventionCollective||'');
+  set('rpSecteur',p.secteur||'');
   renderItsBaremeRows(p.itsBareme);
+  renderGrilleTable(p.grilleSalariale||{});
 }
 function renderItsBaremeRows(bareme){
   const el=document.getElementById('itsBaremeRows'); if(!el) return;
@@ -16443,20 +16894,73 @@ function handleSaveRHParams(e){
   }).sort((a,b)=>(a.jusqua===null?Infinity:a.jusqua)-(b.jusqua===null?Infinity:b.jusqua));
   const p={
     smig:+document.getElementById('rpSmig').value||75000,
+    smag:36607,
     joursOuvrablesMois:+document.getElementById('rpJoursOuvrables').value||26,
     congesAccrualParMois:+document.getElementById('rpCongesAccrual').value||2.2,
-    tauxCnpsSalarie:+document.getElementById('rpTauxCnpsSalarie').value||6.3,
-    tauxCnpsEmployeurRetraite:+document.getElementById('rpTauxCnpsEmployeurRetraite').value||7.7,
-    tauxCnpsAutresEmployeur:+document.getElementById('rpTauxCnpsAutres').value||9,
-    plafondCnps:+document.getElementById('rpPlafondCnps').value||3375000,
-    cmuSalarie:+document.getElementById('rpCmuSalarie').value||500,
-    cmuEmployeur:+document.getElementById('rpCmuEmployeur').value||500,
+    tauxCnpsSalarie:6.3,
+    cmuForfaitSalarie:1000,
+    tauxCnpsEmployeurRetraite:7.7,
+    tauxCnpsEmployeurAT:9,
+    tauxCnpsEmployeurAutres:2.4,
+    tauxCmuEmployeur:3,
+    plafondCnps:1647315,
+    ricfParDemiPart:5500,
+    ricfMax:44000,
+    tauxHeuresSup6h:15,
+    tauxHeuresSup50:50,
+    conventionCollective:document.getElementById('rpConvention').value||'',
+    secteur:document.getElementById('rpSecteur').value||'',
+    grilleSalariale:collectGrilleData(),
     itsBareme: itsBareme.length?itsBareme:getRHParams().itsBareme
   };
   saveRHParams(p);
   audit('SAVE_RH_PARAMS','Paramètres paie mis à jour');
   alert('Paramètres enregistrés.');
   return false;
+}
+
+function renderGrilleTable(grille){
+  const el=document.getElementById('grilleTableau');
+  if(!el) return;
+  const html=`<table class="w-full text-sm border rounded-lg overflow-hidden">
+    <thead class="bg-slate-100"><tr><th class="p-2 text-left">Catégorie</th><th class="p-2 text-right">Coefficient</th><th class="p-2 text-right">Salaire (FCFA)</th><th class="p-2">Actions</th></tr></thead>
+    <tbody>
+      ${Object.entries(grille).map(([key,cat])=>`<tr class="border-t">
+        <td class="p-2"><input type="text" value="${cat.label}" class="grille-label border rounded px-2 py-1 text-sm w-full" data-key="${key}"></td>
+        <td class="p-2"><input type="number" step="0.1" value="${cat.coeff}" class="grille-coeff border rounded px-2 py-1 text-sm w-full" data-key="${key}"></td>
+        <td class="p-2"><input type="number" value="${cat.salaire}" class="grille-salaire border rounded px-2 py-1 text-sm w-full" data-key="${key}"></td>
+        <td class="p-2"><button type="button" onclick="this.parentElement.parentElement.remove()" class="text-red-500 text-xs font-semibold">✕</button></td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`;
+  el.innerHTML=html;
+}
+
+function addGrilleCategorie(){
+  const table=document.querySelector('#grilleTableau table tbody');
+  if(!table) return;
+  const newKey='cat_'+Date.now();
+  table.insertAdjacentHTML('beforeend',`<tr class="border-t">
+    <td class="p-2"><input type="text" placeholder="Nouvelle catégorie" class="grille-label border rounded px-2 py-1 text-sm w-full" data-key="${newKey}"></td>
+    <td class="p-2"><input type="number" step="0.1" value="1" class="grille-coeff border rounded px-2 py-1 text-sm w-full" data-key="${newKey}"></td>
+    <td class="p-2"><input type="number" value="75000" class="grille-salaire border rounded px-2 py-1 text-sm w-full" data-key="${newKey}"></td>
+    <td class="p-2"><button type="button" onclick="this.parentElement.parentElement.remove()" class="text-red-500 text-xs font-semibold">✕</button></td>
+  </tr>`);
+}
+
+function collectGrilleData(){
+  const grille={};
+  document.querySelectorAll('#grilleTableau .grille-label').forEach(el=>{
+    const key=el.dataset.key;
+    const label=el.value.trim();
+    if(!label) return;
+    grille[key]={
+      label:label,
+      coeff:+el.parentElement.nextElementSibling.querySelector('.grille-coeff').value||1,
+      salaire:+el.parentElement.nextElementSibling.nextElementSibling.querySelector('.grille-salaire').value||75000
+    };
+  });
+  return grille;
 }
 
 /* ---------- BADGES QR POINTAGE ---------- */
