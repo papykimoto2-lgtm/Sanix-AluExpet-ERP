@@ -1790,10 +1790,12 @@ window.SANIX_CFG = {
           <div class="flex flex-wrap justify-between gap-3 mb-4">
             <div><h2 class="text-lg font-bold">Catalogue d'articles normalisés</h2><p class="text-sm text-slate-500">Référentiel centralisé — famille, spécifications techniques, fournisseurs, historique des prix.</p></div>
             <div class="flex gap-2">
+              <button onclick="syncArticlesFromCatalogueTechnique()" class="border border-teal-600 text-teal-600 px-3 py-2 rounded-lg text-sm font-semibold">🔄 Depuis le catalogue technique</button>
               <button onclick="showArticleHistoriqueTab()" class="border border-amber-600 text-amber-600 px-3 py-2 rounded-lg text-sm font-semibold">📊 Historique prix</button>
               <button onclick="openArticleForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">➕ Nouvel article</button>
             </div>
           </div>
+          <p class="text-xs text-slate-500 bg-slate-50 border rounded-lg p-2 mb-4">ℹ️ Ce catalogue est alimenté automatiquement par le référentiel technique (profils, vitrages, quincaillerie, joints, consommables) : toute création ou modification là-bas crée ou met à jour l'article correspondant ici (même référence = même produit). "Depuis le catalogue technique" rattrape les éléments déjà existants qui n'auraient pas encore d'article.</p>
           <div class="grid sm:grid-cols-4 gap-2 mb-4">
             <input id="artSearchRef" placeholder="🔍 Référence" onkeyup="renderArticleTable()" class="border rounded-lg px-2 py-1.5 text-sm">
             <input id="artSearchDesig" placeholder="🔍 Désignation" onkeyup="renderArticleTable()" class="border rounded-lg px-2 py-1.5 text-sm">
@@ -6448,6 +6450,60 @@ async function seedArticlesIfEmpty(){
   for(const d of defaults){ d._modifie=new Date().toISOString(); await idbPut('articles',d); queueSync('alubom_articles',d); }
 }
 
+/* ---------- Liaison automatique catalogue technique → catalogue articles normalisés ---------- */
+// Les profils/vitrages/quincaillerie/joints/consommables du référentiel technique sont les mêmes
+// produits que ceux du catalogue articles normalisés : toute création/modification d'un élément
+// technique met automatiquement à jour (ou crée) l'article correspondant, identifié par sa référence (= code).
+const ARTICLE_SYNC_CONFIG={
+  profils:{famille:'Profils aluminium',priceField:'prixMl',unite:'ml',sousFamilleField:'serie'},
+  vitrages:{famille:'Vitrages',priceField:'prixM2',unite:'m²',sousFamilleField:'type'},
+  quincaillerie:{famille:'Quincaillerie',priceField:'prixUnitaire',unite:'pcs',sousFamilleField:'categorie'},
+  joints:{famille:'Joints',priceField:'prixMl',unite:'ml',sousFamilleField:'type'},
+  consommables:{famille:'Consommables',priceField:'prix',uniteField:'unite',sousFamilleField:null}
+};
+async function syncTechniqueToArticle(storeKey,rec){
+  const cfg=ARTICLE_SYNC_CONFIG[storeKey];
+  if(!cfg || !rec.code) return;
+  const reference=rec.code.trim().toUpperCase();
+  const articles=await idbGetAll('articles');
+  const existant=articles.find(a=>a.reference===reference);
+  const nouveauPrix=+rec[cfg.priceField]||0;
+  const article={
+    id: existant?existant.id:('art_'+storeKey+'_'+Date.now()),
+    reference,
+    famille:cfg.famille,
+    sousFamille: cfg.sousFamilleField ? (rec[cfg.sousFamilleField]||'') : (existant?.sousFamille||''),
+    designation: rec.designation||existant?.designation||'',
+    unite: cfg.uniteField ? (rec[cfg.uniteField]||'unité') : cfg.unite,
+    fournisseur: rec.fournisseur||existant?.fournisseur||'',
+    specTechnique: existant?.specTechnique||'',
+    dernierPrix: nouveauPrix||existant?.dernierPrix||0,
+    prixMoyen: existant?.prixMoyen||nouveauPrix||0,
+    qteMinimale: existant?.qteMinimale||0,
+    prixMin: nouveauPrix ? Math.min(nouveauPrix,existant?.prixMin||nouveauPrix) : (existant?.prixMin||0),
+    prixMax: nouveauPrix ? Math.max(nouveauPrix,existant?.prixMax||nouveauPrix) : (existant?.prixMax||0),
+    datePrix:new Date().toISOString(),
+    origineCatalogueTechnique:storeKey,
+    _modifie:new Date().toISOString()
+  };
+  await idbPut('articles',article);
+  queueSync('alubom_articles',article);
+  await syncArticleToStock(article);
+}
+// Ressynchronise en masse tous les éléments actifs du référentiel technique vers le catalogue articles
+// (utile pour rattraper les éléments créés avant l'activation de cette liaison automatique).
+async function syncArticlesFromCatalogueTechnique(){
+  if(!hasRole('referentiel:manage') && !hasRole('stock:write')){ alert('Permission refusée.'); return; }
+  let count=0;
+  for(const storeKey of Object.keys(ARTICLE_SYNC_CONFIG)){
+    const items=(await idbGetAll(storeKey)).filter(i=>i.statut!=='inactif');
+    for(const item of items){ await syncTechniqueToArticle(storeKey,item); count++; }
+  }
+  await audit('SYNC_ARTICLES_DEPUIS_CATALOGUE_TECHNIQUE',count+' élément(s) synchronisé(s) vers le catalogue articles');
+  await renderArticleTable();
+  alert(count?count+' article(s) créé(s) ou mis à jour depuis le catalogue technique.':'Aucun élément actif trouvé dans le catalogue technique.');
+}
+
 async function renderArticleTable(){
   const el=document.getElementById('articleBody'); if(!el) return;
   const articles=await idbGetAll('articles');
@@ -10762,6 +10818,7 @@ async function handleAddProfil(e){
   };
   await idbPut('profils',rec);
   queueSync('alubom_profils',rec);
+  await syncTechniqueToArticle('profils',rec);
   await audit(editId?'MAJ_PROFIL':'CREATE_PROFIL',code+' — '+designation);
   cancelEditProfil();
   await renderProfilsTable();
@@ -10866,6 +10923,7 @@ async function handleImportProfilsCSV(e){
     };
     await idbPut('profils',rec);
     queueSync('alubom_profils',rec);
+    await syncTechniqueToArticle('profils',rec);
     if(existant) updated++; else created++;
   }
   await audit('IMPORT_PROFILS_CSV',`${created} créé(s), ${updated} mis à jour, ${errors} erreur(s)`);
@@ -11209,6 +11267,7 @@ async function handleAddGenericRef(e,key){
   });
   await idbPut(key,rec);
   queueSync('alubom_'+key,rec);
+  if(ARTICLE_SYNC_CONFIG[key]) await syncTechniqueToArticle(key,rec);
   await audit((editId?'MAJ_':'CREATE_')+key.toUpperCase(),code+' — '+designation);
   cancelEditGenericRef(key);
   await renderGenericRefTable(key);
