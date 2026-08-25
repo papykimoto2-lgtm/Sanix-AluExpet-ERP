@@ -139,6 +139,11 @@ window.SANIX_CFG = {
     #sidebarOverlay{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:30;opacity:0;pointer-events:none;transition:opacity .2s ease}
     #sidebarOverlay.open{opacity:1;pointer-events:auto}
   }
+  .badge-qr{border:1px solid #e5e7eb;border-radius:8px;padding:12px;text-align:center;background:#f9fafb;page-break-inside:avoid}
+  .badge-qr canvas{margin:8px auto;display:block;border:1px solid #e5e7eb}
+  .badge-qr-nom{font-weight:bold;font-size:12px;margin-top:8px;word-break:break-word}
+  .badge-qr-id{font-size:10px;color:#6b7280;margin-top:4px}
+  @media print{.badge-qr{margin:8px;break-inside:avoid}.badge-qr canvas{max-width:100%}}
 </style>
 </head>
 <body class="text-slate-800">
@@ -2430,6 +2435,7 @@ window.SANIX_CFG = {
           <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold active" data-rhtab="employes" onclick="showRHTab('employes')">👤 Employés</button>
           <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="conges" onclick="showRHTab('conges')">🌴 Absences & congés</button>
           <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="pointagerh" onclick="showRHTab('pointagerh')">⏱ Pointage</button>
+          <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="badges" onclick="showRHTab('badges')">🎫 Badges QR</button>
           <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="paie" onclick="showRHTab('paie')">💰 Paie</button>
           <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="registre" onclick="showRHTab('registre')">📜 Registre & masse salariale</button>
           <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="livre" onclick="showRHTab('livre')">📚 Livre de paie</button>
@@ -2496,6 +2502,17 @@ window.SANIX_CFG = {
               <input id="ptrhPeriode" type="month" onchange="renderPointageRHRecap()" class="border rounded-lg px-2 py-1.5 text-sm">
             </div>
             <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Matricule</th><th class="text-left p-3">Employé</th><th class="text-right p-3">Présents</th><th class="text-right p-3">Retards</th><th class="text-right p-3">Absents</th><th class="text-right p-3">Jours couverts par congé</th><th class="text-right p-3">Jours à déduire</th></tr></thead><tbody id="pointageRHRecapBody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- ===== BADGES QR ===== -->
+        <div id="rhTabBadges" class="rh-tab hidden">
+          <div class="card bg-white rounded-2xl p-6 mb-4">
+            <div class="flex justify-between items-center mb-4">
+              <div><h2 class="text-lg font-bold">Badges Pointage</h2><p class="text-sm text-slate-500">Générer et imprimer les badges QR code pour pointage</p></div>
+              <button onclick="generateAllBadges()" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">🖨️ Imprimer tous les badges</button>
+            </div>
+            <div id="rhBadgesGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
           </div>
         </div>
 
@@ -16383,6 +16400,40 @@ function handleSaveRHParams(e){
   return false;
 }
 
+/* ---------- BADGES QR POINTAGE ---------- */
+async function renderRHBadges(){
+  const el=document.getElementById('rhBadgesGrid');
+  if(!el) return;
+  const employes=await idbGetAll('employes')||[];
+  const html=employes.map(e=>{
+    const qrid='EMP_'+e.id;
+    return `<div class="badge-qr" data-emp-id="${e.id}"><div id="qr_${e.id}"></div><div class="badge-qr-nom">${escapeHtml(e.nom||'')}</div><div class="badge-qr-id">#${escapeHtml(e.matricule||e.id)}</div><button onclick="printBadge('${e.id}')" class="text-xs bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded mt-2 w-full">🖨️</button></div>`;
+  }).join('');
+  el.innerHTML=html||'<p class="col-span-full text-slate-400 text-center py-8">Aucun employé enregistré.</p>';
+  employes.forEach(e=>{
+    const qr=new QRCode({text:'EMP_'+e.id,width:120,height:120,colorDark:'#000',colorLight:'#fff'});
+    const canvas=qr.createCanvas();
+    const container=document.getElementById('qr_'+e.id);
+    if(container) container.appendChild(canvas);
+  });
+}
+
+function generateAllBadges(){
+  const badges=document.querySelectorAll('.badge-qr');
+  if(!badges.length){alert('Aucun badge à imprimer.');return;}
+  window.print();
+}
+
+function printBadge(empId){
+  const badge=document.querySelector(`[data-emp-id="${empId}"]`);
+  if(!badge) return;
+  const printW=window.open('','','width=400,height=300');
+  printW.document.write(badge.outerHTML);
+  printW.document.write('<style>.badge-qr{margin:20px;}.badge-qr canvas{max-width:100%}@media print{body{margin:0}}</style>');
+  printW.document.close();
+  setTimeout(()=>printW.print(),100);
+}
+
 /* ---------- Routeur d'onglets RH ---------- */
 function showRHTab(tab){
   document.querySelectorAll('.rh-tab').forEach(t=>t.classList.add('hidden'));
@@ -16391,6 +16442,7 @@ function showRHTab(tab){
   if(tab==='employes') renderEmployesTable();
   if(tab==='conges') renderCongesTable();
   if(tab==='pointagerh'){ renderPointageRHJour(); renderPointageRHRecap(); }
+  if(tab==='badges') renderRHBadges();
   if(tab==='paie') renderPaieTable();
   if(tab==='registre') renderRegistrePaie();
   if(tab==='livre') showLivreTab(document.querySelector('.livre-tab-btn.active')?.dataset.livretab||'journal');
