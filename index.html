@@ -114,10 +114,10 @@ window.SANIX_CFG = {
   table tbody tr:hover{background-color:#f8fafc}
 
   /* Tab-bar buttons (config/ref/stock/prod/flux/catalogue) */
-  .etude-tab-btn,.ref-tab-btn,.flux-view-btn,.cat-tab-btn,.stock-tab-btn,.prod-tab-btn,.fe-tab-btn{color:var(--ds-slate-500);background:transparent;border-radius:8px;font-weight:600;transition:background-color .12s ease,color .12s ease}
-  .etude-tab-btn:hover,.ref-tab-btn:hover,.cat-tab-btn:hover,.stock-tab-btn:hover,.prod-tab-btn:hover,.fe-tab-btn:hover{background:var(--ds-slate-100);color:var(--ds-slate-700)}
+  .etude-tab-btn,.ref-tab-btn,.flux-view-btn,.cat-tab-btn,.stock-tab-btn,.prod-tab-btn,.fe-tab-btn,.livre-tab-btn{color:var(--ds-slate-500);background:transparent;border-radius:8px;font-weight:600;transition:background-color .12s ease,color .12s ease}
+  .etude-tab-btn:hover,.ref-tab-btn:hover,.cat-tab-btn:hover,.stock-tab-btn:hover,.prod-tab-btn:hover,.fe-tab-btn:hover,.livre-tab-btn:hover{background:var(--ds-slate-100);color:var(--ds-slate-700)}
   .flux-view-btn:hover{background:#e2e8f0}
-  .etude-tab-btn.active,.ref-tab-btn.active,.cat-tab-btn.active,.stock-tab-btn.active,.prod-tab-btn.active,.gmao-tab-btn.active,.prospects-tab-btn.active,.ao-tab-btn.active,.fe-tab-btn.active{background:var(--ds-accent);color:#fff;box-shadow:var(--ds-shadow-sm)}
+  .etude-tab-btn.active,.ref-tab-btn.active,.cat-tab-btn.active,.stock-tab-btn.active,.prod-tab-btn.active,.gmao-tab-btn.active,.prospects-tab-btn.active,.ao-tab-btn.active,.fe-tab-btn.active,.livre-tab-btn.active{background:var(--ds-accent);color:#fff;box-shadow:var(--ds-shadow-sm)}
   .config-view-btn{color:var(--ds-slate-500);background:transparent;border-radius:6px;transition:background-color .12s ease,color .12s ease}
   .config-view-btn:hover{background:var(--ds-slate-100)}
   .config-view-btn.active{background:var(--ds-accent);color:#fff}
@@ -2432,6 +2432,7 @@ window.SANIX_CFG = {
           <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="pointagerh" onclick="showRHTab('pointagerh')">⏱ Pointage</button>
           <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="paie" onclick="showRHTab('paie')">💰 Paie</button>
           <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="registre" onclick="showRHTab('registre')">📜 Registre & masse salariale</button>
+          <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="livre" onclick="showRHTab('livre')">📚 Livre de paie</button>
           <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="parametres" onclick="showRHTab('parametres')">⚙️ Paramètres</button>
         </div>
 
@@ -2559,6 +2560,80 @@ window.SANIX_CFG = {
             <h2 class="text-lg font-bold mb-1">Registre de paie</h2>
             <p class="text-sm text-slate-500 mb-4">Récapitulatif par période, tous statuts confondus.</p>
             <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Période</th><th class="text-right p-3">Bulletins</th><th class="text-right p-3">Brut</th><th class="text-right p-3">Retenues</th><th class="text-right p-3">Net versé</th><th class="text-right p-3">Coût total employeur</th></tr></thead><tbody id="registreBody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- ===== LIVRE DE PAIE ===== -->
+        <div id="rhTabLivre" class="rh-tab hidden">
+          <div class="card bg-white rounded-2xl p-2 mb-4">
+            <div class="flex flex-wrap gap-1">
+              <button class="livre-tab-btn px-4 py-2 rounded-lg text-sm font-semibold active" data-livretab="journal" onclick="showLivreTab('journal')">🗓️ Journal mensuel</button>
+              <button class="livre-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-livretab="annuel" onclick="showLivreTab('annuel')">📅 Récap annuel</button>
+              <button class="livre-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-livretab="fiche" onclick="showLivreTab('fiche')">🧑‍💼 Fiche individuelle</button>
+              <button class="livre-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-livretab="charges" onclick="showLivreTab('charges')">🏛️ Charges patronales</button>
+            </div>
+          </div>
+
+          <!-- Journal mensuel -->
+          <div id="livreTabJournal" class="livre-tab">
+            <div class="card bg-white rounded-2xl p-4 mb-4 flex flex-wrap items-end gap-2">
+              <div><label class="text-xs font-semibold text-slate-600 block mb-1">Période</label><input id="livrePeriode" type="month" onchange="renderLivreJournal()" class="border rounded-lg px-2 py-1.5 text-sm"></div>
+              <button onclick="imprimerLivreJournal()" class="bg-slate-900 hover:bg-slate-800 text-white rounded-lg px-4 py-2 text-sm font-semibold">📄 PDF</button>
+              <button onclick="exporterLivreJournalExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">📊 Excel</button>
+            </div>
+            <div class="grid sm:grid-cols-4 gap-3 mb-4">
+              <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Bulletins</div><div id="livreJKpiBulletins" class="text-2xl font-black mt-1">—</div></div>
+              <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Masse brute</div><div id="livreJKpiBrut" class="text-2xl font-black mt-1">—</div></div>
+              <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Retenues salariales</div><div id="livreJKpiRetenues" class="text-2xl font-black mt-1">—</div></div>
+              <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Net versé</div><div id="livreJKpiNet" class="text-2xl font-black mt-1">—</div></div>
+            </div>
+            <div class="card bg-white rounded-2xl p-6">
+              <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Matricule</th><th class="text-left p-3">Nom</th><th class="text-left p-3">Fonction</th><th class="text-right p-3">Jours</th><th class="text-right p-3">Brut</th><th class="text-right p-3">CNPS sal.</th><th class="text-right p-3">CMU sal.</th><th class="text-right p-3">ITS</th><th class="text-right p-3">Avance</th><th class="text-right p-3">Total retenues</th><th class="text-right p-3">Net</th><th class="text-left p-3">Paiement</th><th class="text-left p-3">Statut</th></tr></thead><tbody id="livreJournalBody"></tbody><tfoot id="livreJournalTotals"></tfoot></table></div>
+            </div>
+          </div>
+
+          <!-- Récap annuel -->
+          <div id="livreTabAnnuel" class="livre-tab hidden">
+            <div class="card bg-white rounded-2xl p-4 mb-4 flex flex-wrap items-end gap-2">
+              <div><label class="text-xs font-semibold text-slate-600 block mb-1">Année</label><input id="livreAnnee" type="number" placeholder="Année" onchange="renderLivreAnnuel()" class="border rounded-lg px-2 py-1.5 text-sm w-32"></div>
+              <button onclick="imprimerLivreAnnuel()" class="bg-slate-900 hover:bg-slate-800 text-white rounded-lg px-4 py-2 text-sm font-semibold">📄 PDF</button>
+              <button onclick="exporterLivreAnnuelExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">📊 Excel</button>
+            </div>
+            <div class="card bg-white rounded-2xl p-6">
+              <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Matricule</th><th class="text-left p-3">Nom</th><th class="text-left p-3">Fonction</th><th class="text-right p-3">Mois payés</th><th class="text-right p-3">Total brut</th><th class="text-right p-3">Total retenues</th><th class="text-right p-3">Total net</th><th class="text-right p-3">Coût total employeur</th></tr></thead><tbody id="livreAnnuelBody"></tbody><tfoot id="livreAnnuelTotals"></tfoot></table></div>
+            </div>
+          </div>
+
+          <!-- Fiche individuelle -->
+          <div id="livreTabFiche" class="livre-tab hidden">
+            <div class="card bg-white rounded-2xl p-4 mb-4 flex flex-wrap items-end gap-2">
+              <div class="flex-1 min-w-[220px]"><label class="text-xs font-semibold text-slate-600 block mb-1">Employé</label><select id="livreFicheEmploye" onchange="renderLivreFiche()" class="border rounded-lg px-2 py-1.5 text-sm w-full"></select></div>
+              <div><label class="text-xs font-semibold text-slate-600 block mb-1">Année (vide = toute la carrière)</label><input id="livreFicheAnnee" type="number" placeholder="Année" onchange="renderLivreFiche()" class="border rounded-lg px-2 py-1.5 text-sm w-40"></div>
+              <button onclick="imprimerLivreFiche()" class="bg-slate-900 hover:bg-slate-800 text-white rounded-lg px-4 py-2 text-sm font-semibold">📄 PDF</button>
+              <button onclick="exporterLivreFicheExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">📊 Excel</button>
+            </div>
+            <div class="card bg-white rounded-2xl p-6">
+              <div id="livreFicheInfo" class="grid sm:grid-cols-4 gap-2 text-sm mb-4"></div>
+              <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Période</th><th class="text-right p-3">Jours</th><th class="text-right p-3">Brut</th><th class="text-right p-3">Retenues</th><th class="text-right p-3">Net</th><th class="text-right p-3">Coût employeur</th><th class="text-left p-3">Statut</th><th class="text-left p-3">Date paiement</th></tr></thead><tbody id="livreFicheBody"></tbody><tfoot id="livreFicheTotals"></tfoot></table></div>
+            </div>
+          </div>
+
+          <!-- Charges patronales -->
+          <div id="livreTabCharges" class="livre-tab hidden">
+            <div class="card bg-white rounded-2xl p-4 mb-4 flex flex-wrap items-end gap-2">
+              <div><label class="text-xs font-semibold text-slate-600 block mb-1">Période</label><input id="livreChargesPeriode" type="month" onchange="renderLivreCharges()" class="border rounded-lg px-2 py-1.5 text-sm"></div>
+              <button onclick="imprimerLivreCharges()" class="bg-slate-900 hover:bg-slate-800 text-white rounded-lg px-4 py-2 text-sm font-semibold">📄 PDF</button>
+              <button onclick="exporterLivreChargesExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">📊 Excel</button>
+            </div>
+            <div class="grid sm:grid-cols-4 gap-3 mb-4">
+              <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Masse brute</div><div id="livreCKpiBrut" class="text-2xl font-black mt-1">—</div></div>
+              <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Total charges patronales</div><div id="livreCKpiCharges" class="text-2xl font-black mt-1">—</div></div>
+              <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Coût total employeur</div><div id="livreCKpiCout" class="text-2xl font-black mt-1">—</div></div>
+              <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Taux moyen de charges</div><div id="livreCKpiTaux" class="text-2xl font-black mt-1">—</div></div>
+            </div>
+            <div class="card bg-white rounded-2xl p-6">
+              <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Matricule</th><th class="text-left p-3">Nom</th><th class="text-right p-3">Brut</th><th class="text-right p-3">Base cotisable CNPS</th><th class="text-right p-3">CNPS employeur retraite</th><th class="text-right p-3">CNPS employeur PF/AT</th><th class="text-right p-3">CMU employeur</th><th class="text-right p-3">Total charges patronales</th><th class="text-right p-3">Coût total employeur</th></tr></thead><tbody id="livreChargesBody"></tbody><tfoot id="livreChargesTotals"></tfoot></table></div>
+            </div>
           </div>
         </div>
 
@@ -15934,6 +16009,325 @@ async function renderRegistrePaie(){
   }
 }
 
+/* =========================================================
+   LIVRE DE PAIE — Journal mensuel / Récap annuel / Fiche individuelle / Charges patronales
+   ========================================================= */
+function showLivreTab(tab){
+  document.querySelectorAll('.livre-tab').forEach(t=>t.classList.add('hidden'));
+  const el=document.getElementById('livreTab'+tab.charAt(0).toUpperCase()+tab.slice(1)); if(el) el.classList.remove('hidden');
+  document.querySelectorAll('.livre-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.livretab===tab));
+  if(tab==='journal') renderLivreJournal();
+  if(tab==='annuel') renderLivreAnnuel();
+  if(tab==='fiche'){ livrePopulateFicheSelect().then(renderLivreFiche); }
+  if(tab==='charges') renderLivreCharges();
+}
+function openLivrePrintWindow(titre, docLabel, bodyHtml, landscape){
+  const win=window.open('','_blank','width=1100,height=1200');
+  if(!win) return;
+  const headerHtml=buildPrintHeaderHtml();
+  buildPrintFooterHtml(docLabel).then(footerHtml=>{
+    win.document.write(`<html><head><title>${escapeHtml(titre)}</title>
+    <style>
+      *{box-sizing:border-box}
+      body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#e2e8f0;margin:0}
+      .toolbar{position:sticky;top:0;z-index:10;background:#0f172a;color:#fff;padding:12px 24px;display:flex;justify-content:space-between;align-items:center}
+      .toolbar button{background:#2563eb;color:#fff;border:0;padding:9px 18px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;margin-left:8px}
+      .toolbar button.secondary{background:transparent;border:1px solid #475569}
+      .sheet{max-width:${landscape?'1020px':'900px'};margin:24px auto;background:#fff;padding:32px 36px;box-shadow:0 10px 40px rgba(15,23,42,.25);border-radius:4px}
+      table{width:100%;border-collapse:collapse}
+      th,td{border:1px solid #cbd5e1;padding:6px 8px;font-size:11.5px}
+      th{background:#f1f5f9;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.03em;color:#475569}
+      td.num,th.num{text-align:right}
+      .dc-title{font-size:16px;font-weight:800;margin:14px 0 2px}
+      .dc-sub{font-size:11.5px;color:#64748b;margin-bottom:10px}
+      .dc-info{display:grid;grid-template-columns:1fr 1fr;gap:2px 20px;font-size:12px;margin-bottom:14px}
+      .dc-info b{color:#334155}
+      tfoot td{font-weight:700;background:#f8fafc}
+      ${PRINT_ENTETE_PIED_CSS}
+      @media print{.toolbar{display:none}body{background:#fff}.sheet{box-shadow:none;margin:0;max-width:none}}
+      @page{size:A4 ${landscape?'landscape':'portrait'};margin:12mm}
+    </style></head><body>
+    <div class="toolbar"><b>Aperçu — ${escapeHtml(titre)}</b><div><button class="secondary" onclick="window.close()">Fermer</button><button onclick="window.print()">🖨 Imprimer / PDF</button></div></div>
+    <div class="sheet">
+      ${headerHtml}
+      <div class="dc-title">${escapeHtml(titre)}</div>
+      ${bodyHtml}
+      ${footerHtml}
+    </div>
+    </body></html>`);
+    win.document.close(); win.focus();
+  });
+}
+const LIVRE_STATUT_LABEL={brouillon:'Brouillon',valide:'Validé',paye:'Payé'};
+
+/* ----- 1) Journal mensuel ----- */
+async function collecterLivreJournal(periode){
+  const rows=(await idbGetAll('paies')).filter(p=>p.periode===periode).sort((a,b)=>(a.employeNom||'').localeCompare(b.employeNom||''));
+  const employes=await idbGetAll('employes');
+  return rows.map(p=>{
+    const emp=employes.find(e=>e.id===p.employeId)||{};
+    return {...p, modePaiement: emp.modePaiement||'—'};
+  });
+}
+async function renderLivreJournal(){
+  const selEl=document.getElementById('livrePeriode'); if(!selEl) return;
+  if(!selEl.value) selEl.value=new Date().toISOString().slice(0,7);
+  const rows=await collecterLivreJournal(selEl.value);
+  const body=document.getElementById('livreJournalBody'); if(!body) return;
+  body.innerHTML = rows.length ? rows.map(p=>`<tr class="border-b">
+    <td class="p-3 text-xs text-slate-400 font-mono">${escapeHtml(p.matricule||'—')}</td>
+    <td class="p-3 font-semibold">${escapeHtml(p.employeNom)}</td>
+    <td class="p-3 text-xs text-slate-500">${escapeHtml(p.fonction||'—')}</td>
+    <td class="p-3 text-right">${p.joursTravailles}</td>
+    <td class="p-3 text-right">${p.brut.toLocaleString('fr-FR')}</td>
+    <td class="p-3 text-right text-red-600">${p.cnpsSalarie.toLocaleString('fr-FR')}</td>
+    <td class="p-3 text-right text-red-600">${p.cmuSalarie.toLocaleString('fr-FR')}</td>
+    <td class="p-3 text-right text-red-600">${p.its.toLocaleString('fr-FR')}</td>
+    <td class="p-3 text-right text-red-600">${(p.avanceSurSalaire||0).toLocaleString('fr-FR')}</td>
+    <td class="p-3 text-right font-semibold">${p.totalRetenues.toLocaleString('fr-FR')}</td>
+    <td class="p-3 text-right font-bold">${p.net.toLocaleString('fr-FR')}</td>
+    <td class="p-3 text-xs">${escapeHtml(p.modePaiement)}</td>
+    <td class="p-3 text-xs">${LIVRE_STATUT_LABEL[p.statut]||p.statut}</td>
+  </tr>`).join('') : '<tr><td class="p-3 text-slate-400" colspan="13">Aucun bulletin pour cette période.</td></tr>';
+  const t=rows.reduce((s,p)=>({brut:s.brut+p.brut,cnps:s.cnps+p.cnpsSalarie,cmu:s.cmu+p.cmuSalarie,its:s.its+p.its,avance:s.avance+(p.avanceSurSalaire||0),ret:s.ret+p.totalRetenues,net:s.net+p.net}),{brut:0,cnps:0,cmu:0,its:0,avance:0,ret:0,net:0});
+  document.getElementById('livreJournalTotals').innerHTML = rows.length ? `<tr><td class="p-3" colspan="4">TOTAL</td><td class="p-3 text-right">${t.brut.toLocaleString('fr-FR')}</td><td class="p-3 text-right">${t.cnps.toLocaleString('fr-FR')}</td><td class="p-3 text-right">${t.cmu.toLocaleString('fr-FR')}</td><td class="p-3 text-right">${t.its.toLocaleString('fr-FR')}</td><td class="p-3 text-right">${t.avance.toLocaleString('fr-FR')}</td><td class="p-3 text-right">${t.ret.toLocaleString('fr-FR')}</td><td class="p-3 text-right">${t.net.toLocaleString('fr-FR')}</td><td colspan="2"></td></tr>` : '';
+  const set=(id,v)=>{ const x=document.getElementById(id); if(x) x.textContent=v; };
+  set('livreJKpiBulletins',rows.length);
+  set('livreJKpiBrut',t.brut.toLocaleString('fr-FR')+' F');
+  set('livreJKpiRetenues',t.ret.toLocaleString('fr-FR')+' F');
+  set('livreJKpiNet',t.net.toLocaleString('fr-FR')+' F');
+}
+async function imprimerLivreJournal(){
+  const periode=document.getElementById('livrePeriode').value; if(!periode){ alert('Sélectionnez une période.'); return; }
+  const rows=await collecterLivreJournal(periode);
+  if(!rows.length){ alert('Aucun bulletin pour cette période.'); return; }
+  const moisLabel=new Date(periode+'-01').toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  const t=rows.reduce((s,p)=>({brut:s.brut+p.brut,cnps:s.cnps+p.cnpsSalarie,cmu:s.cmu+p.cmuSalarie,its:s.its+p.its,avance:s.avance+(p.avanceSurSalaire||0),ret:s.ret+p.totalRetenues,net:s.net+p.net}),{brut:0,cnps:0,cmu:0,its:0,avance:0,ret:0,net:0});
+  const body=`
+    <div class="dc-info"><div><b>Période :</b> ${escapeHtml(moisLabel)}</div><div><b>Nombre de bulletins :</b> ${rows.length}</div></div>
+    <table>
+      <thead><tr><th>Matricule</th><th>Nom</th><th>Fonction</th><th class="num">Jours</th><th class="num">Brut</th><th class="num">CNPS sal.</th><th class="num">CMU sal.</th><th class="num">ITS</th><th class="num">Avance</th><th class="num">Total retenues</th><th class="num">Net</th><th>Paiement</th><th>Statut</th></tr></thead>
+      <tbody>${rows.map(p=>`<tr><td>${escapeHtml(p.matricule||'—')}</td><td>${escapeHtml(p.employeNom)}</td><td>${escapeHtml(p.fonction||'—')}</td><td class="num">${p.joursTravailles}</td><td class="num">${p.brut.toLocaleString('fr-FR')}</td><td class="num">${p.cnpsSalarie.toLocaleString('fr-FR')}</td><td class="num">${p.cmuSalarie.toLocaleString('fr-FR')}</td><td class="num">${p.its.toLocaleString('fr-FR')}</td><td class="num">${(p.avanceSurSalaire||0).toLocaleString('fr-FR')}</td><td class="num">${p.totalRetenues.toLocaleString('fr-FR')}</td><td class="num">${p.net.toLocaleString('fr-FR')}</td><td>${escapeHtml(p.modePaiement)}</td><td>${LIVRE_STATUT_LABEL[p.statut]||p.statut}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="4">TOTAL</td><td class="num">${t.brut.toLocaleString('fr-FR')}</td><td class="num">${t.cnps.toLocaleString('fr-FR')}</td><td class="num">${t.cmu.toLocaleString('fr-FR')}</td><td class="num">${t.its.toLocaleString('fr-FR')}</td><td class="num">${t.avance.toLocaleString('fr-FR')}</td><td class="num">${t.ret.toLocaleString('fr-FR')}</td><td class="num">${t.net.toLocaleString('fr-FR')}</td><td colspan="2"></td></tr></tfoot>
+    </table>`;
+  openLivrePrintWindow('Livre de paie — Journal mensuel — '+moisLabel, 'Journal de paie '+periode, body, true);
+}
+async function exporterLivreJournalExcel(){
+  const periode=document.getElementById('livrePeriode').value; if(!periode){ alert('Sélectionnez une période.'); return; }
+  const rows=await collecterLivreJournal(periode);
+  if(!rows.length){ alert('Aucun bulletin pour cette période.'); return; }
+  const c=getCompanyInfo();
+  const aoa=[['Livre de paie — Journal mensuel — '+periode],['Employeur',c.nom],[],
+    ['Matricule','Nom','Fonction','Jours','Brut','CNPS salariale','CMU salariale','ITS','Avance','Total retenues','Net','Mode paiement','Statut']];
+  rows.forEach(p=>aoa.push([p.matricule,p.employeNom,p.fonction,p.joursTravailles,p.brut,p.cnpsSalarie,p.cmuSalarie,p.its,p.avanceSurSalaire||0,p.totalRetenues,p.net,p.modePaiement,LIVRE_STATUT_LABEL[p.statut]||p.statut]));
+  const t=rows.reduce((s,p)=>({brut:s.brut+p.brut,cnps:s.cnps+p.cnpsSalarie,cmu:s.cmu+p.cmuSalarie,its:s.its+p.its,avance:s.avance+(p.avanceSurSalaire||0),ret:s.ret+p.totalRetenues,net:s.net+p.net}),{brut:0,cnps:0,cmu:0,its:0,avance:0,ret:0,net:0});
+  aoa.push(['','','TOTAL','',t.brut,t.cnps,t.cmu,t.its,t.avance,t.ret,t.net,'','']);
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:12},{wch:22},{wch:18},{wch:8},{wch:12},{wch:14},{wch:12},{wch:10},{wch:10},{wch:14},{wch:12},{wch:14},{wch:10}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Journal '+periode);
+  downloadWorkbook(wb,'Livre_paie_journal_'+periode);
+}
+
+/* ----- 2) Récap annuel ----- */
+async function collecterLivreAnnuel(annee){
+  const [paies,employes]=await Promise.all(['paies','employes'].map(idbGetAll));
+  const rows=paies.filter(p=>(p.periode||'').startsWith(annee+'-'));
+  const parEmploye={};
+  rows.forEach(p=>{
+    if(!parEmploye[p.employeId]) parEmploye[p.employeId]={employeId:p.employeId,nom:p.employeNom,matricule:p.matricule,fonction:p.fonction,mois:0,brut:0,retenues:0,net:0,cout:0};
+    const g=parEmploye[p.employeId];
+    g.mois++; g.brut+=p.brut||0; g.retenues+=p.totalRetenues||0; g.net+=p.net||0; g.cout+=(p.coutTotalEmployeur||p.brut||0);
+  });
+  return Object.values(parEmploye).sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
+}
+async function renderLivreAnnuel(){
+  const anEl=document.getElementById('livreAnnee'); if(!anEl) return;
+  if(!anEl.value) anEl.value=new Date().getFullYear();
+  const rows=await collecterLivreAnnuel(anEl.value.toString());
+  const body=document.getElementById('livreAnnuelBody'); if(!body) return;
+  body.innerHTML = rows.length ? rows.map(g=>`<tr class="border-b">
+    <td class="p-3 text-xs text-slate-400 font-mono">${escapeHtml(g.matricule||'—')}</td>
+    <td class="p-3 font-semibold">${escapeHtml(g.nom)}</td>
+    <td class="p-3 text-xs text-slate-500">${escapeHtml(g.fonction||'—')}</td>
+    <td class="p-3 text-right">${g.mois}</td>
+    <td class="p-3 text-right">${g.brut.toLocaleString('fr-FR')}</td>
+    <td class="p-3 text-right text-red-600">${g.retenues.toLocaleString('fr-FR')}</td>
+    <td class="p-3 text-right font-bold">${g.net.toLocaleString('fr-FR')}</td>
+    <td class="p-3 text-right text-slate-500">${g.cout.toLocaleString('fr-FR')}</td>
+  </tr>`).join('') : '<tr><td class="p-3 text-slate-400" colspan="8">Aucun bulletin pour cette année.</td></tr>';
+  const t=rows.reduce((s,g)=>({brut:s.brut+g.brut,ret:s.ret+g.retenues,net:s.net+g.net,cout:s.cout+g.cout}),{brut:0,ret:0,net:0,cout:0});
+  document.getElementById('livreAnnuelTotals').innerHTML = rows.length ? `<tr><td colspan="4" class="p-3">TOTAL</td><td class="p-3 text-right">${t.brut.toLocaleString('fr-FR')}</td><td class="p-3 text-right">${t.ret.toLocaleString('fr-FR')}</td><td class="p-3 text-right">${t.net.toLocaleString('fr-FR')}</td><td class="p-3 text-right">${t.cout.toLocaleString('fr-FR')}</td></tr>` : '';
+}
+async function imprimerLivreAnnuel(){
+  const annee=(document.getElementById('livreAnnee').value||'').trim(); if(!annee){ alert('Indiquez une année.'); return; }
+  const rows=await collecterLivreAnnuel(annee);
+  if(!rows.length){ alert('Aucun bulletin pour cette année.'); return; }
+  const t=rows.reduce((s,g)=>({brut:s.brut+g.brut,ret:s.ret+g.retenues,net:s.net+g.net,cout:s.cout+g.cout}),{brut:0,ret:0,net:0,cout:0});
+  const body=`
+    <div class="dc-info"><div><b>Exercice :</b> ${escapeHtml(annee)}</div><div><b>Nombre de salariés :</b> ${rows.length}</div></div>
+    <table>
+      <thead><tr><th>Matricule</th><th>Nom</th><th>Fonction</th><th class="num">Mois payés</th><th class="num">Total brut</th><th class="num">Total retenues</th><th class="num">Total net</th><th class="num">Coût total employeur</th></tr></thead>
+      <tbody>${rows.map(g=>`<tr><td>${escapeHtml(g.matricule||'—')}</td><td>${escapeHtml(g.nom)}</td><td>${escapeHtml(g.fonction||'—')}</td><td class="num">${g.mois}</td><td class="num">${g.brut.toLocaleString('fr-FR')}</td><td class="num">${g.retenues.toLocaleString('fr-FR')}</td><td class="num">${g.net.toLocaleString('fr-FR')}</td><td class="num">${g.cout.toLocaleString('fr-FR')}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="4">TOTAL</td><td class="num">${t.brut.toLocaleString('fr-FR')}</td><td class="num">${t.ret.toLocaleString('fr-FR')}</td><td class="num">${t.net.toLocaleString('fr-FR')}</td><td class="num">${t.cout.toLocaleString('fr-FR')}</td></tr></tfoot>
+    </table>`;
+  openLivrePrintWindow('Livre de paie — Récapitulatif annuel — '+annee, 'Récap annuel '+annee, body, true);
+}
+async function exporterLivreAnnuelExcel(){
+  const annee=(document.getElementById('livreAnnee').value||'').trim(); if(!annee){ alert('Indiquez une année.'); return; }
+  const rows=await collecterLivreAnnuel(annee);
+  if(!rows.length){ alert('Aucun bulletin pour cette année.'); return; }
+  const c=getCompanyInfo();
+  const aoa=[['Livre de paie — Récapitulatif annuel — '+annee],['Employeur',c.nom],[],
+    ['Matricule','Nom','Fonction','Mois payés','Total brut','Total retenues','Total net','Coût total employeur']];
+  rows.forEach(g=>aoa.push([g.matricule,g.nom,g.fonction,g.mois,g.brut,g.retenues,g.net,g.cout]));
+  const t=rows.reduce((s,g)=>({brut:s.brut+g.brut,ret:s.ret+g.retenues,net:s.net+g.net,cout:s.cout+g.cout}),{brut:0,ret:0,net:0,cout:0});
+  aoa.push(['','TOTAL','','',t.brut,t.ret,t.net,t.cout]);
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:12},{wch:22},{wch:18},{wch:10},{wch:14},{wch:14},{wch:14},{wch:16}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Récap '+annee);
+  downloadWorkbook(wb,'Livre_paie_recap_annuel_'+annee);
+}
+
+/* ----- 3) Fiche individuelle ----- */
+async function livrePopulateFicheSelect(){
+  const sel=document.getElementById('livreFicheEmploye'); if(!sel) return;
+  const rows=(await idbGetAll('employes')).sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
+  const cur=sel.value;
+  sel.innerHTML=rows.map(e=>`<option value="${e.id}">${escapeHtml((e.prenoms||'')+' '+(e.nom||''))} — ${escapeHtml(e.matricule||'')}${e.statut==='inactif'?' (inactif)':''}</option>`).join('');
+  if(cur && rows.some(r=>r.id===cur)) sel.value=cur;
+}
+async function collecterLivreFiche(){
+  const employeId=document.getElementById('livreFicheEmploye')?.value; if(!employeId) return null;
+  const annee=(document.getElementById('livreFicheAnnee').value||'').trim();
+  const [paies,employes]=await Promise.all(['paies','employes'].map(idbGetAll));
+  const emp=employes.find(e=>e.id===employeId); if(!emp) return null;
+  let rows=paies.filter(p=>p.employeId===employeId);
+  if(annee) rows=rows.filter(p=>(p.periode||'').startsWith(annee+'-'));
+  rows.sort((a,b)=>(a.periode||'').localeCompare(b.periode||''));
+  return {emp,rows,annee};
+}
+async function renderLivreFiche(){
+  const data=await collecterLivreFiche();
+  const info=document.getElementById('livreFicheInfo'), body=document.getElementById('livreFicheBody'), tot=document.getElementById('livreFicheTotals');
+  if(!info||!body) return;
+  if(!data){ info.innerHTML=''; body.innerHTML='<tr><td class="p-3 text-slate-400" colspan="8">Sélectionnez un employé.</td></tr>'; tot.innerHTML=''; return; }
+  const {emp,rows}=data;
+  info.innerHTML=`
+    <div><b>Matricule :</b> ${escapeHtml(emp.matricule||'—')}</div>
+    <div><b>Fonction :</b> ${escapeHtml(emp.fonction||'—')}</div>
+    <div><b>Contrat :</b> ${escapeHtml(emp.typeContrat||'—')}</div>
+    <div><b>Date d'embauche :</b> ${emp.dateEmbauche?new Date(emp.dateEmbauche).toLocaleDateString('fr-FR'):'—'}</div>
+    <div><b>N° CNPS :</b> ${escapeHtml(emp.numeroCNPS||'—')}</div>
+    <div><b>N° CMU :</b> ${escapeHtml(emp.numeroCMU||'—')}</div>`;
+  body.innerHTML = rows.length ? rows.map(p=>`<tr class="border-b">
+    <td class="p-3 font-semibold capitalize">${escapeHtml(new Date(p.periode+'-01').toLocaleDateString('fr-FR',{month:'long',year:'numeric'}))}</td>
+    <td class="p-3 text-right">${p.joursTravailles}</td>
+    <td class="p-3 text-right">${p.brut.toLocaleString('fr-FR')}</td>
+    <td class="p-3 text-right text-red-600">${p.totalRetenues.toLocaleString('fr-FR')}</td>
+    <td class="p-3 text-right font-bold">${p.net.toLocaleString('fr-FR')}</td>
+    <td class="p-3 text-right text-slate-500">${(p.coutTotalEmployeur||p.brut).toLocaleString('fr-FR')}</td>
+    <td class="p-3 text-xs">${LIVRE_STATUT_LABEL[p.statut]||p.statut}</td>
+    <td class="p-3 text-xs">${p.datePaiement?new Date(p.datePaiement).toLocaleDateString('fr-FR'):'—'}</td>
+  </tr>`).join('') : '<tr><td class="p-3 text-slate-400" colspan="8">Aucun bulletin pour cet employé sur la période sélectionnée.</td></tr>';
+  const t=rows.reduce((s,p)=>({brut:s.brut+p.brut,ret:s.ret+p.totalRetenues,net:s.net+p.net,cout:s.cout+(p.coutTotalEmployeur||p.brut)}),{brut:0,ret:0,net:0,cout:0});
+  tot.innerHTML = rows.length ? `<tr><td class="p-3">TOTAL (${rows.length} mois)</td><td></td><td class="p-3 text-right">${t.brut.toLocaleString('fr-FR')}</td><td class="p-3 text-right">${t.ret.toLocaleString('fr-FR')}</td><td class="p-3 text-right">${t.net.toLocaleString('fr-FR')}</td><td class="p-3 text-right">${t.cout.toLocaleString('fr-FR')}</td><td colspan="2"></td></tr>` : '';
+}
+async function imprimerLivreFiche(){
+  const data=await collecterLivreFiche(); if(!data){ alert('Sélectionnez un employé.'); return; }
+  const {emp,rows,annee}=data;
+  if(!rows.length){ alert('Aucun bulletin pour cet employé.'); return; }
+  const t=rows.reduce((s,p)=>({brut:s.brut+p.brut,ret:s.ret+p.totalRetenues,net:s.net+p.net,cout:s.cout+(p.coutTotalEmployeur||p.brut)}),{brut:0,ret:0,net:0,cout:0});
+  const body=`
+    <div class="dc-info">
+      <div><b>Employé :</b> ${escapeHtml((emp.prenoms||'')+' '+(emp.nom||''))}</div>
+      <div><b>Matricule :</b> ${escapeHtml(emp.matricule||'—')}</div>
+      <div><b>Fonction :</b> ${escapeHtml(emp.fonction||'—')}</div>
+      <div><b>Contrat :</b> ${escapeHtml(emp.typeContrat||'—')}</div>
+      <div><b>N° CNPS :</b> ${escapeHtml(emp.numeroCNPS||'—')}</div>
+      <div><b>Période couverte :</b> ${annee?escapeHtml(annee):'Toute la carrière'}</div>
+    </div>
+    <table>
+      <thead><tr><th>Période</th><th class="num">Jours</th><th class="num">Brut</th><th class="num">Retenues</th><th class="num">Net</th><th class="num">Coût employeur</th><th>Statut</th><th>Date paiement</th></tr></thead>
+      <tbody>${rows.map(p=>`<tr><td class="capitalize">${escapeHtml(new Date(p.periode+'-01').toLocaleDateString('fr-FR',{month:'long',year:'numeric'}))}</td><td class="num">${p.joursTravailles}</td><td class="num">${p.brut.toLocaleString('fr-FR')}</td><td class="num">${p.totalRetenues.toLocaleString('fr-FR')}</td><td class="num">${p.net.toLocaleString('fr-FR')}</td><td class="num">${(p.coutTotalEmployeur||p.brut).toLocaleString('fr-FR')}</td><td>${LIVRE_STATUT_LABEL[p.statut]||p.statut}</td><td>${p.datePaiement?new Date(p.datePaiement).toLocaleDateString('fr-FR'):'—'}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="2">TOTAL (${rows.length} mois)</td><td class="num">${t.brut.toLocaleString('fr-FR')}</td><td class="num">${t.ret.toLocaleString('fr-FR')}</td><td class="num">${t.net.toLocaleString('fr-FR')}</td><td class="num">${t.cout.toLocaleString('fr-FR')}</td><td colspan="2"></td></tr></tfoot>
+    </table>`;
+  openLivrePrintWindow('Livre de paie — Fiche individuelle — '+(emp.prenoms||'')+' '+(emp.nom||''), 'Fiche individuelle '+(emp.matricule||''), body, false);
+}
+async function exporterLivreFicheExcel(){
+  const data=await collecterLivreFiche(); if(!data){ alert('Sélectionnez un employé.'); return; }
+  const {emp,rows,annee}=data;
+  if(!rows.length){ alert('Aucun bulletin pour cet employé.'); return; }
+  const aoa=[['Livre de paie — Fiche individuelle'],['Employé',(emp.prenoms||'')+' '+(emp.nom||'')],['Matricule',emp.matricule||''],['Période',annee||'Toute la carrière'],[],
+    ['Période','Jours','Brut','Retenues','Net','Coût employeur','Statut','Date paiement']];
+  rows.forEach(p=>aoa.push([p.periode,p.joursTravailles,p.brut,p.totalRetenues,p.net,p.coutTotalEmployeur||p.brut,LIVRE_STATUT_LABEL[p.statut]||p.statut,p.datePaiement||'']));
+  const t=rows.reduce((s,p)=>({brut:s.brut+p.brut,ret:s.ret+p.totalRetenues,net:s.net+p.net,cout:s.cout+(p.coutTotalEmployeur||p.brut)}),{brut:0,ret:0,net:0,cout:0});
+  aoa.push(['TOTAL','',t.brut,t.ret,t.net,t.cout,'','']);
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:12},{wch:8},{wch:12},{wch:12},{wch:12},{wch:14},{wch:10},{wch:14}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Fiche '+(emp.matricule||''));
+  downloadWorkbook(wb,'Livre_paie_fiche_'+(emp.matricule||emp.id));
+}
+
+/* ----- 4) Charges patronales ----- */
+async function collecterLivreCharges(periode){
+  const rows=(await idbGetAll('paies')).filter(p=>p.periode===periode).sort((a,b)=>(a.employeNom||'').localeCompare(b.employeNom||''));
+  return rows.map(p=>({...p, chargesPatronales:(p.cnpsEmployeurRetraite||0)+(p.cnpsEmployeurAutres||0)+(p.cmuEmployeur||0)}));
+}
+async function renderLivreCharges(){
+  const selEl=document.getElementById('livreChargesPeriode'); if(!selEl) return;
+  if(!selEl.value) selEl.value=new Date().toISOString().slice(0,7);
+  const rows=await collecterLivreCharges(selEl.value);
+  const body=document.getElementById('livreChargesBody'); if(!body) return;
+  body.innerHTML = rows.length ? rows.map(p=>`<tr class="border-b">
+    <td class="p-3 text-xs text-slate-400 font-mono">${escapeHtml(p.matricule||'—')}</td>
+    <td class="p-3 font-semibold">${escapeHtml(p.employeNom)}</td>
+    <td class="p-3 text-right">${p.brut.toLocaleString('fr-FR')}</td>
+    <td class="p-3 text-right">${p.baseCotisableCNPS.toLocaleString('fr-FR')}</td>
+    <td class="p-3 text-right">${p.cnpsEmployeurRetraite.toLocaleString('fr-FR')}</td>
+    <td class="p-3 text-right">${p.cnpsEmployeurAutres.toLocaleString('fr-FR')}</td>
+    <td class="p-3 text-right">${p.cmuEmployeur.toLocaleString('fr-FR')}</td>
+    <td class="p-3 text-right font-semibold text-red-600">${p.chargesPatronales.toLocaleString('fr-FR')}</td>
+    <td class="p-3 text-right font-bold">${(p.coutTotalEmployeur||p.brut).toLocaleString('fr-FR')}</td>
+  </tr>`).join('') : '<tr><td class="p-3 text-slate-400" colspan="9">Aucun bulletin pour cette période.</td></tr>';
+  const t=rows.reduce((s,p)=>({brut:s.brut+p.brut,base:s.base+p.baseCotisableCNPS,cer:s.cer+p.cnpsEmployeurRetraite,cea:s.cea+p.cnpsEmployeurAutres,cmu:s.cmu+p.cmuEmployeur,ch:s.ch+p.chargesPatronales,cout:s.cout+(p.coutTotalEmployeur||p.brut)}),{brut:0,base:0,cer:0,cea:0,cmu:0,ch:0,cout:0});
+  document.getElementById('livreChargesTotals').innerHTML = rows.length ? `<tr><td colspan="2" class="p-3">TOTAL</td><td class="p-3 text-right">${t.brut.toLocaleString('fr-FR')}</td><td class="p-3 text-right">${t.base.toLocaleString('fr-FR')}</td><td class="p-3 text-right">${t.cer.toLocaleString('fr-FR')}</td><td class="p-3 text-right">${t.cea.toLocaleString('fr-FR')}</td><td class="p-3 text-right">${t.cmu.toLocaleString('fr-FR')}</td><td class="p-3 text-right">${t.ch.toLocaleString('fr-FR')}</td><td class="p-3 text-right">${t.cout.toLocaleString('fr-FR')}</td></tr>` : '';
+  const set=(id,v)=>{ const x=document.getElementById(id); if(x) x.textContent=v; };
+  set('livreCKpiBrut',t.brut.toLocaleString('fr-FR')+' F');
+  set('livreCKpiCharges',t.ch.toLocaleString('fr-FR')+' F');
+  set('livreCKpiCout',t.cout.toLocaleString('fr-FR')+' F');
+  set('livreCKpiTaux', t.brut ? (t.ch/t.brut*100).toFixed(1)+' %' : '—');
+}
+async function imprimerLivreCharges(){
+  const periode=document.getElementById('livreChargesPeriode').value; if(!periode){ alert('Sélectionnez une période.'); return; }
+  const rows=await collecterLivreCharges(periode);
+  if(!rows.length){ alert('Aucun bulletin pour cette période.'); return; }
+  const moisLabel=new Date(periode+'-01').toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  const t=rows.reduce((s,p)=>({brut:s.brut+p.brut,base:s.base+p.baseCotisableCNPS,cer:s.cer+p.cnpsEmployeurRetraite,cea:s.cea+p.cnpsEmployeurAutres,cmu:s.cmu+p.cmuEmployeur,ch:s.ch+p.chargesPatronales,cout:s.cout+(p.coutTotalEmployeur||p.brut)}),{brut:0,base:0,cer:0,cea:0,cmu:0,ch:0,cout:0});
+  const body=`
+    <div class="dc-info"><div><b>Période :</b> ${escapeHtml(moisLabel)}</div><div><b>Taux moyen de charges patronales :</b> ${t.brut?(t.ch/t.brut*100).toFixed(1):'0'} %</div></div>
+    <table>
+      <thead><tr><th>Matricule</th><th>Nom</th><th class="num">Brut</th><th class="num">Base cotisable CNPS</th><th class="num">CNPS employeur retraite</th><th class="num">CNPS employeur PF/AT</th><th class="num">CMU employeur</th><th class="num">Total charges patronales</th><th class="num">Coût total employeur</th></tr></thead>
+      <tbody>${rows.map(p=>`<tr><td>${escapeHtml(p.matricule||'—')}</td><td>${escapeHtml(p.employeNom)}</td><td class="num">${p.brut.toLocaleString('fr-FR')}</td><td class="num">${p.baseCotisableCNPS.toLocaleString('fr-FR')}</td><td class="num">${p.cnpsEmployeurRetraite.toLocaleString('fr-FR')}</td><td class="num">${p.cnpsEmployeurAutres.toLocaleString('fr-FR')}</td><td class="num">${p.cmuEmployeur.toLocaleString('fr-FR')}</td><td class="num">${p.chargesPatronales.toLocaleString('fr-FR')}</td><td class="num">${(p.coutTotalEmployeur||p.brut).toLocaleString('fr-FR')}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="2">TOTAL</td><td class="num">${t.brut.toLocaleString('fr-FR')}</td><td class="num">${t.base.toLocaleString('fr-FR')}</td><td class="num">${t.cer.toLocaleString('fr-FR')}</td><td class="num">${t.cea.toLocaleString('fr-FR')}</td><td class="num">${t.cmu.toLocaleString('fr-FR')}</td><td class="num">${t.ch.toLocaleString('fr-FR')}</td><td class="num">${t.cout.toLocaleString('fr-FR')}</td></tr></tfoot>
+    </table>`;
+  openLivrePrintWindow('Livre de paie — Charges patronales — '+moisLabel, 'Charges patronales '+periode, body, true);
+}
+async function exporterLivreChargesExcel(){
+  const periode=document.getElementById('livreChargesPeriode').value; if(!periode){ alert('Sélectionnez une période.'); return; }
+  const rows=await collecterLivreCharges(periode);
+  if(!rows.length){ alert('Aucun bulletin pour cette période.'); return; }
+  const c=getCompanyInfo();
+  const aoa=[['Livre de paie — Charges patronales — '+periode],['Employeur',c.nom],[],
+    ['Matricule','Nom','Brut','Base cotisable CNPS','CNPS employeur retraite','CNPS employeur PF/AT','CMU employeur','Total charges patronales','Coût total employeur']];
+  rows.forEach(p=>aoa.push([p.matricule,p.employeNom,p.brut,p.baseCotisableCNPS,p.cnpsEmployeurRetraite,p.cnpsEmployeurAutres,p.cmuEmployeur,p.chargesPatronales,p.coutTotalEmployeur||p.brut]));
+  const t=rows.reduce((s,p)=>({brut:s.brut+p.brut,base:s.base+p.baseCotisableCNPS,cer:s.cer+p.cnpsEmployeurRetraite,cea:s.cea+p.cnpsEmployeurAutres,cmu:s.cmu+p.cmuEmployeur,ch:s.ch+p.chargesPatronales,cout:s.cout+(p.coutTotalEmployeur||p.brut)}),{brut:0,base:0,cer:0,cea:0,cmu:0,ch:0,cout:0});
+  aoa.push(['','TOTAL',t.brut,t.base,t.cer,t.cea,t.cmu,t.ch,t.cout]);
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:12},{wch:22},{wch:12},{wch:16},{wch:18},{wch:16},{wch:14},{wch:18},{wch:16}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Charges '+periode);
+  downloadWorkbook(wb,'Livre_paie_charges_patronales_'+periode);
+}
+
 /* ---------- Paramètres RH & Paie ---------- */
 function renderRHParamsForm(){
   const p=getRHParams();
@@ -15999,6 +16393,7 @@ function showRHTab(tab){
   if(tab==='pointagerh'){ renderPointageRHJour(); renderPointageRHRecap(); }
   if(tab==='paie') renderPaieTable();
   if(tab==='registre') renderRegistrePaie();
+  if(tab==='livre') showLivreTab(document.querySelector('.livre-tab-btn.active')?.dataset.livretab||'journal');
   if(tab==='parametres') renderRHParamsForm();
 }
 
