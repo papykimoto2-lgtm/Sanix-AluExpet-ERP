@@ -23,10 +23,6 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<!-- Leaflet MarkerCluster pour optimiser l'affichage de nombreux points -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.0/dist/MarkerCluster.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.0/dist/MarkerCluster.Default.css">
-<script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.0/dist/leaflet.markercluster.js"></script>
 <script>
 // === CONFIG SUPABASE — à renseigner par Papi ===
 window.SANIX_CFG = {
@@ -136,40 +132,6 @@ window.SANIX_CFG = {
   .text-3xl.font-black{letter-spacing:-.02em;font-variant-numeric:tabular-nums}
   .card:has(.text-3xl.font-black){border-left:3px solid var(--ds-accent)}
 
-  /* === OPTIMISATIONS CARTE DES CHANTIERS === */
-  #carteChantiersMap{font-family:var(--ds-font)!important;z-index:1}
-  #carteChantiersMap .leaflet-popup-content{font-size:12px;color:var(--ds-ink);max-width:220px}
-  #carteChantiersMap .leaflet-popup-content b{color:var(--ds-accent-ink);font-size:13px;display:block;margin-bottom:4px}
-  #carteChantiersMap .leaflet-popup-content-wrapper{border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);border:1px solid var(--ds-slate-200)}
-  #carteChantiersMap .leaflet-popup-tip{background:white;border:1px solid var(--ds-slate-200)}
-  #carteChantiersMap .leaflet-popup-close-button{color:var(--ds-slate-500);opacity:.8;padding:2px 4px}
-  
-  /* Marqueurs personnalisés */
-  .carte-marker-custom{width:32px;height:40px;margin-left:-16px;margin-top:-40px}
-  .carte-marker-shadow{width:30px;height:8px;margin-left:-15px;opacity:.3;background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 8"><ellipse cx="15" cy="4" rx="15" ry="4" fill="black"/></svg>')}
-  
-  /* Clusters de marqueurs */
-  .marker-cluster{border-radius:20px;border:2px solid rgba(255,255,255,.8);font-weight:600;text-align:center;display:flex;align-items:center;justify-content:center;color:white;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.2)}
-  .marker-cluster-small{background:#2563eb;width:36px;height:36px}
-  .marker-cluster-medium{background:#1d4ed8;width:44px;height:44px}
-  .marker-cluster-large{background:#1e40af;width:52px;height:52px}
-  
-  /* Légende interactive */
-  .carte-legend{background:white;border:1px solid var(--ds-border);border-radius:8px;padding:12px;box-shadow:var(--ds-shadow-sm);font-size:12px}
-  .carte-legend-item{display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer;border-radius:4px;padding:6px 8px;transition:background .1s}
-  .carte-legend-item:hover{background:var(--ds-slate-100)}
-  .carte-legend-item.disabled{opacity:.5;text-decoration:line-through}
-  .carte-legend-item input[type="checkbox"]{cursor:pointer;width:16px;height:16px}
-  
-  /* Amélioration des KPI de la carte */
-  #carteKpis .card{transition:all .15s ease}
-  #carteKpis .card:hover{transform:translateY(-2px);box-shadow:var(--ds-shadow)}
-  
-  /* Liste des chantiers */
-  #carteChantiersListe{scrollbar-width:thin;scrollbar-color:#cbd5e1 transparent}
-  #carteChantiersListe::-webkit-scrollbar{width:6px}
-  #carteChantiersListe::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
-  
   @media (max-width:767px){
     .sidebar{position:fixed;inset:0 25% 0 0;z-index:40;transform:translateX(-100%);transition:transform .25s ease;overflow-y:auto;display:block!important}
     .sidebar.open{transform:translateX(0)}
@@ -249,6 +211,7 @@ window.SANIX_CFG = {
 
       <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">5 · Administration</div>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="utilisateurs">👥 Utilisateurs</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="rh">🧑‍💼 RH & Paie <span id="congesBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
     </nav>
     <div class="mt-8 border-t border-slate-700 pt-4 text-xs text-slate-500">
       Version prototype<br>Module BOM Menuiserie Aluminium<br>
@@ -1987,22 +1950,19 @@ window.SANIX_CFG = {
           </div>
 
           <div class="grid lg:grid-cols-[1fr_300px] gap-4">
-            <div class="relative">
+            <div>
               <div id="carteChantiersMap" style="height:60vh;min-height:420px;border-radius:12px;overflow:hidden;border:1px solid var(--ds-border)"></div>
-              <div class="absolute top-3 right-3 carte-legend z-[400] hidden md:block max-w-xs">
-                <div class="text-xs font-semibold text-slate-600 mb-2.5">Légende (clic pour filtrer)</div>
-                <div id="carteLegendItems" class="space-y-1">
-                  <label class="carte-legend-item"><input type="checkbox" class="carte-legend-filter" data-etape="devis" checked> <span class="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style="background:#64748b"></span> <span>Devis</span></label>
-                  <label class="carte-legend-item"><input type="checkbox" class="carte-legend-filter" data-etape="paiement" checked> <span class="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style="background:#d97706"></span> <span>Paiement</span></label>
-                  <label class="carte-legend-item"><input type="checkbox" class="carte-legend-filter" data-etape="dossier" checked> <span class="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style="background:#1d4ed8"></span> <span>Dossier/Achats</span></label>
-                  <label class="carte-legend-item"><input type="checkbox" class="carte-legend-filter" data-etape="fabrication" checked> <span class="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style="background:#7c3aed"></span> <span>Fabrication</span></label>
-                  <label class="carte-legend-item"><input type="checkbox" class="carte-legend-filter" data-etape="installation" checked> <span class="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style="background:#059669"></span> <span>Installation</span></label>
-                  <label class="carte-legend-item"><input type="checkbox" class="carte-legend-filter" data-etape="annule" checked> <span class="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style="background:#dc2626"></span> <span>Annulé</span></label>
-                </div>
-              </div>
               <div class="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-xs text-slate-500">
                 <span id="carteChantiersLatLng">Lat/Lng : —</span>
-                <span id="carteChantiersCount" class="text-slate-400 font-semibold"></span>
+                <span id="carteChantiersCount" class="text-slate-400"></span>
+              </div>
+              <div class="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-xs text-slate-500">
+                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#64748b"></span> Devis</span>
+                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#d97706"></span> Paiement</span>
+                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#1d4ed8"></span> Dossier / Validation / Achats</span>
+                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#7c3aed"></span> Fabrication</span>
+                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#059669"></span> Installation / Terminé</span>
+                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#dc2626"></span> Annulé</span>
               </div>
             </div>
             <div class="border rounded-xl bg-slate-50 flex flex-col" style="max-height:60vh">
@@ -2451,6 +2411,7 @@ window.SANIX_CFG = {
               <option value="poseur">Poseur</option>
               <option value="comptable">Comptable</option>
               <option value="direction">Direction</option>
+              <option value="rh_paie">RH & Paie</option>
             </select>
             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Créer utilisateur</button>
           </form>
@@ -2460,6 +2421,160 @@ window.SANIX_CFG = {
           <h2 class="text-lg font-bold mb-1">Matrice des rôles & permissions</h2>
           <p class="text-sm text-slate-500 mb-4">🔑 = pouvoir de validation hiérarchique (module Validations). Rôles fixes du prototype — pour un rôle sur mesure, créez l'utilisateur puis ajustez ses droits via Supabase si activé.</p>
           <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Rôle</th><th class="text-left p-2">Permissions</th></tr></thead><tbody id="roleMatrixBody"></tbody></table></div>
+        </div>
+      </section>
+
+      <section id="rh" class="page hidden">
+        <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1 items-center">
+          <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold active" data-rhtab="employes" onclick="showRHTab('employes')">👤 Employés</button>
+          <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="conges" onclick="showRHTab('conges')">🌴 Absences & congés</button>
+          <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="paie" onclick="showRHTab('paie')">💰 Paie</button>
+          <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="registre" onclick="showRHTab('registre')">📜 Registre & masse salariale</button>
+          <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="parametres" onclick="showRHTab('parametres')">⚙️ Paramètres</button>
+        </div>
+
+        <!-- ===== EMPLOYÉS ===== -->
+        <div id="rhTabEmployes" class="rh-tab">
+          <div class="grid sm:grid-cols-2 gap-3 mb-4">
+            <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Effectif actif</div><div id="rhKpiEffectif" class="text-2xl font-black mt-1">—</div></div>
+            <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Masse salariale de base (mensuelle)</div><div id="rhKpiMasseBase" class="text-2xl font-black mt-1">—</div></div>
+          </div>
+          <div class="card bg-white rounded-2xl p-6">
+            <div class="flex flex-wrap justify-between gap-3 mb-5">
+              <div><h2 class="text-lg font-bold">Employés</h2><p class="text-sm text-slate-500">Fiches du personnel — utilisées pour la génération de la paie.</p></div>
+            </div>
+            <form id="employeForm" onsubmit="return handleSaveEmploye(event)" class="grid sm:grid-cols-4 gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
+              <input id="rhEditId" type="hidden" value="">
+              <input id="rhMatricule" placeholder="Matricule (auto si vide)" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="rhNom" placeholder="Nom" required class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="rhPrenoms" placeholder="Prénoms" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="rhFonction" placeholder="Fonction / Poste" class="border rounded-lg px-2 py-1.5 text-sm">
+              <select id="rhDepartement" class="border rounded-lg px-2 py-1.5 text-sm">
+                <option value="Direction">Direction</option>
+                <option value="Administration & Finance">Administration & Finance</option>
+                <option value="Commercial">Commercial</option>
+                <option value="Bureau d'études">Bureau d'études</option>
+                <option value="Atelier Aluminium">Atelier Aluminium</option>
+                <option value="Atelier Inox">Atelier Inox</option>
+                <option value="Magasin & Stock">Magasin & Stock</option>
+                <option value="Pose & Installation">Pose & Installation</option>
+                <option value="SAV">SAV</option>
+                <option value="Autre">Autre</option>
+              </select>
+              <select id="rhTypeContrat" class="border rounded-lg px-2 py-1.5 text-sm">
+                <option value="CDI">CDI</option>
+                <option value="CDD">CDD</option>
+                <option value="Journalier">Journalier</option>
+                <option value="Stage">Stage</option>
+                <option value="Consultant">Consultant</option>
+              </select>
+              <div><label class="text-xs text-slate-500 block mb-0.5">Date d'embauche</label><input id="rhDateEmbauche" type="date" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+              <input id="rhSalaireBase" type="number" placeholder="Salaire de base (FCFA)" required class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="rhPrimeTransport" type="number" placeholder="Prime transport (FCFA)" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="rhPrimeLogement" type="number" placeholder="Prime logement (FCFA)" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="rhTelephone" placeholder="Téléphone" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="rhNumeroCNPS" placeholder="N° CNPS" class="border rounded-lg px-2 py-1.5 text-sm">
+              <select id="rhModePaiement" class="border rounded-lg px-2 py-1.5 text-sm">
+                <option value="especes">Espèces</option>
+                <option value="mobile_money">Mobile Money</option>
+                <option value="virement">Virement bancaire</option>
+              </select>
+              <input id="rhNumeroCompte" placeholder="N° compte / Mobile Money" class="border rounded-lg px-2 py-1.5 text-sm">
+              <select id="rhStatut" class="border rounded-lg px-2 py-1.5 text-sm">
+                <option value="actif">Actif</option>
+                <option value="inactif">Inactif</option>
+              </select>
+              <div class="sm:col-span-4 flex gap-2">
+                <button type="submit" id="rhEmployeSubmitBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter un employé</button>
+                <button type="button" id="rhEmployeCancelBtn" onclick="cancelEditEmploye()" class="hidden border px-4 py-1.5 rounded-lg text-sm font-semibold">Annuler</button>
+              </div>
+            </form>
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Matricule</th><th class="text-left p-3">Nom</th><th class="text-left p-3">Fonction</th><th class="text-left p-3">Département</th><th class="text-left p-3">Contrat</th><th class="text-right p-3">Salaire de base</th><th class="text-left p-3">Statut</th><th class="p-3"></th></tr></thead><tbody id="employesBody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- ===== ABSENCES & CONGÉS ===== -->
+        <div id="rhTabConges" class="rh-tab hidden">
+          <div class="card bg-white rounded-2xl p-6 mb-4">
+            <div><h2 class="text-lg font-bold">Absences & congés</h2><p class="text-sm text-slate-500">Congés payés, maladie, absences — une fois validées, les absences « sans solde » et « injustifiées » sont automatiquement déduites lors de la génération de la paie.</p></div>
+            <form id="congeForm" onsubmit="return handleSaveConge(event)" class="grid sm:grid-cols-4 gap-2 mt-4 mb-5 bg-slate-50 border rounded-xl p-3">
+              <select id="rhCongeEmploye" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2"><option value="">— Sélectionner un employé —</option></select>
+              <select id="rhCongeType" class="border rounded-lg px-2 py-1.5 text-sm">
+                <option value="paye">Congé payé</option>
+                <option value="maladie">Maladie</option>
+                <option value="maternite">Maternité / Paternité</option>
+                <option value="sans_solde">Sans solde</option>
+                <option value="injustifiee">Absence injustifiée</option>
+                <option value="exceptionnel">Exceptionnel</option>
+              </select>
+              <input id="rhCongeMotif" placeholder="Motif (optionnel)" class="border rounded-lg px-2 py-1.5 text-sm">
+              <div><label class="text-xs text-slate-500 block mb-0.5">Début</label><input id="rhCongeDebut" type="date" required class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+              <div><label class="text-xs text-slate-500 block mb-0.5">Fin</label><input id="rhCongeFin" type="date" required class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+              <div class="sm:col-span-2 flex items-end"><button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Enregistrer la demande</button></div>
+            </form>
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Employé</th><th class="text-left p-3">Type</th><th class="text-left p-3">Période</th><th class="text-right p-3">Jours</th><th class="text-left p-3">Motif</th><th class="text-left p-3">Statut</th><th class="p-3"></th></tr></thead><tbody id="congesBody"></tbody></table></div>
+          </div>
+          <div class="card bg-white rounded-2xl p-6">
+            <h2 class="text-lg font-bold mb-1">Soldes de congés payés</h2>
+            <p class="text-sm text-slate-500 mb-4">Estimation sur la base de l'ancienneté et du taux d'acquisition paramétré (onglet Paramètres).</p>
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Employé</th><th class="text-right p-2">Ancienneté</th><th class="text-right p-2">Jours acquis</th><th class="text-right p-2">Jours pris</th><th class="text-right p-2">Solde</th></tr></thead><tbody id="rhSoldesBody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- ===== PAIE ===== -->
+        <div id="rhTabPaie" class="rh-tab hidden">
+          <div class="card bg-white rounded-2xl p-4 mb-4 flex flex-wrap items-end gap-2">
+            <div><label class="text-xs font-semibold text-slate-600 block mb-1">Période</label><input id="rhPeriode" type="month" onchange="renderPaieTable()" class="border rounded-lg px-2 py-1.5 text-sm"></div>
+            <button id="btnGenererPaie" onclick="genererBulletinsPeriode()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">🧮 Générer les bulletins du mois</button>
+            <button onclick="openCompanyInfoModal()" class="border px-4 py-2 rounded-lg text-sm font-semibold ml-auto">🏢 Entête (documents)</button>
+          </div>
+          <div class="grid sm:grid-cols-4 gap-3 mb-4">
+            <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Bulletins</div><div id="rhKpiBulletins" class="text-2xl font-black mt-1">—</div></div>
+            <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Masse salariale brute</div><div id="rhKpiBrut" class="text-2xl font-black mt-1">—</div></div>
+            <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Retenues (CNPS+ITS+CMU)</div><div id="rhKpiCharges" class="text-2xl font-black mt-1">—</div></div>
+            <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Net à payer</div><div id="rhKpiNet" class="text-2xl font-black mt-1">—</div></div>
+          </div>
+          <div class="card bg-white rounded-2xl p-6">
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Matricule</th><th class="text-left p-3">Employé</th><th class="text-left p-3">Fonction</th><th class="text-right p-3">Brut</th><th class="text-right p-3">CNPS</th><th class="text-right p-3">ITS</th><th class="text-right p-3">Net à payer</th><th class="text-left p-3">Statut</th><th class="p-3"></th></tr></thead><tbody id="paieBody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- ===== REGISTRE & MASSE SALARIALE ===== -->
+        <div id="rhTabRegistre" class="rh-tab hidden">
+          <div class="card bg-white rounded-2xl p-6 mb-4">
+            <h2 class="text-lg font-bold mb-4">Masse salariale — 12 derniers mois</h2>
+            <canvas id="rhMasseChart" height="90"></canvas>
+          </div>
+          <div class="card bg-white rounded-2xl p-6">
+            <h2 class="text-lg font-bold mb-1">Registre de paie</h2>
+            <p class="text-sm text-slate-500 mb-4">Récapitulatif par période, tous statuts confondus.</p>
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Période</th><th class="text-right p-3">Bulletins</th><th class="text-right p-3">Brut</th><th class="text-right p-3">Retenues</th><th class="text-right p-3">Net versé</th><th class="text-right p-3">Coût total employeur</th></tr></thead><tbody id="registreBody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- ===== PARAMÈTRES ===== -->
+        <div id="rhTabParametres" class="rh-tab hidden">
+          <div class="card bg-white rounded-2xl p-6">
+            <h2 class="text-lg font-bold mb-1">Paramètres RH & Paie</h2>
+            <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">⚠️ Taux CNPS, CMU et barème ITS pré-remplis à titre indicatif (Côte d'Ivoire, réforme ITS 2024). Vérifiez ces valeurs auprès de la CNPS, de la DGI ou de votre expert-comptable avant tout traitement réel de paie — elles évoluent par Loi de Finances.</p>
+            <form id="rhParamsForm" onsubmit="return handleSaveRHParams(event)">
+              <div class="grid sm:grid-cols-3 gap-3 mb-4">
+                <div><label class="text-xs font-semibold text-slate-600 block mb-1">SMIG (FCFA)</label><input id="rpSmig" type="number" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+                <div><label class="text-xs font-semibold text-slate-600 block mb-1">Jours ouvrables / mois</label><input id="rpJoursOuvrables" type="number" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+                <div><label class="text-xs font-semibold text-slate-600 block mb-1">Congés acquis / mois (jours)</label><input id="rpCongesAccrual" type="number" step="0.1" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+                <div><label class="text-xs font-semibold text-slate-600 block mb-1">CNPS — taux salarié (%)</label><input id="rpTauxCnpsSalarie" type="number" step="0.1" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+                <div><label class="text-xs font-semibold text-slate-600 block mb-1">CNPS — retraite employeur (%)</label><input id="rpTauxCnpsEmployeurRetraite" type="number" step="0.1" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+                <div><label class="text-xs font-semibold text-slate-600 block mb-1">CNPS — PF/maternité/AT employeur (%)</label><input id="rpTauxCnpsAutres" type="number" step="0.1" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+                <div><label class="text-xs font-semibold text-slate-600 block mb-1">Plafond mensuel CNPS (FCFA)</label><input id="rpPlafondCnps" type="number" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+                <div><label class="text-xs font-semibold text-slate-600 block mb-1">CMU — part salariale (FCFA)</label><input id="rpCmuSalarie" type="number" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+                <div><label class="text-xs font-semibold text-slate-600 block mb-1">CMU — part employeur (FCFA)</label><input id="rpCmuEmployeur" type="number" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+              </div>
+              <h3 class="font-bold text-sm text-slate-700 mb-2">Barème ITS (progressif, appliqué sur le salaire brut mensuel)</h3>
+              <div id="itsBaremeRows" class="mb-2"></div>
+              <button type="button" onclick="addItsTranche()" class="text-blue-600 text-xs font-semibold mb-4">+ Ajouter une tranche</button>
+              <div><button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">Enregistrer les paramètres</button></div>
+            </form>
+          </div>
         </div>
       </section>
 
@@ -2631,10 +2746,10 @@ function escapeHtml(s){
 /* ---------- IndexedDB ---------- */
 function openDB(){
   return new Promise((resolve,reject)=>{
-    const req=indexedDB.open('alubom_db',21);
+    const req=indexedDB.open('alubom_db',22);
     req.onupgradeneeded=e=>{
       const d=e.target.result;
-      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers','depots','pointages','nonconformites','chutes','postes','gammes','sav','maintenances','prospects','partenaires','appels_offres'].forEach(s=>{
+      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers','depots','pointages','nonconformites','chutes','postes','gammes','sav','maintenances','prospects','partenaires','appels_offres','employes','conges','paies'].forEach(s=>{
         if(!d.objectStoreNames.contains(s)) d.createObjectStore(s,{keyPath:'id'});
       });
     };
@@ -2776,7 +2891,8 @@ const ROLE_PRESETS={
   magasinier:{label:'Magasinier',permissions:['stock:write','achat:manage']},
   poseur:{label:'Poseur',permissions:['installation:manage']},
   comptable:{label:'Comptable',permissions:['achat:create']},
-  direction:{label:'Direction',permissions:['chantier:validate']}
+  direction:{label:'Direction',permissions:['chantier:validate']},
+  rh_paie:{label:'RH & Paie',permissions:['rh:manage']}
 };
 
 async function seedDefaultLocalUser(){
@@ -2855,6 +2971,7 @@ function applyRoleGuards(){
   guard('btnNewOF','of:create');
   guard('btnNewChantier','chantier:create');
   guard('btnSaveParams','referentiel:manage');
+  guard('btnGenererPaie','rh:manage');
 }
 
 /* ---------- Gestion des utilisateurs (mode local) ---------- */
@@ -2898,7 +3015,8 @@ const PERMISSION_LABELS={
   'qc:validate':'Contrôle qualité',
   'achat:manage':"Gérer les demandes d'achat (hors seuil DG)",
   'achat:create':"Créer des demandes d'achat",
-  'installation:manage':'Gérer les poses/installations'
+  'installation:manage':'Gérer les poses/installations',
+  'rh:manage':'Gérer le module RH & Paie'
 };
 function roleIsValidateur(role){ const p=ROLE_PRESETS[role]?.permissions||[]; return p.includes('*')||p.includes('chantier:validate'); }
 function renderUsersTable(){
@@ -2991,7 +3109,7 @@ async function checkSession(){
 document.addEventListener('DOMContentLoaded',checkSession);
 
 /* ---------- Ordres de Fabrication (OF) ---------- */
-async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable(),renderEnsemblesList(),renderPlansFacadeTable(),renderRevisionsTable(),populateAtelierSelect(),loadParams()]); renderUsersTable(); if(document.getElementById('costChart')) updateDashboard(); if(document.getElementById('prodTabKanban') && !document.getElementById('prodTabKanban').classList.contains('hidden')) renderKanban(); if(document.getElementById('prodTabGantt') && !document.getElementById('prodTabGantt').classList.contains('hidden')) renderGantt(); if(document.getElementById('prodTabCharge') && !document.getElementById('prodTabCharge').classList.contains('hidden')) renderChargePostes(); if(document.getElementById('atelierMobile') && !document.getElementById('atelierMobile').classList.contains('hidden')) renderAtelierMobile(); if(document.getElementById('controlegestion') && !document.getElementById('controlegestion').classList.contains('hidden')) renderControleGestion(); if(document.getElementById('validations') && !document.getElementById('validations').classList.contains('hidden')) renderValidationsQueue(); if(document.getElementById('etatpa') && !document.getElementById('etatpa').classList.contains('hidden')) renderEtatProformaAchats(); if(document.getElementById('gmao') && !document.getElementById('gmao').classList.contains('hidden')) showGmaoTab(document.querySelector('.gmao-tab-btn.active')?.dataset.gmaotab||'machines'); if(document.getElementById('relances') && !document.getElementById('relances').classList.contains('hidden')) renderRelances(); updateGmaoBadge(); updateValidationsBadge(); updateRelancesBadge(); updateAOBadge(); }
+async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable(),renderEnsemblesList(),renderPlansFacadeTable(),renderRevisionsTable(),populateAtelierSelect(),loadParams()]); renderUsersTable(); if(document.getElementById('costChart')) updateDashboard(); if(document.getElementById('prodTabKanban') && !document.getElementById('prodTabKanban').classList.contains('hidden')) renderKanban(); if(document.getElementById('prodTabGantt') && !document.getElementById('prodTabGantt').classList.contains('hidden')) renderGantt(); if(document.getElementById('prodTabCharge') && !document.getElementById('prodTabCharge').classList.contains('hidden')) renderChargePostes(); if(document.getElementById('atelierMobile') && !document.getElementById('atelierMobile').classList.contains('hidden')) renderAtelierMobile(); if(document.getElementById('controlegestion') && !document.getElementById('controlegestion').classList.contains('hidden')) renderControleGestion(); if(document.getElementById('validations') && !document.getElementById('validations').classList.contains('hidden')) renderValidationsQueue(); if(document.getElementById('etatpa') && !document.getElementById('etatpa').classList.contains('hidden')) renderEtatProformaAchats(); if(document.getElementById('gmao') && !document.getElementById('gmao').classList.contains('hidden')) showGmaoTab(document.querySelector('.gmao-tab-btn.active')?.dataset.gmaotab||'machines'); if(document.getElementById('relances') && !document.getElementById('relances').classList.contains('hidden')) renderRelances(); updateGmaoBadge(); updateValidationsBadge(); updateRelancesBadge(); updateAOBadge(); if(document.getElementById('rh') && !document.getElementById('rh').classList.contains('hidden')) showRHTab(document.querySelector('.rh-tab-btn.active')?.dataset.rhtab||'employes'); updateCongesBadge(); }
 
 function openNewOFForm(){
   if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
@@ -8114,16 +8232,6 @@ function populateCarteFiltreEtape(){
   const oAnnule=document.createElement('option'); oAnnule.value='__annule'; oAnnule.textContent='Annulés'; sel.appendChild(oAnnule);
 }
 function applyCarteFilters(){ renderCarteChantiers(false); }
-
-// Événements pour filtrer par légende
-document.addEventListener('DOMContentLoaded',()=>{
-  document.querySelectorAll('.carte-legend-filter').forEach(cb=>{
-    cb.addEventListener('change',()=>{
-      cb.parentElement.classList.toggle('disabled',!cb.checked);
-      renderCarteChantiers(false);
-    });
-  });
-});
 function renderCarteKpis(all,geoloc){
   const el=document.getElementById('carteKpis'); if(!el) return;
   const pipelineGeo=geoloc.filter(c=>!c.annule && c.etape!=='termine').reduce((s,c)=>s+(c.montantTotal||0),0);
@@ -8186,23 +8294,10 @@ async function renderCarteChantiers(refetch){
   const search=(document.getElementById('carteSearch')?.value||'').trim().toLowerCase();
   const etapeFiltre=document.getElementById('carteFiltreEtape')?.value||'';
   const actifsOnly=document.getElementById('carteFiltreActifs')?.checked||false;
-  
-  // Nouveau système de filtrage par légende
-  const legendFilters=new Set();
-  document.querySelectorAll('.carte-legend-filter:checked').forEach(cb=>{
-    legendFilters.add(cb.dataset.etape);
-  });
-  
   const rows=geoloc.filter(c=>{
     if(actifsOnly && (c.annule || c.etape==='termine')) return false;
     if(etapeFiltre==='__annule' && !c.annule) return false;
     else if(etapeFiltre && etapeFiltre!=='__annule' && c.etape!==etapeFiltre) return false;
-    
-    // Filtrage par légende
-    const cEtape=c.annule?'annule':c.etape;
-    const legendKey=cEtape==='devis'?'devis':(cEtape==='paiement'?'paiement':(cEtape==='dossier'||cEtape==='validation'||cEtape==='achats'?'dossier':(cEtape==='fabrication'?'fabrication':(cEtape==='installation'?'installation':'annule'))));
-    if(legendFilters.size>0 && !legendFilters.has(legendKey)) return false;
-    
     if(search){
       const hay=[c.numero,c.client,c.adresseChantier].filter(Boolean).join(' ').toLowerCase();
       if(!hay.includes(search)) return false;
@@ -8211,78 +8306,46 @@ async function renderCarteChantiers(refetch){
   });
 
   const countEl=document.getElementById('carteChantiersCount');
-  if(countEl){
-    const pct=geoloc.length?Math.round(100*rows.length/geoloc.length):0;
-    countEl.textContent = geoloc.length ? `📍 ${rows.length}/${geoloc.length} (${pct}%)` : '⚠️ Aucun dossier géolocalisé';
-  }
+  if(countEl) countEl.textContent = geoloc.length ? rows.length+' / '+geoloc.length+' dossier(s) affiché(s)' : 'Aucun dossier géolocalisé — ajoutez une adresse/GPS depuis "✏️ Modifier" dans Circuit Chantier.';
 
   if(!carteChantiersMap){
-    carteChantiersMap=L.map('carteChantiersMap',{zoomControl:true,attributionControl:true}).setView([7.54,-5.55],7);
+    carteChantiersMap=L.map('carteChantiersMap',{zoomControl:true}).setView([7.54,-5.55],7); // vue par défaut Côte d'Ivoire
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
       maxZoom:19,
-      minZoom:2,
-      attribution:'&copy; OpenStreetMap'
+      attribution:'© OpenStreetMap'
     }).addTo(carteChantiersMap);
     carteChantiersMap.on('mousemove',e=>{
       const el=document.getElementById('carteChantiersLatLng');
-      if(el) el.textContent='📍 '+e.latlng.lat.toFixed(5)+' / '+e.latlng.lng.toFixed(5);
+      if(el) el.textContent='Lat/Lng : '+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5);
     });
   }
-  
-  // Supprimer l'ancien cluster group si existant
-  if(carteChantiersClusterGroup){
-    carteChantiersMap.removeLayer(carteChantiersClusterGroup);
-  }
-  
-  // Créer un nouveau cluster group avec L.MarkerClusterGroup
-  carteChantiersClusterGroup=typeof L.markerClusterGroup==='function'?L.markerClusterGroup({
-    maxClusterRadius:60,
-    disableClusteringAtZoom:15,
-    iconCreateFunction:cluster=>{
-      const count=cluster.getChildCount();
-      const size=count<10?'small':(count<100?'medium':'large');
-      return L.divIcon({className:'marker-cluster marker-cluster-'+size,html:'<b>'+count+'</b>',iconSize:[36,36]});
-    }
-  }):null;
-  
+  carteChantiersMarkers.forEach(m=>carteChantiersMap.removeLayer(m.marker));
   carteChantiersMarkers=[];
   rows.forEach(c=>{
     const color=colorPourEtapeChantier(c);
     const label=c.annule?'Annulé':(CHANTIER_STAGES.find(s=>s.key===c.etape)?.label||c.etape);
-    const marker=L.marker([+c.geoLat,+c.geoLng],{icon:carteChantierIcon(color,c.id===carteChantiersSelectedId)});
-    marker.bindPopup(`<div style="font-size:12px;min-width:200px;color:var(--ds-ink)">
-        <b>${escapeHtml(c.numero)}</b>
-        <div style="color:var(--ds-slate-500);font-size:11px;margin:4px 0">${escapeHtml(c.client||'—')}</div>
-        <div style="color:${color};font-weight:600;font-size:12px">${escapeHtml(label)}</div>
-        ${c.montantTotal?'<div style="margin:4px 0;font-weight:600">'+money(c.montantTotal)+'</div>':''}
-        ${c.adresseChantier?'<div style="font-size:11px;color:var(--ds-slate-400);margin:4px 0">📍 '+escapeHtml(c.adresseChantier)+'</div>':''}
-        <button onclick="showPage('chantier');openChantierDetail('${c.id}')" style="margin-top:6px;width:100%;color:#1d4ed8;text-decoration:underline;font-weight:600;background:none;border:1px solid #1d4ed8;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px">Ouvrir dossier →</button>
+    const marker=L.marker([+c.geoLat,+c.geoLng],{icon:carteChantierIcon(color,c.id===carteChantiersSelectedId)}).addTo(carteChantiersMap);
+    marker.bindPopup(`<div style="font-size:12px;min-width:180px">
+        <b>${escapeHtml(c.numero)}</b><br>
+        ${escapeHtml(c.client||'')}<br>
+        <span style="color:${color};font-weight:600">${escapeHtml(label)}</span>
+        ${c.montantTotal?'<br>'+money(c.montantTotal):''}
+        ${c.adresseChantier?'<br>'+escapeHtml(c.adresseChantier):''}
+        <br><button onclick="showPage('chantier');openChantierDetail('${c.id}')" style="margin-top:4px;color:#1d4ed8;text-decoration:underline;font-weight:600;background:none;border:none;padding:0;cursor:pointer">Ouvrir le dossier →</button>
       </div>`);
     marker.on('click',()=>selectCarteChantier(c.id,false));
-    if(carteChantiersClusterGroup) carteChantiersClusterGroup.addLayer(marker);
-    else marker.addTo(carteChantiersMap);
     carteChantiersMarkers.push({marker,rec:c});
   });
-  
-  if(carteChantiersClusterGroup && !carteChantiersMap.hasLayer(carteChantiersClusterGroup)){
-    carteChantiersMap.addLayer(carteChantiersClusterGroup);
-  }
-  
   renderCarteListe(rows);
   setTimeout(()=>{
     carteChantiersMap.invalidateSize();
     if(rows.length===1){
       carteChantiersMap.setView([+rows[0].geoLat,+rows[0].geoLng],14);
     } else if(rows.length>1){
-      try{
-        carteChantiersMap.fitBounds(L.latLngBounds(rows.map(c=>[+c.geoLat,+c.geoLng])).pad(0.15),{maxZoom:14});
-      }catch(e){}
+      carteChantiersMap.fitBounds(L.latLngBounds(rows.map(c=>[+c.geoLat,+c.geoLng])).pad(0.25));
     }
   },50);
 }
-
-// Variable globale pour le cluster group
-let carteChantiersClusterGroup=null;
 function zoomCarteChantiers(){
   if(!carteChantiersMap || !carteChantiersMarkers.length){ alert('Aucun chantier géolocalisé à afficher (avec les filtres actuels).'); return; }
   carteChantiersMap.fitBounds(L.latLngBounds(carteChantiersMarkers.map(m=>m.marker.getLatLng())).pad(0.25));
@@ -11230,7 +11293,7 @@ const ETUDE_TABS=['config','bom','cut','cost','proforma'];
 function showPage(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
   document.querySelectorAll('.nav').forEach(b=>b.classList.remove('active'));
-  const titles={dashboard:'Tableau de bord',flux:'Schéma des flux',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',atelierMobile:'Vue atelier',stock:'Stock',sav:'SAV & Garantie',chantier:'Circuit Chantier',cartechantiers:'Carte des chantiers',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs',catalogue:'Catalogue technique',controlegestion:'Contrôle de gestion',validations:'Validations en attente',etatpa:'État proforma & achats',gmao:'GMAO — Maintenance',prospects:'Prospects & Pipeline',relances:'Relances commerciales',analysecommerciale:'Analyse commerciale',partenaires:'Partenaires & commissions',ao:"Appels d'offres"};
+  const titles={dashboard:'Tableau de bord',flux:'Schéma des flux',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',atelierMobile:'Vue atelier',stock:'Stock',sav:'SAV & Garantie',chantier:'Circuit Chantier',cartechantiers:'Carte des chantiers',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs',catalogue:'Catalogue technique',controlegestion:'Contrôle de gestion',validations:'Validations en attente',etatpa:'État proforma & achats',gmao:'GMAO — Maintenance',prospects:'Prospects & Pipeline',relances:'Relances commerciales',analysecommerciale:'Analyse commerciale',partenaires:'Partenaires & commissions',ao:"Appels d'offres",rh:'RH & Paie'};
 
   if(ETUDE_TABS.includes(page)){
     document.getElementById('etude').classList.remove('hidden');
@@ -11268,6 +11331,7 @@ function showPage(page){
     if(page==='partenaires') renderPartenaires();
     if(page==='ao') showAOTab('pipeline');
     if(page==='cartechantiers') renderCarteChantiers();
+    if(page==='rh') showRHTab(document.querySelector('.rh-tab-btn.active')?.dataset.rhtab||'employes');
   }
   document.getElementById('pageTitle').textContent=titles[page];
 }
@@ -14725,6 +14789,604 @@ document.querySelectorAll('#type,#width,#height,#leaves,#serie,#facCols,#facRows
 }));
 document.querySelectorAll('#type,#width,#height,#leaves,#serie,#facCols,#facRows,#gcSpacing,#bdLameWidth,#bdRailSpacing,#pgDepth,#pgFixation,#pgLameSpacing,#cwCols,#cwDoor,#vrCols,#vrRows,#vrDoor,#voCoffre,#voMotor,#auSaillie,#auCouverture,#auSpacing,#sbSaillie,#sbMotor,#kiDepth,#kiRoofType,#kiCouverture,#giSpacing,#giInfill,#esType,#esMarcheH,#esGardeCorps,#ftPente,#ftType').forEach(e=>e.addEventListener('change',()=>{toggleTypeFields();updateTechnicalDrawing();updateFabricationPlan();calculateBOM();}));
 toggleTypeFields();
+
+/* ================= RH & PAIE ================= */
+
+/* ---------- Paramètres (SMIG, CNPS, CMU, ITS) ---------- */
+function getRHParams(){
+  const def={
+    smig:75000,
+    joursOuvrablesMois:26,
+    congesAccrualParMois:2.2,
+    tauxCnpsSalarie:6.3,
+    tauxCnpsEmployeurRetraite:7.7,
+    tauxCnpsAutresEmployeur:9,
+    plafondCnps:3375000,
+    cmuSalarie:500,
+    cmuEmployeur:500,
+    itsBareme:[
+      {jusqua:75000,taux:0},
+      {jusqua:240000,taux:16},
+      {jusqua:800000,taux:21},
+      {jusqua:2400000,taux:24},
+      {jusqua:8000000,taux:28},
+      {jusqua:null,taux:32}
+    ]
+  };
+  try{
+    const raw=localStorage.getItem('alubom_rh_params');
+    if(!raw) return def;
+    const parsed=JSON.parse(raw);
+    return {...def,...parsed,itsBareme:(parsed.itsBareme&&parsed.itsBareme.length?parsed.itsBareme:def.itsBareme)};
+  }catch{ return def; }
+}
+function saveRHParams(p){ localStorage.setItem('alubom_rh_params',JSON.stringify(p)); }
+
+function calcITS(brut,bareme){
+  const tranches=(bareme&&bareme.length?bareme:getRHParams().itsBareme).slice()
+    .sort((a,b)=>(a.jusqua===null?Infinity:a.jusqua)-(b.jusqua===null?Infinity:b.jusqua));
+  let impot=0, plancherPrec=0;
+  for(const t of tranches){
+    const plafond = t.jusqua===null ? Infinity : t.jusqua;
+    if(brut>plancherPrec){
+      const base=Math.min(brut,plafond)-plancherPrec;
+      if(base>0) impot += base*(t.taux/100);
+    }
+    plancherPrec=plafond;
+    if(brut<=plafond) break;
+  }
+  return Math.round(impot);
+}
+
+/* ---------- Moteur de calcul de paie ---------- */
+async function calculPaie(employe, periode, opts){
+  opts=opts||{};
+  const p=getRHParams();
+  const joursTravailles = opts.joursTravailles!=null ? opts.joursTravailles : p.joursOuvrablesMois;
+  const joursAbsenceNonPayee = opts.joursAbsenceNonPayee||0;
+  const salaireBase = +employe.salaireBase||0;
+  const deductionAbsences = joursAbsenceNonPayee>0 ? Math.round(salaireBase/p.joursOuvrablesMois*joursAbsenceNonPayee) : 0;
+  const primeTransport = +employe.primeTransport||0;
+  const primeLogement = +employe.primeLogement||0;
+  const primeExceptionnelle = +opts.primeExceptionnelle||0;
+  const brut = Math.max(0, salaireBase - deductionAbsences + primeTransport + primeLogement + primeExceptionnelle);
+  const baseCotisableCNPS = Math.min(brut, p.plafondCnps||brut);
+  const cnpsSalarie = Math.round(baseCotisableCNPS * (p.tauxCnpsSalarie/100));
+  const cnpsEmployeurRetraite = Math.round(baseCotisableCNPS * (p.tauxCnpsEmployeurRetraite/100));
+  const cnpsEmployeurAutres = Math.round(baseCotisableCNPS * (p.tauxCnpsAutresEmployeur/100));
+  const cmuSalarie = p.cmuSalarie||0;
+  const cmuEmployeur = p.cmuEmployeur||0;
+  const its = calcITS(brut, p.itsBareme);
+  const avanceSurSalaire = +opts.avanceSurSalaire||0;
+  const totalRetenues = cnpsSalarie + cmuSalarie + its + avanceSurSalaire;
+  const net = Math.round(brut - totalRetenues);
+  const coutTotalEmployeur = Math.round(brut + cnpsEmployeurRetraite + cnpsEmployeurAutres + cmuEmployeur);
+  return {joursTravailles,joursAbsenceNonPayee,deductionAbsences,salaireBase,primeTransport,primeLogement,primeExceptionnelle,
+    brut,baseCotisableCNPS,cnpsSalarie,cnpsEmployeurRetraite,cnpsEmployeurAutres,cmuSalarie,cmuEmployeur,its,avanceSurSalaire,
+    totalRetenues,net,coutTotalEmployeur};
+}
+
+/* ---------- Employés ---------- */
+function nextMatriculeEmploye(list){
+  const y=new Date().getFullYear();
+  const nums=list.filter(e=>(e.matricule||'').startsWith('EMP-'+y)).map(e=>+((e.matricule||'').split('-')[2]||0));
+  const n=(nums.length?Math.max(...nums):0)+1;
+  return `EMP-${y}-${String(n).padStart(3,'0')}`;
+}
+function updateRHKpis(rows){
+  const actifs=rows.filter(e=>e.statut!=='inactif');
+  const masse=actifs.reduce((s,e)=>s+(+e.salaireBase||0)+(+e.primeTransport||0)+(+e.primeLogement||0),0);
+  const kEff=document.getElementById('rhKpiEffectif'); if(kEff) kEff.textContent=actifs.length;
+  const kMasse=document.getElementById('rhKpiMasseBase'); if(kMasse) kMasse.textContent=masse.toLocaleString('fr-FR')+' F';
+}
+function populateEmployeSelects(rows){
+  const actifs=rows.filter(e=>e.statut!=='inactif').sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
+  const sel=document.getElementById('rhCongeEmploye');
+  if(sel){
+    const cur=sel.value;
+    sel.innerHTML='<option value="">— Sélectionner un employé —</option>'+actifs.map(e=>`<option value="${e.id}">${escapeHtml((e.prenoms||'')+' '+(e.nom||''))} — ${escapeHtml(e.fonction||'')}</option>`).join('');
+    if(cur) sel.value=cur;
+  }
+}
+async function renderEmployesTable(){
+  const el=document.getElementById('employesBody'); if(!el) return;
+  const rows=(await idbGetAll('employes')).sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
+  el.innerHTML = rows.length ? rows.map(e=>{
+    const statutBadge = e.statut==='inactif' ? '<span class="badge bg-slate-100 text-slate-500">Inactif</span>' : '<span class="badge bg-emerald-50 text-emerald-700">Actif</span>';
+    return `<tr class="border-b">
+      <td class="p-3 text-xs text-slate-400 font-mono">${escapeHtml(e.matricule||'—')}</td>
+      <td class="p-3 font-semibold">${escapeHtml((e.prenoms||'')+' '+(e.nom||''))}</td>
+      <td class="p-3">${escapeHtml(e.fonction||'—')}</td>
+      <td class="p-3 text-xs text-slate-500">${escapeHtml(e.departement||'—')}</td>
+      <td class="p-3">${escapeHtml(e.typeContrat||'—')}</td>
+      <td class="p-3 text-right">${(+e.salaireBase||0).toLocaleString('fr-FR')} F</td>
+      <td class="p-3">${statutBadge}</td>
+      <td class="p-3 text-right whitespace-nowrap"><button onclick="editEmploye('${e.id}')" class="text-blue-600 text-xs font-semibold mr-2">✏️</button><button onclick="deleteEmploye('${e.id}')" class="text-red-500 text-xs font-semibold">🗑️</button></td>
+    </tr>`;
+  }).join('') : '<tr><td class="p-3 text-slate-400" colspan="8">Aucun employé enregistré.</td></tr>';
+  updateRHKpis(rows);
+  populateEmployeSelects(rows);
+}
+async function handleSaveEmploye(e){
+  e.preventDefault();
+  if(!hasRole('rh:manage')){ alert('Permission refusée.'); return false; }
+  const id=document.getElementById('rhEditId').value;
+  const rows=await idbGetAll('employes');
+  const rec={
+    id: id || 'emp_'+Date.now(),
+    matricule: document.getElementById('rhMatricule').value.trim() || nextMatriculeEmploye(rows),
+    nom: document.getElementById('rhNom').value.trim(),
+    prenoms: document.getElementById('rhPrenoms').value.trim(),
+    fonction: document.getElementById('rhFonction').value.trim(),
+    departement: document.getElementById('rhDepartement').value,
+    typeContrat: document.getElementById('rhTypeContrat').value,
+    dateEmbauche: document.getElementById('rhDateEmbauche').value,
+    salaireBase: +document.getElementById('rhSalaireBase').value || 0,
+    primeTransport: +document.getElementById('rhPrimeTransport').value || 0,
+    primeLogement: +document.getElementById('rhPrimeLogement').value || 0,
+    telephone: document.getElementById('rhTelephone').value.trim(),
+    numeroCNPS: document.getElementById('rhNumeroCNPS').value.trim(),
+    modePaiement: document.getElementById('rhModePaiement').value,
+    numeroCompte: document.getElementById('rhNumeroCompte').value.trim(),
+    statut: document.getElementById('rhStatut').value || 'actif',
+    dateCreation: id ? (rows.find(x=>x.id===id)?.dateCreation||new Date().toISOString()) : new Date().toISOString(),
+    _modifie: new Date().toISOString()
+  };
+  if(!rec.nom || !rec.salaireBase){ alert('Nom et salaire de base sont requis.'); return false; }
+  await idbPut('employes',rec);
+  queueSync('alubom_employes',rec);
+  await audit(id?'UPDATE_EMPLOYE':'CREATE_EMPLOYE', rec.matricule+' — '+rec.nom+' '+rec.prenoms);
+  cancelEditEmploye();
+  await renderEmployesTable();
+  return false;
+}
+async function editEmploye(id){
+  const rows=await idbGetAll('employes');
+  const e=rows.find(x=>x.id===id); if(!e) return;
+  document.getElementById('rhEditId').value=e.id;
+  document.getElementById('rhMatricule').value=e.matricule||'';
+  document.getElementById('rhNom').value=e.nom||'';
+  document.getElementById('rhPrenoms').value=e.prenoms||'';
+  document.getElementById('rhFonction').value=e.fonction||'';
+  document.getElementById('rhDepartement').value=e.departement||'Direction';
+  document.getElementById('rhTypeContrat').value=e.typeContrat||'CDI';
+  document.getElementById('rhDateEmbauche').value=e.dateEmbauche||'';
+  document.getElementById('rhSalaireBase').value=e.salaireBase||0;
+  document.getElementById('rhPrimeTransport').value=e.primeTransport||0;
+  document.getElementById('rhPrimeLogement').value=e.primeLogement||0;
+  document.getElementById('rhTelephone').value=e.telephone||'';
+  document.getElementById('rhNumeroCNPS').value=e.numeroCNPS||'';
+  document.getElementById('rhModePaiement').value=e.modePaiement||'especes';
+  document.getElementById('rhNumeroCompte').value=e.numeroCompte||'';
+  document.getElementById('rhStatut').value=e.statut||'actif';
+  document.getElementById('rhEmployeSubmitBtn').textContent='Enregistrer les modifications';
+  document.getElementById('rhEmployeCancelBtn').classList.remove('hidden');
+  document.getElementById('employeForm').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function cancelEditEmploye(){
+  document.getElementById('employeForm').reset();
+  document.getElementById('rhEditId').value='';
+  document.getElementById('rhEmployeSubmitBtn').textContent='+ Ajouter un employé';
+  document.getElementById('rhEmployeCancelBtn').classList.add('hidden');
+}
+async function deleteEmploye(id){
+  if(!hasRole('rh:manage')){ alert('Permission refusée.'); return; }
+  const rows=await idbGetAll('employes');
+  const e=rows.find(x=>x.id===id); if(!e) return;
+  const paies=await idbGetAll('paies');
+  const aDesBulletins=paies.some(p=>p.employeId===id);
+  if(aDesBulletins){ if(!confirm("Cet employé a des bulletins de paie enregistrés. Il est recommandé de le désactiver plutôt que de le supprimer. Supprimer quand même ?")) return; }
+  else if(!confirm('Supprimer l\'employé '+e.nom+' ?')) return;
+  await idbDelete('employes',id);
+  await audit('DELETE_EMPLOYE', (e.matricule||'')+' — '+e.nom);
+  await renderEmployesTable();
+}
+
+/* ---------- Absences & congés ---------- */
+function joursCalendaires(debut,fin){
+  const d1=new Date(debut), d2=new Date(fin);
+  if(isNaN(d1)||isNaN(d2)||d2<d1) return 0;
+  return Math.round((d2-d1)/86400000)+1;
+}
+async function handleSaveConge(e){
+  e.preventDefault();
+  if(!hasRole('rh:manage')){ alert('Permission refusée.'); return false; }
+  const employeId=document.getElementById('rhCongeEmploye').value;
+  if(!employeId){ alert('Sélectionnez un employé.'); return false; }
+  const debut=document.getElementById('rhCongeDebut').value;
+  const fin=document.getElementById('rhCongeFin').value;
+  const nbJours=joursCalendaires(debut,fin);
+  if(!debut||!fin||nbJours<=0){ alert('Période invalide.'); return false; }
+  const employes=await idbGetAll('employes');
+  const emp=employes.find(x=>x.id===employeId);
+  const rec={
+    id:'cg_'+Date.now(),
+    employeId, employeNom: emp ? ((emp.prenoms||'')+' '+(emp.nom||'')) : '—',
+    type:document.getElementById('rhCongeType').value,
+    dateDebut:debut, dateFin:fin, nbJours,
+    motif:document.getElementById('rhCongeMotif').value.trim(),
+    statut:'demande',
+    dateCreation:new Date().toISOString()
+  };
+  await idbPut('conges',rec);
+  queueSync('alubom_conges',rec);
+  await audit('CREATE_CONGE', rec.employeNom+' — '+rec.type+' ('+nbJours+' j)');
+  document.getElementById('congeForm').reset();
+  await renderCongesTable();
+  return false;
+}
+async function updateCongeStatut(id,statut){
+  if(!hasRole('rh:manage')){ alert('Permission refusée.'); return; }
+  const rows=await idbGetAll('conges');
+  const c=rows.find(x=>x.id===id); if(!c) return;
+  c.statut=statut; c._modifie=new Date().toISOString();
+  await idbPut('conges',c);
+  queueSync('alubom_conges',c);
+  await audit(statut==='valide'?'VALIDATE_CONGE':'REFUSE_CONGE', c.employeNom+' — '+c.type);
+  await renderCongesTable();
+}
+async function deleteConge(id){
+  if(!hasRole('rh:manage')){ alert('Permission refusée.'); return; }
+  if(!confirm('Supprimer cette demande ?')) return;
+  await idbDelete('conges',id);
+  await renderCongesTable();
+}
+async function updateCongesBadge(rowsIn){
+  const badge=document.getElementById('congesBadge'); if(!badge) return;
+  const rows=rowsIn||await idbGetAll('conges');
+  const n=rows.filter(c=>c.statut==='demande').length;
+  if(n){ badge.textContent=n; badge.classList.remove('hidden'); } else badge.classList.add('hidden');
+}
+async function renderSoldesConges(){
+  const el=document.getElementById('rhSoldesBody'); if(!el) return;
+  const p=getRHParams();
+  const [employes,conges]=await Promise.all(['employes','conges'].map(idbGetAll));
+  const actifs=employes.filter(e=>e.statut!=='inactif' && e.dateEmbauche);
+  const today=new Date();
+  el.innerHTML = actifs.length ? actifs.map(e=>{
+    const embauche=new Date(e.dateEmbauche);
+    const mois=isNaN(embauche)?0:Math.max(0,(today.getFullYear()-embauche.getFullYear())*12+(today.getMonth()-embauche.getMonth()));
+    const acquis=Math.round(mois*p.congesAccrualParMois*10)/10;
+    const pris=conges.filter(c=>c.employeId===e.id && c.type==='paye' && c.statut==='valide').reduce((s,c)=>s+c.nbJours,0);
+    const solde=Math.round((acquis-pris)*10)/10;
+    return `<tr class="border-b"><td class="p-2 font-semibold">${escapeHtml((e.prenoms||'')+' '+(e.nom||''))}</td><td class="p-2 text-right text-xs text-slate-500">${mois} mois</td><td class="p-2 text-right">${acquis} j</td><td class="p-2 text-right">${pris} j</td><td class="p-2 text-right font-bold ${solde<0?'text-red-600':'text-emerald-700'}">${solde} j</td></tr>`;
+  }).join('') : '<tr><td class="p-2 text-slate-400" colspan="5">Aucun employé actif.</td></tr>';
+}
+async function renderCongesTable(){
+  const el=document.getElementById('congesBody'); if(!el) return;
+  const rows=(await idbGetAll('conges')).sort((a,b)=>b.dateDebut.localeCompare(a.dateDebut));
+  const statutBadge={demande:'bg-amber-50 text-amber-700',valide:'bg-emerald-50 text-emerald-700',refuse:'bg-red-50 text-red-700'};
+  const statutLabel={demande:'⏳ Demandé',valide:'✅ Validé',refuse:'❌ Refusé'};
+  const typeLabel={paye:'Congé payé',maladie:'Maladie',maternite:'Maternité/Paternité',sans_solde:'Sans solde',injustifiee:'Absence injustifiée',exceptionnel:'Exceptionnel'};
+  el.innerHTML = rows.length ? rows.map(c=>`<tr class="border-b">
+    <td class="p-3 font-semibold">${escapeHtml(c.employeNom)}</td>
+    <td class="p-3">${escapeHtml(typeLabel[c.type]||c.type)}</td>
+    <td class="p-3 text-xs text-slate-500">${escapeHtml(c.dateDebut)} → ${escapeHtml(c.dateFin)}</td>
+    <td class="p-3 text-right">${c.nbJours} j</td>
+    <td class="p-3 text-xs text-slate-500">${escapeHtml(c.motif||'—')}</td>
+    <td class="p-3"><span class="badge ${statutBadge[c.statut]||''}">${statutLabel[c.statut]||c.statut}</span></td>
+    <td class="p-3 text-right whitespace-nowrap">${c.statut==='demande'?`<button onclick="updateCongeStatut('${c.id}','valide')" class="text-emerald-600 text-xs font-semibold mr-2">✅</button><button onclick="updateCongeStatut('${c.id}','refuse')" class="text-red-500 text-xs font-semibold mr-2">❌</button>`:''}<button onclick="deleteConge('${c.id}')" class="text-slate-400 text-xs font-semibold">🗑️</button></td>
+  </tr>`).join('') : '<tr><td class="p-3 text-slate-400" colspan="7">Aucune demande enregistrée.</td></tr>';
+  await renderSoldesConges();
+  updateCongesBadge(rows);
+}
+
+/* ---------- Paie ---------- */
+function periodeBounds(periode){
+  const [y,m]=periode.split('-').map(Number);
+  const debut=`${periode}-01`;
+  const finDate=new Date(y,m,0);
+  const fin=`${periode}-${String(finDate.getDate()).padStart(2,'0')}`;
+  return {debut,fin};
+}
+async function absencesNonPayeesPeriode(employeId,periode){
+  const {debut,fin}=periodeBounds(periode);
+  const conges=await idbGetAll('conges');
+  return conges.filter(c=>c.employeId===employeId && c.statut==='valide' && ['sans_solde','injustifiee'].includes(c.type) && c.dateDebut<=fin && c.dateFin>=debut)
+    .reduce((s,c)=>s+c.nbJours,0);
+}
+async function genererBulletinsPeriode(){
+  if(!hasRole('rh:manage')){ alert('Permission refusée.'); return; }
+  const periode=document.getElementById('rhPeriode').value;
+  if(!periode){ alert('Sélectionnez une période (mois).'); return; }
+  const [employes,paiesExist]=await Promise.all(['employes','paies'].map(idbGetAll));
+  const {fin}=periodeBounds(periode);
+  const actifs=employes.filter(e=>e.statut!=='inactif' && (!e.dateEmbauche || e.dateEmbauche<=fin));
+  let cree=0, ignore=0;
+  for(const emp of actifs){
+    if(paiesExist.some(p=>p.employeId===emp.id && p.periode===periode)){ ignore++; continue; }
+    const joursAbsenceNonPayee=await absencesNonPayeesPeriode(emp.id,periode);
+    const calc=await calculPaie(emp,periode,{joursAbsenceNonPayee});
+    const rec={
+      id:'pa_'+emp.id+'_'+periode,
+      employeId:emp.id, employeNom:(emp.prenoms||'')+' '+(emp.nom||''), matricule:emp.matricule, fonction:emp.fonction,
+      periode, ...calc,
+      statut:'brouillon',
+      dateCreation:new Date().toISOString()
+    };
+    await idbPut('paies',rec);
+    queueSync('alubom_paies',rec);
+    cree++;
+  }
+  await audit('GENERATE_PAIE','Période '+periode+' — '+cree+' bulletin(s) généré(s)');
+  await renderPaieTable();
+  alert(cree+' bulletin(s) généré(s).'+(ignore?' '+ignore+' déjà existant(s) ignoré(s).':''));
+}
+async function openEditPaieModal(id){
+  const rows=await idbGetAll('paies');
+  const pa=rows.find(x=>x.id===id); if(!pa) return;
+  if(pa.statut==='paye'){ alert('Bulletin déjà payé, non modifiable.'); return; }
+  const html=`<div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" id="editPaieOverlay">
+    <div class="bg-white rounded-2xl p-6 max-w-sm w-full">
+      <h3 class="font-bold text-lg mb-3">Ajuster le bulletin</h3>
+      <p class="text-sm text-slate-500 mb-3">${escapeHtml(pa.employeNom)} — ${escapeHtml(pa.periode)}</p>
+      <label class="text-xs font-semibold text-slate-600 block mb-1">Jours travaillés</label>
+      <input id="epJours" type="number" value="${pa.joursTravailles}" class="border rounded-lg px-3 py-2 text-sm w-full mb-3">
+      <label class="text-xs font-semibold text-slate-600 block mb-1">Prime exceptionnelle (FCFA)</label>
+      <input id="epPrime" type="number" value="${pa.primeExceptionnelle||0}" class="border rounded-lg px-3 py-2 text-sm w-full mb-3">
+      <label class="text-xs font-semibold text-slate-600 block mb-1">Avance sur salaire à déduire (FCFA)</label>
+      <input id="epAvance" type="number" value="${pa.avanceSurSalaire||0}" class="border rounded-lg px-3 py-2 text-sm w-full mb-4">
+      <div class="flex gap-2">
+        <button onclick="saveEditPaie('${id}')" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 text-sm font-semibold">Recalculer & enregistrer</button>
+        <button onclick="document.getElementById('editPaieOverlay').remove()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Annuler</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend',html);
+}
+async function saveEditPaie(id){
+  if(!hasRole('rh:manage')){ alert('Permission refusée.'); return; }
+  const [paies,employes]=await Promise.all(['paies','employes'].map(idbGetAll));
+  const pa=paies.find(x=>x.id===id); if(!pa) return;
+  const emp=employes.find(x=>x.id===pa.employeId); if(!emp) return;
+  const params=getRHParams();
+  const joursTravailles=+document.getElementById('epJours').value||params.joursOuvrablesMois;
+  const primeExceptionnelle=+document.getElementById('epPrime').value||0;
+  const avanceSurSalaire=+document.getElementById('epAvance').value||0;
+  const joursAbsenceNonPayee=Math.max(0,params.joursOuvrablesMois-joursTravailles);
+  const calc=await calculPaie(emp,pa.periode,{joursTravailles,joursAbsenceNonPayee,primeExceptionnelle,avanceSurSalaire});
+  const updated={...pa,...calc,_modifie:new Date().toISOString()};
+  await idbPut('paies',updated);
+  queueSync('alubom_paies',updated);
+  await audit('UPDATE_PAIE',pa.employeNom+' — '+pa.periode);
+  document.getElementById('editPaieOverlay').remove();
+  await renderPaieTable();
+}
+async function validatePaie(id){
+  if(!hasRole('rh:manage')){ alert('Permission refusée.'); return; }
+  const rows=await idbGetAll('paies');
+  const pa=rows.find(x=>x.id===id); if(!pa) return;
+  pa.statut='valide'; pa._modifie=new Date().toISOString();
+  await idbPut('paies',pa); queueSync('alubom_paies',pa);
+  await audit('VALIDATE_PAIE',pa.employeNom+' — '+pa.periode);
+  await renderPaieTable();
+}
+async function markPaiePaye(id){
+  if(!hasRole('rh:manage')){ alert('Permission refusée.'); return; }
+  const rows=await idbGetAll('paies');
+  const pa=rows.find(x=>x.id===id); if(!pa) return;
+  const date=prompt('Date de paiement (AAAA-MM-JJ) :',new Date().toISOString().slice(0,10));
+  if(!date) return;
+  pa.statut='paye'; pa.datePaiement=date; pa._modifie=new Date().toISOString();
+  await idbPut('paies',pa); queueSync('alubom_paies',pa);
+  await audit('PAY_PAIE',pa.employeNom+' — '+pa.periode+' — '+date);
+  await renderPaieTable();
+}
+async function deletePaie(id){
+  if(!hasRole('rh:manage')){ alert('Permission refusée.'); return; }
+  const rows=await idbGetAll('paies');
+  const pa=rows.find(x=>x.id===id); if(!pa) return;
+  if(pa.statut!=='brouillon'){ alert('Seul un bulletin brouillon peut être supprimé.'); return; }
+  if(!confirm('Supprimer ce bulletin ?')) return;
+  await idbDelete('paies',id);
+  await audit('DELETE_PAIE',pa.employeNom+' — '+pa.periode);
+  await renderPaieTable();
+}
+async function renderPaieTable(){
+  const selEl=document.getElementById('rhPeriode'); if(!selEl) return;
+  if(!selEl.value) selEl.value=new Date().toISOString().slice(0,7);
+  const periode=selEl.value;
+  const el=document.getElementById('paieBody'); if(!el) return;
+  const rows=(await idbGetAll('paies')).filter(p=>p.periode===periode).sort((a,b)=>(a.employeNom||'').localeCompare(b.employeNom||''));
+  const statutBadge={brouillon:'bg-slate-100 text-slate-600',valide:'bg-blue-50 text-blue-700',paye:'bg-emerald-50 text-emerald-700'};
+  const statutLabel={brouillon:'Brouillon',valide:'✅ Validé',paye:'💰 Payé'};
+  el.innerHTML = rows.length ? rows.map(p=>`<tr class="border-b">
+    <td class="p-3 text-xs text-slate-400 font-mono">${escapeHtml(p.matricule||'—')}</td>
+    <td class="p-3 font-semibold">${escapeHtml(p.employeNom)}</td>
+    <td class="p-3 text-xs text-slate-500">${escapeHtml(p.fonction||'—')}</td>
+    <td class="p-3 text-right">${p.brut.toLocaleString('fr-FR')}</td>
+    <td class="p-3 text-right text-red-600">${p.cnpsSalarie.toLocaleString('fr-FR')}</td>
+    <td class="p-3 text-right text-red-600">${p.its.toLocaleString('fr-FR')}</td>
+    <td class="p-3 text-right font-bold">${p.net.toLocaleString('fr-FR')}</td>
+    <td class="p-3"><span class="badge ${statutBadge[p.statut]||''}">${statutLabel[p.statut]||p.statut}</span></td>
+    <td class="p-3 text-right whitespace-nowrap">
+      <button onclick="printBulletin('${p.id}')" class="text-slate-600 text-xs font-semibold mr-2" title="Imprimer">🖨️</button>
+      ${p.statut==='brouillon'?`<button onclick="openEditPaieModal('${p.id}')" class="text-blue-600 text-xs font-semibold mr-2">✏️</button><button onclick="validatePaie('${p.id}')" class="text-emerald-600 text-xs font-semibold mr-2">✅</button><button onclick="deletePaie('${p.id}')" class="text-red-500 text-xs font-semibold">🗑️</button>`:''}
+      ${p.statut==='valide'?`<button onclick="markPaiePaye('${p.id}')" class="text-emerald-600 text-xs font-semibold">💰 Payer</button>`:''}
+    </td>
+  </tr>`).join('') : '<tr><td class="p-3 text-slate-400" colspan="9">Aucun bulletin pour cette période. Cliquez sur « Générer les bulletins ».</td></tr>';
+  const kBrut=rows.reduce((s,p)=>s+p.brut,0), kNet=rows.reduce((s,p)=>s+p.net,0), kCharges=rows.reduce((s,p)=>s+p.cnpsSalarie+p.its+p.cmuSalarie,0);
+  const set=(id,v)=>{ const x=document.getElementById(id); if(x) x.textContent=v; };
+  set('rhKpiBulletins',rows.length);
+  set('rhKpiBrut',kBrut.toLocaleString('fr-FR')+' F');
+  set('rhKpiCharges',kCharges.toLocaleString('fr-FR')+' F');
+  set('rhKpiNet',kNet.toLocaleString('fr-FR')+' F');
+}
+
+/* ---------- Impression du bulletin de paie ---------- */
+async function printBulletin(id){
+  const [paies,employes]=await Promise.all(['paies','employes'].map(idbGetAll));
+  const pa=paies.find(x=>x.id===id); if(!pa) return;
+  const emp=employes.find(x=>x.id===pa.employeId);
+  const p=getRHParams();
+  const moisLabel=new Date(pa.periode+'-01').toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  const headerHtml=buildPrintHeaderHtml();
+  const footerHtml=await buildPrintFooterHtml('Bulletin de paie '+pa.periode+' — '+pa.matricule);
+  const ligne=(label,montant,neg)=>`<tr><td class="p-2">${escapeHtml(label)}</td><td class="p-2" style="text-align:right${neg?';color:#dc2626':''}">${montant.toLocaleString('fr-FR')} F</td></tr>`;
+  const win=window.open('','_blank','width=900,height=1100');
+  if(!win) return;
+  win.document.write(`<html><head><title>Bulletin de paie — ${escapeHtml(pa.employeNom)}</title>
+  <style>
+    *{box-sizing:border-box}
+    body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#e2e8f0;margin:0}
+    .toolbar{position:sticky;top:0;z-index:10;background:#0f172a;color:#fff;padding:12px 24px;display:flex;justify-content:space-between;align-items:center}
+    .toolbar button{background:#2563eb;color:#fff;border:0;padding:9px 18px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;margin-left:8px}
+    .toolbar button.secondary{background:transparent;border:1px solid #475569}
+    .sheet{max-width:760px;margin:24px auto;background:#fff;padding:36px 40px;box-shadow:0 10px 40px rgba(15,23,42,.25);border-radius:4px}
+    table{width:100%;border-collapse:collapse}
+    th,td{border:1px solid #cbd5e1;padding:8px 10px;font-size:12.5px}
+    th{background:#f1f5f9;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#475569}
+    .bp-title{font-size:16px;font-weight:800;margin:14px 0 2px}
+    .bp-sub{font-size:11.5px;color:#64748b;margin-bottom:14px}
+    .bp-info{display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;font-size:12px;margin-bottom:16px}
+    .bp-info b{color:#334155}
+    .bp-net{background:#0f172a;color:#fff;border-radius:8px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-top:14px;font-weight:800}
+    .bp-net span:last-child{font-size:18px}
+    ${PRINT_ENTETE_PIED_CSS}
+    @media print{.toolbar{display:none}body{background:#fff}.sheet{box-shadow:none;margin:0;max-width:none}}
+    @page{size:A4;margin:16mm}
+  </style></head><body>
+  <div class="toolbar"><b>Aperçu — Bulletin de paie</b><div><button class="secondary" onclick="window.close()">Fermer</button><button onclick="window.print()">🖨 Imprimer</button></div></div>
+  <div class="sheet">
+    ${headerHtml}
+    <div class="bp-title">Bulletin de paie — ${escapeHtml(moisLabel)}</div>
+    <div class="bp-sub">Document interne — à conserver par le salarié</div>
+    <div class="bp-info">
+      <div><b>Employé :</b> ${escapeHtml(pa.employeNom)}</div>
+      <div><b>Matricule :</b> ${escapeHtml(pa.matricule||'—')}</div>
+      <div><b>Fonction :</b> ${escapeHtml(pa.fonction||'—')}</div>
+      <div><b>N° CNPS :</b> ${escapeHtml(emp?.numeroCNPS||'—')}</div>
+      <div><b>Contrat :</b> ${escapeHtml(emp?.typeContrat||'—')}</div>
+      <div><b>Jours travaillés :</b> ${pa.joursTravailles}</div>
+    </div>
+    <table>
+      <thead><tr><th>Éléments de rémunération</th><th style="text-align:right">Montant</th></tr></thead>
+      <tbody>
+        ${ligne('Salaire de base',pa.salaireBase)}
+        ${pa.deductionAbsences?ligne('Déduction absences non payées ('+pa.joursAbsenceNonPayee+' j)',-pa.deductionAbsences,true):''}
+        ${pa.primeTransport?ligne('Prime de transport',pa.primeTransport):''}
+        ${pa.primeLogement?ligne('Prime de logement',pa.primeLogement):''}
+        ${pa.primeExceptionnelle?ligne('Prime exceptionnelle',pa.primeExceptionnelle):''}
+        <tr style="font-weight:700;background:#f8fafc"><td class="p-2">Salaire brut</td><td class="p-2" style="text-align:right">${pa.brut.toLocaleString('fr-FR')} F</td></tr>
+        ${ligne('CNPS — retenue salariale ('+p.tauxCnpsSalarie+'%)',-pa.cnpsSalarie,true)}
+        ${ligne('CMU — part salariale',-pa.cmuSalarie,true)}
+        ${ligne('ITS (impôt sur salaires)',-pa.its,true)}
+        ${pa.avanceSurSalaire?ligne('Avance sur salaire',-pa.avanceSurSalaire,true):''}
+        <tr style="font-weight:700"><td class="p-2">Total des retenues</td><td class="p-2" style="text-align:right">${pa.totalRetenues.toLocaleString('fr-FR')} F</td></tr>
+      </tbody>
+    </table>
+    <div class="bp-net"><span>NET À PAYER</span><span>${pa.net.toLocaleString('fr-FR')} FCFA</span></div>
+    <p style="font-size:10.5px;color:#94a3b8;margin-top:10px">Mode de paiement : ${escapeHtml(emp?.modePaiement||'—')}${pa.datePaiement?' • payé le '+escapeHtml(pa.datePaiement):''}</p>
+    <div style="display:flex;justify-content:space-between;margin-top:36px;padding-top:16px">
+      <div style="width:45%;font-size:11px;color:#475569"><div>Signature de l'employeur</div><div style="border-top:1px solid #94a3b8;margin-top:44px;padding-top:6px">Cachet et signature</div></div>
+      <div style="width:45%;font-size:11px;color:#475569;text-align:right"><div>Signature de l'employé (pour accord)</div><div style="border-top:1px solid #94a3b8;margin-top:44px;padding-top:6px">Date et signature</div></div>
+    </div>
+    ${footerHtml}
+  </div>
+  </body></html>`);
+  win.document.close(); win.focus();
+}
+
+/* ---------- Registre & masse salariale ---------- */
+let rhMasseChart=null;
+async function renderRegistrePaie(){
+  const el=document.getElementById('registreBody'); if(!el) return;
+  const rows=await idbGetAll('paies');
+  const byPeriode={};
+  rows.forEach(p=>{
+    if(!byPeriode[p.periode]) byPeriode[p.periode]={n:0,brut:0,cnps:0,its:0,cmu:0,net:0,cout:0};
+    const g=byPeriode[p.periode];
+    g.n++; g.brut+=p.brut; g.cnps+=p.cnpsSalarie; g.its+=p.its; g.cmu+=p.cmuSalarie; g.net+=p.net; g.cout+=(p.coutTotalEmployeur||p.brut);
+  });
+  const periodes=Object.keys(byPeriode).sort().reverse();
+  el.innerHTML = periodes.length ? periodes.map(per=>{
+    const g=byPeriode[per];
+    const label=new Date(per+'-01').toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+    return `<tr class="border-b">
+      <td class="p-3 font-semibold capitalize">${escapeHtml(label)}</td>
+      <td class="p-3 text-right">${g.n}</td>
+      <td class="p-3 text-right">${g.brut.toLocaleString('fr-FR')} F</td>
+      <td class="p-3 text-right text-red-600">${(g.cnps+g.its+g.cmu).toLocaleString('fr-FR')} F</td>
+      <td class="p-3 text-right font-bold">${g.net.toLocaleString('fr-FR')} F</td>
+      <td class="p-3 text-right text-slate-500">${g.cout.toLocaleString('fr-FR')} F</td>
+    </tr>`;
+  }).join('') : '<tr><td class="p-3 text-slate-400" colspan="6">Aucun bulletin généré pour l\'instant.</td></tr>';
+
+  const last12=periodes.slice(0,12).reverse();
+  const ctx=document.getElementById('rhMasseChart');
+  if(ctx && typeof Chart!=='undefined'){
+    if(rhMasseChart) rhMasseChart.destroy();
+    rhMasseChart=new Chart(ctx,{type:'bar',data:{labels:last12.map(m=>new Date(m+'-01').toLocaleDateString('fr-FR',{month:'short',year:'2-digit'})),datasets:[{label:'Masse salariale brute',data:last12.map(m=>byPeriode[m].brut),backgroundColor:'#1d4ed8'}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>(v/1e6).toFixed(1)+'M'}}}}});
+  }
+}
+
+/* ---------- Paramètres RH & Paie ---------- */
+function renderRHParamsForm(){
+  const p=getRHParams();
+  const set=(id,v)=>{ const x=document.getElementById(id); if(x) x.value=v; };
+  set('rpSmig',p.smig); set('rpJoursOuvrables',p.joursOuvrablesMois); set('rpCongesAccrual',p.congesAccrualParMois);
+  set('rpTauxCnpsSalarie',p.tauxCnpsSalarie); set('rpTauxCnpsEmployeurRetraite',p.tauxCnpsEmployeurRetraite); set('rpTauxCnpsAutres',p.tauxCnpsAutresEmployeur);
+  set('rpPlafondCnps',p.plafondCnps); set('rpCmuSalarie',p.cmuSalarie); set('rpCmuEmployeur',p.cmuEmployeur);
+  renderItsBaremeRows(p.itsBareme);
+}
+function renderItsBaremeRows(bareme){
+  const el=document.getElementById('itsBaremeRows'); if(!el) return;
+  el.innerHTML = bareme.map(t=>`<div class="flex gap-2 items-center mb-1.5">
+    <input type="number" value="${t.jusqua===null?'':t.jusqua}" placeholder="Illimité" class="its-jusqua border rounded-lg px-2 py-1.5 text-sm flex-1">
+    <span class="text-xs text-slate-400">FCFA →</span>
+    <input type="number" step="0.1" value="${t.taux}" class="its-taux border rounded-lg px-2 py-1.5 text-sm w-20">
+    <span class="text-xs text-slate-400">%</span>
+    <button type="button" onclick="this.parentElement.remove()" class="text-red-500 text-xs font-semibold px-2">✕</button>
+  </div>`).join('');
+}
+function addItsTranche(){
+  const el=document.getElementById('itsBaremeRows');
+  el.insertAdjacentHTML('beforeend',`<div class="flex gap-2 items-center mb-1.5">
+    <input type="number" placeholder="Illimité" class="its-jusqua border rounded-lg px-2 py-1.5 text-sm flex-1">
+    <span class="text-xs text-slate-400">FCFA →</span>
+    <input type="number" step="0.1" value="0" class="its-taux border rounded-lg px-2 py-1.5 text-sm w-20">
+    <span class="text-xs text-slate-400">%</span>
+    <button type="button" onclick="this.parentElement.remove()" class="text-red-500 text-xs font-semibold px-2">✕</button>
+  </div>`);
+}
+function handleSaveRHParams(e){
+  e.preventDefault();
+  if(!hasRole('rh:manage')){ alert('Permission refusée.'); return false; }
+  const rows=[...document.querySelectorAll('#itsBaremeRows > div')];
+  const itsBareme=rows.map(r=>{
+    const j=r.querySelector('.its-jusqua').value;
+    return {jusqua:j===''?null:+j, taux:+r.querySelector('.its-taux').value||0};
+  }).sort((a,b)=>(a.jusqua===null?Infinity:a.jusqua)-(b.jusqua===null?Infinity:b.jusqua));
+  const p={
+    smig:+document.getElementById('rpSmig').value||75000,
+    joursOuvrablesMois:+document.getElementById('rpJoursOuvrables').value||26,
+    congesAccrualParMois:+document.getElementById('rpCongesAccrual').value||2.2,
+    tauxCnpsSalarie:+document.getElementById('rpTauxCnpsSalarie').value||6.3,
+    tauxCnpsEmployeurRetraite:+document.getElementById('rpTauxCnpsEmployeurRetraite').value||7.7,
+    tauxCnpsAutresEmployeur:+document.getElementById('rpTauxCnpsAutres').value||9,
+    plafondCnps:+document.getElementById('rpPlafondCnps').value||3375000,
+    cmuSalarie:+document.getElementById('rpCmuSalarie').value||500,
+    cmuEmployeur:+document.getElementById('rpCmuEmployeur').value||500,
+    itsBareme: itsBareme.length?itsBareme:getRHParams().itsBareme
+  };
+  saveRHParams(p);
+  audit('SAVE_RH_PARAMS','Paramètres paie mis à jour');
+  alert('Paramètres enregistrés.');
+  return false;
+}
+
+/* ---------- Routeur d'onglets RH ---------- */
+function showRHTab(tab){
+  document.querySelectorAll('.rh-tab').forEach(t=>t.classList.add('hidden'));
+  const el=document.getElementById('rhTab'+tab.charAt(0).toUpperCase()+tab.slice(1)); if(el) el.classList.remove('hidden');
+  document.querySelectorAll('.rh-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.rhtab===tab));
+  if(tab==='employes') renderEmployesTable();
+  if(tab==='conges') renderCongesTable();
+  if(tab==='paie') renderPaieTable();
+  if(tab==='registre') renderRegistrePaie();
+  if(tab==='parametres') renderRHParamsForm();
+}
+
 
 async function initApp(){
   await loadParams();
