@@ -114,10 +114,10 @@ window.SANIX_CFG = {
   table tbody tr:hover{background-color:#f8fafc}
 
   /* Tab-bar buttons (config/ref/stock/prod/flux/catalogue) */
-  .etude-tab-btn,.ref-tab-btn,.flux-view-btn,.cat-tab-btn,.stock-tab-btn,.prod-tab-btn{color:var(--ds-slate-500);background:transparent;border-radius:8px;font-weight:600;transition:background-color .12s ease,color .12s ease}
-  .etude-tab-btn:hover,.ref-tab-btn:hover,.cat-tab-btn:hover,.stock-tab-btn:hover,.prod-tab-btn:hover{background:var(--ds-slate-100);color:var(--ds-slate-700)}
+  .etude-tab-btn,.ref-tab-btn,.flux-view-btn,.cat-tab-btn,.stock-tab-btn,.prod-tab-btn,.fe-tab-btn{color:var(--ds-slate-500);background:transparent;border-radius:8px;font-weight:600;transition:background-color .12s ease,color .12s ease}
+  .etude-tab-btn:hover,.ref-tab-btn:hover,.cat-tab-btn:hover,.stock-tab-btn:hover,.prod-tab-btn:hover,.fe-tab-btn:hover{background:var(--ds-slate-100);color:var(--ds-slate-700)}
   .flux-view-btn:hover{background:#e2e8f0}
-  .etude-tab-btn.active,.ref-tab-btn.active,.cat-tab-btn.active,.stock-tab-btn.active,.prod-tab-btn.active,.gmao-tab-btn.active,.prospects-tab-btn.active,.ao-tab-btn.active{background:var(--ds-accent);color:#fff;box-shadow:var(--ds-shadow-sm)}
+  .etude-tab-btn.active,.ref-tab-btn.active,.cat-tab-btn.active,.stock-tab-btn.active,.prod-tab-btn.active,.gmao-tab-btn.active,.prospects-tab-btn.active,.ao-tab-btn.active,.fe-tab-btn.active{background:var(--ds-accent);color:#fff;box-shadow:var(--ds-shadow-sm)}
   .config-view-btn{color:var(--ds-slate-500);background:transparent;border-radius:6px;transition:background-color .12s ease,color .12s ease}
   .config-view-btn:hover{background:var(--ds-slate-100)}
   .config-view-btn.active{background:var(--ds-accent);color:#fff}
@@ -2444,58 +2444,8 @@ window.SANIX_CFG = {
           <div class="card bg-white rounded-2xl p-6">
             <div class="flex flex-wrap justify-between gap-3 mb-5">
               <div><h2 class="text-lg font-bold">Employés</h2><p class="text-sm text-slate-500">Fiches du personnel — utilisées pour la génération de la paie.</p></div>
+              <button type="button" onclick="openFicheEmploye(null)" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">+ Nouvel employé</button>
             </div>
-            <form id="employeForm" onsubmit="return handleSaveEmploye(event)" class="grid sm:grid-cols-4 gap-2 mb-5 bg-slate-50 border rounded-xl p-3">
-              <input id="rhEditId" type="hidden" value="">
-              <input id="rhMatricule" placeholder="Matricule (auto si vide)" class="border rounded-lg px-2 py-1.5 text-sm">
-              <input id="rhNom" placeholder="Nom" required class="border rounded-lg px-2 py-1.5 text-sm">
-              <input id="rhPrenoms" placeholder="Prénoms" class="border rounded-lg px-2 py-1.5 text-sm">
-              <input id="rhFonction" placeholder="Fonction / Poste" class="border rounded-lg px-2 py-1.5 text-sm">
-              <select id="rhDepartement" class="border rounded-lg px-2 py-1.5 text-sm">
-                <option value="Direction">Direction</option>
-                <option value="Administration & Finance">Administration & Finance</option>
-                <option value="Commercial">Commercial</option>
-                <option value="Bureau d'études">Bureau d'études</option>
-                <option value="Atelier Aluminium">Atelier Aluminium</option>
-                <option value="Atelier Inox">Atelier Inox</option>
-                <option value="Magasin & Stock">Magasin & Stock</option>
-                <option value="Pose & Installation">Pose & Installation</option>
-                <option value="SAV">SAV</option>
-                <option value="Autre">Autre</option>
-              </select>
-              <select id="rhTypeContrat" class="border rounded-lg px-2 py-1.5 text-sm">
-                <option value="CDI">CDI</option>
-                <option value="CDD">CDD</option>
-                <option value="Journalier">Journalier</option>
-                <option value="Stage">Stage</option>
-                <option value="Consultant">Consultant</option>
-              </select>
-              <select id="rhModePaie" class="border rounded-lg px-2 py-1.5 text-sm" title="Détermine si le salaire dépend de la présence pointée">
-                <option value="fixe">💼 Salaire fixe (cadre — non impacté par le pointage)</option>
-                <option value="pointage">⏱ Selon pointage (présence journalière)</option>
-              </select>
-              <div><label class="text-xs text-slate-500 block mb-0.5">Date d'embauche</label><input id="rhDateEmbauche" type="date" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
-              <input id="rhSalaireBase" type="number" placeholder="Salaire de base (FCFA)" required class="border rounded-lg px-2 py-1.5 text-sm">
-              <input id="rhPrimeTransport" type="number" placeholder="Prime transport (FCFA)" class="border rounded-lg px-2 py-1.5 text-sm">
-              <input id="rhPrimeLogement" type="number" placeholder="Prime logement (FCFA)" class="border rounded-lg px-2 py-1.5 text-sm">
-              <input id="rhTelephone" placeholder="Téléphone" class="border rounded-lg px-2 py-1.5 text-sm">
-              <input id="rhNumeroCNPS" placeholder="N° CNPS" class="border rounded-lg px-2 py-1.5 text-sm">
-              <input id="rhNumeroCMU" placeholder="N° CMU" class="border rounded-lg px-2 py-1.5 text-sm">
-              <select id="rhModePaiement" class="border rounded-lg px-2 py-1.5 text-sm">
-                <option value="especes">Espèces</option>
-                <option value="mobile_money">Mobile Money</option>
-                <option value="virement">Virement bancaire</option>
-              </select>
-              <input id="rhNumeroCompte" placeholder="N° compte / Mobile Money" class="border rounded-lg px-2 py-1.5 text-sm">
-              <select id="rhStatut" class="border rounded-lg px-2 py-1.5 text-sm">
-                <option value="actif">Actif</option>
-                <option value="inactif">Inactif</option>
-              </select>
-              <div class="sm:col-span-4 flex gap-2">
-                <button type="submit" id="rhEmployeSubmitBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter un employé</button>
-                <button type="button" id="rhEmployeCancelBtn" onclick="cancelEditEmploye()" class="hidden border px-4 py-1.5 rounded-lg text-sm font-semibold">Annuler</button>
-              </div>
-            </form>
             <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Matricule</th><th class="text-left p-3">Nom</th><th class="text-left p-3">Fonction</th><th class="text-left p-3">Département</th><th class="text-left p-3">Contrat</th><th class="text-left p-3">Mode de paie</th><th class="text-right p-3">Salaire de base</th><th class="text-left p-3">Statut</th><th class="p-3"></th></tr></thead><tbody id="employesBody"></tbody></table></div>
           </div>
         </div>
@@ -2785,6 +2735,10 @@ window.SANIX_CFG = {
 
 <div id="aoModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 modal-overlay">
   <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[92vh] overflow-y-auto" id="aoContent"></div>
+</div>
+
+<div id="ficheEmployeModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 modal-overlay">
+  <div class="bg-white rounded-2xl p-0 max-w-3xl w-full max-h-[94vh] overflow-y-auto" id="ficheEmployeContent"></div>
 </div>
 
 <script>
@@ -14912,8 +14866,9 @@ async function calculPaie(employe, periode, opts){
   const deductionAbsences = joursAbsenceNonPayee>0 ? Math.round(salaireBase/p.joursOuvrablesMois*joursAbsenceNonPayee) : 0;
   const primeTransport = +employe.primeTransport||0;
   const primeLogement = +employe.primeLogement||0;
+  const primesFixesAutres = +employe.primesFixesAutres||0;
   const primeExceptionnelle = +opts.primeExceptionnelle||0;
-  const brut = Math.max(0, salaireBase - deductionAbsences + primeTransport + primeLogement + primeExceptionnelle);
+  const brut = Math.max(0, salaireBase - deductionAbsences + primeTransport + primeLogement + primesFixesAutres + primeExceptionnelle);
   const baseCotisableCNPS = Math.min(brut, p.plafondCnps||brut);
   const cnpsSalarie = Math.round(baseCotisableCNPS * (p.tauxCnpsSalarie/100));
   const cnpsEmployeurRetraite = Math.round(baseCotisableCNPS * (p.tauxCnpsEmployeurRetraite/100));
@@ -14925,7 +14880,7 @@ async function calculPaie(employe, periode, opts){
   const totalRetenues = cnpsSalarie + cmuSalarie + its + avanceSurSalaire;
   const net = Math.round(brut - totalRetenues);
   const coutTotalEmployeur = Math.round(brut + cnpsEmployeurRetraite + cnpsEmployeurAutres + cmuEmployeur);
-  return {joursTravailles,joursAbsenceNonPayee,deductionAbsences,salaireBase,primeTransport,primeLogement,primeExceptionnelle,
+  return {joursTravailles,joursAbsenceNonPayee,deductionAbsences,salaireBase,primeTransport,primeLogement,primesFixesAutres,primeExceptionnelle,
     brut,baseCotisableCNPS,cnpsSalarie,cnpsEmployeurRetraite,cnpsEmployeurAutres,cmuSalarie,cmuEmployeur,its,avanceSurSalaire,
     totalRetenues,net,coutTotalEmployeur};
 }
@@ -14967,77 +14922,344 @@ async function renderEmployesTable(){
       <td class="p-3">${modePaieBadge}</td>
       <td class="p-3 text-right">${(+e.salaireBase||0).toLocaleString('fr-FR')} F</td>
       <td class="p-3">${statutBadge}</td>
-      <td class="p-3 text-right whitespace-nowrap"><button onclick="editEmploye('${e.id}')" class="text-blue-600 text-xs font-semibold mr-2">✏️</button><button onclick="deleteEmploye('${e.id}')" class="text-red-500 text-xs font-semibold">🗑️</button></td>
+      <td class="p-3 text-right whitespace-nowrap"><button onclick="openFicheEmploye('${e.id}')" class="text-blue-600 text-xs font-semibold mr-2">📇 Fiche</button><button onclick="deleteEmploye('${e.id}')" class="text-red-500 text-xs font-semibold">🗑️</button></td>
     </tr>`;
   }).join('') : '<tr><td class="p-3 text-slate-400" colspan="9">Aucun employé enregistré.</td></tr>';
   updateRHKpis(rows);
   populateEmployeSelects(rows);
 }
-async function handleSaveEmploye(e){
-  e.preventDefault();
-  if(!hasRole('rh:manage')){ alert('Permission refusée.'); return false; }
-  const id=document.getElementById('rhEditId').value;
+/* ---------- Fiche employé (modale à onglets) ---------- */
+const FE_DEPARTEMENTS=["Direction","Administration & Finance","Commercial","Bureau d'études","Atelier Aluminium","Atelier Inox","Magasin & Stock","Pose & Installation","SAV","Autre"];
+let feCurrent=null;      // enregistrement employé en cours d'édition (objet complet, y compris champs non encore dans le DOM de l'onglet actif)
+let feDocuments=[];      // documents du dossier personnel (session modale)
+let feMobilite=[];       // historique de mobilité (session modale)
+let fePhotoDataUrl='';   // photo encodée (session modale)
+
+function feG(id){ return document.getElementById(id); }
+function feVal(id){ const el=feG(id); return el?el.value.trim():''; }
+function feNum(id){ return +feG(id)?.value||0; }
+
+async function openFicheEmploye(id){
   const rows=await idbGetAll('employes');
-  const rec={
+  const e=id ? rows.find(x=>x.id===id) : null;
+  feCurrent=e||null;
+  feDocuments=(e&&Array.isArray(e.documents))?e.documents.slice():[];
+  feMobilite=(e&&Array.isArray(e.historiqueMobilite))?e.historiqueMobilite.slice():[];
+  fePhotoDataUrl=(e&&e.photo)||'';
+  const titre=e?('Fiche employé — '+(e.prenoms||'')+' '+(e.nom||'')):'Nouvel employé';
+  const sousTitre=e?(escapeHtml(e.matricule||'')+' • '+escapeHtml(e.fonction||'—')):'Création d\'une nouvelle fiche';
+  const deptOptions=opts=>FE_DEPARTEMENTS.map(d=>`<option value="${d}" ${((e&&e.departement)||'Direction')===d?'selected':''}>${d}</option>`).join('');
+  const html=`
+  <div class="sticky top-0 bg-white border-b rounded-t-2xl px-6 py-4 flex items-center justify-between z-10">
+    <div>
+      <h2 class="text-lg font-bold">${titre}</h2>
+      <p class="text-xs text-slate-500">${sousTitre}</p>
+    </div>
+    <button onclick="closeFicheEmploye()" class="text-slate-400 hover:text-slate-700 text-xl leading-none">×</button>
+  </div>
+  <div class="px-6 pt-3 border-b flex flex-wrap gap-1" id="feTabBar">
+    <button class="fe-tab-btn px-4 py-2 rounded-t-lg text-sm font-semibold active" data-fetab="identite" onclick="showFeTab('identite')">👤 Identité</button>
+    <button class="fe-tab-btn px-4 py-2 rounded-t-lg text-sm font-semibold" data-fetab="contrat" onclick="showFeTab('contrat')">📄 Contrat & Salaire</button>
+    <button class="fe-tab-btn px-4 py-2 rounded-t-lg text-sm font-semibold" data-fetab="banque" onclick="showFeTab('banque')">🏦 Coordonnées bancaires</button>
+    <button class="fe-tab-btn px-4 py-2 rounded-t-lg text-sm font-semibold" data-fetab="dossier" onclick="showFeTab('dossier')">📁 Dossier personnel</button>
+    <button class="fe-tab-btn px-4 py-2 rounded-t-lg text-sm font-semibold" data-fetab="mobilite" onclick="showFeTab('mobilite')">🔀 Mobilité</button>
+    <button class="fe-tab-btn px-4 py-2 rounded-t-lg text-sm font-semibold" data-fetab="depart" onclick="showFeTab('depart')">🚪 Départ</button>
+  </div>
+  <form id="ficheEmployeForm" onsubmit="return saveFicheEmploye(event)" class="p-6">
+    <input type="hidden" id="feEditId" value="${e?e.id:''}">
+
+    <div id="feTabIdentite" class="fe-tab">
+      <div class="grid sm:grid-cols-3 gap-4 mb-4 items-start">
+        <div class="sm:col-span-1 flex flex-col items-center gap-2">
+          <img id="fePhotoPreview" src="${fePhotoDataUrl||''}" class="w-24 h-24 rounded-full object-cover bg-slate-100 border ${fePhotoDataUrl?'':'hidden'}">
+          <div id="fePhotoPlaceholder" class="w-24 h-24 rounded-full bg-slate-100 border flex items-center justify-center text-3xl text-slate-300 ${fePhotoDataUrl?'hidden':''}">👤</div>
+          <input type="file" accept="image/*" id="fePhotoInput" onchange="fePhotoChange(this)" class="text-xs">
+        </div>
+        <div class="sm:col-span-2 grid sm:grid-cols-2 gap-2">
+          <div><label class="text-xs font-semibold text-slate-600 block mb-1">Matricule</label><input id="feMatricule" value="${escapeHtml(e?.matricule||'')}" placeholder="Auto si vide" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+          <div><label class="text-xs font-semibold text-slate-600 block mb-1">Statut</label>
+            <select id="feStatut" class="border rounded-lg px-2 py-1.5 text-sm w-full">
+              <option value="actif" ${(!e||e.statut!=='inactif')?'selected':''}>Actif</option>
+              <option value="inactif" ${(e&&e.statut==='inactif')?'selected':''}>Inactif</option>
+            </select>
+          </div>
+          <div><label class="text-xs font-semibold text-slate-600 block mb-1">Nom *</label><input id="feNom" required value="${escapeHtml(e?.nom||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+          <div><label class="text-xs font-semibold text-slate-600 block mb-1">Prénoms</label><input id="fePrenoms" value="${escapeHtml(e?.prenoms||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        </div>
+      </div>
+      <div class="grid sm:grid-cols-3 gap-2 mb-2">
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Sexe</label>
+          <select id="feSexe" class="border rounded-lg px-2 py-1.5 text-sm w-full">
+            <option value="" ${!e?.sexe?'selected':''}>—</option>
+            <option value="M" ${e?.sexe==='M'?'selected':''}>Masculin</option>
+            <option value="F" ${e?.sexe==='F'?'selected':''}>Féminin</option>
+          </select>
+        </div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Date de naissance</label><input id="feDateNaissance" type="date" value="${e?.dateNaissance||''}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Lieu de naissance</label><input id="feLieuNaissance" value="${escapeHtml(e?.lieuNaissance||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Nationalité</label><input id="feNationalite" value="${escapeHtml(e?.nationalite||'Ivoirienne')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Situation matrimoniale</label>
+          <select id="feSituationMatrimoniale" class="border rounded-lg px-2 py-1.5 text-sm w-full">
+            ${["Célibataire","Marié(e)","Divorcé(e)","Veuf(ve)"].map(s=>`<option ${e?.situationMatrimoniale===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Nombre d'enfants</label><input id="feNombreEnfants" type="number" min="0" value="${e?.nombreEnfants||0}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Pièce d'identité</label>
+          <select id="feTypePiece" class="border rounded-lg px-2 py-1.5 text-sm w-full">
+            ${["CNI","Passeport","Attestation d'identité","Carte consulaire"].map(s=>`<option ${e?.typePiece===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">N° pièce</label><input id="feNumeroPiece" value="${escapeHtml(e?.numeroPiece||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Téléphone</label><input id="feTelephone" value="${escapeHtml(e?.telephone||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div class="sm:col-span-2"><label class="text-xs font-semibold text-slate-600 block mb-1">Email</label><input id="feEmail" type="email" value="${escapeHtml(e?.email||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div class="sm:col-span-3"><label class="text-xs font-semibold text-slate-600 block mb-1">Adresse du domicile</label><input id="feAdresse" value="${escapeHtml(e?.adresse||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Contact d'urgence — nom</label><input id="feContactUrgenceNom" value="${escapeHtml(e?.contactUrgenceNom||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Contact d'urgence — téléphone</label><input id="feContactUrgenceTel" value="${escapeHtml(e?.contactUrgenceTel||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+      </div>
+    </div>
+
+    <div id="feTabContrat" class="fe-tab hidden">
+      <div class="grid sm:grid-cols-2 gap-2 mb-2">
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Poste / Fonction</label><input id="feFonction" value="${escapeHtml(e?.fonction||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Département</label><select id="feDepartement" class="border rounded-lg px-2 py-1.5 text-sm w-full">${deptOptions()}</select></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Type de contrat</label>
+          <select id="feTypeContrat" class="border rounded-lg px-2 py-1.5 text-sm w-full">
+            ${["CDI","CDD","Journalier","Stage","Consultant"].map(s=>`<option ${(e?.typeContrat||'CDI')===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Mode de paie</label>
+          <select id="feModePaie" title="Détermine si le salaire dépend de la présence pointée" class="border rounded-lg px-2 py-1.5 text-sm w-full">
+            <option value="fixe" ${(!e||e.modePaie==='fixe')?'selected':''}>💼 Salaire fixe (non impacté par le pointage)</option>
+            <option value="pointage" ${e?.modePaie==='pointage'?'selected':''}>⏱ Selon pointage (présence journalière)</option>
+          </select>
+        </div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Date d'embauche</label><input id="feDateEmbauche" type="date" value="${e?.dateEmbauche||''}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Date fin de contrat (si CDD)</label><input id="feDateFinContrat" type="date" value="${e?.dateFinContrat||''}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Secteur d'activité (grille salariale)</label><input id="feSecteurActivite" value="${escapeHtml(e?.secteurActivite||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Catégorie (grille salariale sectorielle)</label><input id="feCategorieGrille" value="${escapeHtml(e?.categorieGrille||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+      </div>
+      <div class="border-t pt-3 mt-3 grid sm:grid-cols-2 gap-2">
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Salaire de base brut (FCFA) *</label><input id="feSalaireBase" type="number" required value="${e?.salaireBase||0}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Mode de rémunération</label><input id="feModeRemuneration" value="${escapeHtml(e?.modeRemuneration||'Forfait mensuel')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Prime transport (FCFA)</label><input id="fePrimeTransport" type="number" value="${e?.primeTransport||0}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Prime logement (FCFA)</label><input id="fePrimeLogement" type="number" value="${e?.primeLogement||0}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Autres primes fixes mensuelles (FCFA)</label><input id="fePrimesFixesAutres" type="number" value="${e?.primesFixesAutres||0}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">N° CNPS</label><input id="feNumeroCNPS" value="${escapeHtml(e?.numeroCNPS||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">N° CMU</label><input id="feNumeroCMU" value="${escapeHtml(e?.numeroCMU||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+      </div>
+    </div>
+
+    <div id="feTabBanque" class="fe-tab hidden">
+      <div class="grid sm:grid-cols-2 gap-2">
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Mode de paiement du salaire</label>
+          <select id="feModePaiement" class="border rounded-lg px-2 py-1.5 text-sm w-full">
+            <option value="especes" ${(!e||e.modePaiement==='especes')?'selected':''}>Espèces</option>
+            <option value="mobile_money" ${e?.modePaiement==='mobile_money'?'selected':''}>Mobile Money</option>
+            <option value="virement" ${e?.modePaiement==='virement'?'selected':''}>Virement bancaire</option>
+          </select>
+        </div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">N° compte / Mobile Money</label><input id="feNumeroCompte" value="${escapeHtml(e?.numeroCompte||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Banque</label><input id="feNomBanque" value="${escapeHtml(e?.nomBanque||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Agence</label><input id="feAgenceBanque" value="${escapeHtml(e?.agenceBanque||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div class="sm:col-span-2"><label class="text-xs font-semibold text-slate-600 block mb-1">IBAN / RIB</label><input id="feIban" value="${escapeHtml(e?.iban||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+      </div>
+    </div>
+
+    <div id="feTabDossier" class="fe-tab hidden">
+      <p class="text-sm text-slate-500 mb-3">Pièces jointes du dossier personnel (CNI, diplômes, CV, contrat signé, attestations...).</p>
+      <div class="flex gap-2 items-end mb-3 bg-slate-50 border rounded-xl p-3">
+        <div class="flex-1"><label class="text-xs font-semibold text-slate-600 block mb-1">Libellé du document</label><input id="feDocNom" placeholder="Ex: Copie CNI" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div class="flex-1"><label class="text-xs font-semibold text-slate-600 block mb-1">Fichier</label><input type="file" id="feDocFichier" class="text-xs w-full"></div>
+        <button type="button" onclick="feAjouterDocument()" class="bg-slate-700 hover:bg-slate-800 text-white rounded-lg px-3 py-1.5 text-sm font-semibold whitespace-nowrap">+ Ajouter</button>
+      </div>
+      <div id="feDocumentsListe" class="divide-y border rounded-xl"></div>
+    </div>
+
+    <div id="feTabMobilite" class="fe-tab hidden">
+      <p class="text-sm text-slate-500 mb-3">Historique des changements de poste, département ou salaire. Enregistrer un changement met immédiatement à jour la fiche (à valider avec « Enregistrer » en bas).</p>
+      <div class="grid sm:grid-cols-2 gap-2 mb-3 bg-slate-50 border rounded-xl p-3">
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Date d'effet</label><input id="feMobDate" type="date" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Type</label>
+          <select id="feMobType" class="border rounded-lg px-2 py-1.5 text-sm w-full">
+            <option>Changement de poste</option><option>Changement de département</option><option>Promotion</option><option>Révision salariale</option><option>Mutation</option>
+          </select>
+        </div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Nouveau poste (si applicable)</label><input id="feMobNouveauPoste" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Nouveau département (si applicable)</label><select id="feMobNouveauDept" class="border rounded-lg px-2 py-1.5 text-sm w-full"><option value="">—</option>${FE_DEPARTEMENTS.map(d=>`<option value="${d}">${d}</option>`).join('')}</select></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Nouveau salaire de base (si applicable)</label><input id="feMobNouveauSalaire" type="number" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Motif</label><input id="feMobMotif" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div class="sm:col-span-2"><button type="button" onclick="feEnregistrerMobilite()" class="bg-slate-700 hover:bg-slate-800 text-white rounded-lg px-3 py-1.5 text-sm font-semibold">Enregistrer ce changement</button></div>
+      </div>
+      <div id="feMobiliteListe" class="divide-y border rounded-xl"></div>
+    </div>
+
+    <div id="feTabDepart" class="fe-tab hidden">
+      <p class="text-sm text-slate-500 mb-3">Renseigner ces informations puis cliquer sur « Finaliser le départ » pour passer l'employé en statut inactif.</p>
+      <div class="grid sm:grid-cols-2 gap-2 mb-3">
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Date de départ</label><input id="feDateDepart" type="date" value="${e?.dateDepart||''}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Type de départ</label>
+          <select id="feTypeDepart" class="border rounded-lg px-2 py-1.5 text-sm w-full">
+            <option value="">—</option>
+            ${["Démission","Licenciement","Fin de contrat CDD","Retraite","Rupture conventionnelle","Décès","Autre"].map(s=>`<option ${e?.typeDepart===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div class="sm:col-span-2"><label class="text-xs font-semibold text-slate-600 block mb-1">Motif / observations</label><textarea id="feMotifDepart" rows="3" class="border rounded-lg px-2 py-1.5 text-sm w-full">${escapeHtml(e?.motifDepart||'')}</textarea></div>
+        <div><label class="text-xs font-semibold text-slate-600 block mb-1">Solde de tout compte (FCFA)</label><input id="feSoldeToutCompte" type="number" value="${e?.soldeToutCompte||0}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        <div class="flex items-end"><label class="text-sm flex items-center gap-2"><input type="checkbox" id="fePreavisEffectue" ${e?.preavisEffectue?'checked':''}> Préavis effectué</label></div>
+      </div>
+      <button type="button" onclick="feFinaliserDepart()" class="bg-red-600 hover:bg-red-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">🚪 Finaliser le départ (statut → inactif)</button>
+      ${e&&e.statut==='inactif'?'<p class="text-xs text-emerald-600 font-semibold mt-2">Cet employé est actuellement inactif.</p>':''}
+    </div>
+
+    <div class="border-t mt-5 pt-4 flex gap-2 sticky bottom-0 bg-white">
+      <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 text-sm font-semibold">💾 Enregistrer la fiche</button>
+      <button type="button" onclick="closeFicheEmploye()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Annuler</button>
+    </div>
+  </form>`;
+  feG('ficheEmployeContent').innerHTML=html;
+  feG('ficheEmployeModal').classList.remove('hidden');
+  setModalOpen(true);
+  showFeTab('identite');
+  feRenderDocuments();
+  feRenderMobilite();
+}
+function closeFicheEmploye(){
+  feG('ficheEmployeModal').classList.add('hidden');
+  setModalOpen(false);
+  feCurrent=null; feDocuments=[]; feMobilite=[]; fePhotoDataUrl='';
+}
+function showFeTab(tab){
+  document.querySelectorAll('#ficheEmployeContent .fe-tab').forEach(el=>el.classList.add('hidden'));
+  document.querySelectorAll('#ficheEmployeContent .fe-tab-btn').forEach(el=>el.classList.remove('active'));
+  const panel=feG('feTab'+tab.charAt(0).toUpperCase()+tab.slice(1));
+  if(panel) panel.classList.remove('hidden');
+  const btn=document.querySelector(`#ficheEmployeContent .fe-tab-btn[data-fetab="${tab}"]`);
+  if(btn) btn.classList.add('active');
+}
+function fePhotoChange(input){
+  const file=input.files&&input.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const canvas=document.createElement('canvas');
+      const max=256, scale=Math.min(1,max/Math.max(img.width,img.height));
+      canvas.width=img.width*scale; canvas.height=img.height*scale;
+      canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+      fePhotoDataUrl=canvas.toDataURL('image/jpeg',0.75);
+      feG('fePhotoPreview').src=fePhotoDataUrl;
+      feG('fePhotoPreview').classList.remove('hidden');
+      feG('fePhotoPlaceholder').classList.add('hidden');
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function feAjouterDocument(){
+  const nom=feVal('feDocNom');
+  const input=feG('feDocFichier');
+  const file=input.files&&input.files[0];
+  if(!nom||!file){ alert('Indiquez un libellé et choisissez un fichier.'); return; }
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    feDocuments.push({id:'doc_'+Date.now(),nom,typeFichier:file.type,tailleKo:Math.round(file.size/1024),dataUrl:ev.target.result,dateAjout:new Date().toISOString()});
+    feG('feDocNom').value=''; input.value='';
+    feRenderDocuments();
+  };
+  reader.readAsDataURL(file);
+}
+function feSupprimerDocument(docId){
+  feDocuments=feDocuments.filter(d=>d.id!==docId);
+  feRenderDocuments();
+}
+function feRenderDocuments(){
+  const el=feG('feDocumentsListe'); if(!el) return;
+  el.innerHTML = feDocuments.length ? feDocuments.map(d=>`
+    <div class="flex items-center justify-between p-3 text-sm">
+      <a href="${d.dataUrl}" download="${escapeHtml(d.nom)}" class="text-blue-600 font-semibold">📎 ${escapeHtml(d.nom)}</a>
+      <div class="text-xs text-slate-400 flex items-center gap-3"><span>${d.tailleKo||0} Ko</span><span>${new Date(d.dateAjout).toLocaleDateString('fr-FR')}</span><button type="button" onclick="feSupprimerDocument('${d.id}')" class="text-red-500">🗑️</button></div>
+    </div>`).join('') : '<p class="p-3 text-sm text-slate-400">Aucun document.</p>';
+}
+function feEnregistrerMobilite(){
+  const date=feVal('feMobDate'); if(!date){ alert("Renseignez la date d'effet."); return; }
+  const nouveauPoste=feVal('feMobNouveauPoste'), nouveauDept=feG('feMobNouveauDept').value, nouveauSalaire=feNum('feMobNouveauSalaire');
+  feMobilite.push({
+    date, type:feG('feMobType').value, motif:feVal('feMobMotif'),
+    ancienPoste:feVal('feFonction'), nouveauPoste: nouveauPoste||feVal('feFonction'),
+    ancienDepartement:feG('feDepartement').value, nouveauDepartement: nouveauDept||feG('feDepartement').value,
+    ancienSalaire:feNum('feSalaireBase'), nouveauSalaire: nouveauSalaire||feNum('feSalaireBase')
+  });
+  if(nouveauPoste) feG('feFonction').value=nouveauPoste;
+  if(nouveauDept) feG('feDepartement').value=nouveauDept;
+  if(nouveauSalaire) feG('feSalaireBase').value=nouveauSalaire;
+  feG('feMobDate').value=''; feG('feMobNouveauPoste').value=''; feG('feMobNouveauDept').value=''; feG('feMobNouveauSalaire').value=''; feG('feMobMotif').value='';
+  feRenderMobilite();
+}
+function feRenderMobilite(){
+  const el=feG('feMobiliteListe'); if(!el) return;
+  const sorted=feMobilite.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  el.innerHTML = sorted.length ? sorted.map(m=>`
+    <div class="p-3 text-sm">
+      <div class="flex justify-between"><span class="font-semibold">${escapeHtml(m.type||'')}</span><span class="text-xs text-slate-400">${new Date(m.date).toLocaleDateString('fr-FR')}</span></div>
+      <div class="text-xs text-slate-500 mt-0.5">${escapeHtml(m.ancienPoste||'')} → ${escapeHtml(m.nouveauPoste||'')} • ${escapeHtml(m.ancienDepartement||'')} → ${escapeHtml(m.nouveauDepartement||'')}</div>
+      ${m.motif?`<div class="text-xs text-slate-400 mt-0.5">Motif : ${escapeHtml(m.motif)}</div>`:''}
+    </div>`).join('') : '<p class="p-3 text-sm text-slate-400">Aucun changement enregistré.</p>';
+}
+function feBuildRecordFromForm(rows,id){
+  return {
     id: id || 'emp_'+Date.now(),
-    matricule: document.getElementById('rhMatricule').value.trim() || nextMatriculeEmploye(rows),
-    nom: document.getElementById('rhNom').value.trim(),
-    prenoms: document.getElementById('rhPrenoms').value.trim(),
-    fonction: document.getElementById('rhFonction').value.trim(),
-    departement: document.getElementById('rhDepartement').value,
-    typeContrat: document.getElementById('rhTypeContrat').value,
-    modePaie: document.getElementById('rhModePaie').value || 'fixe',
-    dateEmbauche: document.getElementById('rhDateEmbauche').value,
-    salaireBase: +document.getElementById('rhSalaireBase').value || 0,
-    primeTransport: +document.getElementById('rhPrimeTransport').value || 0,
-    primeLogement: +document.getElementById('rhPrimeLogement').value || 0,
-    telephone: document.getElementById('rhTelephone').value.trim(),
-    numeroCNPS: document.getElementById('rhNumeroCNPS').value.trim(),
-    numeroCMU: document.getElementById('rhNumeroCMU').value.trim(),
-    modePaiement: document.getElementById('rhModePaiement').value,
-    numeroCompte: document.getElementById('rhNumeroCompte').value.trim(),
-    statut: document.getElementById('rhStatut').value || 'actif',
+    matricule: feVal('feMatricule') || nextMatriculeEmploye(rows),
+    nom: feVal('feNom'), prenoms: feVal('fePrenoms'),
+    photo: fePhotoDataUrl,
+    sexe: feG('feSexe').value, dateNaissance: feVal('feDateNaissance'), lieuNaissance: feVal('feLieuNaissance'), nationalite: feVal('feNationalite'),
+    situationMatrimoniale: feG('feSituationMatrimoniale').value, nombreEnfants: feNum('feNombreEnfants'),
+    typePiece: feG('feTypePiece').value, numeroPiece: feVal('feNumeroPiece'),
+    telephone: feVal('feTelephone'), email: feVal('feEmail'), adresse: feVal('feAdresse'),
+    contactUrgenceNom: feVal('feContactUrgenceNom'), contactUrgenceTel: feVal('feContactUrgenceTel'),
+    fonction: feVal('feFonction'), departement: feG('feDepartement').value,
+    typeContrat: feG('feTypeContrat').value, modePaie: feG('feModePaie').value||'fixe',
+    dateEmbauche: feVal('feDateEmbauche'), dateFinContrat: feVal('feDateFinContrat'),
+    secteurActivite: feVal('feSecteurActivite'), categorieGrille: feVal('feCategorieGrille'),
+    salaireBase: feNum('feSalaireBase'), modeRemuneration: feVal('feModeRemuneration'),
+    primeTransport: feNum('fePrimeTransport'), primeLogement: feNum('fePrimeLogement'), primesFixesAutres: feNum('fePrimesFixesAutres'),
+    numeroCNPS: feVal('feNumeroCNPS'), numeroCMU: feVal('feNumeroCMU'),
+    modePaiement: feG('feModePaiement').value, numeroCompte: feVal('feNumeroCompte'), nomBanque: feVal('feNomBanque'), agenceBanque: feVal('feAgenceBanque'), iban: feVal('feIban'),
+    documents: feDocuments, historiqueMobilite: feMobilite,
+    dateDepart: feVal('feDateDepart'), typeDepart: feG('feTypeDepart').value, motifDepart: feVal('feMotifDepart'),
+    soldeToutCompte: feNum('feSoldeToutCompte'), preavisEffectue: feG('fePreavisEffectue').checked,
+    statut: feG('feStatut').value||'actif',
     dateCreation: id ? (rows.find(x=>x.id===id)?.dateCreation||new Date().toISOString()) : new Date().toISOString(),
     _modifie: new Date().toISOString()
   };
-  if(!rec.nom || !rec.salaireBase){ alert('Nom et salaire de base sont requis.'); return false; }
+}
+async function saveFicheEmploye(ev){
+  ev.preventDefault();
+  if(!hasRole('rh:manage')){ alert('Permission refusée.'); return false; }
+  const id=feVal('feEditId');
+  const rows=await idbGetAll('employes');
+  const rec=feBuildRecordFromForm(rows,id);
+  if(!rec.nom || !rec.salaireBase){ alert('Nom et salaire de base sont requis.'); showFeTab(rec.nom?'contrat':'identite'); return false; }
   await idbPut('employes',rec);
   queueSync('alubom_employes',rec);
   await audit(id?'UPDATE_EMPLOYE':'CREATE_EMPLOYE', rec.matricule+' — '+rec.nom+' '+rec.prenoms);
-  cancelEditEmploye();
+  closeFicheEmploye();
   await renderEmployesTable();
   return false;
 }
-async function editEmploye(id){
+async function feFinaliserDepart(){
+  if(!hasRole('rh:manage')){ alert('Permission refusée.'); return; }
+  const id=feVal('feEditId');
+  if(!id){ alert("Enregistrez d'abord la fiche avant de finaliser un départ."); return; }
+  if(!feVal('feDateDepart')||!feG('feTypeDepart').value){ alert('Renseignez la date et le type de départ.'); return; }
+  if(!confirm('Confirmer le départ de cet employé ? Son statut passera à Inactif.')) return;
   const rows=await idbGetAll('employes');
-  const e=rows.find(x=>x.id===id); if(!e) return;
-  document.getElementById('rhEditId').value=e.id;
-  document.getElementById('rhMatricule').value=e.matricule||'';
-  document.getElementById('rhNom').value=e.nom||'';
-  document.getElementById('rhPrenoms').value=e.prenoms||'';
-  document.getElementById('rhFonction').value=e.fonction||'';
-  document.getElementById('rhDepartement').value=e.departement||'Direction';
-  document.getElementById('rhTypeContrat').value=e.typeContrat||'CDI';
-  document.getElementById('rhModePaie').value=e.modePaie||'fixe';
-  document.getElementById('rhDateEmbauche').value=e.dateEmbauche||'';
-  document.getElementById('rhSalaireBase').value=e.salaireBase||0;
-  document.getElementById('rhPrimeTransport').value=e.primeTransport||0;
-  document.getElementById('rhPrimeLogement').value=e.primeLogement||0;
-  document.getElementById('rhTelephone').value=e.telephone||'';
-  document.getElementById('rhNumeroCNPS').value=e.numeroCNPS||'';
-  document.getElementById('rhNumeroCMU').value=e.numeroCMU||'';
-  document.getElementById('rhModePaiement').value=e.modePaiement||'especes';
-  document.getElementById('rhNumeroCompte').value=e.numeroCompte||'';
-  document.getElementById('rhStatut').value=e.statut||'actif';
-  document.getElementById('rhEmployeSubmitBtn').textContent='Enregistrer les modifications';
-  document.getElementById('rhEmployeCancelBtn').classList.remove('hidden');
-  document.getElementById('employeForm').scrollIntoView({behavior:'smooth',block:'center'});
-}
-function cancelEditEmploye(){
-  document.getElementById('employeForm').reset();
-  document.getElementById('rhEditId').value='';
-  document.getElementById('rhEmployeSubmitBtn').textContent='+ Ajouter un employé';
-  document.getElementById('rhEmployeCancelBtn').classList.add('hidden');
+  const rec=feBuildRecordFromForm(rows,id);
+  rec.statut='inactif';
+  await idbPut('employes',rec);
+  queueSync('alubom_employes',rec);
+  await audit('DEPART_EMPLOYE', rec.matricule+' — '+rec.nom+' '+rec.prenoms+' ('+rec.typeDepart+')');
+  closeFicheEmploye();
+  await renderEmployesTable();
 }
 async function deleteEmploye(id){
   if(!hasRole('rh:manage')){ alert('Permission refusée.'); return; }
