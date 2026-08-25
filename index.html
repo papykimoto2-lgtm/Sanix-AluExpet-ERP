@@ -23,6 +23,7 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 // === CONFIG SUPABASE — à renseigner par Papi ===
 window.SANIX_CFG = {
@@ -2474,6 +2475,7 @@ window.SANIX_CFG = {
               <input id="rhPrimeLogement" type="number" placeholder="Prime logement (FCFA)" class="border rounded-lg px-2 py-1.5 text-sm">
               <input id="rhTelephone" placeholder="Téléphone" class="border rounded-lg px-2 py-1.5 text-sm">
               <input id="rhNumeroCNPS" placeholder="N° CNPS" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="rhNumeroCMU" placeholder="N° CMU" class="border rounded-lg px-2 py-1.5 text-sm">
               <select id="rhModePaiement" class="border rounded-lg px-2 py-1.5 text-sm">
                 <option value="especes">Espèces</option>
                 <option value="mobile_money">Mobile Money</option>
@@ -2544,6 +2546,39 @@ window.SANIX_CFG = {
           <div class="card bg-white rounded-2xl p-6 mb-4">
             <h2 class="text-lg font-bold mb-4">Masse salariale — 12 derniers mois</h2>
             <canvas id="rhMasseChart" height="90"></canvas>
+          </div>
+          <div class="card bg-white rounded-2xl p-6 mb-4">
+            <h2 class="text-lg font-bold mb-1">📤 Télédéclarations — CNPS & CMU</h2>
+            <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">⚠️ Ces documents sont des <b>récapitulatifs de préparation</b> établis à partir des bulletins déjà générés dans l'appli. Ils ne se substituent pas à la saisie/au dépôt sur les portails officiels (e-CNPS, e-impôts) : vérifiez toujours les montants et les champs exigés avant transmission.</p>
+            <div class="grid sm:grid-cols-3 gap-4">
+              <div class="border rounded-xl p-4">
+                <div class="font-semibold text-sm mb-1">Relevé nominatif des salaires</div>
+                <div class="text-xs text-slate-500 mb-3">Mensuel — base de la déclaration CNPS.</div>
+                <input id="tdPeriodeCnps" type="month" class="border rounded-lg px-2 py-1.5 text-sm w-full mb-2">
+                <div class="flex gap-2">
+                  <button onclick="genererReleveNominatifCNPS('pdf')" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg px-2 py-1.5 text-xs font-semibold">📄 PDF</button>
+                  <button onclick="genererReleveNominatifCNPS('xlsx')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-2 py-1.5 text-xs font-semibold">📊 Excel</button>
+                </div>
+              </div>
+              <div class="border rounded-xl p-4">
+                <div class="font-semibold text-sm mb-1">DISA</div>
+                <div class="text-xs text-slate-500 mb-3">Déclaration Individuelle des Salaires Annuels.</div>
+                <input id="tdAnneeDisa" type="number" placeholder="Année" class="border rounded-lg px-2 py-1.5 text-sm w-full mb-2">
+                <div class="flex gap-2">
+                  <button onclick="genererDISA('pdf')" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg px-2 py-1.5 text-xs font-semibold">📄 PDF</button>
+                  <button onclick="genererDISA('xlsx')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-2 py-1.5 text-xs font-semibold">📊 Excel</button>
+                </div>
+              </div>
+              <div class="border rounded-xl p-4">
+                <div class="font-semibold text-sm mb-1">Fichier CMU</div>
+                <div class="text-xs text-slate-500 mb-3">Cotisations nominatives CMU du mois.</div>
+                <input id="tdPeriodeCmu" type="month" class="border rounded-lg px-2 py-1.5 text-sm w-full mb-2">
+                <div class="flex gap-2">
+                  <button onclick="genererFichierCMU('pdf')" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg px-2 py-1.5 text-xs font-semibold">📄 PDF</button>
+                  <button onclick="genererFichierCMU('xlsx')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-2 py-1.5 text-xs font-semibold">📊 Excel</button>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="card bg-white rounded-2xl p-6">
             <h2 class="text-lg font-bold mb-1">Registre de paie</h2>
@@ -11576,7 +11611,7 @@ async function sha256Hex(str){
 
 /* ---------- Entête entreprise & pied de page sécurisé (impressions) ---------- */
 function getCompanyInfo(){
-  const def={nom:'SANIX AluExpert',tagline:'SANIX Africa • Division Technologies',adresse:'',tel:'',email:'',rccm:'',ncc:'',seuilValidationAchat:500000,telDG:'',seuilMargeCommerciale:25};
+  const def={nom:'SANIX AluExpert',tagline:'SANIX Africa • Division Technologies',adresse:'',tel:'',email:'',rccm:'',ncc:'',numeroEmployeurCnps:'',numeroEmployeurCmu:'',seuilValidationAchat:500000,telDG:'',seuilMargeCommerciale:25};
   try{
     const raw=localStorage.getItem('alubom_company_info');
     return raw ? {...def,...JSON.parse(raw)} : def;
@@ -11597,6 +11632,8 @@ function openCompanyInfoModal(){
       <input id="ciEmail" type="email" value="${escapeHtml(c.email)}" placeholder="Email" class="border rounded-lg px-2 py-1.5 text-sm">
       <input id="ciRccm" value="${escapeHtml(c.rccm)}" placeholder="RCCM" class="border rounded-lg px-2 py-1.5 text-sm">
       <input id="ciNcc" value="${escapeHtml(c.ncc)}" placeholder="NCC (compte contribuable)" class="border rounded-lg px-2 py-1.5 text-sm">
+      <input id="ciNumCnpsEmployeur" value="${escapeHtml(c.numeroEmployeurCnps||'')}" placeholder="N° immatriculation employeur CNPS" class="border rounded-lg px-2 py-1.5 text-sm">
+      <input id="ciNumCmuEmployeur" value="${escapeHtml(c.numeroEmployeurCmu||'')}" placeholder="N° employeur CMU" class="border rounded-lg px-2 py-1.5 text-sm">
       <input id="ciSeuil" type="number" value="${c.seuilValidationAchat}" placeholder="Seuil validation DG achats (FCFA)" class="border rounded-lg px-2 py-1.5 text-sm">
       <input id="ciTelDG" value="${escapeHtml(c.telDG)}" placeholder="Téléphone WhatsApp du valideur (DG)" class="border rounded-lg px-2 py-1.5 text-sm">
       <input id="ciSeuilMarge" type="number" step="0.1" value="${c.seuilMargeCommerciale}" placeholder="Marge mini sans validation DG (%)" class="border rounded-lg px-2 py-1.5 text-sm">
@@ -11618,6 +11655,8 @@ function handleSaveCompanyInfo(e){
     email:document.getElementById('ciEmail').value.trim(),
     rccm:document.getElementById('ciRccm').value.trim(),
     ncc:document.getElementById('ciNcc').value.trim(),
+    numeroEmployeurCnps:document.getElementById('ciNumCnpsEmployeur').value.trim(),
+    numeroEmployeurCmu:document.getElementById('ciNumCmuEmployeur').value.trim(),
     seuilValidationAchat:+document.getElementById('ciSeuil').value||500000,
     telDG:document.getElementById('ciTelDG').value.trim(),
     seuilMargeCommerciale:+document.getElementById('ciSeuilMarge').value||25
@@ -14926,6 +14965,7 @@ async function handleSaveEmploye(e){
     primeLogement: +document.getElementById('rhPrimeLogement').value || 0,
     telephone: document.getElementById('rhTelephone').value.trim(),
     numeroCNPS: document.getElementById('rhNumeroCNPS').value.trim(),
+    numeroCMU: document.getElementById('rhNumeroCMU').value.trim(),
     modePaiement: document.getElementById('rhModePaiement').value,
     numeroCompte: document.getElementById('rhNumeroCompte').value.trim(),
     statut: document.getElementById('rhStatut').value || 'actif',
@@ -14956,6 +14996,7 @@ async function editEmploye(id){
   document.getElementById('rhPrimeLogement').value=e.primeLogement||0;
   document.getElementById('rhTelephone').value=e.telephone||'';
   document.getElementById('rhNumeroCNPS').value=e.numeroCNPS||'';
+  document.getElementById('rhNumeroCMU').value=e.numeroCMU||'';
   document.getElementById('rhModePaiement').value=e.modePaiement||'especes';
   document.getElementById('rhNumeroCompte').value=e.numeroCompte||'';
   document.getElementById('rhStatut').value=e.statut||'actif';
@@ -15287,10 +15328,228 @@ async function printBulletin(id){
   win.document.close(); win.focus();
 }
 
+/* ---------- Télédéclarations CNPS / CMU ---------- */
+const TELEDECLARATION_DISCLAIMER = "Document de préparation généré par l'ERP à partir des bulletins de paie enregistrés. Ne remplace pas la saisie officielle sur e-CNPS / e-impôts : vérifiez les montants et les champs exigés avant toute transmission.";
+
+function downloadWorkbook(wb, filenameBase){
+  if(typeof XLSX==='undefined'){ alert("Le module Excel n'a pas pu être chargé (vérifiez votre connexion)."); return; }
+  XLSX.writeFile(wb, filenameBase+'.xlsx');
+}
+
+function openDeclarationPrintWindow(titre, docLabel, bodyHtml){
+  const win=window.open('','_blank','width=1100,height=1200');
+  if(!win) return;
+  const headerHtml=buildPrintHeaderHtml();
+  buildPrintFooterHtml(docLabel).then(footerHtml=>{
+    win.document.write(`<html><head><title>${escapeHtml(titre)}</title>
+    <style>
+      *{box-sizing:border-box}
+      body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#e2e8f0;margin:0}
+      .toolbar{position:sticky;top:0;z-index:10;background:#0f172a;color:#fff;padding:12px 24px;display:flex;justify-content:space-between;align-items:center}
+      .toolbar button{background:#2563eb;color:#fff;border:0;padding:9px 18px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;margin-left:8px}
+      .toolbar button.secondary{background:transparent;border:1px solid #475569}
+      .sheet{max-width:1020px;margin:24px auto;background:#fff;padding:32px 36px;box-shadow:0 10px 40px rgba(15,23,42,.25);border-radius:4px}
+      table{width:100%;border-collapse:collapse}
+      th,td{border:1px solid #cbd5e1;padding:6px 8px;font-size:11.5px}
+      th{background:#f1f5f9;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.03em;color:#475569}
+      td.num,th.num{text-align:right}
+      .dc-title{font-size:16px;font-weight:800;margin:14px 0 2px}
+      .dc-sub{font-size:11.5px;color:#64748b;margin-bottom:10px}
+      .dc-warn{font-size:10.5px;background:#fffbeb;border:1px solid #fde68a;color:#92400e;padding:8px 10px;border-radius:6px;margin-bottom:14px}
+      .dc-info{display:grid;grid-template-columns:1fr 1fr;gap:2px 20px;font-size:12px;margin-bottom:14px}
+      .dc-info b{color:#334155}
+      tfoot td{font-weight:700;background:#f8fafc}
+      ${PRINT_ENTETE_PIED_CSS}
+      @media print{.toolbar{display:none}body{background:#fff}.sheet{box-shadow:none;margin:0;max-width:none}}
+      @page{size:A4 landscape;margin:12mm}
+    </style></head><body>
+    <div class="toolbar"><b>Aperçu — ${escapeHtml(titre)}</b><div><button class="secondary" onclick="window.close()">Fermer</button><button onclick="window.print()">🖨 Imprimer / PDF</button></div></div>
+    <div class="sheet">
+      ${headerHtml}
+      <div class="dc-title">${escapeHtml(titre)}</div>
+      <div class="dc-warn">⚠️ ${escapeHtml(TELEDECLARATION_DISCLAIMER)}</div>
+      ${bodyHtml}
+      ${footerHtml}
+    </div>
+    </body></html>`);
+    win.document.close(); win.focus();
+  });
+}
+
+/* ----- 1) Relevé nominatif des salaires (CNPS, mensuel) ----- */
+async function collecterDonneesPeriodeCNPS(periode){
+  const [paies,employes]=await Promise.all(['paies','employes'].map(idbGetAll));
+  const rows=paies.filter(p=>p.periode===periode).sort((a,b)=>(a.employeNom||'').localeCompare(b.employeNom||''));
+  return rows.map(p=>{
+    const emp=employes.find(e=>e.id===p.employeId)||{};
+    return {matricule:p.matricule||emp.matricule||'', numeroCNPS:emp.numeroCNPS||'', nom:p.employeNom||'', fonction:p.fonction||'',
+      joursTravailles:p.joursTravailles||0, brut:p.brut||0, baseCotisableCNPS:p.baseCotisableCNPS||0,
+      cnpsSalarie:p.cnpsSalarie||0, cnpsEmployeurRetraite:p.cnpsEmployeurRetraite||0, cnpsEmployeurAutres:p.cnpsEmployeurAutres||0};
+  });
+}
+async function genererReleveNominatifCNPS(format){
+  if(!hasRole('rh:manage')){ alert('Permission refusée.'); return; }
+  const periode=document.getElementById('tdPeriodeCnps').value;
+  if(!periode){ alert('Sélectionnez une période (mois).'); return; }
+  const rows=await collecterDonneesPeriodeCNPS(periode);
+  if(!rows.length){ alert("Aucun bulletin de paie trouvé pour cette période. Générez d'abord les bulletins dans l'onglet Paie."); return; }
+  const c=getCompanyInfo();
+  const moisLabel=new Date(periode+'-01').toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  const totaux=rows.reduce((s,r)=>({brut:s.brut+r.brut,base:s.base+r.baseCotisableCNPS,cs:s.cs+r.cnpsSalarie,cer:s.cer+r.cnpsEmployeurRetraite,cea:s.cea+r.cnpsEmployeurAutres}),{brut:0,base:0,cs:0,cer:0,cea:0});
+  if(format==='xlsx'){
+    const aoa=[
+      ['Relevé nominatif des salaires — '+moisLabel],
+      ['Employeur',c.nom],['N° employeur CNPS',c.numeroEmployeurCnps||''],[],
+      ['Matricule','N° CNPS','Nom et prénoms','Fonction','Jours travaillés','Salaire brut','Base cotisable CNPS','Cotisation salariale','Cotisation employeur retraite','Cotisation employeur PF/AT']
+    ];
+    rows.forEach(r=>aoa.push([r.matricule,r.numeroCNPS,r.nom,r.fonction,r.joursTravailles,r.brut,r.baseCotisableCNPS,r.cnpsSalarie,r.cnpsEmployeurRetraite,r.cnpsEmployeurAutres]));
+    aoa.push(['','','TOTAL','','',totaux.brut,totaux.base,totaux.cs,totaux.cer,totaux.cea]);
+    aoa.push([],[TELEDECLARATION_DISCLAIMER]);
+    const ws=XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols']=[{wch:12},{wch:14},{wch:24},{wch:16},{wch:10},{wch:12},{wch:14},{wch:12},{wch:16},{wch:14}];
+    const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Relevé CNPS');
+    downloadWorkbook(wb,'Releve_nominatif_CNPS_'+periode);
+    return;
+  }
+  const body=`
+    <div class="dc-info">
+      <div><b>Employeur :</b> ${escapeHtml(c.nom)}</div>
+      <div><b>N° employeur CNPS :</b> ${escapeHtml(c.numeroEmployeurCnps||'—')}</div>
+      <div><b>Période :</b> ${escapeHtml(moisLabel)}</div>
+      <div><b>Nombre de salariés :</b> ${rows.length}</div>
+    </div>
+    <table>
+      <thead><tr><th>Matricule</th><th>N° CNPS</th><th>Nom et prénoms</th><th>Fonction</th><th class="num">Jours</th><th class="num">Brut</th><th class="num">Base cotisable</th><th class="num">Cotis. salariale</th><th class="num">Cotis. employeur retraite</th><th class="num">Cotis. employeur PF/AT</th></tr></thead>
+      <tbody>
+        ${rows.map(r=>`<tr><td>${escapeHtml(r.matricule)}</td><td>${escapeHtml(r.numeroCNPS||'—')}</td><td>${escapeHtml(r.nom)}</td><td>${escapeHtml(r.fonction)}</td><td class="num">${r.joursTravailles}</td><td class="num">${r.brut.toLocaleString('fr-FR')}</td><td class="num">${r.baseCotisableCNPS.toLocaleString('fr-FR')}</td><td class="num">${r.cnpsSalarie.toLocaleString('fr-FR')}</td><td class="num">${r.cnpsEmployeurRetraite.toLocaleString('fr-FR')}</td><td class="num">${r.cnpsEmployeurAutres.toLocaleString('fr-FR')}</td></tr>`).join('')}
+      </tbody>
+      <tfoot><tr><td colspan="5">TOTAL</td><td class="num">${totaux.brut.toLocaleString('fr-FR')}</td><td class="num">${totaux.base.toLocaleString('fr-FR')}</td><td class="num">${totaux.cs.toLocaleString('fr-FR')}</td><td class="num">${totaux.cer.toLocaleString('fr-FR')}</td><td class="num">${totaux.cea.toLocaleString('fr-FR')}</td></tr></tfoot>
+    </table>`;
+  openDeclarationPrintWindow('Relevé nominatif des salaires — '+moisLabel, 'Relevé CNPS '+periode, body);
+}
+
+/* ----- 2) DISA — Déclaration Individuelle des Salaires Annuels ----- */
+async function collecterDonneesAnnuellesDISA(annee){
+  const [paies,employes]=await Promise.all(['paies','employes'].map(idbGetAll));
+  const rows=paies.filter(p=>(p.periode||'').startsWith(annee+'-'));
+  const parEmploye={};
+  rows.forEach(p=>{
+    if(!parEmploye[p.employeId]) parEmploye[p.employeId]={employeId:p.employeId,nom:p.employeNom,matricule:p.matricule,brut:0,baseCotisableCNPS:0,cnpsSalarie:0,cnpsEmployeurRetraite:0,mois:0};
+    const g=parEmploye[p.employeId];
+    g.brut+=p.brut||0; g.baseCotisableCNPS+=p.baseCotisableCNPS||0; g.cnpsSalarie+=p.cnpsSalarie||0; g.cnpsEmployeurRetraite+=p.cnpsEmployeurRetraite||0; g.mois++;
+  });
+  return Object.values(parEmploye).map(g=>{
+    const emp=employes.find(e=>e.id===g.employeId)||{};
+    return {...g, numeroCNPS:emp.numeroCNPS||''};
+  }).sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
+}
+async function genererDISA(format){
+  if(!hasRole('rh:manage')){ alert('Permission refusée.'); return; }
+  const annee=(document.getElementById('tdAnneeDisa').value||'').trim();
+  if(!annee){ alert('Indiquez une année.'); return; }
+  const rows=await collecterDonneesAnnuellesDISA(annee);
+  if(!rows.length){ alert("Aucun bulletin de paie trouvé pour l'année "+annee+"."); return; }
+  const c=getCompanyInfo();
+  const totaux=rows.reduce((s,r)=>({brut:s.brut+r.brut,base:s.base+r.baseCotisableCNPS,cs:s.cs+r.cnpsSalarie,cer:s.cer+r.cnpsEmployeurRetraite}),{brut:0,base:0,cs:0,cer:0});
+  if(format==='xlsx'){
+    const aoa=[
+      ['Déclaration Individuelle des Salaires Annuels (DISA) — '+annee],
+      ['Employeur',c.nom],['N° employeur CNPS',c.numeroEmployeurCnps||''],[],
+      ['Matricule','N° CNPS','Nom et prénoms','Mois déclarés','Salaires annuels bruts','Salaires annuels soumis (base cotisable)','Cotisations salariales CNPS','Cotisations employeur — régime retraite']
+    ];
+    rows.forEach(r=>aoa.push([r.matricule,r.numeroCNPS,r.nom,r.mois,r.brut,r.baseCotisableCNPS,r.cnpsSalarie,r.cnpsEmployeurRetraite]));
+    aoa.push(['','','TOTAL','',totaux.brut,totaux.base,totaux.cs,totaux.cer]);
+    aoa.push([],[TELEDECLARATION_DISCLAIMER]);
+    const ws=XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols']=[{wch:12},{wch:14},{wch:24},{wch:12},{wch:16},{wch:20},{wch:18},{wch:20}];
+    const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'DISA '+annee);
+    downloadWorkbook(wb,'DISA_'+annee);
+    return;
+  }
+  const body=`
+    <div class="dc-info">
+      <div><b>Employeur :</b> ${escapeHtml(c.nom)}</div>
+      <div><b>N° employeur CNPS :</b> ${escapeHtml(c.numeroEmployeurCnps||'—')}</div>
+      <div><b>Exercice :</b> ${escapeHtml(annee)}</div>
+      <div><b>Nombre de salariés :</b> ${rows.length}</div>
+    </div>
+    <table>
+      <thead><tr><th>Matricule</th><th>N° CNPS</th><th>Nom et prénoms</th><th class="num">Mois déclarés</th><th class="num">Salaires annuels bruts</th><th class="num">Salaires annuels soumis</th><th class="num">Cotis. salariales CNPS</th><th class="num">Cotis. employeur retraite</th></tr></thead>
+      <tbody>
+        ${rows.map(r=>`<tr><td>${escapeHtml(r.matricule)}</td><td>${escapeHtml(r.numeroCNPS||'—')}</td><td>${escapeHtml(r.nom)}</td><td class="num">${r.mois}</td><td class="num">${r.brut.toLocaleString('fr-FR')}</td><td class="num">${r.baseCotisableCNPS.toLocaleString('fr-FR')}</td><td class="num">${r.cnpsSalarie.toLocaleString('fr-FR')}</td><td class="num">${r.cnpsEmployeurRetraite.toLocaleString('fr-FR')}</td></tr>`).join('')}
+      </tbody>
+      <tfoot><tr><td colspan="4">TOTAL</td><td class="num">${totaux.brut.toLocaleString('fr-FR')}</td><td class="num">${totaux.base.toLocaleString('fr-FR')}</td><td class="num">${totaux.cs.toLocaleString('fr-FR')}</td><td class="num">${totaux.cer.toLocaleString('fr-FR')}</td></tr></tfoot>
+    </table>`;
+  openDeclarationPrintWindow('DISA — Exercice '+annee, 'DISA '+annee, body);
+}
+
+/* ----- 3) Fichier CMU — cotisations nominatives ----- */
+async function collecterDonneesPeriodeCMU(periode){
+  const [paies,employes]=await Promise.all(['paies','employes'].map(idbGetAll));
+  const rows=paies.filter(p=>p.periode===periode);
+  return rows.map(p=>{
+    const emp=employes.find(e=>e.id===p.employeId)||{};
+    return {matricule:p.matricule||emp.matricule||'', numeroCNPS:emp.numeroCNPS||'', numeroCMU:emp.numeroCMU||'',
+      nom:emp.nom||'', prenoms:emp.prenoms||'', cmuSalarie:p.cmuSalarie||0, cmuEmployeur:p.cmuEmployeur||0};
+  }).sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
+}
+async function genererFichierCMU(format){
+  if(!hasRole('rh:manage')){ alert('Permission refusée.'); return; }
+  const periode=document.getElementById('tdPeriodeCmu').value;
+  if(!periode){ alert('Sélectionnez une période (mois).'); return; }
+  const rows=await collecterDonneesPeriodeCMU(periode);
+  if(!rows.length){ alert("Aucun bulletin de paie trouvé pour cette période. Générez d'abord les bulletins dans l'onglet Paie."); return; }
+  const sansNumCMU=rows.filter(r=>!r.numeroCMU).length;
+  const c=getCompanyInfo();
+  const moisLabel=new Date(periode+'-01').toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  const totaux=rows.reduce((s,r)=>({sal:s.sal+r.cmuSalarie,emp:s.emp+r.cmuEmployeur}),{sal:0,emp:0});
+  if(format==='xlsx'){
+    // Feuille 1 : colonnes officielles confirmées du fichier CMU (à compléter des colonnes "ayants droit" si nécessaire, non gérées par cette appli)
+    const aoaOfficiel=[['NUMERO CNPS ASSURE','NUMERO CMU ASSURE','NOM ASSURE','PRENOMS ASSURE']];
+    rows.forEach(r=>aoaOfficiel.push([r.numeroCNPS,r.numeroCMU,r.nom,r.prenoms]));
+    const wsOfficiel=XLSX.utils.aoa_to_sheet(aoaOfficiel);
+    wsOfficiel['!cols']=[{wch:18},{wch:18},{wch:20},{wch:20}];
+    // Feuille 2 : détail des cotisations, pour contrôle interne
+    const aoaDetail=[
+      ['Fichier CMU — '+moisLabel],['Employeur',c.nom],['N° employeur CMU',c.numeroEmployeurCmu||''],[],
+      ['Matricule','N° CNPS','N° CMU','Nom','Prénoms','Cotisation salariale','Cotisation employeur']
+    ];
+    rows.forEach(r=>aoaDetail.push([r.matricule,r.numeroCNPS,r.numeroCMU,r.nom,r.prenoms,r.cmuSalarie,r.cmuEmployeur]));
+    aoaDetail.push(['','','','','TOTAL',totaux.sal,totaux.emp]);
+    aoaDetail.push([],[TELEDECLARATION_DISCLAIMER],["Colonnes A-D de la feuille 'Fichier CMU (import)' correspondent au format employeur confirmé par la CNPS. Les colonnes relatives aux ayants droit éventuels, non suivies par cette appli, sont à compléter séparément si besoin."]);
+    const wsDetail=XLSX.utils.aoa_to_sheet(aoaDetail);
+    wsDetail['!cols']=[{wch:12},{wch:14},{wch:14},{wch:18},{wch:18},{wch:16},{wch:16}];
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,wsOfficiel,'Fichier CMU (import)');
+    XLSX.utils.book_append_sheet(wb,wsDetail,'Détail cotisations');
+    downloadWorkbook(wb,'Fichier_CMU_'+periode);
+    return;
+  }
+  const body=`
+    <div class="dc-info">
+      <div><b>Employeur :</b> ${escapeHtml(c.nom)}</div>
+      <div><b>N° employeur CMU :</b> ${escapeHtml(c.numeroEmployeurCmu||'—')}</div>
+      <div><b>Période :</b> ${escapeHtml(moisLabel)}</div>
+      <div><b>Nombre de salariés :</b> ${rows.length}</div>
+    </div>
+    ${sansNumCMU?`<div class="dc-warn">🔶 ${sansNumCMU} salarié(s) sans numéro CMU renseigné dans leur fiche employé.</div>`:''}
+    <table>
+      <thead><tr><th>Matricule</th><th>N° CNPS assuré</th><th>N° CMU assuré</th><th>Nom assuré</th><th>Prénoms assuré</th><th class="num">Cotis. salariale</th><th class="num">Cotis. employeur</th></tr></thead>
+      <tbody>
+        ${rows.map(r=>`<tr><td>${escapeHtml(r.matricule)}</td><td>${escapeHtml(r.numeroCNPS||'—')}</td><td>${escapeHtml(r.numeroCMU||'—')}</td><td>${escapeHtml(r.nom)}</td><td>${escapeHtml(r.prenoms)}</td><td class="num">${r.cmuSalarie.toLocaleString('fr-FR')}</td><td class="num">${r.cmuEmployeur.toLocaleString('fr-FR')}</td></tr>`).join('')}
+      </tbody>
+      <tfoot><tr><td colspan="5">TOTAL</td><td class="num">${totaux.sal.toLocaleString('fr-FR')}</td><td class="num">${totaux.emp.toLocaleString('fr-FR')}</td></tr></tfoot>
+    </table>`;
+  openDeclarationPrintWindow('Fichier CMU — '+moisLabel, 'Fichier CMU '+periode, body);
+}
+
 /* ---------- Registre & masse salariale ---------- */
 let rhMasseChart=null;
 async function renderRegistrePaie(){
   const el=document.getElementById('registreBody'); if(!el) return;
+  const curMonth=new Date().toISOString().slice(0,7), curYear=new Date().getFullYear();
+  ['tdPeriodeCnps','tdPeriodeCmu'].forEach(id=>{ const x=document.getElementById(id); if(x && !x.value) x.value=curMonth; });
+  const anneeEl=document.getElementById('tdAnneeDisa'); if(anneeEl && !anneeEl.value) anneeEl.value=curYear;
   const rows=await idbGetAll('paies');
   const byPeriode={};
   rows.forEach(p=>{
