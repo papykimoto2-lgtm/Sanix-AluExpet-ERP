@@ -2429,6 +2429,7 @@ window.SANIX_CFG = {
         <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1 items-center">
           <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold active" data-rhtab="employes" onclick="showRHTab('employes')">👤 Employés</button>
           <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="conges" onclick="showRHTab('conges')">🌴 Absences & congés</button>
+          <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="pointagerh" onclick="showRHTab('pointagerh')">⏱ Pointage</button>
           <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="paie" onclick="showRHTab('paie')">💰 Paie</button>
           <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="registre" onclick="showRHTab('registre')">📜 Registre & masse salariale</button>
           <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="parametres" onclick="showRHTab('parametres')">⚙️ Paramètres</button>
@@ -2469,6 +2470,10 @@ window.SANIX_CFG = {
                 <option value="Stage">Stage</option>
                 <option value="Consultant">Consultant</option>
               </select>
+              <select id="rhModePaie" class="border rounded-lg px-2 py-1.5 text-sm" title="Détermine si le salaire dépend de la présence pointée">
+                <option value="fixe">💼 Salaire fixe (cadre — non impacté par le pointage)</option>
+                <option value="pointage">⏱ Selon pointage (présence journalière)</option>
+              </select>
               <div><label class="text-xs text-slate-500 block mb-0.5">Date d'embauche</label><input id="rhDateEmbauche" type="date" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
               <input id="rhSalaireBase" type="number" placeholder="Salaire de base (FCFA)" required class="border rounded-lg px-2 py-1.5 text-sm">
               <input id="rhPrimeTransport" type="number" placeholder="Prime transport (FCFA)" class="border rounded-lg px-2 py-1.5 text-sm">
@@ -2491,7 +2496,7 @@ window.SANIX_CFG = {
                 <button type="button" id="rhEmployeCancelBtn" onclick="cancelEditEmploye()" class="hidden border px-4 py-1.5 rounded-lg text-sm font-semibold">Annuler</button>
               </div>
             </form>
-            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Matricule</th><th class="text-left p-3">Nom</th><th class="text-left p-3">Fonction</th><th class="text-left p-3">Département</th><th class="text-left p-3">Contrat</th><th class="text-right p-3">Salaire de base</th><th class="text-left p-3">Statut</th><th class="p-3"></th></tr></thead><tbody id="employesBody"></tbody></table></div>
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Matricule</th><th class="text-left p-3">Nom</th><th class="text-left p-3">Fonction</th><th class="text-left p-3">Département</th><th class="text-left p-3">Contrat</th><th class="text-left p-3">Mode de paie</th><th class="text-right p-3">Salaire de base</th><th class="text-left p-3">Statut</th><th class="p-3"></th></tr></thead><tbody id="employesBody"></tbody></table></div>
           </div>
         </div>
 
@@ -2520,6 +2525,26 @@ window.SANIX_CFG = {
             <h2 class="text-lg font-bold mb-1">Soldes de congés payés</h2>
             <p class="text-sm text-slate-500 mb-4">Estimation sur la base de l'ancienneté et du taux d'acquisition paramétré (onglet Paramètres).</p>
             <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Employé</th><th class="text-right p-2">Ancienneté</th><th class="text-right p-2">Jours acquis</th><th class="text-right p-2">Jours pris</th><th class="text-right p-2">Solde</th></tr></thead><tbody id="rhSoldesBody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- ===== POINTAGE (présence journalière — non-cadres) ===== -->
+        <div id="rhTabPointagerh" class="rh-tab hidden">
+          <div class="card bg-white rounded-2xl p-6 mb-4">
+            <div><h2 class="text-lg font-bold">Pointage journalier</h2><p class="text-sm text-slate-500">Seuls les employés en mode de paie « ⏱ Selon pointage » apparaissent ici. Les cadres au salaire fixe ne sont pas concernés et sont payés intégralement, indépendamment du pointage.</p></div>
+            <div class="flex flex-wrap items-end gap-3 mt-4 mb-4">
+              <div><label class="text-xs font-semibold text-slate-600 block mb-1">Date</label><input id="ptrhDate" type="date" onchange="renderPointageRHJour()" class="border rounded-lg px-2 py-1.5 text-sm"></div>
+              <button onclick="marquerTousPresents()" class="border px-3 py-1.5 rounded-lg text-xs font-semibold">✅ Tout marquer présent</button>
+            </div>
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Matricule</th><th class="text-left p-3">Employé</th><th class="text-left p-3">Fonction</th><th class="text-left p-3">Statut du jour</th><th class="text-left p-3">Note</th></tr></thead><tbody id="pointageRHJourBody"></tbody></table></div>
+            <p class="text-xs text-slate-400 mt-3">Le statut est enregistré automatiquement à la sélection. « Retard » compte comme jour travaillé pour la paie ; « Absent » (non couvert par un congé validé) est déduit du salaire du mois pour ces employés.</p>
+          </div>
+          <div class="card bg-white rounded-2xl p-6">
+            <div class="flex flex-wrap justify-between items-center gap-3 mb-3">
+              <h2 class="text-lg font-bold">Récapitulatif mensuel</h2>
+              <input id="ptrhPeriode" type="month" onchange="renderPointageRHRecap()" class="border rounded-lg px-2 py-1.5 text-sm">
+            </div>
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Matricule</th><th class="text-left p-3">Employé</th><th class="text-right p-3">Présents</th><th class="text-right p-3">Retards</th><th class="text-right p-3">Absents</th><th class="text-right p-3">Jours couverts par congé</th><th class="text-right p-3">Jours à déduire</th></tr></thead><tbody id="pointageRHRecapBody"></tbody></table></div>
           </div>
         </div>
 
@@ -2781,10 +2806,10 @@ function escapeHtml(s){
 /* ---------- IndexedDB ---------- */
 function openDB(){
   return new Promise((resolve,reject)=>{
-    const req=indexedDB.open('alubom_db',22);
+    const req=indexedDB.open('alubom_db',23);
     req.onupgradeneeded=e=>{
       const d=e.target.result;
-      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers','depots','pointages','nonconformites','chutes','postes','gammes','sav','maintenances','prospects','partenaires','appels_offres','employes','conges','paies'].forEach(s=>{
+      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers','depots','pointages','nonconformites','chutes','postes','gammes','sav','maintenances','prospects','partenaires','appels_offres','employes','conges','paies','pointages_rh'].forEach(s=>{
         if(!d.objectStoreNames.contains(s)) d.createObjectStore(s,{keyPath:'id'});
       });
     };
@@ -14932,17 +14957,19 @@ async function renderEmployesTable(){
   const rows=(await idbGetAll('employes')).sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
   el.innerHTML = rows.length ? rows.map(e=>{
     const statutBadge = e.statut==='inactif' ? '<span class="badge bg-slate-100 text-slate-500">Inactif</span>' : '<span class="badge bg-emerald-50 text-emerald-700">Actif</span>';
+    const modePaieBadge = e.modePaie==='pointage' ? '<span class="badge bg-cyan-50 text-cyan-700">⏱ Pointage</span>' : '<span class="badge bg-indigo-50 text-indigo-700">💼 Fixe</span>';
     return `<tr class="border-b">
       <td class="p-3 text-xs text-slate-400 font-mono">${escapeHtml(e.matricule||'—')}</td>
       <td class="p-3 font-semibold">${escapeHtml((e.prenoms||'')+' '+(e.nom||''))}</td>
       <td class="p-3">${escapeHtml(e.fonction||'—')}</td>
       <td class="p-3 text-xs text-slate-500">${escapeHtml(e.departement||'—')}</td>
       <td class="p-3">${escapeHtml(e.typeContrat||'—')}</td>
+      <td class="p-3">${modePaieBadge}</td>
       <td class="p-3 text-right">${(+e.salaireBase||0).toLocaleString('fr-FR')} F</td>
       <td class="p-3">${statutBadge}</td>
       <td class="p-3 text-right whitespace-nowrap"><button onclick="editEmploye('${e.id}')" class="text-blue-600 text-xs font-semibold mr-2">✏️</button><button onclick="deleteEmploye('${e.id}')" class="text-red-500 text-xs font-semibold">🗑️</button></td>
     </tr>`;
-  }).join('') : '<tr><td class="p-3 text-slate-400" colspan="8">Aucun employé enregistré.</td></tr>';
+  }).join('') : '<tr><td class="p-3 text-slate-400" colspan="9">Aucun employé enregistré.</td></tr>';
   updateRHKpis(rows);
   populateEmployeSelects(rows);
 }
@@ -14959,6 +14986,7 @@ async function handleSaveEmploye(e){
     fonction: document.getElementById('rhFonction').value.trim(),
     departement: document.getElementById('rhDepartement').value,
     typeContrat: document.getElementById('rhTypeContrat').value,
+    modePaie: document.getElementById('rhModePaie').value || 'fixe',
     dateEmbauche: document.getElementById('rhDateEmbauche').value,
     salaireBase: +document.getElementById('rhSalaireBase').value || 0,
     primeTransport: +document.getElementById('rhPrimeTransport').value || 0,
@@ -14990,6 +15018,7 @@ async function editEmploye(id){
   document.getElementById('rhFonction').value=e.fonction||'';
   document.getElementById('rhDepartement').value=e.departement||'Direction';
   document.getElementById('rhTypeContrat').value=e.typeContrat||'CDI';
+  document.getElementById('rhModePaie').value=e.modePaie||'fixe';
   document.getElementById('rhDateEmbauche').value=e.dateEmbauche||'';
   document.getElementById('rhSalaireBase').value=e.salaireBase||0;
   document.getElementById('rhPrimeTransport').value=e.primeTransport||0;
@@ -15120,11 +15149,26 @@ function periodeBounds(periode){
   const fin=`${periode}-${String(finDate.getDate()).padStart(2,'0')}`;
   return {debut,fin};
 }
-async function absencesNonPayeesPeriode(employeId,periode){
+async function congesJoursPeriode(employeId,periode,types){
   const {debut,fin}=periodeBounds(periode);
   const conges=await idbGetAll('conges');
-  return conges.filter(c=>c.employeId===employeId && c.statut==='valide' && ['sans_solde','injustifiee'].includes(c.type) && c.dateDebut<=fin && c.dateFin>=debut)
+  return conges.filter(c=>c.employeId===employeId && c.statut==='valide' && (!types || types.includes(c.type)) && c.dateDebut<=fin && c.dateFin>=debut)
     .reduce((s,c)=>s+c.nbJours,0);
+}
+async function absencesNonPayeesPeriode(employeId,periode){
+  return congesJoursPeriode(employeId,periode,['sans_solde','injustifiee']);
+}
+/* Employés en mode « ⏱ Selon pointage » : les jours ni pointés présent/retard, ni couverts par un congé
+   validé (tous types), sont considérés comme absence et déduits du salaire. Les cadres au salaire fixe
+   (modePaie==='fixe' ou non renseigné) ne passent PAS par ce calcul — ils ne sont déduits que pour les
+   congés « sans solde » / « injustifiée » (cf. absencesNonPayeesPeriode), quel que soit le pointage. */
+async function joursAbsencePointageNonCouverts(employeId,periode){
+  const params=getRHParams();
+  const {debut,fin}=periodeBounds(periode);
+  const pointages=(await idbGetAll('pointages_rh')).filter(p=>p.employeId===employeId && p.date>=debut && p.date<=fin);
+  const joursPresents=pointages.filter(p=>p.statut==='present'||p.statut==='retard').length;
+  const joursConges=await congesJoursPeriode(employeId,periode,null);
+  return Math.max(0, (params.joursOuvrablesMois||0) - joursPresents - joursConges);
 }
 async function genererBulletinsPeriode(){
   if(!hasRole('rh:manage')){ alert('Permission refusée.'); return; }
@@ -15136,7 +15180,9 @@ async function genererBulletinsPeriode(){
   let cree=0, ignore=0;
   for(const emp of actifs){
     if(paiesExist.some(p=>p.employeId===emp.id && p.periode===periode)){ ignore++; continue; }
-    const joursAbsenceNonPayee=await absencesNonPayeesPeriode(emp.id,periode);
+    const joursAbsenceNonPayee = emp.modePaie==='pointage'
+      ? await joursAbsencePointageNonCouverts(emp.id,periode)
+      : await absencesNonPayeesPeriode(emp.id,periode);
     const calc=await calculPaie(emp,periode,{joursAbsenceNonPayee});
     const rec={
       id:'pa_'+emp.id+'_'+periode,
@@ -15153,6 +15199,93 @@ async function genererBulletinsPeriode(){
   await renderPaieTable();
   alert(cree+' bulletin(s) généré(s).'+(ignore?' '+ignore+' déjà existant(s) ignoré(s).':''));
 }
+
+/* ---------- Pointage RH (présence journalière — employés non-cadres) ---------- */
+async function renderPointageRHJour(){
+  const dateEl=document.getElementById('ptrhDate'); if(!dateEl) return;
+  if(!dateEl.value) dateEl.value=new Date().toISOString().slice(0,10);
+  const date=dateEl.value;
+  const el=document.getElementById('pointageRHJourBody'); if(!el) return;
+  const employes=(await idbGetAll('employes')).filter(e=>e.modePaie==='pointage' && e.statut!=='inactif').sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
+  const byEmp={};
+  (await idbGetAll('pointages_rh')).filter(p=>p.date===date).forEach(p=>byEmp[p.employeId]=p);
+  const opt=(cur,v,label)=>`<option value="${v}" ${cur===v?'selected':''}>${label}</option>`;
+  el.innerHTML = employes.length ? employes.map(e=>{
+    const pt=byEmp[e.id], statut=pt?.statut||'';
+    return `<tr class="border-b">
+      <td class="p-3 text-xs text-slate-400 font-mono">${escapeHtml(e.matricule||'—')}</td>
+      <td class="p-3 font-semibold">${escapeHtml((e.prenoms||'')+' '+(e.nom||''))}</td>
+      <td class="p-3 text-xs text-slate-500">${escapeHtml(e.fonction||'—')}</td>
+      <td class="p-3"><select onchange="savePointageRHJour('${e.id}','${date}',this.value)" class="border rounded-lg px-2 py-1 text-xs">
+        <option value="">— Non pointé —</option>
+        ${opt(statut,'present','✅ Présent')}${opt(statut,'retard','🕒 Retard')}${opt(statut,'absent','❌ Absent')}
+      </select></td>
+      <td class="p-3"><input type="text" value="${escapeHtml(pt?.note||'')}" placeholder="Note (optionnel)" onchange="savePointageRHNote('${e.id}','${date}',this.value)" class="border rounded-lg px-2 py-1 text-xs w-full"></td>
+    </tr>`;
+  }).join('') : `<tr><td class="p-3 text-slate-400" colspan="5">Aucun employé en mode « ⏱ Selon pointage ». Réglez le mode de paie dans l'onglet Employés.</td></tr>`;
+}
+async function savePointageRHJour(employeId,date,statut){
+  if(!hasRole('rh:manage')){ alert('Permission refusée.'); await renderPointageRHJour(); return; }
+  const id='pt_'+employeId+'_'+date;
+  if(!statut){ await idbDelete('pointages_rh',id).catch(()=>{}); await audit('DELETE_POINTAGE_RH',employeId+' — '+date); return; }
+  const existing=(await idbGetAll('pointages_rh')).find(p=>p.id===id);
+  const rec={id,employeId,date,statut,note:existing?.note||'',_modifie:new Date().toISOString()};
+  await idbPut('pointages_rh',rec);
+  queueSync('alubom_pointages_rh',rec);
+  await audit('POINTAGE_RH',employeId+' — '+date+' — '+statut);
+}
+async function savePointageRHNote(employeId,date,note){
+  if(!hasRole('rh:manage')){ return; }
+  const id='pt_'+employeId+'_'+date;
+  const existing=(await idbGetAll('pointages_rh')).find(p=>p.id===id);
+  if(!existing?.statut) return; // on n'enregistre une note que si un statut du jour existe déjà
+  const rec={...existing,note,_modifie:new Date().toISOString()};
+  await idbPut('pointages_rh',rec);
+  queueSync('alubom_pointages_rh',rec);
+}
+async function marquerTousPresents(){
+  if(!hasRole('rh:manage')){ alert('Permission refusée.'); return; }
+  const date=document.getElementById('ptrhDate').value;
+  if(!date){ alert('Sélectionnez une date.'); return; }
+  const employes=(await idbGetAll('employes')).filter(e=>e.modePaie==='pointage' && e.statut!=='inactif');
+  for(const e of employes){
+    const rec={id:'pt_'+e.id+'_'+date,employeId:e.id,date,statut:'present',note:'',_modifie:new Date().toISOString()};
+    await idbPut('pointages_rh',rec);
+    queueSync('alubom_pointages_rh',rec);
+  }
+  await audit('POINTAGE_RH_TOUS_PRESENTS','Date '+date+' — '+employes.length+' employé(s)');
+  await renderPointageRHJour();
+}
+async function renderPointageRHRecap(){
+  const periodeEl=document.getElementById('ptrhPeriode'); if(!periodeEl) return;
+  if(!periodeEl.value) periodeEl.value=new Date().toISOString().slice(0,7);
+  const periode=periodeEl.value;
+  const el=document.getElementById('pointageRHRecapBody'); if(!el) return;
+  const {debut,fin}=periodeBounds(periode);
+  const params=getRHParams();
+  const employes=(await idbGetAll('employes')).filter(e=>e.modePaie==='pointage' && e.statut!=='inactif').sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
+  const pointages=(await idbGetAll('pointages_rh')).filter(p=>p.date>=debut && p.date<=fin);
+  const rowsHtml=[];
+  for(const e of employes){
+    const mine=pointages.filter(p=>p.employeId===e.id);
+    const presents=mine.filter(p=>p.statut==='present').length;
+    const retards=mine.filter(p=>p.statut==='retard').length;
+    const absents=mine.filter(p=>p.statut==='absent').length;
+    const joursConges=await congesJoursPeriode(e.id,periode,null);
+    const aDeduire=Math.max(0,(params.joursOuvrablesMois||0)-(presents+retards)-joursConges);
+    rowsHtml.push(`<tr class="border-b">
+      <td class="p-3 text-xs text-slate-400 font-mono">${escapeHtml(e.matricule||'—')}</td>
+      <td class="p-3 font-semibold">${escapeHtml((e.prenoms||'')+' '+(e.nom||''))}</td>
+      <td class="p-3 text-right">${presents}</td>
+      <td class="p-3 text-right">${retards}</td>
+      <td class="p-3 text-right">${absents}</td>
+      <td class="p-3 text-right">${joursConges}</td>
+      <td class="p-3 text-right font-bold ${aDeduire>0?'text-red-600':''}">${aDeduire}</td>
+    </tr>`);
+  }
+  el.innerHTML = rowsHtml.length ? rowsHtml.join('') : `<tr><td class="p-3 text-slate-400" colspan="7">Aucun employé en mode « ⏱ Selon pointage ».</td></tr>`;
+}
+
 async function openEditPaieModal(id){
   const rows=await idbGetAll('paies');
   const pa=rows.find(x=>x.id===id); if(!pa) return;
@@ -15641,6 +15774,7 @@ function showRHTab(tab){
   document.querySelectorAll('.rh-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.rhtab===tab));
   if(tab==='employes') renderEmployesTable();
   if(tab==='conges') renderCongesTable();
+  if(tab==='pointagerh'){ renderPointageRHJour(); renderPointageRHRecap(); }
   if(tab==='paie') renderPaieTable();
   if(tab==='registre') renderRegistrePaie();
   if(tab==='parametres') renderRHParamsForm();
