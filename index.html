@@ -2459,6 +2459,26 @@ window.SANIX_CFG = {
         </div>
         <div class="flex justify-end mb-2"><a href="#" onclick="downloadCaisseCsvTemplate();return false;" class="text-xs text-blue-600 underline">⬇️ Télécharger le modèle CSV caisse</a></div>
 
+        <h3 class="text-sm font-bold text-slate-600 mb-2">📊 Tableau de bord caisse (toutes caisses)</h3>
+        <div class="grid sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
+          <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Solde total (caisses ouvertes)</div><div id="tbCaisseSoldeTotal" class="text-xl font-bold text-slate-800">—</div></div>
+          <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Caisses ouvertes / total</div><div id="tbCaisseNbOuvertes" class="text-xl font-bold text-slate-700">—</div></div>
+          <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Entrées du jour</div><div id="tbCaisseEntreeJour" class="text-xl font-bold text-blue-700">—</div></div>
+          <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Sorties du jour</div><div id="tbCaisseSortieJour" class="text-xl font-bold text-red-700">—</div></div>
+          <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Solde net du mois</div><div id="tbCaisseSoldeMois" class="text-xl font-bold text-emerald-700">—</div></div>
+          <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">En attente de ventilation</div><div id="tbCaisseEnAttente" class="text-xl font-bold text-amber-700">—</div></div>
+        </div>
+        <div class="grid lg:grid-cols-3 gap-4 mb-4">
+          <div class="card bg-white rounded-2xl p-4 lg:col-span-2">
+            <h4 class="text-sm font-bold text-slate-600 mb-2">Entrées / Sorties — 30 derniers jours</h4>
+            <canvas id="tbCaisseChart" height="90"></canvas>
+          </div>
+          <div class="card bg-white rounded-2xl p-4 overflow-x-auto">
+            <h4 class="text-sm font-bold text-slate-600 mb-2">Situation par caisse</h4>
+            <table class="w-full text-xs"><thead class="bg-slate-50"><tr><th class="text-left p-1.5">Caisse</th><th class="text-left p-1.5">Statut</th><th class="text-right p-1.5">Solde</th></tr></thead><tbody id="tbCaisseParCaisse"></tbody></table>
+          </div>
+        </div>
+
         <div id="caisseSessionBanner" class="card rounded-2xl p-4 mb-4"></div>
 
         <!-- Bloc OUVERTURE (aucune session en cours) -->
@@ -2532,14 +2552,43 @@ window.SANIX_CFG = {
           <div><h2 class="text-lg font-bold">📒 Comptabilité SYSCOHADA</h2><p class="text-sm text-slate-500">Plan comptable, journal des écritures, grand livre et balance — système normal OHADA.</p></div>
         </div>
         <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1 items-center">
-          <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold active" data-comptatab="ventilation" onclick="showComptaTab('ventilation')">🧮 Ventilation caisse <span id="ventilationTabBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
+          <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold active" data-comptatab="dashboard" onclick="showComptaTab('dashboard')">📊 Tableau de bord</button>
+          <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="ventilation" onclick="showComptaTab('ventilation')">🧮 Ventilation caisse <span id="ventilationTabBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="journal" onclick="showComptaTab('journal')">🗒️ Journal</button>
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="grandlivre" onclick="showComptaTab('grandlivre')">📚 Grand livre</button>
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="balance" onclick="showComptaTab('balance')">⚖️ Balance</button>
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="plan" onclick="showComptaTab('plan')">📖 Plan comptable</button>
+          <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="parametres" onclick="showComptaTab('parametres')">⚙️ Paramètres</button>
         </div>
 
-        <div id="comptaTabVentilation" class="compta-tab">
+        <div id="comptaTabDashboard" class="compta-tab">
+          <div class="grid sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-4">
+            <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Chiffre d'affaires (année)</div><div id="cdCA" class="text-xl font-bold text-blue-700">—</div></div>
+            <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Charges (année)</div><div id="cdCharges" class="text-xl font-bold text-red-700">—</div></div>
+            <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Résultat net (année)</div><div id="cdResultat" class="text-xl font-bold text-emerald-700">—</div></div>
+            <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Trésorerie (classe 5)</div><div id="cdTresorerie" class="text-xl font-bold text-slate-800">—</div></div>
+            <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Créances clients (411)</div><div id="cdCreances" class="text-xl font-bold text-amber-700">—</div></div>
+            <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Dettes fournisseurs (401)</div><div id="cdDettes" class="text-xl font-bold text-orange-700">—</div></div>
+            <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Écritures ce mois</div><div id="cdNbEcritures" class="text-xl font-bold text-slate-700">—</div></div>
+            <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Opérations caisse en attente</div><div id="cdEnAttente" class="text-xl font-bold text-amber-700">—</div></div>
+          </div>
+          <div class="grid lg:grid-cols-3 gap-4 mb-4">
+            <div class="card bg-white rounded-2xl p-4 lg:col-span-2">
+              <h4 class="text-sm font-bold text-slate-600 mb-2">Produits / Charges — 12 derniers mois</h4>
+              <canvas id="cdChartMois" height="90"></canvas>
+            </div>
+            <div class="card bg-white rounded-2xl p-4 overflow-x-auto">
+              <h4 class="text-sm font-bold text-slate-600 mb-2">Répartition par classe de compte</h4>
+              <table class="w-full text-xs"><thead class="bg-slate-50"><tr><th class="text-left p-1.5">Classe</th><th class="text-right p-1.5">Solde</th></tr></thead><tbody id="cdParClasse"></tbody></table>
+            </div>
+          </div>
+          <div class="card bg-white rounded-2xl p-4 overflow-x-auto">
+            <h4 class="text-sm font-bold text-slate-600 mb-2">Top 10 comptes les plus mouvementés</h4>
+            <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Compte</th><th class="text-left p-2">Libellé</th><th class="text-right p-2">Total débit</th><th class="text-right p-2">Total crédit</th><th class="text-right p-2">Mouvement cumulé</th></tr></thead><tbody id="cdTopComptes"></tbody></table>
+          </div>
+        </div>
+
+        <div id="comptaTabVentilation" class="compta-tab hidden">
           <div class="card bg-white rounded-2xl p-4 mb-4">
             <div class="flex flex-wrap justify-between items-center gap-2 mb-2">
               <div><h3 class="text-sm font-bold">🤖 Règles de ventilation automatique</h3><p class="text-xs text-slate-500">Associez un mot-clé du libellé à un compte OHADA pour ventiler les opérations récurrentes automatiquement.</p></div>
@@ -2613,6 +2662,23 @@ window.SANIX_CFG = {
           </div>
           <div class="card bg-white rounded-2xl p-4 overflow-x-auto">
             <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">N° compte</th><th class="text-left p-2">Libellé</th><th class="text-left p-2">Classe</th><th class="p-2"></th></tr></thead><tbody id="planComptableBody"></tbody></table>
+          </div>
+        </div>
+
+        <div id="comptaTabParametres" class="compta-tab hidden">
+          <div class="card bg-white rounded-2xl p-6">
+            <h2 class="text-lg font-bold mb-1">⚙️ Comptes par défaut des mouvements Débit / Crédit automatiques</h2>
+            <p class="text-sm text-slate-500 mb-4">Ces comptes sont utilisés automatiquement par l'application pour générer les écritures (versements clients, commissions, paiements fournisseurs…), sans que vous ayez à les saisir manuellement à chaque fois. Tapez pour rechercher dans le plan comptable (saisie prédictive) ou cliquez sur la flèche du champ pour dérouler la liste. Un code inexistant sera créé automatiquement dans le plan comptable à l'enregistrement.</p>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50"><tr><th class="text-left p-2">Mouvement</th><th class="text-left p-2">Compte Débit</th><th class="text-left p-2">Compte Crédit</th></tr></thead>
+                <tbody id="comptesDefautBody"></tbody>
+              </table>
+            </div>
+            <datalist id="planComptableDatalist"></datalist>
+            <div class="flex justify-end mt-4">
+              <button onclick="saveComptesDefautMouvements()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">💾 Enregistrer</button>
+            </div>
           </div>
         </div>
       </section>
@@ -12104,7 +12170,60 @@ function sessionSoldeTheorique(session){
   ops.forEach(o=>{ solde+= o.type==='entree'?o.montant:-o.montant; });
   return solde;
 }
+let _tbCaisseChartInstance=null;
+function renderTableauBordCaisse(){
+  const comptes=getCaisseComptes();
+  const sessions=getCaisseSessions();
+  const ops=getCaisseOps();
+  const today=new Date().toISOString().slice(0,10);
+  const moisActuel=today.slice(0,7);
+
+  let soldeTotal=0, nbOuvertes=0;
+  const parCaisseRows=comptes.map(c=>{
+    const session=sessions.find(s=>s.compteId===c.id&&s.statut==='ouverte');
+    if(session){
+      nbOuvertes++;
+      const solde=sessionSoldeTheorique(session);
+      soldeTotal+=solde;
+      return `<tr class="border-b"><td class="p-1.5">${escapeHtml(c.nom)}</td><td class="p-1.5"><span class="badge bg-emerald-50 text-emerald-700">Ouverte</span></td><td class="p-1.5 text-right font-semibold">${money(solde)}</td></tr>`;
+    }
+    const lastClosed=sessions.filter(s=>s.compteId===c.id&&s.statut==='cloturee').sort((a,b)=>b.ts-a.ts)[0];
+    return `<tr class="border-b text-slate-500"><td class="p-1.5">${escapeHtml(c.nom)}</td><td class="p-1.5"><span class="badge bg-slate-100 text-slate-600">Fermée</span></td><td class="p-1.5 text-right">${lastClosed?money(lastClosed.soldeReel):'—'}</td></tr>`;
+  }).join('');
+  const elPC=document.getElementById('tbCaisseParCaisse'); if(elPC) elPC.innerHTML=parCaisseRows||'<tr><td colspan="3" class="text-center text-slate-400 p-3">Aucune caisse</td></tr>';
+  const elST=document.getElementById('tbCaisseSoldeTotal'); if(elST) elST.textContent=money(soldeTotal);
+  const elNO=document.getElementById('tbCaisseNbOuvertes'); if(elNO) elNO.textContent=`${nbOuvertes} / ${comptes.length}`;
+
+  let entreeJour=0, sortieJour=0, netMois=0, enAttente=0;
+  ops.forEach(o=>{
+    if(o.date===today){ if(o.type==='entree') entreeJour+=o.montant; else sortieJour+=o.montant; }
+    if((o.date||'').slice(0,7)===moisActuel){ netMois+= o.type==='entree'?o.montant:-o.montant; }
+    if(o.statut!=='ventile') enAttente++;
+  });
+  const elEJ=document.getElementById('tbCaisseEntreeJour'); if(elEJ) elEJ.textContent=money(entreeJour);
+  const elSJ=document.getElementById('tbCaisseSortieJour'); if(elSJ) elSJ.textContent=money(sortieJour);
+  const elSM=document.getElementById('tbCaisseSoldeMois'); if(elSM) elSM.textContent=(netMois>=0?'+':'')+money(netMois);
+  const elEA=document.getElementById('tbCaisseEnAttente'); if(elEA) elEA.textContent=enAttente;
+
+  const canvas=document.getElementById('tbCaisseChart');
+  if(canvas && typeof Chart!=='undefined'){
+    const jours=[]; const byDay={};
+    for(let i=29;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const key=d.toISOString().slice(0,10); jours.push(key); byDay[key]={entree:0,sortie:0}; }
+    ops.forEach(o=>{ if(byDay[o.date]){ if(o.type==='entree') byDay[o.date].entree+=o.montant; else byDay[o.date].sortie+=o.montant; } });
+    if(_tbCaisseChartInstance) _tbCaisseChartInstance.destroy();
+    _tbCaisseChartInstance=new Chart(canvas.getContext('2d'),{
+      type:'bar',
+      data:{ labels:jours.map(j=>new Date(j).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})),
+        datasets:[
+          {label:'Entrées',data:jours.map(j=>byDay[j].entree),backgroundColor:'#2563eb'},
+          {label:'Sorties',data:jours.map(j=>byDay[j].sortie),backgroundColor:'#dc2626'}
+        ]},
+      options:{scales:{y:{beginAtZero:true,ticks:{callback:v=>(v/1000).toFixed(0)+'k'}}},plugins:{legend:{position:'top'}}}
+    });
+  }
+}
 function renderCaisse(){
+  renderTableauBordCaisse();
   populateCaisseSelects();
   const compteId=document.getElementById('caisseCompteSel').value;
   const session=getOpenSession(compteId);
@@ -12597,11 +12716,13 @@ function showComptaTab(tab){
   document.querySelectorAll('.compta-tab').forEach(t=>t.classList.add('hidden'));
   document.getElementById('comptaTab'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.remove('hidden');
   document.querySelectorAll('.compta-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.comptatab===tab));
+  if(tab==='dashboard') renderComptaDashboard();
   if(tab==='ventilation') renderVentilation();
   if(tab==='journal'){ if(!document.getElementById('ecLignes').children.length){ addEcritureLigne(); addEcritureLigne(); } if(!document.getElementById('ecDate').value) document.getElementById('ecDate').value=new Date().toISOString().slice(0,10); renderJournal(); }
   if(tab==='grandlivre') renderGrandLivre();
   if(tab==='balance') renderBalance();
   if(tab==='plan') renderPlanComptable();
+  if(tab==='parametres') renderComptesDefautMouvements();
 }
 function addEcritureLigne(compte,libelle,debit,credit){
   const plan=getPlanComptable();
@@ -12696,6 +12817,92 @@ function renderBalance(){
   document.getElementById('balanceBody').innerHTML=rows||'<tr><td colspan="6" class="text-center text-slate-400 p-4">Aucune écriture enregistrée</td></tr>';
   document.getElementById('balanceFoot').innerHTML=`<tr><td class="p-2" colspan="2">TOTAUX</td><td class="p-2 text-right">${money(totD)}</td><td class="p-2 text-right">${money(totC)}</td><td class="p-2 text-right">${money(totSD)}</td><td class="p-2 text-right">${money(totSC)}</td></tr>`;
 }
+function _compteClasse(num,plan){ const p=plan.find(x=>x.num===num); return p?p.cl:(num||'').charAt(0); }
+let _cdChartMoisInstance=null;
+function renderComptaDashboard(){
+  const plan=getPlanComptable();
+  const ecritures=getEcritures();
+  const anneeActuelle=new Date().getFullYear();
+  const moisActuel=new Date().toISOString().slice(0,7);
+
+  let ca=0, charges=0;
+  const aggComptes={};
+  const parClasse={};
+  ecritures.forEach(e=>{
+    const annee=(e.date||'').slice(0,4);
+    e.lignes.forEach(l=>{
+      const cl=_compteClasse(l.compte,plan);
+      if(!aggComptes[l.compte]) aggComptes[l.compte]={debit:0,credit:0};
+      aggComptes[l.compte].debit+=l.debit; aggComptes[l.compte].credit+=l.credit;
+      if(!parClasse[cl]) parClasse[cl]=0;
+      parClasse[cl]+= (l.debit-l.credit);
+      if(annee===String(anneeActuelle)){
+        if(cl==='7') ca+=(l.credit-l.debit);
+        if(cl==='6') charges+=(l.debit-l.credit);
+      }
+    });
+  });
+  const resultat=ca-charges;
+  let tresorerie=0, creances=0, dettes=0;
+  Object.entries(aggComptes).forEach(([num,a])=>{
+    const cl=_compteClasse(num,plan);
+    if(cl==='5') tresorerie+=(a.debit-a.credit);
+    if(num==='411') creances+=(a.debit-a.credit);
+    if(num==='401') dettes+=(a.credit-a.debit);
+  });
+  const nbEcrituresMois=ecritures.filter(e=>(e.date||'').slice(0,7)===moisActuel).length;
+  const enAttente=getCaisseOps().filter(o=>o.statut!=='ventile').length;
+
+  const setTxt=(id,val)=>{ const el=document.getElementById(id); if(el) el.textContent=val; };
+  setTxt('cdCA',money(ca));
+  setTxt('cdCharges',money(charges));
+  setTxt('cdResultat',(resultat>=0?'+':'')+money(resultat));
+  setTxt('cdTresorerie',money(tresorerie));
+  setTxt('cdCreances',money(Math.max(0,creances)));
+  setTxt('cdDettes',money(Math.max(0,dettes)));
+  setTxt('cdNbEcritures',nbEcrituresMois);
+  setTxt('cdEnAttente',enAttente);
+
+  const parClasseLabels={'1':'1 — Ressources durables','2':'2 — Immobilisations','3':'3 — Stocks','4':'4 — Tiers','5':'5 — Trésorerie','6':'6 — Charges','7':'7 — Produits','8':'8 — HAO'};
+  const elPC=document.getElementById('cdParClasse');
+  if(elPC){
+    elPC.innerHTML=Object.keys(parClasseLabels).map(cl=>{
+      const v=parClasse[cl]||0;
+      return `<tr class="border-b"><td class="p-1.5">${parClasseLabels[cl]}</td><td class="p-1.5 text-right font-semibold">${money(Math.abs(v))} ${v>=0?'D':'C'}</td></tr>`;
+    }).join('');
+  }
+
+  const elTop=document.getElementById('cdTopComptes');
+  if(elTop){
+    const top=Object.entries(aggComptes).map(([num,a])=>({num,debit:a.debit,credit:a.credit,total:a.debit+a.credit})).sort((a,b)=>b.total-a.total).slice(0,10);
+    elTop.innerHTML=top.length?top.map(t=>`<tr class="border-b"><td class="p-2 font-semibold">${t.num}</td><td class="p-2 text-xs">${escapeHtml(planLabel(t.num))}</td><td class="p-2 text-right">${money(t.debit)}</td><td class="p-2 text-right">${money(t.credit)}</td><td class="p-2 text-right font-semibold">${money(t.total)}</td></tr>`).join(''):'<tr><td colspan="5" class="text-center text-slate-400 p-4">Aucune écriture enregistrée</td></tr>';
+  }
+
+  const canvas=document.getElementById('cdChartMois');
+  if(canvas && typeof Chart!=='undefined'){
+    const moisListe=[]; const byMois={};
+    for(let i=11;i>=0;i--){ const d=new Date(); d.setMonth(d.getMonth()-i); const key=d.toISOString().slice(0,7); moisListe.push(key); byMois[key]={produits:0,charges:0}; }
+    ecritures.forEach(e=>{
+      const key=(e.date||'').slice(0,7);
+      if(!byMois[key]) return;
+      e.lignes.forEach(l=>{
+        const cl=_compteClasse(l.compte,plan);
+        if(cl==='7') byMois[key].produits+=(l.credit-l.debit);
+        if(cl==='6') byMois[key].charges+=(l.debit-l.credit);
+      });
+    });
+    if(_cdChartMoisInstance) _cdChartMoisInstance.destroy();
+    _cdChartMoisInstance=new Chart(canvas.getContext('2d'),{
+      type:'bar',
+      data:{ labels:moisListe.map(m=>new Date(m+'-01').toLocaleDateString('fr-FR',{month:'short',year:'2-digit'})),
+        datasets:[
+          {label:'Produits',data:moisListe.map(m=>byMois[m].produits),backgroundColor:'#059669'},
+          {label:'Charges',data:moisListe.map(m=>byMois[m].charges),backgroundColor:'#dc2626'}
+        ]},
+      options:{scales:{y:{beginAtZero:true,ticks:{callback:v=>(v/1000).toFixed(0)+'k'}}},plugins:{legend:{position:'top'}}}
+    });
+  }
+}
 function renderPlanComptable(){
   const plan=getPlanComptable();
   document.getElementById('planComptableBody').innerHTML=plan.map((p,i)=>`<tr class="border-b"><td class="p-2 font-semibold">${p.num}</td><td class="p-2">${escapeHtml(p.lib)}</td><td class="p-2 text-xs text-slate-500">Classe ${p.cl}</td><td class="p-2"><button onclick="deleteCompte(${i})" class="text-red-500 text-xs">✕</button></td></tr>`).join('');
@@ -12712,6 +12919,70 @@ function openAddCompteModal(){
 function deleteCompte(i){
   if(!confirm('Supprimer ce compte du plan comptable ?')) return;
   const plan=getPlanComptable(); plan.splice(i,1); savePlanComptable(plan); renderPlanComptable();
+}
+
+/* ---- Comptes par défaut des mouvements auto (Débit/Crédit) ---- */
+const MOUVEMENTS_COMPTA_DEFAUT=[
+  {key:'versement_client',label:'Versements clients (encaissement)',debit:'571',credit:'411'},
+  {key:'paiement_fournisseur',label:'Paiements fournisseurs (décaissement)',debit:'401',credit:'571'},
+  {key:'commission_partenaire',label:'Commissions partenaires',debit:'628',credit:'401'},
+  {key:'vente_facture',label:'Facturation client (vente)',debit:'411',credit:'701'},
+  {key:'achat_facture',label:'Facture fournisseur (achat)',debit:'602',credit:'401'},
+  {key:'salaire_paie',label:'Paie du personnel',debit:'661',credit:'422'}
+];
+function getComptesDefautMouvements(){
+  try{ return JSON.parse(localStorage.getItem('sanix_comptes_defaut_mouvements')||'null')||{}; }catch{ return {}; }
+}
+function saveComptesDefautMouvementsData(m){ localStorage.setItem('sanix_comptes_defaut_mouvements',JSON.stringify(m)); }
+function refreshPlanComptableDatalist(){
+  const dl=document.getElementById('planComptableDatalist'); if(!dl) return;
+  dl.innerHTML=getPlanComptable().map(p=>`<option value="${p.num}">${p.num} — ${escapeHtml(p.lib)}</option>`).join('');
+}
+function renderComptesDefautMouvements(){
+  refreshPlanComptableDatalist();
+  const saved=getComptesDefautMouvements();
+  document.getElementById('comptesDefautBody').innerHTML=MOUVEMENTS_COMPTA_DEFAUT.map(m=>{
+    const cur=saved[m.key]||{};
+    const debit=cur.debit||m.debit||'';
+    const credit=cur.credit||m.credit||'';
+    return `<tr class="border-b" id="mvrow_${m.key}">
+      <td class="p-2 font-semibold">${escapeHtml(m.label)}</td>
+      <td class="p-2"><input id="mvDebit_${m.key}" list="planComptableDatalist" value="${escapeHtml(debit)}" placeholder="N° compte" class="border rounded-lg px-2 py-1.5 text-sm w-32"></td>
+      <td class="p-2"><input id="mvCredit_${m.key}" list="planComptableDatalist" value="${escapeHtml(credit)}" placeholder="N° compte" class="border rounded-lg px-2 py-1.5 text-sm w-32"></td>
+    </tr>`;
+  }).join('');
+}
+function _ensureCompteDansPlan(num,plan){
+  num=(num||'').trim(); if(!num) return plan;
+  if(!plan.some(p=>p.num===num)) plan.push({num,lib:'Compte auto-généré',cl:num.charAt(0)||'?'});
+  return plan;
+}
+function saveComptesDefautMouvements(){
+  let plan=getPlanComptable();
+  const data={};
+  let nbCreated=0;
+  MOUVEMENTS_COMPTA_DEFAUT.forEach(m=>{
+    const debit=(document.getElementById('mvDebit_'+m.key).value||'').trim();
+    const credit=(document.getElementById('mvCredit_'+m.key).value||'').trim();
+    if(!debit||!credit) return;
+    const before=plan.length;
+    plan=_ensureCompteDansPlan(debit,plan);
+    plan=_ensureCompteDansPlan(credit,plan);
+    nbCreated+=plan.length-before;
+    data[m.key]={debit,credit};
+  });
+  plan.sort((a,b)=>a.num.localeCompare(b.num));
+  savePlanComptable(plan);
+  saveComptesDefautMouvementsData(data);
+  renderComptesDefautMouvements();
+  alert(`Comptes par défaut enregistrés.`+(nbCreated?` ${nbCreated} nouveau(x) compte(s) créé(s) automatiquement dans le plan comptable.`:''));
+  if(typeof audit==='function') audit('COMPTES_DEFAUT_MOUVEMENTS',`Comptes par défaut des mouvements enregistrés${nbCreated?` (${nbCreated} compte(s) créé(s))`:''}`);
+}
+function getCompteDefautMouvement(key){
+  const saved=getComptesDefautMouvements()[key];
+  if(saved) return saved;
+  const d=MOUVEMENTS_COMPTA_DEFAUT.find(m=>m.key===key);
+  return d?{debit:d.debit,credit:d.credit}:null;
 }
 function downloadPlanComptableModele(){
   const csv='num;lib;classe\n601;Achats de matières premières;6\n701;Ventes de produits finis;7\n';
@@ -12931,7 +13202,7 @@ function showPage(page){
     if(page==='cartechantiers') renderCarteChantiers();
     if(page==='rh') showRHTab(document.querySelector('.rh-tab-btn.active')?.dataset.rhtab||'employes');
     if(page==='caisse') renderCaisse();
-    if(page==='compta') showComptaTab(document.querySelector('.compta-tab-btn.active')?.dataset.comptatab||'ventilation');
+    if(page==='compta') showComptaTab(document.querySelector('.compta-tab-btn.active')?.dataset.comptatab||'dashboard');
   }
   document.getElementById('pageTitle').textContent=titles[page];
 }
