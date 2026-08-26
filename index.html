@@ -1371,6 +1371,7 @@ window.SANIX_CFG = {
           <div class="flex flex-wrap justify-between gap-3 mb-5">
             <div><h2 class="text-lg font-bold">Nomenclature multi-niveaux</h2><p class="text-sm text-slate-500">Niveau 0 — Produit fini · Niveau 1 — Sous-ensembles · Niveau 2 — Composants.</p></div>
           </div>
+          <div id="bomChantierRef" class="hidden mb-4 text-sm font-semibold text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2"></div>
           <div id="bomTree" class="space-y-2"></div>
         </div>
         <div class="card bg-white rounded-2xl p-6">
@@ -1782,6 +1783,7 @@ window.SANIX_CFG = {
           <button class="stock-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-stocktab="valorisation" onclick="showStockTab('valorisation')">💰 Valorisation</button>
           <button class="stock-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-stocktab="inventaireDepot" onclick="showStockTab('inventaireDepot')">🏬 Inventaire par dépôt</button>
           <button class="stock-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-stocktab="transfert" onclick="showStockTab('transfert')">🔀 Transfert dépôt à dépôt</button>
+          <button class="stock-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-stocktab="reappro" onclick="showStockTab('reappro')">🧾 Réappro. stock</button>
           <a href="#" onclick="showPage('catalogue');setTimeout(()=>showCatalogueTab('mouvements'),50);return false;" class="ml-auto self-center text-xs text-blue-600 font-semibold px-3">📖 Journal de mouvement périodique →</a>
         </div>
 
@@ -1882,6 +1884,14 @@ window.SANIX_CFG = {
           </form>
           <datalist id="stockRefsDatalist"></datalist>
           <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-3">Date</th><th class="text-left p-3">Référence</th><th class="text-left p-3">De</th><th class="text-left p-3">Vers</th><th class="text-right p-3">Qté</th><th class="text-left p-3">Par</th></tr></thead><tbody id="transfertHistoBody"></tbody></table></div>
+        </div>
+        </div>
+
+        <div id="stockTabReappro" class="stock-tab hidden">
+        <div class="card bg-white rounded-2xl p-6">
+          <h2 class="text-lg font-bold mb-1">Réapprovisionnement stock (hors chantier)</h2>
+          <p id="reapproSub" class="text-sm text-slate-500 mb-4">Demandes d'achat générées automatiquement lorsqu'une référence passe sous son seuil minimal (sortie stock, transfert dépôt).</p>
+          <div id="reapproBody"></div>
         </div>
         </div>
       </section>
@@ -3613,6 +3623,8 @@ async function updateDashboard(){
   const ncOuvertes=(await idbGetAll('nonconformites')).filter(n=>n.statut!=='cloturee');
   if(ncOuvertes.length) alertes.push({icon:'🚫',color:'amber',text:ncOuvertes.length+' fiche(s) de non-conformité ouverte(s)'});
   if(faibles) alertes.push({icon:'📦',color:'amber',text:faibles+' référence(s) de stock en dessous du seuil critique'});
+  const daReapproOuvertes=(await idbGetAll('achats')).filter(a=>a.origineStock && ['demande','validee','commandee','partielle'].includes(a.statut));
+  if(daReapproOuvertes.length) alertes.push({icon:'🧾',color:'amber',text:daReapproOuvertes.length+' demande(s) d\'achat de réapprovisionnement générée(s) automatiquement (stock faible)'});
   const postesIndispo=(await idbGetAll('postes')).filter(p=>p.statut!=='inactif' && (p.disponibilite==='indisponible'||p.disponibilite==='maintenance'));
   if(postesIndispo.length) alertes.push({icon:'🛠️',color:'red',text:postesIndispo.length+' poste(s) indisponible(s) : '+postesIndispo.map(p=>p.nom).join(', ')});
   const chantiersRetardEstime=(await idbGetAll('chantiers')).filter(c=>!c.annule && c.dateMiseADispositionSouhaitee && c.dateFabricationEstimee && c.dateFabricationEstimee>c.dateMiseADispositionSouhaitee && !['installation','termine'].includes(c.etape));
@@ -4306,6 +4318,7 @@ async function validerAchatDG(achatId,chantierId){
   waOpen(getCompanyInfo().telDG,texte);
   await renderValidationsQueue();
   if(chantierId) await renderChantierList();
+  else await renderStockReapproTable();
 }
 async function rejeterAchatDG(achatId,chantierId){
   if(!hasRole('chantier:validate')){ alert('Permission refusée.'); return; }
@@ -4321,6 +4334,7 @@ async function rejeterAchatDG(achatId,chantierId){
   waOpen(getCompanyInfo().telDG,texte);
   await renderValidationsQueue();
   if(chantierId) await renderChantierList();
+  else await renderStockReapproTable();
 }
 
 /* ---------- État proforma & achats — vue consolidée par client / chantier ---------- */
@@ -4356,13 +4370,16 @@ async function computeEtatProformaAchatsGroups(search){
   let groups=Object.values(parClient);
   if(search) groups=groups.filter(g=>g.nom.toLowerCase().includes(search) || Object.values(g.chantiers).some(c=>c.ch.numero.toLowerCase().includes(search)));
   groups.sort((a,b)=>a.nom.localeCompare(b.nom));
-  return {groups,proformas,achats};
+  let achatsHorsChantier=achats.filter(a=>!a.chantierId);
+  if(search) achatsHorsChantier=achatsHorsChantier.filter(a=>(a.numero||'').toLowerCase().includes(search)||(a.fournisseur||'').toLowerCase().includes(search));
+  achatsHorsChantier.sort((a,b)=>(b.dateCreation||'').localeCompare(a.dateCreation||''));
+  return {groups,proformas,achats,achatsHorsChantier};
 }
 
 async function renderEtatProformaAchats(){
   if(!document.getElementById('etatpa')) return;
   const search=(document.getElementById('epaSearch')?.value||'').toLowerCase().trim();
-  const {groups,proformas,achats}=await computeEtatProformaAchatsGroups(search);
+  const {groups,proformas,achats,achatsHorsChantier}=await computeEtatProformaAchatsGroups(search);
 
   document.getElementById('epaKpiClients').textContent=groups.length;
   document.getElementById('epaKpiProforma').textContent=proformas.length;
@@ -4372,7 +4389,7 @@ async function renderEtatProformaAchats(){
   document.getElementById('epaKpiAchatsMontant').textContent=money(achatsMontant);
 
   const etapeLabel=key=>CHANTIER_STAGES.find(s=>s.key===key)?.label||key;
-  document.getElementById('epaBody').innerHTML = groups.length ? groups.map(g=>{
+  const groupsHtml = groups.map(g=>{
     const chantiersArr=Object.values(g.chantiers);
     const nbProforma=chantiersArr.reduce((s,c)=>s+c.proformas.length,0)+g.proformasOrphelines.length;
     const nbAchats=chantiersArr.reduce((s,c)=>s+c.achats.length,0);
@@ -4397,17 +4414,26 @@ async function renderEtatProformaAchats(){
       </div>`:''}
       ${!chantiersArr.length && !g.proformasOrphelines.length?'<p class="text-sm text-slate-400">Aucun dossier.</p>':''}
     </div>`;
-  }).join('') : '<div class="card bg-white rounded-2xl p-6 text-center text-slate-400">Aucun résultat.</div>';
+  }).join('');
+  const hcHtml = achatsHorsChantier.length ? `<div class="card bg-white rounded-2xl p-5">
+      <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
+        <h3 class="font-bold">🏭 Réapprovisionnement stock (hors chantier)</h3>
+        <span class="text-xs text-slate-400">${achatsHorsChantier.length} achat(s)</span>
+      </div>
+      <div class="text-xs mb-2">${achatsHorsChantier.map(a=>{const st=ACHAT_STATUT_STYLE[a.statut]||{label:a.statut,c:'slate'};return `<span class="inline-block bg-${st.c}-50 text-${st.c}-700 rounded px-2 py-0.5 mr-1 mb-1">${escapeHtml(a.numero)} · ${escapeHtml(a.fournisseur||'')} · ${money(a.montant||0)} · ${st.label}</span>`;}).join('')}</div>
+      <button onclick="showPage('stock');setTimeout(()=>showStockTab('reappro'),50)" class="text-blue-600 text-xs font-semibold hover:underline">Gérer dans Stock → Réappro. stock →</button>
+    </div>` : '';
+  document.getElementById('epaBody').innerHTML = (groupsHtml||hcHtml) ? (groupsHtml+hcHtml) : '<div class="card bg-white rounded-2xl p-6 text-center text-slate-400">Aucun résultat.</div>';
 }
 
 async function apercuEtatProformaAchats(){
   const search=(document.getElementById('epaSearch')?.value||'').toLowerCase().trim();
-  const {groups}=await computeEtatProformaAchatsGroups(search);
+  const {groups,achatsHorsChantier}=await computeEtatProformaAchatsGroups(search);
   const etapeLabel=key=>CHANTIER_STAGES.find(s=>s.key===key)?.label||key;
   const c=getCompanyInfo();
   const dateStr=new Date().toLocaleDateString('fr-FR');
 
-  const corps=groups.length ? groups.map(g=>{
+  const corps=(groups.length ? groups.map(g=>{
     const chantiersArr=Object.values(g.chantiers);
     return `<div class="client-block">
       <h2>${escapeHtml(g.nom)}</h2>
@@ -4422,7 +4448,11 @@ async function apercuEtatProformaAchats(){
         <table><thead><tr><th>Proforma</th><th class="right">Date</th><th class="right">Montant</th></tr></thead><tbody>${g.proformasOrphelines.map(p=>`<tr><td>${escapeHtml(p.numero)}</td><td class="right">${new Date(p.date).toLocaleDateString('fr-FR')}</td><td class="right">${escapeHtml(p.total||'')}</td></tr>`).join('')}</tbody></table>
       </div>`:''}
     </div>`;
-  }).join('') : '<p class="empty">Aucun résultat pour ce filtre.</p>';
+  }).join('') : '<p class="empty">Aucun résultat pour ce filtre.</p>')
+  + (achatsHorsChantier.length ? `<div class="client-block">
+      <h2>🏭 Réapprovisionnement stock (hors chantier)</h2>
+      <table><thead><tr><th>Achat</th><th>Fournisseur</th><th class="right">Montant</th><th class="right">Statut</th></tr></thead><tbody>${achatsHorsChantier.map(a=>{const st=ACHAT_STATUT_STYLE[a.statut]||{label:a.statut};return `<tr><td>${escapeHtml(a.numero)}</td><td>${escapeHtml(a.fournisseur||'')}</td><td class="right">${money(a.montant||0)}</td><td class="right">${escapeHtml(st.label)}</td></tr>`;}).join('')}</tbody></table>
+    </div>` : '');
 
   const win=window.open('','_blank','width=1000,height=1200');
   if(!win) return;
@@ -6875,6 +6905,48 @@ function showStockTab(tab){
   if(tab==='valorisation') renderValorisation();
   if(tab==='inventaireDepot') renderInventaireDepot();
   if(tab==='transfert') renderTransfertHisto();
+  if(tab==='reappro') renderStockReapproTable();
+}
+/* Onglet Stock → Réappro. stock : demandes d'achat non rattachées à un chantier
+   (déclenchées automatiquement par une alerte de seuil minimal). */
+async function renderStockReapproTable(){
+  const el=document.getElementById('reapproBody'); if(!el) return;
+  const achats=(await idbGetAll('achats')).filter(a=>!a.chantierId).sort((a,b)=>(b.dateCreation||'').localeCompare(a.dateCreation||''));
+  const sub=document.getElementById('reapproSub');
+  if(sub){
+    const ouvertes=achats.filter(a=>a.statut!=='recue'&&a.statut!=='rejetee');
+    sub.textContent = achats.length
+      ? achats.length+' demande(s) — '+ouvertes.length+' en cours ('+money(ouvertes.reduce((s,a)=>s+(a.montant||0),0))+')'
+      : 'Aucune demande d\'achat hors chantier pour le moment. Une alerte de seuil minimal en génère automatiquement une.';
+  }
+  if(!achats.length){
+    el.innerHTML='<p class="text-sm text-slate-400">Rien à afficher — le stock de toutes les références suivies est au-dessus de son seuil minimal.</p>';
+    return;
+  }
+  el.innerHTML=achats.map(a=>{
+    const lignes=normalizeAchatLignes(a);
+    const style=ACHAT_STATUT_STYLE[a.statut]||{label:a.statut,c:'slate'};
+    const enCours=a.statut!=='recue'&&a.statut!=='rejetee';
+    return `<div class="border rounded-xl p-3 mb-2">
+      <div class="flex flex-wrap justify-between items-center gap-2">
+        <div>
+          <span class="font-bold">${escapeHtml(a.numero)}</span> — ${escapeHtml(a.fournisseur||'—')}
+          ${a.origineStock?`<span class="badge bg-amber-100 text-amber-700 ml-1">⚠️ Auto — stock faible (dépôt ${escapeHtml(a.depotDeclencheur||'PRINC')})</span>`:''}
+          <span class="text-xs text-slate-400 ml-1">${money(a.montant||0)}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="badge bg-${style.c}-100 text-${style.c}-700">${escapeHtml(style.label)}</span>
+          ${enCours?`<button onclick="advanceAchatStatut('${a.id}','')" class="text-blue-600 text-xs font-semibold">${(a.statut==='commandee'||a.statut==='partielle')?'📦 Réceptionner':'Étape suivante →'}</button>`:''}
+          ${a.statut!=='demande'?`<button onclick="imprimerBonDeCommandeDA('${a.id}')" title="Imprimer le bon de commande" class="text-slate-600 text-xs font-semibold">🖨 BC</button>`:''}
+          <button onclick="openEditAchatModal('${a.id}','')" title="Modifier fournisseur/statut" class="text-slate-500 text-xs font-semibold">✏️</button>
+          <button onclick="deleteAchat('${a.id}','')" title="Supprimer" class="text-red-500 text-xs font-semibold">🗑️</button>
+        </div>
+      </div>
+      <div class="mt-2 pt-2 border-t text-xs text-slate-500 space-y-0.5">
+        ${lignes.map(l=>`<div class="flex justify-between items-center"><span>${escapeHtml(l.code?l.code+' — ':'')}${escapeHtml(l.designation)} × ${l.qte}${(l.qteRecue||0)>0?' (reçu '+l.qteRecue+'/'+l.qte+')':''}</span><span><b>${money(l.montant||(l.qte*l.prix))}</b></span></div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
 }
 async function renderStockTable(){
   const el=document.getElementById('stockBody'); if(!el) return;
@@ -6941,6 +7013,61 @@ async function renderStockTable(){
   const dl=document.getElementById('stockRefsDatalist');
   if(dl){ const uniqRefs=[...new Set(rows.map(r=>r.ref))]; dl.innerHTML=uniqRefs.map(ref=>`<option value="${escapeHtml(ref)}">`).join(''); }
 }
+/* =========================================================
+   DA automatique sur alerte de stock faible (seuil qteMinimale)
+   — chantierId=null pour un réapprovisionnement stock général
+     (dépôt), ou un id de chantier pour rattacher la DA à un
+     dossier précis (ex : réservation OF qui vide le PRINC).
+   — Garde-fou anti-doublon : une DA d'origine "stock" déjà
+     ouverte pour la même référence, dans le même contexte,
+     suffit tant qu'elle n'est pas soldée/rejetée.
+   ========================================================= */
+async function genererDAAutoStock(ref,depot,chantierId){
+  if(!ref) return null;
+  const [articles,stockRows,achats]=await Promise.all(['articles','stock','achats'].map(idbGetAll));
+  const art=articles.find(a=>a.reference===ref);
+  if(!art || !art.qteMinimale) return null;
+  const depotCode=depot||'PRINC';
+  const row=stockRows.find(s=>s.ref===ref && (s.depot||'PRINC')===depotCode);
+  const dispo=row?row.dispo||0:0;
+  if(dispo>=art.qteMinimale) return null;
+
+  const contexte=chantierId||null;
+  const dejaOuverte=achats.some(a=>a.origineStock && (a.chantierId||null)===contexte
+    && ['demande','validee','commandee','partielle'].includes(a.statut)
+    && (a.lignes||[]).some(l=>l.code===ref));
+  if(dejaOuverte) return null;
+
+  // Cible de réappro par défaut : remonter à 2× le seuil minimal (marge de sécurité),
+  // sans jamais commander moins que le seuil lui-même.
+  const cible=Math.max(art.qteMinimale*2-dispo,art.qteMinimale);
+  const qte=Math.round(cible*100)/100;
+  const prix=art.dernierPrix||row?.prix||0;
+  const seq=nextSeq('achat');
+  const numero='DA-'+seq.year+'-'+String(seq.n).padStart(4,'0');
+  const rec={
+    id:numero,numero,chantierId:contexte,fournisseur:art.fournisseur||'À définir',
+    lignes:[{code:ref,designation:art.designation||row?.label||ref,qte,prix,montant:Math.round(qte*prix),qteRecue:0}],
+    montant:Math.round(qte*prix),statut:'demande',dateCreation:new Date().toISOString(),
+    demandeur:currentUser?currentUser.email:'Système (alerte stock)',
+    origineStock:true,depotDeclencheur:depotCode,dispoAuDeclenchement:dispo,seuilDeclencheur:art.qteMinimale
+  };
+  await idbPut('achats',rec);
+  queueSync('alubom_achats',rec);
+  await audit('GENERER_DA_AUTO_STOCK',numero+' — '+ref+' — stock '+dispo.toFixed(2)+' < seuil '+art.qteMinimale+(contexte?' (chantier '+contexte+')':' (réappro. hors chantier)'));
+  return rec;
+}
+/* Rafraîchit le contexte d'affichage d'une DA après action : le détail chantier si
+   elle y est rattachée, sinon l'onglet Stock → Réappro. stock. */
+async function refreshAchatContext(chantierId){
+  if(chantierId){
+    await openChantierDetail(chantierId);
+  } else {
+    await renderStockReapproTable();
+    await updateValidationsBadge();
+  }
+}
+
 async function handleStockMove(e){
   e.preventDefault();
   if(!hasRole('stock:write')){ alert('Permission refusée.'); return false; }
@@ -6998,9 +7125,13 @@ async function handleStockMove(e){
   await populateDepotSelects();
   await renderStockTable();
   
-  // Alerte si quantité < minimale
+  // Alerte si quantité < minimale → génération automatique d'une DA de réapprovisionnement
   if(art && row.dispo<art.qteMinimale){
-    alert('⚠️ ALERTE: Stock faible!\n'+ref+' ('+row.dispo+') < Minimum requis ('+art.qteMinimale+')');
+    const daAuto=await genererDAAutoStock(ref,depot,null);
+    alert('⚠️ ALERTE: Stock faible!\n'+ref+' ('+row.dispo+') < Minimum requis ('+art.qteMinimale+')'
+      +(daAuto?'\n\n✅ Demande d\'achat '+daAuto.numero+' générée automatiquement — '+daAuto.lignes[0].qte+' '+(art.unite||'ml')+' auprès de '+daAuto.fournisseur+'.\nVoir Stock → Réappro. stock.'
+        :'\n\nUne demande d\'achat de réapprovisionnement est déjà en cours pour cette référence.'));
+    await renderStockReapproTable();
   }
   
   return false;
@@ -7168,7 +7299,10 @@ async function handleTransfertDepot(e){
   document.getElementById('trRef').value=''; document.getElementById('trQty').value='';
   await renderStockTable();
   await renderTransfertHisto();
-  alert('Transfert effectué.');
+  // Le dépôt source peut passer sous le seuil minimal suite au transfert
+  const daAutoTr=await genererDAAutoStock(ref,depotSource,null);
+  await renderStockReapproTable();
+  alert('Transfert effectué.'+(daAutoTr?'\n\n⚠️ Stock du dépôt source sous le seuil minimal — DA '+daAutoTr.numero+' générée automatiquement.':''));
   return false;
 }
 async function renderTransfertHisto(){
@@ -7309,7 +7443,7 @@ async function printInventaire(){
 }
 
 /* ---------- Réservation stock (Disponible → Réservé) à la création d'OF ---------- */
-async function reserveStockForBOMArray(bomRows){
+async function reserveStockForBOMArray(bomRows,chantierId){
   const stockRows=await idbGetAll('stock');
   const reservations=[];
   for(const r of bomRows){
@@ -7323,6 +7457,9 @@ async function reserveStockForBOMArray(bomRows){
       match._modifie=new Date().toISOString();
       await idbPut('stock',match); queueSync('alubom_stock',match);
       reservations.push({ref:code,qty:applied});
+      // Réservation pouvant faire passer le PRINC sous le seuil minimal : DA auto,
+      // rattachée au même dossier chantier que l'OF qui consomme le stock.
+      await genererDAAutoStock(code,'PRINC',chantierId||null);
     }
   }
   return reservations;
@@ -7330,7 +7467,7 @@ async function reserveStockForBOMArray(bomRows){
 async function reserveStockForBOM(){
   const rowsHtml=document.getElementById('bomBody').querySelectorAll('tr');
   const bomRows=[...rowsHtml].map(tr=>[tr.children[0].textContent.trim(),tr.children[1].textContent.trim(),parseFloat(tr.children[2].textContent)||0]);
-  return reserveStockForBOMArray(bomRows);
+  return reserveStockForBOMArray(bomRows,devisContext?.chantierId||null);
 }
 
 /* ---------- Devis accepté → OF automatique (§22) ---------- */
@@ -7342,7 +7479,7 @@ async function createOFFromLine(line,client,chantierId){
   // intègre qty dans chaque quantité de matière) — ne PAS multiplier à nouveau ici.
   const bomArray=(line.bom||[]).map(b=>[b.code,b.designation,b.qte,b.longueur||0,b.montant]);
   const coutMatiereBOM=bomArray.reduce((s,r)=>s+(r[4]||0),0);
-  const reservations=await reserveStockForBOMArray(bomArray);
+  const reservations=await reserveStockForBOMArray(bomArray,chantierId);
   const bomVersion='v'+new Date().toISOString().replace(/[-:T.]/g,'').slice(0,14);
   const aluMlApprox=bomArray.filter(r=>r[3]>0).reduce((s,r)=>s+(r[2]*r[3])/1000,0);
   const gammeSteps=await resolveGammeSteps(line.type);
@@ -9196,7 +9333,7 @@ function visualiserDossierFabrication(chantierId){
         </div>
         <table class="cover-meta"><tr><td><b>Quantité</b></td><td>${l.qty||1}</td><td><b>Prix unitaire</b></td><td>${money(l.unit||0)}</td><td><b>Sous-total</b></td><td>${money(l.subtotal||0)}</td></tr></table>
         ${l.schemaSVG?`<div class="schema-box">${l.schemaSVG}</div>`:'<p class="empty">Aucun schéma technique disponible pour cet ouvrage.</p>'}
-        <h3>Nomenclature (BOM)</h3>
+        <h3>Nomenclature (BOM) — ${escapeHtml(rec.numero)} · ${escapeHtml(rec.client)}</h3>
         ${bomRows?`<table><thead><tr><th>Code</th><th>Désignation</th><th class="right">Qté</th><th class="right">Longueur</th><th class="right">Montant</th></tr></thead><tbody>${bomRows}</tbody></table>`:'<p class="empty">Aucune BOM enregistrée pour cet ouvrage.</p>'}
       </div>`;
     }).join('');
@@ -9778,7 +9915,7 @@ async function handleAddAchat(chantierId){
   await audit('CREATE_DEMANDE_ACHAT',numero+' — '+fournisseur+' — '+lignes.length+' référence(s)');
   achatCart=[];
   document.getElementById('acFournisseur').value='';
-  await openChantierDetail(chantierId);
+  await refreshAchatContext(chantierId);
 }
 function onAcBomRefChange(){
   const sel=document.getElementById('acBomRef');
@@ -9828,7 +9965,7 @@ async function advanceAchatStatut(achatId,chantierId){
   await idbPut('achats',rec);
   queueSync('alubom_achats',rec);
   await audit('MAJ_DEMANDE_ACHAT',rec.numero+' → '+rec.statut);
-  await openChantierDetail(chantierId);
+  await refreshAchatContext(chantierId);
 }
 
 /* ---------- Bon de commande officiel (issu d'une DA validée) ---------- */
@@ -9995,7 +10132,7 @@ async function validerReceptionAchat(){
   if(recues.length) imprimerBonReception(brNumero,rec,recues);
   closeReceptionAchatModal();
   await refreshAllTables();
-  await openChantierDetail(receptionChantierId);
+  await refreshAchatContext(receptionChantierId);
 }
 function imprimerBonReception(brNumero,rec,recues){
   const dateStr=new Date().toLocaleDateString('fr-FR');
@@ -10081,7 +10218,7 @@ async function handleEditAchat(e,achatId,chantierId){
   queueSync('alubom_achats',rec);
   await audit('MAJ_DEMANDE_ACHAT',rec.numero+' — modification manuelle (fournisseur/statut'+(ancienStatut!==rec.statut?' : '+ancienStatut+' → '+rec.statut:'')+')');
   closeEditAchatModal();
-  await openChantierDetail(chantierId);
+  await refreshAchatContext(chantierId);
   return false;
 }
 
@@ -10092,7 +10229,7 @@ async function deleteAchat(achatId,chantierId){
   if(!confirm('Supprimer définitivement la demande d\'achat '+rec.numero+' ('+escapeHtml(rec.fournisseur)+') ?')) return;
   await idbDelete('achats',achatId);
   await audit('DELETE_DEMANDE_ACHAT',rec.numero+' — '+rec.fournisseur);
-  await openChantierDetail(chantierId);
+  await refreshAchatContext(chantierId);
 }
 async function deleteLigneAchat(achatId,ligneIndex,chantierId){
   if(!hasRole('achat:manage')){ alert('Permission refusée.'); return; }
@@ -10105,7 +10242,7 @@ async function deleteLigneAchat(achatId,ligneIndex,chantierId){
     if(!confirm('C\'est la dernière ligne — cela supprimera toute la demande d\'achat '+rec.numero+'. Continuer ?')) return;
     await idbDelete('achats',achatId);
     await audit('DELETE_DEMANDE_ACHAT',rec.numero+' — dernière ligne retirée');
-    await openChantierDetail(chantierId);
+    await refreshAchatContext(chantierId);
     return;
   }
   const nouvellesLignes=lignes.filter((_,i)=>i!==ligneIndex);
@@ -10117,7 +10254,7 @@ async function deleteLigneAchat(achatId,ligneIndex,chantierId){
   await idbPut('achats',rec);
   queueSync('alubom_achats',rec);
   await audit('MAJ_DEMANDE_ACHAT',rec.numero+' — ligne retirée, nouveau total '+money(rec.montant));
-  await openChantierDetail(chantierId);
+  await refreshAchatContext(chantierId);
 }
 
 async function handlePlanifierInstallation(e,id){
@@ -11922,11 +12059,21 @@ let devisContext={client:'',chantierId:''};
 function isDevisContextValid(){
   return !!document.getElementById('devisCtxClient')?.value.trim();
 }
+/* La nomenclature (BOM) affichée/imprimée doit toujours pouvoir être rattachée
+   sans ambiguïté à un client et à un numéro de dossier chantier. */
+function updateBomChantierRefBadge(){
+  const el=document.getElementById('bomChantierRef'); if(!el) return;
+  const client=devisContext.client, numero=devisContext.chantierId;
+  if(!client){ el.classList.add('hidden'); el.textContent=''; return; }
+  el.textContent = '🏗️ Nomenclature — Client : '+client+(numero?' — Dossier '+numero:' — Nouveau dossier (n° attribué à la validation)');
+  el.classList.remove('hidden');
+}
 function onDevisContextClientChange(){
   const client=document.getElementById('devisCtxClient').value.trim();
   devisContext.client=client;
   const proClientEl=document.getElementById('proClient');
   if(proClientEl) proClientEl.value=client||'Client à renseigner';
+  updateBomChantierRefBadge();
   populateDevisContextChantiers();
 }
 async function populateDevisContextChantiers(){
@@ -11949,6 +12096,7 @@ async function onDevisContextChantierChange(){
     proChSel.value=devisContext.chantierId;
     updateProformaChantierHint();
   }
+  updateBomChantierRefBadge();
   updateDevisContextStatus();
 }
 async function updateDevisContextStatus(){
@@ -13862,6 +14010,7 @@ function calculateBOM(){
   updateCost();
   optimize();
   renderBOMTree(type,w,h,rows);
+  updateBomChantierRefBadge();
   checkCompatibilite(type,w,h,leaves,surface);
   showPage('bom');
 }
@@ -14510,8 +14659,8 @@ function printFicheTechnique(autoPrint=true){
   const accessoiresHTML=accessoires.length ? accessoires.map(r=>`<tr><td>${escapeHtml(r[0])}</td><td>${escapeHtml(r[1])}</td><td class="right">${Number(r[2]).toFixed(2)}</td><td class="right">${money(r[4])}</td></tr>`).join('')
     : '<tr><td colspan="4" style="color:#94a3b8;text-align:center">Aucun accessoire spécifique détecté.</td></tr>';
 
-  const projet = (typeof currentChantierId!=='undefined' && currentChantierId) ? currentChantierId : '—';
-  const client = document.getElementById('proClient')?.value || '—';
+  const projet = devisContext.chantierId || ((typeof currentChantierId!=='undefined' && currentChantierId) ? currentChantierId : '—');
+  const client = devisContext.client || document.getElementById('proClient')?.value || '—';
 
   if(win.closed) return;
   win.document.open();
