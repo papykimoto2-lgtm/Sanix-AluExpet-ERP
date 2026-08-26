@@ -2453,8 +2453,11 @@ window.SANIX_CFG = {
           <div class="flex gap-2">
             <select id="caisseCompteSel" onchange="renderCaisse()" class="border rounded-lg px-2 py-1.5 text-sm"></select>
             <button onclick="openCaisseCompteModal()" class="border px-3 py-2 rounded-lg text-sm font-semibold">⚙️ Caisses</button>
+            <button onclick="document.getElementById('caisseCsvInput').click()" class="border px-3 py-2 rounded-lg text-sm font-semibold">📥 Importer CSV</button>
+            <input type="file" id="caisseCsvInput" accept=".csv,text/csv" class="hidden" onchange="handleImportCaisseCSV(event)">
           </div>
         </div>
+        <div class="flex justify-end mb-2"><a href="#" onclick="downloadCaisseCsvTemplate();return false;" class="text-xs text-blue-600 underline">⬇️ Télécharger le modèle CSV caisse</a></div>
 
         <div id="caisseSessionBanner" class="card rounded-2xl p-4 mb-4"></div>
 
@@ -12179,6 +12182,67 @@ function deleteCaisseOp(id){
   if(op&&op.statut==='ventile'){ alert('Cette opération est déjà ventilée en comptabilité. Annulez la ventilation avant suppression.'); return; }
   saveCaisseOps(getCaisseOps().filter(o=>o.id!==id));
   renderCaisse();
+}
+/* ---- Import CSV du brouillard de caisse ---- */
+const CAISSE_CSV_HEADERS=['date','type','libelle','montant','piece'];
+function downloadCaisseCsvTemplate(){
+  const ex1=['2026-08-26','entree','Vente comptant client X','50000','BC-001'];
+  const ex2=['2026-08-26','sortie','Achat fournitures bureau','12000',''];
+  const csv=CAISSE_CSV_HEADERS.join(';')+'\n'+ex1.join(';')+'\n'+ex2.join(';')+'\n';
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+  const link=document.createElement('a');
+  link.href=URL.createObjectURL(blob);
+  link.download='modele_import_caisse.csv';
+  link.click();
+}
+function normalizeCaisseType(v){
+  const t=(v||'').trim().toLowerCase();
+  if(['entree','entrée','e','encaissement','credit','crédit','in'].includes(t)) return 'entree';
+  if(['sortie','s','decaissement','décaissement','debit','débit','out'].includes(t)) return 'sortie';
+  return null;
+}
+function parseCaisseDate(v){
+  const s=(v||'').trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  return null;
+}
+async function handleImportCaisseCSV(e){
+  const file=e.target.files[0]; if(!file) return;
+  const compteId=document.getElementById('caisseCompteSel').value;
+  const session=getOpenSession(compteId);
+  if(!session){ alert("Veuillez d'abord ouvrir la caisse avant d'importer des opérations."); e.target.value=''; return; }
+  const text=await file.text();
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<2){ alert('Fichier CSV vide ou invalide.'); e.target.value=''; return; }
+  const sep=lines[0].includes(';')?';':',';
+  const headers=lines[0].split(sep).map(h=>h.trim().replace(/^\ufeff/,'').toLowerCase());
+  const idx={}; headers.forEach((h,i)=>idx[h]=i);
+  if(idx.date===undefined||idx.type===undefined||idx.libelle===undefined||idx.montant===undefined){
+    alert('Colonnes obligatoires manquantes : date, type, libelle, montant — téléchargez le modèle CSV pour le bon format.');
+    e.target.value=''; return;
+  }
+  const get=(cols,key)=>(idx[key]!==undefined&&cols[idx[key]]!==undefined)?cols[idx[key]].trim():'';
+  const ops=getCaisseOps();
+  const user=(typeof currentUser!=='undefined'&&currentUser)?currentUser.email:'—';
+  let imported=0, errors=0; const errDetails=[];
+  for(let i=1;i<lines.length;i++){
+    const cols=lines[i].split(sep);
+    const date=parseCaisseDate(get(cols,'date'));
+    const type=normalizeCaisseType(get(cols,'type'));
+    const libelle=get(cols,'libelle');
+    const montant=parseFloat((get(cols,'montant')||'').replace(',','.'));
+    const piece=get(cols,'piece');
+    if(!date||!type||!libelle||!montant||montant<=0){ errors++; errDetails.push(`Ligne ${i+1}`); continue; }
+    ops.push({id:genUid('cop'),compteId,sessionId:session.id,type,date,libelle,compteCompta:null,statut:'brouillard',montant,piece,user:user+' (import CSV)',ts:Date.now()});
+    imported++;
+  }
+  saveCaisseOps(ops);
+  renderCaisse();
+  e.target.value='';
+  alert(`Import terminé : ${imported} opération(s) ajoutée(s) au brouillard.`+(errors?`\n${errors} ligne(s) ignorée(s) (format invalide) : ${errDetails.slice(0,10).join(', ')}${errDetails.length>10?'…':''}`:''));
+  if(typeof audit==='function') audit('IMPORT_CSV_CAISSE',`${imported} opération(s) importée(s) via CSV`);
 }
 function updateVentilationBadge(){
   const n=getCaisseOps().filter(o=>o.statut!=='ventile').length;
