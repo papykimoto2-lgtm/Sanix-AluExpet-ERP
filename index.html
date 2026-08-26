@@ -1660,6 +1660,7 @@ window.SANIX_CFG = {
 
       <section id="production" class="page hidden">
         <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1 items-center">
+          <button class="prod-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prodtab="dashboard" onclick="showProdTab('dashboard')">📊 Tableau de bord</button>
           <button class="prod-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prodtab="liste" onclick="showProdTab('liste')">📋 Liste</button>
           <button class="prod-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prodtab="kanban" onclick="showProdTab('kanban')">🗂️ Kanban</button>
           <button class="prod-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prodtab="gantt" onclick="showProdTab('gantt')">📅 Planning Gantt</button>
@@ -1669,6 +1670,104 @@ window.SANIX_CFG = {
           <button class="prod-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-prodtab="bilan" onclick="showProdTab('bilan')">📦 Bilan composants</button>
           <button id="btnNewOF" onclick="openNewOFForm()" class="ml-auto bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">+ Nouvel OF</button>
         </div>
+
+        <!-- ====== TABLEAU DE BORD PRODUCTION ====== -->
+        <div id="prodTabDashboard" class="prod-tab hidden">
+
+          <!-- Barre filtre période -->
+          <div class="flex flex-wrap gap-2 items-center mb-4">
+            <label class="text-xs font-semibold text-slate-600">Période :</label>
+            <input type="date" id="pbDu" class="border rounded-lg px-2 py-1.5 text-sm">
+            <span class="text-slate-400 text-xs">→</span>
+            <input type="date" id="pbAu" class="border rounded-lg px-2 py-1.5 text-sm">
+            <button onclick="renderProdDashboard()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold">🔄 Actualiser</button>
+            <button onclick="exportProdDashboard()" class="border border-slate-300 text-slate-700 px-3 py-1.5 rounded-lg text-sm font-semibold">📤 Exporter</button>
+            <span id="pbLastUpdate" class="ml-auto text-xs text-slate-400"></span>
+          </div>
+
+          <!-- KPI Cards -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4" id="pbKpiCards">
+            <div class="bg-white rounded-2xl p-4 border-l-4 border-blue-500 shadow-sm">
+              <div class="text-xs font-semibold text-slate-500 mb-1">OF TOTAL</div>
+              <div class="text-2xl font-black text-slate-800" id="pbOFTotal">—</div>
+              <div class="text-xs text-slate-400 mt-1" id="pbOFSub">—</div>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border-l-4 border-emerald-500 shadow-sm">
+              <div class="text-xs font-semibold text-slate-500 mb-1">TAUX RÉALISATION</div>
+              <div class="text-2xl font-black text-emerald-600" id="pbTauxRea">—</div>
+              <div class="text-xs text-slate-400 mt-1" id="pbReaSub">—</div>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border-l-4 border-amber-500 shadow-sm">
+              <div class="text-xs font-semibold text-slate-500 mb-1">EN RETARD</div>
+              <div class="text-2xl font-black text-amber-600" id="pbEnRetard">—</div>
+              <div class="text-xs text-slate-400 mt-1" id="pbRetardSub">—</div>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border-l-4 border-red-500 shadow-sm">
+              <div class="text-xs font-semibold text-slate-500 mb-1">NON CONFORMES</div>
+              <div class="text-2xl font-black text-red-600" id="pbNonConf">—</div>
+              <div class="text-xs text-slate-400 mt-1" id="pbNonConfSub">—</div>
+            </div>
+          </div>
+
+          <!-- Ligne 2: Graphiques -->
+          <div class="grid lg:grid-cols-2 gap-4 mb-4">
+            <!-- Statuts OF -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm">
+              <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-sm text-slate-700">Répartition par statut</h3>
+                <select id="pbStatutPeriode" onchange="renderProdDashboard()" class="border rounded px-2 py-1 text-xs">
+                  <option value="all">Tous</option><option value="30">30 jours</option><option value="90">90 jours</option>
+                </select>
+              </div>
+              <canvas id="chartStatuts" height="200"></canvas>
+            </div>
+            <!-- Progression mensuelle -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm">
+              <h3 class="font-bold text-sm text-slate-700 mb-3">OF créés vs terminés (6 derniers mois)</h3>
+              <canvas id="chartMensuel" height="200"></canvas>
+            </div>
+          </div>
+
+          <!-- Ligne 3: Opérateurs + Postes -->
+          <div class="grid lg:grid-cols-2 gap-4 mb-4">
+            <div class="bg-white rounded-2xl p-4 shadow-sm">
+              <h3 class="font-bold text-sm text-slate-700 mb-3">Charge par opérateur</h3>
+              <canvas id="chartOperateurs" height="200"></canvas>
+            </div>
+            <div class="bg-white rounded-2xl p-4 shadow-sm">
+              <h3 class="font-bold text-sm text-slate-700 mb-3">Charge par poste</h3>
+              <canvas id="chartPostes" height="200"></canvas>
+            </div>
+          </div>
+
+          <!-- Ligne 4: Alertes + Top chantiers -->
+          <div class="grid lg:grid-cols-2 gap-4 mb-4">
+            <!-- Alertes -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm">
+              <h3 class="font-bold text-sm text-slate-700 mb-3">🚨 Alertes actives</h3>
+              <div id="pbAlertes" class="space-y-2 max-h-64 overflow-y-auto"></div>
+            </div>
+            <!-- Top chantiers en cours -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm">
+              <h3 class="font-bold text-sm text-slate-700 mb-3">🏗️ Chantiers actifs — avancement</h3>
+              <div id="pbChantiers" class="space-y-2 max-h-64 overflow-y-auto"></div>
+            </div>
+          </div>
+
+          <!-- Ligne 5: Qualité + Délai moyen -->
+          <div class="grid lg:grid-cols-3 gap-4">
+            <div class="bg-white rounded-2xl p-4 shadow-sm">
+              <h3 class="font-bold text-sm text-slate-700 mb-3">Contrôle qualité</h3>
+              <canvas id="chartQualite" height="180"></canvas>
+            </div>
+            <div class="bg-white rounded-2xl p-4 shadow-sm col-span-1 lg:col-span-2">
+              <h3 class="font-bold text-sm text-slate-700 mb-3">Délai moyen par poste (jours)</h3>
+              <canvas id="chartDelai" height="180"></canvas>
+            </div>
+          </div>
+
+        </div>
+        <!-- ====== FIN TABLEAU DE BORD PRODUCTION ====== -->
 
         <div id="prodTabListe" class="prod-tab">
         <div class="card bg-white rounded-2xl p-6">
@@ -5222,6 +5321,7 @@ function showProdTab(tab){
   document.querySelectorAll('.prod-tab').forEach(t=>t.classList.add('hidden'));
   document.getElementById('prodTab'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.remove('hidden');
   document.querySelectorAll('.prod-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.prodtab===tab));
+  if(tab==='dashboard') renderProdDashboard();
   if(tab==='kanban') renderKanban();
   if(tab==='liste') renderNCList();
   if(tab==='gantt') renderGantt();
@@ -5229,6 +5329,205 @@ function showProdTab(tab){
   if(tab==='journalier') renderSuiviJournalier();
   if(tab==='dossiers') renderDossiersFabrication();
   if(tab==='bilan'){ populateBilanChantierSelect().then(renderBilanComposants); }
+}
+
+/* ============================================================
+   TABLEAU DE BORD PRODUCTION — renderProdDashboard
+   ============================================================ */
+let _pbCharts={};
+
+function _pbDestroy(id){ if(_pbCharts[id]){ _pbCharts[id].destroy(); delete _pbCharts[id]; } }
+
+function _pbDate(offseDays=0){
+  const d=new Date(); d.setDate(d.getDate()+offseDays);
+  return d.toISOString().slice(0,10);
+}
+
+async function renderProdDashboard(){
+  const today=new Date().toISOString().slice(0,10);
+  // Init dates par défaut : mois courant
+  const pbDu=document.getElementById('pbDu');
+  const pbAu=document.getElementById('pbAu');
+  if(pbDu&&!pbDu.value) pbDu.value=today.slice(0,7)+'-01';
+  if(pbAu&&!pbAu.value) pbAu.value=today;
+  const du=pbDu?.value||'';
+  const au=pbAu?.value||today;
+
+  const [ofs,qcRows,chantiers,suiviRows]=await Promise.all(['of','controles_qualite','chantiers','suivi_reel'].map(idbGetAll));
+
+  // Filtrage période
+  const ofsFilt=du?ofs.filter(o=>o.date>=du&&o.date<=au):ofs;
+
+  // === KPI ===
+  const total=ofsFilt.length;
+  const termines=ofsFilt.filter(o=>['Terminé','Livré','Prêt à livrer'].includes(o.statut)).length;
+  const annules=ofsFilt.filter(o=>o.statut==='Annulé').length;
+  const enCours=total-termines-annules;
+  const retards=ofsFilt.filter(o=>o.datePrevue&&o.datePrevue<today&&!['Terminé','Livré','Annulé'].includes(o.statut)).length;
+  const qcFilt=qcRows.filter(q=>{const o=ofsFilt.find(x=>x.id===q.ofId);return !!o;});
+  const nonConf=qcFilt.filter(q=>q.statut!=='conforme').length;
+  const tauxRea=total>0?Math.round((termines/total)*100):0;
+  const tauxQual=qcFilt.length>0?Math.round(((qcFilt.length-nonConf)/qcFilt.length)*100):null;
+
+  document.getElementById('pbOFTotal').textContent=total;
+  document.getElementById('pbOFSub').textContent=`${enCours} en cours • ${termines} terminés`;
+  document.getElementById('pbTauxRea').textContent=tauxRea+'%';
+  document.getElementById('pbReaSub').textContent=`${termines}/${total} OF terminés`;
+  document.getElementById('pbEnRetard').textContent=retards;
+  document.getElementById('pbRetardSub').textContent=retards?`${Math.round((retards/total)*100)}% du total`:'Aucun retard';
+  document.getElementById('pbNonConf').textContent=nonConf||0;
+  document.getElementById('pbNonConfSub').textContent=tauxQual!=null?`Taux qualité: ${tauxQual}%`:'Aucun CQ enregistré';
+
+  // === Chart 1: Statuts (doughnut) ===
+  const statuts=['En attente','En cours','Terminé','Prêt à livrer','Livré','Annulé','Suspendu'];
+  const statCounts=statuts.map(s=>ofsFilt.filter(o=>o.statut===s).length);
+  const statColors=['#94a3b8','#3b82f6','#10b981','#6366f1','#14b8a6','#ef4444','#f59e0b'];
+  _pbDestroy('chartStatuts');
+  const ctxS=document.getElementById('chartStatuts');
+  if(ctxS) _pbCharts['chartStatuts']=new Chart(ctxS,{
+    type:'doughnut',
+    data:{labels:statuts,datasets:[{data:statCounts,backgroundColor:statColors,borderWidth:2}]},
+    options:{responsive:true,plugins:{legend:{position:'right',labels:{font:{size:11},color:'#334155'}}}}
+  });
+
+  // === Chart 2: OF créés vs terminés par mois ===
+  const months=[]; const mLabels=[];
+  for(let i=5;i>=0;i--){
+    const d=new Date(); d.setMonth(d.getMonth()-i);
+    const m=d.toISOString().slice(0,7);
+    months.push(m); mLabels.push(d.toLocaleDateString('fr-FR',{month:'short',year:'2-digit'}));
+  }
+  const crees=months.map(m=>ofs.filter(o=>(o.date||'').startsWith(m)).length);
+  const termes=months.map(m=>ofs.filter(o=>(o.dateCloture||o.date||'').startsWith(m)&&['Terminé','Livré'].includes(o.statut)).length);
+  _pbDestroy('chartMensuel');
+  const ctxM=document.getElementById('chartMensuel');
+  if(ctxM) _pbCharts['chartMensuel']=new Chart(ctxM,{
+    type:'bar',
+    data:{labels:mLabels,datasets:[
+      {label:'Créés',data:crees,backgroundColor:'rgba(59,130,246,0.7)',borderRadius:6},
+      {label:'Terminés',data:termes,backgroundColor:'rgba(16,185,129,0.7)',borderRadius:6}
+    ]},
+    options:{responsive:true,plugins:{legend:{labels:{color:'#334155',font:{size:11}}}},scales:{x:{ticks:{color:'#64748b'}},y:{ticks:{color:'#64748b',stepSize:1},beginAtZero:true}}}
+  });
+
+  // === Chart 3: Charge par opérateur ===
+  const opMap=new Map();
+  ofsFilt.forEach(o=>{const k=o.operateur||'Non assigné';opMap.set(k,(opMap.get(k)||0)+1);});
+  const opLabels=[...opMap.keys()]; const opData=[...opMap.values()];
+  const opColors=opLabels.map((_,i)=>['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#f97316'][i%7]);
+  _pbDestroy('chartOperateurs');
+  const ctxO=document.getElementById('chartOperateurs');
+  if(ctxO) _pbCharts['chartOperateurs']=new Chart(ctxO,{
+    type:'bar',
+    data:{labels:opLabels,datasets:[{label:'OF',data:opData,backgroundColor:opColors,borderRadius:6}]},
+    options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#64748b',stepSize:1},beginAtZero:true},y:{ticks:{color:'#334155',font:{size:11}}}}}
+  });
+
+  // === Chart 4: Charge par poste ===
+  const posteMap=new Map();
+  ofsFilt.forEach(o=>{const k=o.poste||'Non défini';posteMap.set(k,(posteMap.get(k)||0)+1);});
+  const pLabels=[...posteMap.keys()]; const pData=[...posteMap.values()];
+  _pbDestroy('chartPostes');
+  const ctxP=document.getElementById('chartPostes');
+  if(ctxP) _pbCharts['chartPostes']=new Chart(ctxP,{
+    type:'bar',
+    data:{labels:pLabels,datasets:[{label:'OF',data:pData,backgroundColor:'rgba(139,92,246,0.75)',borderRadius:6}]},
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#64748b',font:{size:10}}},y:{ticks:{color:'#64748b',stepSize:1},beginAtZero:true}}}
+  });
+
+  // === Chart 5: Qualité ===
+  const conf=qcFilt.filter(q=>q.statut==='conforme').length;
+  _pbDestroy('chartQualite');
+  const ctxQ=document.getElementById('chartQualite');
+  if(ctxQ) _pbCharts['chartQualite']=new Chart(ctxQ,{
+    type:'doughnut',
+    data:{
+      labels:['Conforme','Non conforme','Non contrôlé'],
+      datasets:[{data:[conf,nonConf,Math.max(0,ofsFilt.filter(o=>['Terminé','Livré'].includes(o.statut)).length-qcFilt.length)],backgroundColor:['#10b981','#ef4444','#cbd5e1'],borderWidth:2}]
+    },
+    options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:10},color:'#334155'}}}}
+  });
+
+  // === Chart 6: Délai moyen par poste ===
+  const delaiMap=new Map();
+  ofsFilt.filter(o=>o.datePrevue&&o.date).forEach(o=>{
+    const k=o.poste||'Non défini';
+    const diff=Math.max(0,Math.round((new Date(o.datePrevue)-new Date(o.date))/(1000*60*60*24)));
+    if(!delaiMap.has(k)) delaiMap.set(k,[]);
+    delaiMap.get(k).push(diff);
+  });
+  const dLabels=[...delaiMap.keys()];
+  const dData=dLabels.map(k=>{ const arr=delaiMap.get(k); return arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):0; });
+  _pbDestroy('chartDelai');
+  const ctxD=document.getElementById('chartDelai');
+  if(ctxD) _pbCharts['chartDelai']=new Chart(ctxD,{
+    type:'bar',
+    data:{labels:dLabels,datasets:[{label:'Délai moyen (j)',data:dData,backgroundColor:'rgba(14,165,233,0.75)',borderRadius:6}]},
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#64748b',font:{size:10}}},y:{title:{display:true,text:'Jours',color:'#64748b'},ticks:{color:'#64748b'},beginAtZero:true}}}
+  });
+
+  // === Alertes ===
+  const alertesEl=document.getElementById('pbAlertes');
+  if(alertesEl){
+    const alertItems=[];
+    const retardOfs=ofs.filter(o=>o.datePrevue&&o.datePrevue<today&&!['Terminé','Livré','Annulé'].includes(o.statut)).slice(0,8);
+    retardOfs.forEach(o=>alertItems.push(`<div class="flex items-start gap-2 p-2 bg-red-50 border border-red-200 rounded-lg text-xs"><span class="text-red-600 font-bold">⚠</span><div><div class="font-semibold text-red-700">Retard — OF ${escapeHtml(o.numero||o.id.slice(-6))}</div><div class="text-slate-500">${escapeHtml(o.designation||'—')} • prévu ${o.datePrevue}</div></div></div>`));
+    qcFilt.filter(q=>q.statut!=='conforme').slice(0,5).forEach(q=>{ const o=ofsFilt.find(x=>x.id===q.ofId); alertItems.push(`<div class="flex items-start gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg text-xs"><span class="text-amber-600 font-bold">✕</span><div><div class="font-semibold text-amber-700">Non-conformité — OF ${escapeHtml(o?.numero||q.ofId.slice(-6))}</div><div class="text-slate-500">${escapeHtml(q.observation||'Défaut qualité')}</div></div></div>`); });
+    alertesEl.innerHTML=alertItems.length?alertItems.join(''):
+      '<div class="text-center py-6 text-emerald-600 font-semibold text-sm">✅ Aucune alerte active</div>';
+  }
+
+  // === Chantiers actifs avec avancement ===
+  const chantiersEl=document.getElementById('pbChantiers');
+  if(chantiersEl){
+    const actifs=chantiers.filter(c=>!c.annule&&c.etape!=='termine').slice(0,6);
+    chantiersEl.innerHTML=actifs.length?actifs.map(c=>{
+      const ofsC=ofs.filter(o=>o.chantierId===c.id);
+      const done=ofsC.filter(o=>['Terminé','Livré','Prêt à livrer'].includes(o.statut)).length;
+      const pct=ofsC.length?Math.round((done/ofsC.length)*100):0;
+      const color=pct===100?'emerald':pct>50?'blue':'amber';
+      return `<div class="border rounded-lg p-2">
+        <div class="flex justify-between items-center mb-1">
+          <span class="text-xs font-semibold text-slate-700">${escapeHtml(c.numero||c.id.slice(-6))} — ${escapeHtml(c.client||'—')}</span>
+          <span class="text-xs font-bold text-${color}-600">${pct}%</span>
+        </div>
+        <div class="w-full bg-slate-200 rounded-full h-2">
+          <div class="bg-${color}-500 h-2 rounded-full transition-all" style="width:${pct}%"></div>
+        </div>
+        <div class="text-xs text-slate-400 mt-1">${done}/${ofsC.length} OF • ${escapeHtml(CHANTIER_STAGES.find(s=>s.key===c.etape)?.label||c.etape||'—')}</div>
+      </div>`;
+    }).join(''):
+    '<div class="text-center py-6 text-slate-400 text-sm">Aucun chantier actif</div>';
+  }
+
+  const upd=document.getElementById('pbLastUpdate');
+  if(upd) upd.textContent='Mis à jour : '+new Date().toLocaleTimeString('fr-FR');
+}
+
+async function exportProdDashboard(){
+  const [ofs,chantiers]=await Promise.all(['of','chantiers'].map(idbGetAll));
+  const du=document.getElementById('pbDu')?.value||'';
+  const au=document.getElementById('pbAu')?.value||new Date().toISOString().slice(0,10);
+  const ofsFilt=du?ofs.filter(o=>o.date>=du&&o.date<=au):ofs;
+  const total=ofsFilt.length;
+  const termines=ofsFilt.filter(o=>['Terminé','Livré','Prêt à livrer'].includes(o.statut)).length;
+  const retards=ofsFilt.filter(o=>o.datePrevue&&o.datePrevue<new Date().toISOString().slice(0,10)&&!['Terminé','Livré','Annulé'].includes(o.statut)).length;
+  const win=window.open('','_blank');
+  if(!win) return;
+  win.document.write(`<html><head><title>Rapport Production</title>
+  <style>body{font-family:Arial,sans-serif;padding:30px;color:#0f172a;font-size:12px}h1{font-size:18px;color:#1e40af}h2{font-size:14px;color:#334155;margin-top:20px}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #cbd5e1;padding:6px 8px}th{background:#f1f5f9;text-align:left}.kpi{display:inline-block;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 16px;margin:4px;min-width:120px;text-align:center}.kpi-val{font-size:22px;font-weight:900;color:#1e40af}.kpi-lbl{font-size:10px;color:#64748b}</style></head><body>
+  <h1>📊 Rapport Tableau de bord Production</h1>
+  <p style="color:#64748b;font-size:11px">Période: ${du||'Tout'} → ${au} • Exporté le ${new Date().toLocaleDateString('fr-FR')}</p>
+  <h2>Indicateurs clés (KPI)</h2>
+  <div><span class="kpi"><div class="kpi-val">${total}</div><div class="kpi-lbl">OF TOTAL</div></span>
+  <span class="kpi"><div class="kpi-val">${total>0?Math.round((termines/total)*100):0}%</div><div class="kpi-lbl">TAUX RÉALISATION</div></span>
+  <span class="kpi"><div class="kpi-val" style="color:#f59e0b">${retards}</div><div class="kpi-lbl">EN RETARD</div></span>
+  <span class="kpi"><div class="kpi-val" style="color:#10b981">${termines}</div><div class="kpi-lbl">TERMINÉS</div></span></div>
+  <h2>Détail des OF</h2>
+  <table><thead><tr><th>N° OF</th><th>Désignation</th><th>Statut</th><th>Opérateur</th><th>Poste</th><th>Date</th><th>Prévu</th></tr></thead>
+  <tbody>${ofsFilt.map(o=>`<tr><td>${o.numero||o.id.slice(-6)}</td><td>${o.designation||'—'}</td><td>${o.statut}</td><td>${o.operateur||'—'}</td><td>${o.poste||'—'}</td><td>${o.date}</td><td>${o.datePrevue||'—'}</td></tr>`).join('')}</tbody></table>
+  </body></html>`);
+  win.document.close(); win.focus(); setTimeout(()=>win.print(),400);
 }
 
 /* ---------- Dossiers de fabrication par chantier — feuille de route atelier (sans prix) ---------- */
@@ -13183,7 +13482,7 @@ function showPage(page){
     if(page==='config'){ populateAtelierSelect(); if(!document.getElementById('niveauTarifaire').options.length) populateNiveauTarifaireSelect('standard'); }
     if(page==='flux') setFluxViewMode('global');
     if(page==='stock') showStockTab('liste');
-    if(page==='production') showProdTab('liste');
+    if(page==='production') showProdTab('dashboard');
     if(page==='atelierMobile') renderAtelierMobile();
     if(page==='sav') renderSAVList();
   } else {
