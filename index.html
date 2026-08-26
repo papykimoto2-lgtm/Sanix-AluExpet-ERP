@@ -1881,6 +1881,7 @@ window.SANIX_CFG = {
 
       <section id="stock" class="page hidden">
         <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1">
+          <button class="stock-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-stocktab="dashboard" onclick="showStockTab('dashboard')">📊 Tableau de bord</button>
           <button class="stock-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-stocktab="catalogue" onclick="showStockTab('catalogue')">📚 Catalogue articles</button>
           <button class="stock-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-stocktab="liste" onclick="showStockTab('liste')">📦 Stock</button>
           <button class="stock-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-stocktab="valorisation" onclick="showStockTab('valorisation')">💰 Valorisation</button>
@@ -1889,6 +1890,87 @@ window.SANIX_CFG = {
           <button class="stock-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-stocktab="reappro" onclick="showStockTab('reappro')">🧾 Réappro. stock</button>
           <a href="#" onclick="showPage('catalogue');setTimeout(()=>showCatalogueTab('mouvements'),50);return false;" class="ml-auto self-center text-xs text-blue-600 font-semibold px-3">📖 Journal de mouvement périodique →</a>
         </div>
+
+        <!-- ====== TABLEAU DE BORD STOCK ====== -->
+        <div id="stockTabDashboard" class="stock-tab hidden">
+
+          <div class="flex flex-wrap gap-2 items-center mb-4">
+            <label class="text-xs font-semibold text-slate-600">Dépôt :</label>
+            <select id="sbDepotFilter" onchange="renderStockDashboard()" class="border rounded-lg px-2 py-1.5 text-sm"><option value="">Tous dépôts</option></select>
+            <label class="text-xs font-semibold text-slate-600 ml-2">Famille :</label>
+            <select id="sbFamilleFilter" onchange="renderStockDashboard()" class="border rounded-lg px-2 py-1.5 text-sm"><option value="">Toutes</option></select>
+            <button onclick="renderStockDashboard()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold">🔄 Actualiser</button>
+            <button onclick="exportStockDashboard()" class="border border-slate-300 text-slate-700 px-3 py-1.5 rounded-lg text-sm font-semibold">📤 Exporter</button>
+            <span id="sbLastUpdate" class="ml-auto text-xs text-slate-400"></span>
+          </div>
+
+          <!-- KPI -->
+          <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
+            <div class="bg-white rounded-2xl p-4 border-l-4 border-blue-500 shadow-sm">
+              <div class="text-xs font-semibold text-slate-500 mb-1">RÉFÉRENCES</div>
+              <div class="text-2xl font-black text-slate-800" id="sbKpiRefs">—</div>
+              <div class="text-xs text-slate-400 mt-1" id="sbKpiRefsSub">articles en stock</div>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border-l-4 border-emerald-500 shadow-sm">
+              <div class="text-xs font-semibold text-slate-500 mb-1">VALEUR TOTALE</div>
+              <div class="text-lg font-black text-emerald-700" id="sbKpiValeur">—</div>
+              <div class="text-xs text-slate-400 mt-1">FCFA (CUMP)</div>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border-l-4 border-red-500 shadow-sm">
+              <div class="text-xs font-semibold text-slate-500 mb-1">STOCK FAIBLE</div>
+              <div class="text-2xl font-black text-red-600" id="sbKpiFaible">—</div>
+              <div class="text-xs text-slate-400 mt-1" id="sbKpiFaibleSub">en dessous du seuil</div>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border-l-4 border-amber-500 shadow-sm">
+              <div class="text-xs font-semibold text-slate-500 mb-1">EN SURVEILLANCE</div>
+              <div class="text-2xl font-black text-amber-600" id="sbKpiSurv">—</div>
+              <div class="text-xs text-slate-400 mt-1">à surveiller</div>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border-l-4 border-indigo-500 shadow-sm">
+              <div class="text-xs font-semibold text-slate-500 mb-1">MOUVEMENTS (30j)</div>
+              <div class="text-2xl font-black text-indigo-700" id="sbKpiMvts">—</div>
+              <div class="text-xs text-slate-400 mt-1" id="sbKpiMvtsSub">entrées / sorties</div>
+            </div>
+          </div>
+
+          <!-- Graphiques ligne 1 -->
+          <div class="grid lg:grid-cols-2 gap-4 mb-4">
+            <div class="bg-white rounded-2xl p-4 shadow-sm">
+              <h3 class="font-bold text-sm text-slate-700 mb-3">Répartition par état</h3>
+              <canvas id="sbChartEtat" height="200"></canvas>
+            </div>
+            <div class="bg-white rounded-2xl p-4 shadow-sm">
+              <h3 class="font-bold text-sm text-slate-700 mb-3">Valeur par famille</h3>
+              <canvas id="sbChartFamille" height="200"></canvas>
+            </div>
+          </div>
+
+          <!-- Graphiques ligne 2 -->
+          <div class="grid lg:grid-cols-2 gap-4 mb-4">
+            <div class="bg-white rounded-2xl p-4 shadow-sm">
+              <h3 class="font-bold text-sm text-slate-700 mb-3">Mouvements 30 jours (entrées vs sorties)</h3>
+              <canvas id="sbChartMvts" height="200"></canvas>
+            </div>
+            <div class="bg-white rounded-2xl p-4 shadow-sm">
+              <h3 class="font-bold text-sm text-slate-700 mb-3">Top 8 articles par valeur</h3>
+              <canvas id="sbChartTopVal" height="200"></canvas>
+            </div>
+          </div>
+
+          <!-- Alertes + Réappro -->
+          <div class="grid lg:grid-cols-2 gap-4">
+            <div class="bg-white rounded-2xl p-4 shadow-sm">
+              <h3 class="font-bold text-sm text-slate-700 mb-3">🚨 Articles à réapprovisionner</h3>
+              <div id="sbAlertes" class="space-y-2 max-h-72 overflow-y-auto"></div>
+            </div>
+            <div class="bg-white rounded-2xl p-4 shadow-sm">
+              <h3 class="font-bold text-sm text-slate-700 mb-3">📦 Répartition par dépôt</h3>
+              <canvas id="sbChartDepot" height="220"></canvas>
+            </div>
+          </div>
+
+        </div>
+        <!-- ====== FIN TABLEAU DE BORD STOCK ====== -->
 
         <div id="stockTabCatalogue" class="stock-tab">
         <div class="card bg-white rounded-2xl p-6">
@@ -2656,6 +2738,7 @@ window.SANIX_CFG = {
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="journal" onclick="showComptaTab('journal')">🗒️ Journal</button>
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="grandlivre" onclick="showComptaTab('grandlivre')">📚 Grand livre</button>
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="balance" onclick="showComptaTab('balance')">⚖️ Balance</button>
+          <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="tiers" onclick="showComptaTab('tiers')">👥 Comptes tiers</button>
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="plan" onclick="showComptaTab('plan')">📖 Plan comptable</button>
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="parametres" onclick="showComptaTab('parametres')">⚙️ Paramètres</button>
         </div>
@@ -7439,12 +7522,214 @@ function showStockTab(tab){
   document.getElementById('stockTab'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.remove('hidden');
   document.querySelectorAll('.stock-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.stocktab===tab));
   populateDepotSelects();
+  if(tab==='dashboard') renderStockDashboard();
   if(tab==='catalogue') renderArticleTable();
   if(tab==='liste') renderStockTable();
   if(tab==='valorisation') renderValorisation();
   if(tab==='inventaireDepot') renderInventaireDepot();
   if(tab==='transfert') renderTransfertHisto();
   if(tab==='reappro') renderStockReapproTable();
+}
+
+/* ============================================================
+   TABLEAU DE BORD STOCK
+   ============================================================ */
+let _sbCharts={};
+function _sbDestroy(id){ if(_sbCharts[id]){_sbCharts[id].destroy();delete _sbCharts[id];} }
+
+async function renderStockDashboard(){
+  const depotFilter=document.getElementById('sbDepotFilter')?.value||'';
+  const familleFilter=document.getElementById('sbFamilleFilter')?.value||'';
+  const today=new Date().toISOString().slice(0,10);
+  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-30);
+  const cutoffStr=cutoff.toISOString().slice(0,10);
+
+  const [stocks,mvts,articles,depots]=await Promise.all(['stock','stock_mouvements','articles','depots'].map(idbGetAll));
+  const articleMap=new Map(articles.map(a=>[a.reference,a]));
+  const depotsActifs=depots.filter(d=>!d.supprime);
+  const depotNom=Object.fromEntries(depotsActifs.map(d=>[d.code,d.nom]));
+
+  // Peupler filtres
+  const sbDepot=document.getElementById('sbDepotFilter');
+  if(sbDepot&&sbDepot.options.length<2){
+    depotsActifs.forEach(d=>sbDepot.insertAdjacentHTML('beforeend',`<option value="${d.code}">${d.nom}</option>`));
+  }
+  const familles=[...new Set(articles.map(a=>a.famille).filter(Boolean))].sort();
+  const sbFamille=document.getElementById('sbFamilleFilter');
+  if(sbFamille&&sbFamille.options.length<2){
+    familles.forEach(f=>sbFamille.insertAdjacentHTML('beforeend',`<option value="${f}">${f}</option>`));
+  }
+
+  // Filtrer stocks
+  let rows=stocks.filter(r=>r.dispo!=null);
+  if(depotFilter) rows=rows.filter(r=>(r.depot||'PRINC')===depotFilter);
+  if(familleFilter) rows=rows.filter(r=>{ const a=articleMap.get(r.ref); return a?.famille===familleFilter; });
+
+  // KPI de base
+  const refs=new Set(rows.map(r=>r.ref)).size;
+  let faible=0,surv=0,normal=0;
+  let valeurTotale=0;
+
+  const rowValeurs=await Promise.all(rows.map(async r=>{
+    const art=articleMap.get(r.ref);
+    const cump=await computeCUMP(r.ref)||r.prix||art?.dernierPrix||0;
+    const valeur=r.dispo*cump;
+    valeurTotale+=valeur;
+    const seuil=art?.qteMinimale||0;
+    if(seuil>0&&r.dispo<seuil) faible++;
+    else { const [,c]=stockEtat(r.dispo); if(c==='amber') surv++; else if(c==='emerald') normal++; }
+    return {ref:r.ref,label:r.label,depot:r.depot||'PRINC',dispo:r.dispo,valeur,art,cump,seuil};
+  }));
+
+  // Mouvements 30j
+  const mvtsFilt=mvts.filter(m=>m.ts>=cutoffStr&&(!depotFilter||m.depot===depotFilter));
+  const entrees=mvtsFilt.filter(m=>m.type==='entree').length;
+  const sorties=mvtsFilt.filter(m=>m.type==='sortie').length;
+
+  // KPI DOM
+  document.getElementById('sbKpiRefs').textContent=refs;
+  document.getElementById('sbKpiValeur').textContent=money(valeurTotale);
+  document.getElementById('sbKpiFaible').textContent=faible;
+  document.getElementById('sbKpiFaibleSub').textContent=faible?`${faible} article(s) critique(s)`:'Stocks OK';
+  document.getElementById('sbKpiSurv').textContent=surv;
+  document.getElementById('sbKpiMvts').textContent=entrees+sorties;
+  document.getElementById('sbKpiMvtsSub').textContent=`${entrees} entrées / ${sorties} sorties`;
+
+  // === Chart 1: État (doughnut) ===
+  _sbDestroy('sbChartEtat');
+  const ctxE=document.getElementById('sbChartEtat');
+  if(ctxE) _sbCharts['sbChartEtat']=new Chart(ctxE,{
+    type:'doughnut',
+    data:{
+      labels:['Normal ✅','Surveillance ⚠','Faible 🔴','Vide'],
+      datasets:[{
+        data:[normal,surv,faible,rows.filter(r=>r.dispo<=0).length],
+        backgroundColor:['#10b981','#f59e0b','#ef4444','#94a3b8'],borderWidth:2
+      }]
+    },
+    options:{responsive:true,plugins:{legend:{position:'right',labels:{font:{size:11},color:'#334155'}}}}
+  });
+
+  // === Chart 2: Valeur par famille ===
+  const famValMap=new Map();
+  rowValeurs.forEach(r=>{ const f=r.art?.famille||'Autre'; famValMap.set(f,(famValMap.get(f)||0)+r.valeur); });
+  const famKeys=[...famValMap.keys()].sort((a,b)=>famValMap.get(b)-famValMap.get(a));
+  const famColors=['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#f97316','#84cc16'];
+  _sbDestroy('sbChartFamille');
+  const ctxF=document.getElementById('sbChartFamille');
+  if(ctxF) _sbCharts['sbChartFamille']=new Chart(ctxF,{
+    type:'bar',
+    data:{labels:famKeys,datasets:[{label:'Valeur (FCFA)',data:famKeys.map(k=>Math.round(famValMap.get(k))),backgroundColor:famColors,borderRadius:6}]},
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#64748b',font:{size:10}}},y:{ticks:{color:'#64748b',callback:v=>v>=1000000?(v/1000000).toFixed(1)+'M':v>=1000?(v/1000).toFixed(0)+'k':v},beginAtZero:true}}}
+  });
+
+  // === Chart 3: Mouvements 30j par jour ===
+  const jours=[]; const jLabels=[];
+  for(let i=29;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const ds=d.toISOString().slice(0,10);
+    jours.push(ds);
+    jLabels.push(i%5===0?d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}):'');
+  }
+  const mvtEntJ=jours.map(j=>mvtsFilt.filter(m=>m.ts?.startsWith(j)&&m.type==='entree').length);
+  const mvtSorJ=jours.map(j=>mvtsFilt.filter(m=>m.ts?.startsWith(j)&&m.type==='sortie').length);
+  _sbDestroy('sbChartMvts');
+  const ctxM=document.getElementById('sbChartMvts');
+  if(ctxM) _sbCharts['sbChartMvts']=new Chart(ctxM,{
+    type:'bar',
+    data:{labels:jLabels,datasets:[
+      {label:'Entrées',data:mvtEntJ,backgroundColor:'rgba(16,185,129,0.7)',borderRadius:3},
+      {label:'Sorties',data:mvtSorJ,backgroundColor:'rgba(239,68,68,0.7)',borderRadius:3}
+    ]},
+    options:{responsive:true,plugins:{legend:{labels:{color:'#334155',font:{size:11}}}},scales:{x:{ticks:{color:'#94a3b8',font:{size:9}}},y:{ticks:{color:'#64748b',stepSize:1},beginAtZero:true}}}
+  });
+
+  // === Chart 4: Top 8 articles par valeur ===
+  const top8=[...rowValeurs].sort((a,b)=>b.valeur-a.valeur).slice(0,8);
+  _sbDestroy('sbChartTopVal');
+  const ctxT=document.getElementById('sbChartTopVal');
+  if(ctxT) _sbCharts['sbChartTopVal']=new Chart(ctxT,{
+    type:'bar',
+    data:{
+      labels:top8.map(r=>r.ref.length>12?r.ref.slice(0,12)+'…':r.ref),
+      datasets:[{label:'Valeur (FCFA)',data:top8.map(r=>Math.round(r.valeur)),backgroundColor:'rgba(99,102,241,0.75)',borderRadius:6}]
+    },
+    options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#64748b',callback:v=>v>=1000000?(v/1000000).toFixed(1)+'M':v>=1000?(v/1000).toFixed(0)+'k':v},beginAtZero:true},y:{ticks:{color:'#334155',font:{size:10}}}}}
+  });
+
+  // === Chart 5: Valeur par dépôt ===
+  const depotValMap=new Map();
+  rowValeurs.forEach(r=>{ const k=depotNom[r.depot]||r.depot; depotValMap.set(k,(depotValMap.get(k)||0)+r.valeur); });
+  _sbDestroy('sbChartDepot');
+  const ctxD=document.getElementById('sbChartDepot');
+  if(ctxD) _sbCharts['sbChartDepot']=new Chart(ctxD,{
+    type:'doughnut',
+    data:{
+      labels:[...depotValMap.keys()],
+      datasets:[{data:[...depotValMap.values()].map(v=>Math.round(v)),backgroundColor:famColors,borderWidth:2}]
+    },
+    options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:10},color:'#334155'}}}}
+  });
+
+  // === Alertes réappro ===
+  const alertesEl=document.getElementById('sbAlertes');
+  if(alertesEl){
+    const critiques=rowValeurs.filter(r=>r.seuil>0&&r.dispo<r.seuil).sort((a,b)=>a.dispo-b.dispo);
+    const surv2=rowValeurs.filter(r=>{ const[,c]=stockEtat(r.dispo); return c==='amber'&&!(r.seuil>0&&r.dispo<r.seuil); }).slice(0,5);
+    const items=[
+      ...critiques.map(r=>`
+        <div class="flex items-center gap-3 p-2 bg-red-50 border border-red-200 rounded-lg text-xs">
+          <span class="text-red-600 text-lg">🔴</span>
+          <div class="flex-1">
+            <div class="font-semibold text-red-700">${escapeHtml(r.ref)} — ${escapeHtml(r.label||r.art?.designation||'')}</div>
+            <div class="text-slate-500">Stock: <b>${r.dispo.toFixed(1)}</b> ${r.art?.unite||''} • Seuil min: <b>${r.seuil}</b> • Fournisseur: ${escapeHtml(r.art?.fournisseur||'—')}</div>
+          </div>
+          <button onclick="showStockTab('reappro')" class="text-blue-600 font-semibold text-xs whitespace-nowrap">→ Réappro</button>
+        </div>`),
+      ...surv2.map(r=>`
+        <div class="flex items-center gap-3 p-2 bg-amber-50 border border-amber-200 rounded-lg text-xs">
+          <span class="text-amber-500 text-lg">⚠</span>
+          <div class="flex-1">
+            <div class="font-semibold text-amber-700">${escapeHtml(r.ref)} — ${escapeHtml(r.label||r.art?.designation||'')}</div>
+            <div class="text-slate-500">Stock: <b>${r.dispo.toFixed(1)}</b> ${r.art?.unite||''} — À surveiller</div>
+          </div>
+        </div>`)
+    ];
+    alertesEl.innerHTML=items.length?items.join(''):
+      '<div class="text-center py-8 text-emerald-600 font-semibold text-sm">✅ Tous les stocks sont OK</div>';
+  }
+
+  const upd=document.getElementById('sbLastUpdate');
+  if(upd) upd.textContent='Mis à jour : '+new Date().toLocaleTimeString('fr-FR');
+}
+
+async function exportStockDashboard(){
+  const [stocks,articles]=await Promise.all(['stock','articles'].map(idbGetAll));
+  const articleMap=new Map(articles.map(a=>[a.reference,a]));
+  const rowValeurs=await Promise.all(stocks.map(async r=>{
+    const art=articleMap.get(r.ref);
+    const cump=await computeCUMP(r.ref)||r.prix||art?.dernierPrix||0;
+    const valeur=r.dispo*cump;
+    const[etat]=stockEtat(r.dispo);
+    return {ref:r.ref,label:r.label,depot:r.depot||'PRINC',dispo:r.dispo,unite:art?.unite||'ml',valeur,cump,etat,fournisseur:art?.fournisseur||'—',famille:art?.famille||'—'};
+  }));
+  const total=rowValeurs.reduce((s,r)=>s+r.valeur,0);
+  const win=window.open('','_blank');
+  if(!win) return;
+  win.document.write(`<html><head><title>Rapport Stock</title>
+  <style>body{font-family:Arial,sans-serif;padding:28px;color:#0f172a;font-size:11.5px}h1{font-size:17px;color:#1e40af}h2{font-size:13px;color:#334155;margin-top:18px}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #cbd5e1;padding:5px 8px}th{background:#f1f5f9;text-align:left}tfoot td{font-weight:800;border-top:2px solid #0f172a}.kpi{display:inline-block;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 14px;margin:4px;text-align:center}.kpi-val{font-size:20px;font-weight:900;color:#1e40af}.kpi-lbl{font-size:9px;color:#64748b}</style></head><body>
+  <h1>📦 Rapport Tableau de bord Stock</h1>
+  <p style="color:#64748b;font-size:10px">Exporté le ${new Date().toLocaleDateString('fr-FR')}</p>
+  <h2>Indicateurs</h2>
+  <div><span class="kpi"><div class="kpi-val">${new Set(stocks.map(r=>r.ref)).size}</div><div class="kpi-lbl">RÉFÉRENCES</div></span>
+  <span class="kpi"><div class="kpi-val">${money(total)}</div><div class="kpi-lbl">VALEUR TOTALE</div></span>
+  <span class="kpi"><div class="kpi-val" style="color:#ef4444">${rowValeurs.filter(r=>r.etat==='Faible').length}</div><div class="kpi-lbl">STOCK FAIBLE</div></span></div>
+  <h2>Détail du stock</h2>
+  <table><thead><tr><th>Référence</th><th>Désignation</th><th>Famille</th><th>Dépôt</th><th style="text-align:right">Qté</th><th>Unité</th><th style="text-align:right">CUMP</th><th style="text-align:right">Valeur</th><th>État</th><th>Fournisseur</th></tr></thead>
+  <tbody>${rowValeurs.sort((a,b)=>b.valeur-a.valeur).map(r=>`<tr><td>${r.ref}</td><td>${r.label||'—'}</td><td>${r.famille}</td><td>${r.depot}</td><td style="text-align:right">${r.dispo.toFixed(2)}</td><td>${r.unite}</td><td style="text-align:right">${money(r.cump)}</td><td style="text-align:right">${money(r.valeur)}</td><td>${r.etat}</td><td>${r.fournisseur}</td></tr>`).join('')}</tbody>
+  <tfoot><tr><td colspan="7">Valeur totale du stock</td><td style="text-align:right">${money(total)}</td><td colspan="2"></td></tr></tfoot></table>
+  </body></html>`);
+  win.document.close(); win.focus(); setTimeout(()=>win.print(),400);
 }
 /* Onglet Stock → Réappro. stock : demandes d'achat non rattachées à un chantier
    (déclenchées automatiquement par une alerte de seuil minimal). */
@@ -13481,7 +13766,7 @@ function showPage(page){
     }
     if(page==='config'){ populateAtelierSelect(); if(!document.getElementById('niveauTarifaire').options.length) populateNiveauTarifaireSelect('standard'); }
     if(page==='flux') setFluxViewMode('global');
-    if(page==='stock') showStockTab('liste');
+    if(page==='stock') showStockTab('dashboard');
     if(page==='production') showProdTab('dashboard');
     if(page==='atelierMobile') renderAtelierMobile();
     if(page==='sav') renderSAVList();
