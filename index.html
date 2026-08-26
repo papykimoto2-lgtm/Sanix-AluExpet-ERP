@@ -2449,28 +2449,61 @@ window.SANIX_CFG = {
 
       <section id="caisse" class="page hidden">
         <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
-          <div><h2 class="text-lg font-bold">💵 Caisse</h2><p class="text-sm text-slate-500">Journal de caisse — encaissements et décaissements en espèces.</p></div>
+          <div><h2 class="text-lg font-bold">💵 Caisse</h2><p class="text-sm text-slate-500">Brouillard de caisse — ouverture, opérations du jour et clôture avec contrôle du comptage.</p></div>
           <div class="flex gap-2">
             <select id="caisseCompteSel" onchange="renderCaisse()" class="border rounded-lg px-2 py-1.5 text-sm"></select>
             <button onclick="openCaisseCompteModal()" class="border px-3 py-2 rounded-lg text-sm font-semibold">⚙️ Caisses</button>
           </div>
         </div>
-        <div class="grid sm:grid-cols-3 gap-3 mb-4">
-          <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Solde actuel</div><div id="caisseSolde" class="text-2xl font-bold text-emerald-700">—</div></div>
-          <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Total encaissements (mois)</div><div id="caisseTotalEntree" class="text-xl font-bold text-blue-700">—</div></div>
-          <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Total décaissements (mois)</div><div id="caisseTotalSortie" class="text-xl font-bold text-red-700">—</div></div>
+
+        <div id="caisseSessionBanner" class="card rounded-2xl p-4 mb-4"></div>
+
+        <!-- Bloc OUVERTURE (aucune session en cours) -->
+        <div id="caisseOuvertureBlock" class="card bg-white rounded-2xl p-4 mb-4 hidden">
+          <h3 class="font-bold mb-2">🔓 Ouverture de caisse</h3>
+          <form onsubmit="return handleOuvrirCaisse(event)" class="grid sm:grid-cols-4 gap-2 items-end">
+            <div><label class="text-xs text-slate-500 block mb-1">Date d'ouverture</label><input id="ouvDate" type="date" required class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+            <div class="sm:col-span-2"><label class="text-xs text-slate-500 block mb-1">Solde initial / fond de caisse (FCFA)</label><input id="ouvSoldeInitial" type="number" min="0" step="1" required class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-3 py-2 text-sm font-semibold">🔓 Ouvrir la caisse</button>
+          </form>
         </div>
-        <form id="caisseForm" onsubmit="return handleAddCaisseOp(event)" class="card bg-white rounded-2xl p-4 grid sm:grid-cols-6 gap-2 mb-4">
-          <select id="caisseType" class="border rounded-lg px-2 py-1.5 text-sm"><option value="entree">Encaissement (entrée)</option><option value="sortie">Décaissement (sortie)</option></select>
-          <input id="caisseDate" type="date" required class="border rounded-lg px-2 py-1.5 text-sm">
-          <input id="caisseLibelle" placeholder="Libellé (ex: vente comptant, achat fournitures...)" required class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
-          <input id="caisseMontant" type="number" min="0" step="1" placeholder="Montant FCFA" required class="border rounded-lg px-2 py-1.5 text-sm">
-          <input id="caissePiece" placeholder="N° pièce (optionnel)" class="border rounded-lg px-2 py-1.5 text-sm">
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold sm:col-span-6">+ Enregistrer dans le brouillard de caisse</button>
-        </form>
-        <p class="text-xs text-slate-500 mb-2">ℹ️ La caissière saisit uniquement l'entrée ou la sortie. La ventilation comptable (choix du compte OHADA) est faite ensuite par le comptable dans <b>Comptabilité SYSCOHADA → Ventilation</b>.</p>
+
+        <!-- Bloc SESSION EN COURS -->
+        <div id="caisseSessionBlock" class="hidden">
+          <div class="grid sm:grid-cols-4 gap-3 mb-4">
+            <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Fond de caisse initial</div><div id="caisseSoldeInitial" class="text-xl font-bold text-slate-700">—</div></div>
+            <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Solde théorique actuel</div><div id="caisseSolde" class="text-2xl font-bold text-emerald-700">—</div></div>
+            <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Total encaissements (session)</div><div id="caisseTotalEntree" class="text-xl font-bold text-blue-700">—</div></div>
+            <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Total décaissements (session)</div><div id="caisseTotalSortie" class="text-xl font-bold text-red-700">—</div></div>
+          </div>
+          <form id="caisseForm" onsubmit="return handleAddCaisseOp(event)" class="card bg-white rounded-2xl p-4 grid sm:grid-cols-6 gap-2 mb-4">
+            <select id="caisseType" class="border rounded-lg px-2 py-1.5 text-sm"><option value="entree">Encaissement (entrée)</option><option value="sortie">Décaissement (sortie)</option></select>
+            <input id="caisseDate" type="date" required class="border rounded-lg px-2 py-1.5 text-sm">
+            <input id="caisseLibelle" placeholder="Libellé (ex: vente comptant, achat fournitures...)" required class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
+            <input id="caisseMontant" type="number" min="0" step="1" placeholder="Montant FCFA" required class="border rounded-lg px-2 py-1.5 text-sm">
+            <input id="caissePiece" placeholder="N° pièce (optionnel)" class="border rounded-lg px-2 py-1.5 text-sm">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold sm:col-span-6">+ Enregistrer dans le brouillard de caisse</button>
+          </form>
+          <p class="text-xs text-slate-500 mb-2">ℹ️ La caissière saisit uniquement l'entrée ou la sortie. La ventilation comptable (choix du compte OHADA) est faite ensuite par le comptable dans <b>Comptabilité SYSCOHADA → Ventilation</b>.</p>
+          <div class="card bg-white rounded-2xl p-4 overflow-x-auto mb-4">
+            <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Date</th><th class="text-left p-2">Libellé</th><th class="text-left p-2">Pièce</th><th class="text-right p-2">Entrée</th><th class="text-right p-2">Sortie</th><th class="text-right p-2">Solde</th><th class="text-left p-2">Statut</th><th class="p-2"></th></tr></thead><tbody id="caisseBody"></tbody></table>
+          </div>
+
+          <div class="card bg-white rounded-2xl p-4">
+            <button onclick="document.getElementById('clotureForm').classList.toggle('hidden')" class="bg-slate-800 hover:bg-slate-900 text-white rounded-lg px-3 py-2 text-sm font-semibold">🔒 Clôturer la caisse</button>
+            <form id="clotureForm" onsubmit="return handleCloturerCaisse(event)" class="hidden grid sm:grid-cols-4 gap-2 items-end mt-3">
+              <div><label class="text-xs text-slate-500 block mb-1">Solde théorique</label><div id="clotureSoldeTheo" class="border rounded-lg px-2 py-1.5 text-sm bg-slate-50 font-semibold">—</div></div>
+              <div><label class="text-xs text-slate-500 block mb-1">Solde réel compté (FCFA)</label><input id="clotureSoldeReel" type="number" step="1" required class="border rounded-lg px-2 py-1.5 text-sm w-full" oninput="updateClotureEcart()"></div>
+              <div><label class="text-xs text-slate-500 block mb-1">Écart</label><div id="clotureEcart" class="border rounded-lg px-2 py-1.5 text-sm bg-slate-50 font-semibold">—</div></div>
+              <button type="submit" class="bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-2 text-sm font-semibold">✔ Valider la clôture</button>
+              <input id="clotureObs" placeholder="Observation (optionnel, ex: écart justifié par...)" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-4">
+            </form>
+          </div>
+        </div>
+
+        <h3 class="text-sm font-bold text-slate-600 mt-6 mb-2">📜 Historique des clôtures</h3>
         <div class="card bg-white rounded-2xl p-4 overflow-x-auto">
-          <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Date</th><th class="text-left p-2">Libellé</th><th class="text-left p-2">Pièce</th><th class="text-right p-2">Entrée</th><th class="text-right p-2">Sortie</th><th class="text-right p-2">Solde</th><th class="text-left p-2">Statut</th><th class="p-2"></th></tr></thead><tbody id="caisseBody"></tbody></table>
+          <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Ouverture</th><th class="text-left p-2">Clôture</th><th class="text-right p-2">Solde initial</th><th class="text-right p-2">Solde théorique</th><th class="text-right p-2">Solde réel</th><th class="text-right p-2">Écart</th><th class="text-left p-2">Observation</th></tr></thead><tbody id="caisseHistoBody"></tbody></table>
         </div>
       </section>
 
@@ -12002,11 +12035,14 @@ function getCaisseComptes(){ try{ let c=JSON.parse(localStorage.getItem('sanix_c
 function saveCaisseComptes(c){ localStorage.setItem('sanix_caisse_comptes',JSON.stringify(c)); }
 function getCaisseOps(){ try{ return JSON.parse(localStorage.getItem('sanix_caisse_ops')||'[]'); }catch{ return []; } }
 function saveCaisseOps(o){ localStorage.setItem('sanix_caisse_ops',JSON.stringify(o)); }
+function getCaisseSessions(){ try{ return JSON.parse(localStorage.getItem('sanix_caisse_sessions')||'[]'); }catch{ return []; } }
+function saveCaisseSessions(s){ localStorage.setItem('sanix_caisse_sessions',JSON.stringify(s)); }
+function getOpenSession(compteId){ return getCaisseSessions().find(s=>s.compteId===compteId&&s.statut==='ouverte')||null; }
 function getEcritures(){ try{ return JSON.parse(localStorage.getItem('sanix_ecritures')||'[]'); }catch{ return []; } }
 function saveEcritures(e){ localStorage.setItem('sanix_ecritures',JSON.stringify(e)); }
 function genUid(pfx){ return pfx+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
 
-/* ---- Caisse ---- */
+/* ---- Caisse : ouverture / opérations / clôture ---- */
 function openCaisseCompteModal(){
   const comptes=getCaisseComptes();
   const choix=prompt('Caisses existantes : '+comptes.map(c=>c.nom).join(', ')+'\n\nTapez un nom pour créer une nouvelle caisse (laisser vide pour annuler) :');
@@ -12018,40 +12054,118 @@ function populateCaisseSelects(){
   const cur=compteSel.value||comptes[0]?.id;
   compteSel.innerHTML=comptes.map(c=>`<option value="${c.id}">${escapeHtml(c.nom)}</option>`).join('');
   compteSel.value=cur;
-  if(!document.getElementById('caisseDate').value) document.getElementById('caisseDate').value=new Date().toISOString().slice(0,10);
 }
 function statutBadge(st){
   return st==='ventile'
     ?'<span class="badge bg-emerald-50 text-emerald-700">✅ Ventilé</span>'
     :'<span class="badge bg-amber-50 text-amber-700">🕓 En attente</span>';
 }
+function sessionSoldeTheorique(session){
+  const ops=getCaisseOps().filter(o=>o.sessionId===session.id);
+  let solde=session.soldeInitial;
+  ops.forEach(o=>{ solde+= o.type==='entree'?o.montant:-o.montant; });
+  return solde;
+}
 function renderCaisse(){
   populateCaisseSelects();
   const compteId=document.getElementById('caisseCompteSel').value;
-  const ops=getCaisseOps().filter(o=>o.compteId===compteId).sort((a,b)=>new Date(a.date)-new Date(b.date)||a.ts-b.ts);
-  let solde=0,totE=0,totS=0; const nowM=new Date().toISOString().slice(0,7);
-  const rows=ops.map(o=>{
-    const mE=o.type==='entree'?o.montant:0, mS=o.type==='sortie'?o.montant:0;
-    solde+=mE-mS;
-    if(o.date.slice(0,7)===nowM){ totE+=mE; totS+=mS; }
-    return `<tr class="border-b"><td class="p-2">${new Date(o.date).toLocaleDateString('fr-FR')}</td><td class="p-2">${escapeHtml(o.libelle)}</td><td class="p-2 text-xs">${escapeHtml(o.piece||'—')}</td><td class="p-2 text-right text-emerald-700">${mE?money(mE):''}</td><td class="p-2 text-right text-red-700">${mS?money(mS):''}</td><td class="p-2 text-right font-semibold">${money(solde)}</td><td class="p-2">${statutBadge(o.statut)}</td><td class="p-2">${o.statut!=='ventile'?`<button onclick="deleteCaisseOp('${o.id}')" class="text-red-500 text-xs">✕</button>`:''}</td></tr>`;
-  }).join('');
-  document.getElementById('caisseBody').innerHTML=rows||'<tr><td colspan="8" class="text-center text-slate-400 p-4">Aucune opération</td></tr>';
-  document.getElementById('caisseSolde').textContent=money(solde);
-  document.getElementById('caisseTotalEntree').textContent=money(totE);
-  document.getElementById('caisseTotalSortie').textContent=money(totS);
+  const session=getOpenSession(compteId);
+  const banner=document.getElementById('caisseSessionBanner');
+  const ouvBlock=document.getElementById('caisseOuvertureBlock');
+  const sessBlock=document.getElementById('caisseSessionBlock');
+  if(!session){
+    banner.className='card rounded-2xl p-4 mb-4 bg-amber-50 border border-amber-200 text-amber-800 text-sm font-semibold';
+    banner.textContent='🔒 Caisse fermée — veuillez procéder à l\'ouverture pour commencer la saisie du jour.';
+    ouvBlock.classList.remove('hidden');
+    sessBlock.classList.add('hidden');
+    const lastClosed=getCaisseSessions().filter(s=>s.compteId===compteId&&s.statut==='cloturee').sort((a,b)=>b.ts-a.ts)[0];
+    document.getElementById('ouvSoldeInitial').value=lastClosed?lastClosed.soldeReel:'';
+    if(!document.getElementById('ouvDate').value) document.getElementById('ouvDate').value=new Date().toISOString().slice(0,10);
+  } else {
+    banner.className='card rounded-2xl p-4 mb-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-semibold';
+    banner.textContent=`🔓 Caisse ouverte le ${new Date(session.dateOuverture).toLocaleDateString('fr-FR')} par ${session.user} — Fond de caisse initial : ${money(session.soldeInitial)}`;
+    ouvBlock.classList.add('hidden');
+    sessBlock.classList.remove('hidden');
+    if(!document.getElementById('caisseDate').value) document.getElementById('caisseDate').value=new Date().toISOString().slice(0,10);
+    const ops=getCaisseOps().filter(o=>o.sessionId===session.id).sort((a,b)=>new Date(a.date)-new Date(b.date)||a.ts-b.ts);
+    let solde=session.soldeInitial,totE=0,totS=0;
+    const rows=ops.map(o=>{
+      const mE=o.type==='entree'?o.montant:0, mS=o.type==='sortie'?o.montant:0;
+      solde+=mE-mS; totE+=mE; totS+=mS;
+      return `<tr class="border-b"><td class="p-2">${new Date(o.date).toLocaleDateString('fr-FR')}</td><td class="p-2">${escapeHtml(o.libelle)}</td><td class="p-2 text-xs">${escapeHtml(o.piece||'—')}</td><td class="p-2 text-right text-emerald-700">${mE?money(mE):''}</td><td class="p-2 text-right text-red-700">${mS?money(mS):''}</td><td class="p-2 text-right font-semibold">${money(solde)}</td><td class="p-2">${statutBadge(o.statut)}</td><td class="p-2">${o.statut!=='ventile'?`<button onclick="deleteCaisseOp('${o.id}')" class="text-red-500 text-xs">✕</button>`:''}</td></tr>`;
+    }).join('');
+    document.getElementById('caisseBody').innerHTML=rows||'<tr><td colspan="8" class="text-center text-slate-400 p-4">Aucune opération depuis l\'ouverture</td></tr>';
+    document.getElementById('caisseSoldeInitial').textContent=money(session.soldeInitial);
+    document.getElementById('caisseSolde').textContent=money(solde);
+    document.getElementById('caisseTotalEntree').textContent=money(totE);
+    document.getElementById('caisseTotalSortie').textContent=money(totS);
+    document.getElementById('clotureForm').classList.add('hidden');
+  }
+  renderCaisseHisto(compteId);
   updateVentilationBadge();
+}
+function renderCaisseHisto(compteId){
+  const rows=getCaisseSessions().filter(s=>s.compteId===compteId&&s.statut==='cloturee').sort((a,b)=>b.ts-a.ts).map(s=>{
+    const ecartColor=s.ecart===0?'text-slate-700':(s.ecart>0?'text-emerald-700':'text-red-700');
+    return `<tr class="border-b"><td class="p-2">${new Date(s.dateOuverture).toLocaleDateString('fr-FR')}</td><td class="p-2">${new Date(s.dateCloture).toLocaleDateString('fr-FR')}</td><td class="p-2 text-right">${money(s.soldeInitial)}</td><td class="p-2 text-right">${money(s.soldeTheorique)}</td><td class="p-2 text-right">${money(s.soldeReel)}</td><td class="p-2 text-right font-semibold ${ecartColor}">${s.ecart>0?'+':''}${money(s.ecart)}</td><td class="p-2 text-xs">${escapeHtml(s.observations||'—')}</td></tr>`;
+  }).join('');
+  document.getElementById('caisseHistoBody').innerHTML=rows||'<tr><td colspan="7" class="text-center text-slate-400 p-4">Aucune clôture enregistrée</td></tr>';
+}
+function handleOuvrirCaisse(ev){
+  ev.preventDefault();
+  const compteId=document.getElementById('caisseCompteSel').value;
+  if(getOpenSession(compteId)){ alert('Une session est déjà ouverte pour cette caisse.'); return false; }
+  const dateOuverture=document.getElementById('ouvDate').value;
+  const soldeInitial=parseFloat(document.getElementById('ouvSoldeInitial').value)||0;
+  const sessions=getCaisseSessions();
+  sessions.push({id:genUid('sess'),compteId,dateOuverture,soldeInitial,statut:'ouverte',user:(typeof currentUser!=='undefined'&&currentUser)?currentUser.email:'—',ts:Date.now()});
+  saveCaisseSessions(sessions);
+  renderCaisse();
+  if(typeof audit==='function') audit('OUVERTURE_CAISSE',`Ouverture de caisse — fond initial ${money(soldeInitial)}`);
+  return false;
+}
+function handleCloturerCaisse(ev){
+  ev.preventDefault();
+  const compteId=document.getElementById('caisseCompteSel').value;
+  const session=getOpenSession(compteId); if(!session) return false;
+  const soldeTheorique=sessionSoldeTheorique(session);
+  const soldeReel=parseFloat(document.getElementById('clotureSoldeReel').value);
+  if(isNaN(soldeReel)){ alert('Veuillez saisir le solde réel compté.'); return false; }
+  const ecart=soldeReel-soldeTheorique;
+  const observations=document.getElementById('clotureObs').value.trim();
+  if(!confirm(`Confirmer la clôture ?\nSolde théorique : ${money(soldeTheorique)}\nSolde réel : ${money(soldeReel)}\nÉcart : ${ecart>0?'+':''}${money(ecart)}`)) return false;
+  const sessions=getCaisseSessions();
+  const s=sessions.find(x=>x.id===session.id);
+  s.statut='cloturee'; s.dateCloture=new Date().toISOString().slice(0,10); s.soldeTheorique=soldeTheorique; s.soldeReel=soldeReel; s.ecart=ecart; s.observations=observations;
+  saveCaisseSessions(sessions);
+  renderCaisse();
+  if(typeof audit==='function') audit('CLOTURE_CAISSE',`Clôture de caisse — théorique ${money(soldeTheorique)}, réel ${money(soldeReel)}, écart ${money(ecart)}`);
+  return false;
+}
+function updateClotureEcart(){
+  const compteId=document.getElementById('caisseCompteSel').value;
+  const session=getOpenSession(compteId); if(!session) return;
+  const soldeTheorique=sessionSoldeTheorique(session);
+  document.getElementById('clotureSoldeTheo').textContent=money(soldeTheorique);
+  const soldeReel=parseFloat(document.getElementById('clotureSoldeReel').value);
+  const ecartEl=document.getElementById('clotureEcart');
+  if(isNaN(soldeReel)){ ecartEl.textContent='—'; return; }
+  const ecart=soldeReel-soldeTheorique;
+  ecartEl.textContent=(ecart>0?'+':'')+money(ecart);
+  ecartEl.className='border rounded-lg px-2 py-1.5 text-sm bg-slate-50 font-semibold '+(ecart===0?'text-slate-700':(ecart>0?'text-emerald-700':'text-red-700'));
 }
 function handleAddCaisseOp(ev){
   ev.preventDefault();
   const compteId=document.getElementById('caisseCompteSel').value;
+  const session=getOpenSession(compteId);
+  if(!session){ alert('Veuillez ouvrir la caisse avant de saisir une opération.'); return false; }
   const type=document.getElementById('caisseType').value;
   const date=document.getElementById('caisseDate').value;
   const libelle=document.getElementById('caisseLibelle').value.trim();
   const montant=parseFloat(document.getElementById('caisseMontant').value)||0;
   const piece=document.getElementById('caissePiece').value.trim();
   if(!libelle||montant<=0) return false;
-  const op={id:genUid('cop'),compteId,type,date,libelle,compteCompta:null,statut:'brouillard',montant,piece,user:(typeof currentUser!=='undefined'&&currentUser)?currentUser.email:'—',ts:Date.now()};
+  const op={id:genUid('cop'),compteId,sessionId:session.id,type,date,libelle,compteCompta:null,statut:'brouillard',montant,piece,user:(typeof currentUser!=='undefined'&&currentUser)?currentUser.email:'—',ts:Date.now()};
   const ops=getCaisseOps(); ops.push(op); saveCaisseOps(ops);
   document.getElementById('caisseForm').reset();
   document.getElementById('caisseDate').value=date;
