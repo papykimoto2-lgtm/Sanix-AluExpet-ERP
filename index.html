@@ -2504,6 +2504,23 @@ window.SANIX_CFG = {
           </div>
         </div>
 
+        <h3 class="text-sm font-bold text-slate-600 mt-6 mb-2">📊 État périodique du brouillard de caisse</h3>
+        <div class="card bg-white rounded-2xl p-4 mb-4">
+          <div class="flex flex-wrap gap-2 items-end mb-3">
+            <div><label class="text-xs text-slate-500 block mb-1">Date début</label><input id="etatCaisseDebut" type="date" class="border rounded-lg px-2 py-1.5 text-sm"></div>
+            <div><label class="text-xs text-slate-500 block mb-1">Date fin</label><input id="etatCaisseFin" type="date" class="border rounded-lg px-2 py-1.5 text-sm"></div>
+            <button onclick="renderCaisseEtat()" class="border px-3 py-2 rounded-lg text-sm font-semibold">🔄 Générer l'état</button>
+            <button onclick="apercuCaisseEtat()" class="border border-blue-600 text-blue-600 px-3 py-2 rounded-lg text-sm font-semibold">🖨 Aperçu avant impression</button>
+          </div>
+          <div class="grid sm:grid-cols-4 gap-3 mb-3">
+            <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Solde reporté (avant période)</div><div id="etatCaisseReporte" class="text-lg font-bold text-slate-700">—</div></div>
+            <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Total entrées période</div><div id="etatCaisseEntree" class="text-lg font-bold text-blue-700">—</div></div>
+            <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Total sorties période</div><div id="etatCaisseSortie" class="text-lg font-bold text-red-700">—</div></div>
+            <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Solde de clôture période</div><div id="etatCaisseCloture" class="text-lg font-bold text-emerald-700">—</div></div>
+          </div>
+          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Date</th><th class="text-left p-2">Libellé</th><th class="text-left p-2">Pièce</th><th class="text-left p-2">Statut</th><th class="text-right p-2">Entrée</th><th class="text-right p-2">Sortie</th><th class="text-right p-2">Solde</th></tr></thead><tbody id="etatCaisseBody"></tbody></table></div>
+        </div>
+
         <h3 class="text-sm font-bold text-slate-600 mt-6 mb-2">📜 Historique des clôtures</h3>
         <div class="card bg-white rounded-2xl p-4 overflow-x-auto">
           <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Ouverture</th><th class="text-left p-2">Clôture</th><th class="text-right p-2">Solde initial</th><th class="text-right p-2">Solde théorique</th><th class="text-right p-2">Solde réel</th><th class="text-right p-2">Écart</th><th class="text-left p-2">Observation</th></tr></thead><tbody id="caisseHistoBody"></tbody></table>
@@ -12113,6 +12130,105 @@ function renderCaisseHisto(compteId){
     return `<tr class="border-b"><td class="p-2">${new Date(s.dateOuverture).toLocaleDateString('fr-FR')}</td><td class="p-2">${new Date(s.dateCloture).toLocaleDateString('fr-FR')}</td><td class="p-2 text-right">${money(s.soldeInitial)}</td><td class="p-2 text-right">${money(s.soldeTheorique)}</td><td class="p-2 text-right">${money(s.soldeReel)}</td><td class="p-2 text-right font-semibold ${ecartColor}">${s.ecart>0?'+':''}${money(s.ecart)}</td><td class="p-2 text-xs">${escapeHtml(s.observations||'—')}</td></tr>`;
   }).join('');
   document.getElementById('caisseHistoBody').innerHTML=rows||'<tr><td colspan="7" class="text-center text-slate-400 p-4">Aucune clôture enregistrée</td></tr>';
+}
+/* ---- État périodique du brouillard de caisse ---- */
+function buildCaisseLedger(compteId){
+  const entries=[];
+  getCaisseSessions().filter(s=>s.compteId===compteId).forEach(s=>{
+    entries.push({date:s.dateOuverture,type:'ouverture',libelle:'Ouverture de caisse (fond initial)',piece:'',statut:'—',montant:s.soldeInitial,ts:s.ts});
+  });
+  getCaisseOps().filter(o=>o.compteId===compteId).forEach(o=>{
+    entries.push({date:o.date,type:o.type,libelle:o.libelle,piece:o.piece,statut:o.statut,montant:o.type==='entree'?o.montant:-o.montant,ts:o.ts});
+  });
+  entries.sort((a,b)=>new Date(a.date)-new Date(b.date)||a.ts-b.ts);
+  return entries;
+}
+function computeCaisseEtat(){
+  const compteId=document.getElementById('caisseCompteSel').value;
+  let debut=document.getElementById('etatCaisseDebut').value;
+  let fin=document.getElementById('etatCaisseFin').value;
+  const ledger=buildCaisseLedger(compteId);
+  if(!debut) debut=ledger[0]?.date||new Date().toISOString().slice(0,10);
+  if(!fin) fin=new Date().toISOString().slice(0,10);
+  document.getElementById('etatCaisseDebut').value=debut;
+  document.getElementById('etatCaisseFin').value=fin;
+  let soldeReporte=0;
+  const periode=[];
+  ledger.forEach(e=>{
+    if(e.date<debut) soldeReporte+=e.montant;
+    else if(e.date<=fin) periode.push(e);
+  });
+  let solde=soldeReporte,totE=0,totS=0;
+  const lignes=periode.map(e=>{
+    solde+=e.montant;
+    if(e.montant>0) totE+=e.montant; else totS+=-e.montant;
+    return {...e,soldeCourant:solde};
+  });
+  return {compteId,debut,fin,soldeReporte,lignes,totE,totS,soldeCloture:solde};
+}
+function statutBadgeCourt(st){
+  if(st==='ventile') return '✅';
+  if(st==='brouillard') return '🕓';
+  return '—';
+}
+function renderCaisseEtat(){
+  const r=computeCaisseEtat();
+  document.getElementById('etatCaisseReporte').textContent=money(r.soldeReporte);
+  document.getElementById('etatCaisseEntree').textContent=money(r.totE);
+  document.getElementById('etatCaisseSortie').textContent=money(r.totS);
+  document.getElementById('etatCaisseCloture').textContent=money(r.soldeCloture);
+  const rows=r.lignes.map(l=>{
+    const mE=l.montant>0?l.montant:0, mS=l.montant<0?-l.montant:0;
+    const lib=l.type==='ouverture'?`<i>${escapeHtml(l.libelle)}</i>`:escapeHtml(l.libelle);
+    return `<tr class="border-b"><td class="p-2">${new Date(l.date).toLocaleDateString('fr-FR')}</td><td class="p-2">${lib}</td><td class="p-2 text-xs">${escapeHtml(l.piece||'—')}</td><td class="p-2 text-center">${statutBadgeCourt(l.statut)}</td><td class="p-2 text-right text-emerald-700">${mE?money(mE):''}</td><td class="p-2 text-right text-red-700">${mS?money(mS):''}</td><td class="p-2 text-right font-semibold">${money(l.soldeCourant)}</td></tr>`;
+  }).join('');
+  document.getElementById('etatCaisseBody').innerHTML=rows||'<tr><td colspan="7" class="text-center text-slate-400 p-4">Aucun mouvement sur cette période</td></tr>';
+}
+function apercuCaisseEtat(){
+  const r=computeCaisseEtat();
+  const comptes=getCaisseComptes();
+  const nomCaisse=comptes.find(c=>c.id===r.compteId)?.nom||'Caisse';
+  const c=getCompanyInfo();
+  const dateStr=new Date().toLocaleDateString('fr-FR');
+  const rows=r.lignes.map(l=>{
+    const mE=l.montant>0?l.montant:0, mS=l.montant<0?-l.montant:0;
+    return `<tr><td>${new Date(l.date).toLocaleDateString('fr-FR')}</td><td>${escapeHtml(l.libelle)}</td><td>${escapeHtml(l.piece||'—')}</td><td class="right">${mE?money(mE):''}</td><td class="right">${mS?money(mS):''}</td><td class="right">${money(l.soldeCourant)}</td></tr>`;
+  }).join('');
+  const win=window.open('','_blank','width=1000,height=1200'); if(!win) return;
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>État de caisse</title>
+  <style>
+    *{box-sizing:border-box}
+    body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#e2e8f0;margin:0}
+    .toolbar{position:sticky;top:0;z-index:10;background:#0f172a;color:#fff;padding:12px 24px;display:flex;justify-content:space-between;align-items:center}
+    .toolbar button{background:#2563eb;color:#fff;border:0;padding:9px 18px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;margin-left:8px}
+    .toolbar button.secondary{background:transparent;border:1px solid #475569}
+    .sheet{max-width:900px;margin:24px auto;background:#fff;padding:40px 44px;box-shadow:0 10px 40px rgba(15,23,42,.25);border-radius:4px}
+    .head{display:flex;justify-content:space-between;border-bottom:2px solid #0f172a;padding-bottom:12px;margin-bottom:20px}
+    .head h1{font-size:20px;margin:0}
+    .head .sub{color:#64748b;font-size:12px;margin-top:4px}
+    .kpis{display:flex;gap:12px;margin-bottom:18px}
+    .kpi{flex:1;background:#f8fafc;border-radius:8px;padding:10px 12px}
+    .kpi .l{font-size:10.5px;color:#64748b}
+    .kpi .v{font-size:15px;font-weight:700}
+    table{width:100%;border-collapse:collapse;font-size:11.5px;margin:4px 0 10px}
+    th{background:#f8fafc;text-align:left;padding:5px 8px;border-bottom:1px solid #e2e8f0;font-weight:700}
+    td{padding:5px 8px;border-bottom:1px solid #f1f5f9}
+    .right{text-align:right}
+    @media print{.toolbar{display:none}body{background:#fff}.sheet{box-shadow:none;margin:0;max-width:none}}
+  </style></head><body>
+  <div class="toolbar"><span>Aperçu avant impression</span><div><button onclick="window.print()">🖨 Imprimer</button><button class="secondary" onclick="window.close()">Fermer</button></div></div>
+  <div class="sheet">
+    <div class="head"><div><h1>${escapeHtml(c.nom)}</h1><div class="sub">${escapeHtml(c.tagline||'')}</div></div><div class="sub" style="text-align:right">État périodique — ${escapeHtml(nomCaisse)}<br>Du ${new Date(r.debut).toLocaleDateString('fr-FR')} au ${new Date(r.fin).toLocaleDateString('fr-FR')}<br>Édité le ${dateStr}</div></div>
+    <div class="kpis">
+      <div class="kpi"><div class="l">Solde reporté</div><div class="v">${money(r.soldeReporte)}</div></div>
+      <div class="kpi"><div class="l">Total entrées</div><div class="v">${money(r.totE)}</div></div>
+      <div class="kpi"><div class="l">Total sorties</div><div class="v">${money(r.totS)}</div></div>
+      <div class="kpi"><div class="l">Solde de clôture</div><div class="v">${money(r.soldeCloture)}</div></div>
+    </div>
+    <table><thead><tr><th>Date</th><th>Libellé</th><th>Pièce</th><th class="right">Entrée</th><th class="right">Sortie</th><th class="right">Solde</th></tr></thead><tbody>${rows||'<tr><td colspan="6" class="right">Aucun mouvement sur cette période</td></tr>'}</tbody></table>
+  </div>
+  </body></html>`);
+  win.document.close();
 }
 function handleOuvrirCaisse(ev){
   ev.preventDefault();
