@@ -1790,10 +1790,12 @@ window.SANIX_CFG = {
           <div class="flex flex-wrap justify-between gap-3 mb-4">
             <div><h2 class="text-lg font-bold">Catalogue d'articles normalisés</h2><p class="text-sm text-slate-500">Référentiel centralisé — famille, spécifications techniques, fournisseurs, historique des prix.</p></div>
             <div class="flex gap-2">
+              <button onclick="syncArticlesFromCatalogueTechnique()" class="border border-teal-600 text-teal-600 px-3 py-2 rounded-lg text-sm font-semibold">🔄 Depuis le catalogue technique</button>
               <button onclick="showArticleHistoriqueTab()" class="border border-amber-600 text-amber-600 px-3 py-2 rounded-lg text-sm font-semibold">📊 Historique prix</button>
               <button onclick="openArticleForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">➕ Nouvel article</button>
             </div>
           </div>
+          <p class="text-xs text-slate-500 bg-slate-50 border rounded-lg p-2 mb-4">ℹ️ Ce catalogue est alimenté automatiquement par le référentiel technique (profils, vitrages, quincaillerie, joints, consommables) : toute création ou modification là-bas crée ou met à jour l'article correspondant ici (même référence = même produit). "Depuis le catalogue technique" rattrape les éléments déjà existants qui n'auraient pas encore d'article.</p>
           <div class="grid sm:grid-cols-4 gap-2 mb-4">
             <input id="artSearchRef" placeholder="🔍 Référence" onkeyup="renderArticleTable()" class="border rounded-lg px-2 py-1.5 text-sm">
             <input id="artSearchDesig" placeholder="🔍 Désignation" onkeyup="renderArticleTable()" class="border rounded-lg px-2 py-1.5 text-sm">
@@ -2804,13 +2806,12 @@ window.SANIX_CFG = {
 
         <div id="catInventaire" class="cat-tab hidden">
           <div class="mb-3 flex flex-wrap justify-between items-center gap-2">
-            <p class="text-sm text-slate-500 max-w-2xl">Comptage physique — saisissez la quantité comptée par référence. L'écart est calculé automatiquement. La validation génère un mouvement d'ajustement pour chaque référence modifiée.</p>
+            <p class="text-sm text-slate-500 max-w-2xl">Vue globale en lecture seule (toutes réf. / tous dépôts confondus). Le comptage physique et l'ajustement du stock se font par dépôt dans <b>Stock → Inventaire par dépôt</b>.</p>
             <div class="flex gap-2 shrink-0">
               <button onclick="printInventaire()" class="border px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap">🖨 Fiche d'inventaire</button>
-              <button onclick="validerInventaire()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap">✔ Valider l'inventaire</button>
             </div>
           </div>
-          <div class="overflow-x-auto"><table class="w-full text-sm bg-white rounded-xl overflow-hidden"><thead class="bg-slate-50"><tr><th class="text-left p-3">Référence</th><th class="text-left p-3">Désignation</th><th class="text-right p-3">Théorique</th><th class="text-right p-3">Comptée</th><th class="text-right p-3">Écart</th><th class="text-left p-3">État</th></tr></thead><tbody id="catInventaireBody"></tbody></table></div>
+          <div class="overflow-x-auto"><table class="w-full text-sm bg-white rounded-xl overflow-hidden"><thead class="bg-slate-50"><tr><th class="text-left p-3">Référence</th><th class="text-left p-3">Désignation</th><th class="text-right p-3">Dépôt</th><th class="text-right p-3">Théorique</th></tr></thead><tbody id="catInventaireBody"></tbody></table></div>
         </div>
       </section>
     </div>
@@ -6448,6 +6449,60 @@ async function seedArticlesIfEmpty(){
   for(const d of defaults){ d._modifie=new Date().toISOString(); await idbPut('articles',d); queueSync('alubom_articles',d); }
 }
 
+/* ---------- Liaison automatique catalogue technique → catalogue articles normalisés ---------- */
+// Les profils/vitrages/quincaillerie/joints/consommables du référentiel technique sont les mêmes
+// produits que ceux du catalogue articles normalisés : toute création/modification d'un élément
+// technique met automatiquement à jour (ou crée) l'article correspondant, identifié par sa référence (= code).
+const ARTICLE_SYNC_CONFIG={
+  profils:{famille:'Profils aluminium',priceField:'prixMl',unite:'ml',sousFamilleField:'serie'},
+  vitrages:{famille:'Vitrages',priceField:'prixM2',unite:'m²',sousFamilleField:'type'},
+  quincaillerie:{famille:'Quincaillerie',priceField:'prixUnitaire',unite:'pcs',sousFamilleField:'categorie'},
+  joints:{famille:'Joints',priceField:'prixMl',unite:'ml',sousFamilleField:'type'},
+  consommables:{famille:'Consommables',priceField:'prix',uniteField:'unite',sousFamilleField:null}
+};
+async function syncTechniqueToArticle(storeKey,rec){
+  const cfg=ARTICLE_SYNC_CONFIG[storeKey];
+  if(!cfg || !rec.code) return;
+  const reference=rec.code.trim().toUpperCase();
+  const articles=await idbGetAll('articles');
+  const existant=articles.find(a=>a.reference===reference);
+  const nouveauPrix=+rec[cfg.priceField]||0;
+  const article={
+    id: existant?existant.id:('art_'+storeKey+'_'+Date.now()),
+    reference,
+    famille:cfg.famille,
+    sousFamille: cfg.sousFamilleField ? (rec[cfg.sousFamilleField]||'') : (existant?.sousFamille||''),
+    designation: rec.designation||existant?.designation||'',
+    unite: cfg.uniteField ? (rec[cfg.uniteField]||'unité') : cfg.unite,
+    fournisseur: rec.fournisseur||existant?.fournisseur||'',
+    specTechnique: existant?.specTechnique||'',
+    dernierPrix: nouveauPrix||existant?.dernierPrix||0,
+    prixMoyen: existant?.prixMoyen||nouveauPrix||0,
+    qteMinimale: existant?.qteMinimale||0,
+    prixMin: nouveauPrix ? Math.min(nouveauPrix,existant?.prixMin||nouveauPrix) : (existant?.prixMin||0),
+    prixMax: nouveauPrix ? Math.max(nouveauPrix,existant?.prixMax||nouveauPrix) : (existant?.prixMax||0),
+    datePrix:new Date().toISOString(),
+    origineCatalogueTechnique:storeKey,
+    _modifie:new Date().toISOString()
+  };
+  await idbPut('articles',article);
+  queueSync('alubom_articles',article);
+  await syncArticleToStock(article);
+}
+// Ressynchronise en masse tous les éléments actifs du référentiel technique vers le catalogue articles
+// (utile pour rattraper les éléments créés avant l'activation de cette liaison automatique).
+async function syncArticlesFromCatalogueTechnique(){
+  if(!hasRole('referentiel:manage') && !hasRole('stock:write')){ alert('Permission refusée.'); return; }
+  let count=0;
+  for(const storeKey of Object.keys(ARTICLE_SYNC_CONFIG)){
+    const items=(await idbGetAll(storeKey)).filter(i=>i.statut!=='inactif');
+    for(const item of items){ await syncTechniqueToArticle(storeKey,item); count++; }
+  }
+  await audit('SYNC_ARTICLES_DEPUIS_CATALOGUE_TECHNIQUE',count+' élément(s) synchronisé(s) vers le catalogue articles');
+  await renderArticleTable();
+  alert(count?count+' article(s) créé(s) ou mis à jour depuis le catalogue technique.':'Aucun élément actif trouvé dans le catalogue technique.');
+}
+
 async function renderArticleTable(){
   const el=document.getElementById('articleBody'); if(!el) return;
   const articles=await idbGetAll('articles');
@@ -6578,9 +6633,34 @@ async function saveArticle(ev){
   
   await idbPut('articles',article);
   queueSync('alubom_articles',article);
+  await syncArticleToStock(article);
   await audit('ARTICLE_'+(oldArticle?'UPDATE':'CREATE'),article.reference+' — '+article.designation+' ('+nouveauPrix+' FCFA)');
   document.getElementById('articleFormOverlay').remove();
   await renderArticleTable();
+  if(document.getElementById('stockTabListe') && !document.getElementById('stockTabListe').classList.contains('hidden')) await renderStockTable();
+}
+
+/* ---------- Liaison automatique catalogue articles → stock ---------- */
+// Crée ou met à jour la fiche stock (Dépôt Principal) correspondant à un article du catalogue.
+// La quantité disponible n'est jamais modifiée ici (seule une entrée/réception de stock doit changer une quantité) :
+// seuls la référence, le libellé et le prix sont tenus synchronisés avec le catalogue.
+async function syncArticleToStock(article){
+  if(!article.reference) return;
+  const stockRows=await idbGetAll('stock');
+  const rowsMemeRef=stockRows.filter(s=>s.ref===article.reference);
+  if(!rowsMemeRef.length){
+    const rec={id:stockRowId(article.reference,'PRINC'),ref:article.reference,label:article.designation,dispo:0,reserve:0,prix:article.dernierPrix||0,depot:'PRINC',_modifie:new Date().toISOString()};
+    await idbPut('stock',rec);
+    queueSync('alubom_stock',rec);
+    return;
+  }
+  for(const rec of rowsMemeRef){
+    rec.label=article.designation;
+    if(article.dernierPrix) rec.prix=article.dernierPrix;
+    rec._modifie=new Date().toISOString();
+    await idbPut('stock',rec);
+    queueSync('alubom_stock',rec);
+  }
 }
 
 async function editArticle(id){
@@ -6759,17 +6839,19 @@ async function syncStockFromReferentiel(){
     {store:'vitrages',priceField:'prixM2'},
     {store:'quincaillerie',priceField:'prixUnitaire'},
     {store:'joints',priceField:'prixMl'},
-    {store:'consommables',priceField:'prix'}
+    {store:'consommables',priceField:'prix'},
+    {store:'articles',priceField:'dernierPrix',codeField:'reference'}
   ];
   let added=0;
   for(const src of sources){
     const items=(await idbGetAll(src.store)).filter(i=>i.statut!=='inactif');
     for(const item of items){
-      if(!item.code || existing.has(item.code)) continue;
-      const rec={id:item.code,ref:item.code,label:item.designation,dispo:0,reserve:0,prix:item[src.priceField]||0,depot:'PRINC',_modifie:new Date().toISOString()};
+      const code=item[src.codeField||'code'];
+      if(!code || existing.has(code)) continue;
+      const rec={id:code,ref:code,label:item.designation,dispo:0,reserve:0,prix:item[src.priceField]||0,depot:'PRINC',_modifie:new Date().toISOString()};
       await idbPut('stock',rec);
       queueSync('alubom_stock',rec);
-      existing.add(item.code);
+      existing.add(code);
       added++;
     }
   }
@@ -6984,7 +7066,22 @@ async function renderInventaireDepot(){
       <td class="p-3 etat-cell"><span class="badge bg-slate-50 text-slate-500">Non compté</span></td>
     </tr>`).join('') : `<tr><td class="p-3 text-slate-400" colspan="6">Aucune référence dans ce dépôt.</td></tr>`;
 }
-function updateEcartRowDepot(input){ updateEcartRow(input); }
+function updateEcartRowDepot(input){
+  const tr=input.closest('tr');
+  const theo=+tr.querySelector('.theo-qty').dataset.theo;
+  const val=input.value.trim();
+  const ecartCell=tr.querySelector('.ecart-cell');
+  const etatCell=tr.querySelector('.etat-cell');
+  if(val===''){
+    ecartCell.textContent='—'; ecartCell.className='p-3 text-right ecart-cell text-slate-400';
+    etatCell.innerHTML='<span class="badge bg-slate-50 text-slate-500">Non compté</span>';
+    return;
+  }
+  const compte=+val, ecart=compte-theo;
+  ecartCell.textContent=(ecart>0?'+':'')+ecart.toFixed(2)+' ml';
+  ecartCell.className='p-3 text-right ecart-cell font-semibold '+(ecart===0?'text-slate-500':ecart>0?'text-emerald-600':'text-red-600');
+  etatCell.innerHTML = ecart===0 ? '<span class="badge bg-emerald-50 text-emerald-700">Conforme</span>' : '<span class="badge bg-amber-50 text-amber-700">Écart</span>';
+}
 async function validerInventaireDepot(){
   if(!hasRole('stock:write')){ alert('Permission refusée.'); return; }
   const trs=[...document.querySelectorAll('#invDepotBody tr[data-ref]')];
@@ -7169,80 +7266,30 @@ async function printJournalMouvements(){
    ========================================================= */
 async function renderCatalogueInventaire(){
   const body=document.getElementById('catInventaireBody'); if(!body) return;
-  const rows=(await idbGetAll('stock')).sort((a,b)=>a.ref.localeCompare(b.ref));
+  const rows=(await idbGetAll('stock')).sort((a,b)=>a.ref.localeCompare(b.ref)||(a.depot||'').localeCompare(b.depot||''));
   body.innerHTML = rows.length ? rows.map(r=>`
-    <tr class="border-b" data-ref="${escapeHtml(r.ref)}">
+    <tr class="border-b" data-ref="${escapeHtml(r.ref)}" data-depot="${escapeHtml(r.depot||'PRINC')}">
       <td class="p-3 font-semibold">${escapeHtml(r.ref)}</td>
       <td class="p-3">${escapeHtml(r.label)}</td>
+      <td class="p-3 text-right text-slate-500">${escapeHtml(r.depot||'PRINC')}</td>
       <td class="p-3 text-right theo-qty" data-theo="${r.dispo}">${r.dispo.toFixed(2)} ml</td>
-      <td class="p-3 text-right"><input type="number" step="0.01" class="inv-compte border rounded-lg px-2 py-1 text-sm w-28 text-right" placeholder="${r.dispo.toFixed(2)}" oninput="updateEcartRow(this)"></td>
-      <td class="p-3 text-right ecart-cell text-slate-400">—</td>
-      <td class="p-3 etat-cell"><span class="badge bg-slate-50 text-slate-500">Non compté</span></td>
-    </tr>`).join('') : `<tr><td class="p-3 text-slate-400" colspan="6">Aucune référence en stock à inventorier.</td></tr>`;
-}
-function updateEcartRow(input){
-  const tr=input.closest('tr');
-  const theo=+tr.querySelector('.theo-qty').dataset.theo;
-  const val=input.value.trim();
-  const ecartCell=tr.querySelector('.ecart-cell');
-  const etatCell=tr.querySelector('.etat-cell');
-  if(val===''){
-    ecartCell.textContent='—'; ecartCell.className='p-3 text-right ecart-cell text-slate-400';
-    etatCell.innerHTML='<span class="badge bg-slate-50 text-slate-500">Non compté</span>';
-    return;
-  }
-  const compte=+val, ecart=compte-theo;
-  ecartCell.textContent=(ecart>0?'+':'')+ecart.toFixed(2)+' ml';
-  ecartCell.className='p-3 text-right ecart-cell font-semibold '+(ecart===0?'text-slate-500':ecart>0?'text-emerald-600':'text-red-600');
-  etatCell.innerHTML = ecart===0 ? '<span class="badge bg-emerald-50 text-emerald-700">Conforme</span>' : '<span class="badge bg-amber-50 text-amber-700">Écart</span>';
-}
-async function validerInventaire(){
-  if(!hasRole('stock:write')){ alert('Permission refusée.'); return; }
-  const trs=[...document.querySelectorAll('#catInventaireBody tr[data-ref]')];
-  const changes=[];
-  trs.forEach(tr=>{
-    const input=tr.querySelector('.inv-compte');
-    const val=input.value.trim();
-    if(val==='') return;
-    const theo=+tr.querySelector('.theo-qty').dataset.theo;
-    const compte=+val, ecart=compte-theo;
-    if(Math.abs(ecart)>0.001) changes.push({ref:tr.dataset.ref,theo,compte,ecart});
-  });
-  if(!changes.length){ alert('Aucun écart à enregistrer.'); return; }
-  if(!confirm(changes.length+' référence(s) avec écart détecté. Confirmer l\'ajustement du stock ?')) return;
-  const stockRows=await idbGetAll('stock');
-  for(const c of changes){
-    const row=stockRows.find(r=>r.ref===c.ref);
-    if(!row) continue;
-    row.dispo=c.compte;
-    row._modifie=new Date().toISOString();
-    await idbPut('stock',row);
-    queueSync('alubom_stock',row);
-    const mv={id:'m_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),ref:c.ref,type:'ajustement',qty:c.ecart,prixUnitaire:0,ts:new Date().toISOString(),user:currentUser?currentUser.email:undefined};
-    await idbPut('stock_mouvements',mv);
-    queueSync('alubom_stock_mouvements',mv);
-    await audit('INVENTAIRE_AJUSTEMENT',`${c.ref} : ${c.theo.toFixed(2)} → ${c.compte.toFixed(2)} (écart ${c.ecart>0?'+':''}${c.ecart.toFixed(2)})`);
-  }
-  alert(changes.length+' référence(s) ajustée(s) suite à inventaire.');
-  await renderCatalogueInventaire();
-  await renderStockTable();
+    </tr>`).join('') : `<tr><td class="p-3 text-slate-400" colspan="4">Aucune référence en stock à inventorier.</td></tr>`;
 }
 async function printInventaire(){
   const trs=[...document.querySelectorAll('#catInventaireBody tr[data-ref]')];
   const rowsHtml=trs.map(tr=>{
     const ref=tr.dataset.ref;
+    const depot=tr.dataset.depot;
     const label=tr.children[1].textContent;
     const theo=+tr.querySelector('.theo-qty').dataset.theo;
-    const compte=tr.querySelector('.inv-compte').value.trim();
-    const ecart=compte===''?'—':(((+compte-theo)>0?'+':'')+(+compte-theo).toFixed(2));
-    return `<tr><td>${escapeHtml(ref)}</td><td>${escapeHtml(label)}</td><td style="text-align:right">${theo.toFixed(2)}</td><td style="text-align:right">${compte||'—'}</td><td style="text-align:right">${ecart}</td></tr>`;
+    return `<tr><td>${escapeHtml(ref)}</td><td>${escapeHtml(label)}</td><td>${escapeHtml(depot)}</td><td style="text-align:right">${theo.toFixed(2)}</td></tr>`;
   }).join('');
   const html=`
     ${buildPrintHeaderHtml()}
-    <h1>Fiche d'inventaire</h1>
-    <p class="sub">Comptage physique édité le ${new Date().toLocaleDateString('fr-FR')}</p>
-    <table><thead><tr><th>Référence</th><th>Désignation</th><th>Théorique (ml)</th><th>Comptée (ml)</th><th>Écart (ml)</th></tr></thead>
-    <tbody>${rowsHtml||'<tr><td colspan="5" style="color:#94a3b8;text-align:center">Aucune référence en stock</td></tr>'}</tbody></table>
+    <h1>Fiche d'inventaire globale (lecture seule)</h1>
+    <p class="sub">Éditée le ${new Date().toLocaleDateString('fr-FR')} — comptage physique et ajustement à réaliser par dépôt dans le module Stock</p>
+    <table><thead><tr><th>Référence</th><th>Désignation</th><th>Dépôt</th><th>Théorique (ml)</th></tr></thead>
+    <tbody>${rowsHtml||'<tr><td colspan="4" style="color:#94a3b8;text-align:center">Aucune référence en stock</td></tr>'}</tbody></table>
     ${await buildPrintFooterHtml('Fiche d\'inventaire')}`;
   const win=window.open('','_blank','width=1000,height=1100');
   if(!win) return;
@@ -9521,6 +9568,7 @@ async function openChantierDetail(id){
     const allRecue=achats.every(a=>a.statut==='recue');
     const besoinsMRP=await calculerBesoinsMRP(id);
     const manquantsMRP=besoinsMRP.filter(b=>b.manquant>0.01);
+    const catalogueArticles=(await idbGetAll('articles')).sort((a,b)=>(a.reference||'').localeCompare(b.reference||''));
     const mrpHtml=`
       <div class="mb-4 border rounded-xl p-3 bg-blue-50/40">
         <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
@@ -9538,8 +9586,13 @@ async function openChantierDetail(id){
         <div class="bg-slate-50 border rounded-xl p-3 mb-3">
           <div class="grid sm:grid-cols-6 gap-2 mb-2">
             <select id="acBomRef" onchange="onAcBomRefChange()" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
-              <option value="">— Composant BOM (ou saisie libre) —</option>
+              <option value="">— Composant BOM / article catalogue (ou saisie libre) —</option>
+              ${besoinsMRP.length?`<optgroup label="Besoins BOM (MRP)">
               ${besoinsMRP.map(b=>`<option value="${escapeHtml(b.code)}" data-designation="${escapeHtml(b.designation)}" data-manquant="${b.manquant.toFixed(2)}" data-prix="${b.prixUnitaire||0}" data-fournisseur="${escapeHtml(b.fournisseur||'')}">${escapeHtml(b.code)} — ${escapeHtml(b.designation)}${b.manquant>0.01?' (manque '+b.manquant.toFixed(2)+')':''}</option>`).join('')}
+              </optgroup>`:''}
+              ${catalogueArticles.length?`<optgroup label="Catalogue articles">
+              ${catalogueArticles.map(a=>`<option value="${escapeHtml(a.reference)}" data-designation="${escapeHtml(a.designation)}" data-manquant="" data-prix="${a.dernierPrix||0}" data-fournisseur="${escapeHtml(a.fournisseur||'')}">${escapeHtml(a.reference)} — ${escapeHtml(a.designation)}</option>`).join('')}
+              </optgroup>`:''}
             </select>
             <input id="acDesignation" placeholder="Désignation article" class="border rounded-lg px-2 py-1.5 text-sm">
             <input id="acQte" type="number" min="1" value="1" placeholder="Qté" class="border rounded-lg px-2 py-1.5 text-sm">
@@ -10733,6 +10786,7 @@ async function handleAddProfil(e){
   };
   await idbPut('profils',rec);
   queueSync('alubom_profils',rec);
+  await syncTechniqueToArticle('profils',rec);
   await audit(editId?'MAJ_PROFIL':'CREATE_PROFIL',code+' — '+designation);
   cancelEditProfil();
   await renderProfilsTable();
@@ -10837,6 +10891,7 @@ async function handleImportProfilsCSV(e){
     };
     await idbPut('profils',rec);
     queueSync('alubom_profils',rec);
+    await syncTechniqueToArticle('profils',rec);
     if(existant) updated++; else created++;
   }
   await audit('IMPORT_PROFILS_CSV',`${created} créé(s), ${updated} mis à jour, ${errors} erreur(s)`);
@@ -11180,6 +11235,7 @@ async function handleAddGenericRef(e,key){
   });
   await idbPut(key,rec);
   queueSync('alubom_'+key,rec);
+  if(ARTICLE_SYNC_CONFIG[key]) await syncTechniqueToArticle(key,rec);
   await audit((editId?'MAJ_':'CREATE_')+key.toUpperCase(),code+' — '+designation);
   cancelEditGenericRef(key);
   await renderGenericRefTable(key);
