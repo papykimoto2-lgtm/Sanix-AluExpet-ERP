@@ -114,10 +114,10 @@ window.SANIX_CFG = {
   table tbody tr:hover{background-color:#f8fafc}
 
   /* Tab-bar buttons (config/ref/stock/prod/flux/catalogue) */
-  .etude-tab-btn,.ref-tab-btn,.flux-view-btn,.cat-tab-btn,.stock-tab-btn,.prod-tab-btn,.fe-tab-btn,.livre-tab-btn{color:var(--ds-slate-500);background:transparent;border-radius:8px;font-weight:600;transition:background-color .12s ease,color .12s ease}
-  .etude-tab-btn:hover,.ref-tab-btn:hover,.cat-tab-btn:hover,.stock-tab-btn:hover,.prod-tab-btn:hover,.fe-tab-btn:hover,.livre-tab-btn:hover{background:var(--ds-slate-100);color:var(--ds-slate-700)}
+  .etude-tab-btn,.ref-tab-btn,.flux-view-btn,.cat-tab-btn,.stock-tab-btn,.prod-tab-btn,.fe-tab-btn,.livre-tab-btn,.compta-tab-btn{color:var(--ds-slate-500);background:transparent;border-radius:8px;font-weight:600;transition:background-color .12s ease,color .12s ease}
+  .etude-tab-btn:hover,.ref-tab-btn:hover,.cat-tab-btn:hover,.stock-tab-btn:hover,.prod-tab-btn:hover,.fe-tab-btn:hover,.livre-tab-btn:hover,.compta-tab-btn:hover{background:var(--ds-slate-100);color:var(--ds-slate-700)}
   .flux-view-btn:hover{background:#e2e8f0}
-  .etude-tab-btn.active,.ref-tab-btn.active,.cat-tab-btn.active,.stock-tab-btn.active,.prod-tab-btn.active,.gmao-tab-btn.active,.prospects-tab-btn.active,.ao-tab-btn.active,.fe-tab-btn.active,.livre-tab-btn.active{background:var(--ds-accent);color:#fff;box-shadow:var(--ds-shadow-sm)}
+  .etude-tab-btn.active,.ref-tab-btn.active,.cat-tab-btn.active,.stock-tab-btn.active,.prod-tab-btn.active,.gmao-tab-btn.active,.prospects-tab-btn.active,.ao-tab-btn.active,.fe-tab-btn.active,.livre-tab-btn.active,.compta-tab-btn.active{background:var(--ds-accent);color:#fff;box-shadow:var(--ds-shadow-sm)}
   .config-view-btn{color:var(--ds-slate-500);background:transparent;border-radius:6px;transition:background-color .12s ease,color .12s ease}
   .config-view-btn:hover{background:var(--ds-slate-100)}
   .config-view-btn.active{background:var(--ds-accent);color:#fff}
@@ -207,7 +207,11 @@ window.SANIX_CFG = {
       <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">6 · Après-vente</div>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="sav">🛠️ SAV & Garantie</button>
 
-      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">7 · Pilotage</div>
+      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">7 · Finance</div>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="caisse">💵 Caisse</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="compta">📒 Comptabilité SYSCOHADA</button>
+
+      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">8 · Pilotage</div>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="controlegestion">📈 Contrôle de gestion</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="validations">✅ Validations <span id="validationsBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="etatpa">📋 État proforma & achats</button>
@@ -2441,6 +2445,93 @@ window.SANIX_CFG = {
         </div>
         <div id="validationsGate"></div>
         <div id="validationsContent"></div>
+      </section>
+
+      <section id="caisse" class="page hidden">
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+          <div><h2 class="text-lg font-bold">💵 Caisse</h2><p class="text-sm text-slate-500">Journal de caisse — encaissements et décaissements en espèces.</p></div>
+          <div class="flex gap-2">
+            <select id="caisseCompteSel" onchange="renderCaisse()" class="border rounded-lg px-2 py-1.5 text-sm"></select>
+            <button onclick="openCaisseCompteModal()" class="border px-3 py-2 rounded-lg text-sm font-semibold">⚙️ Caisses</button>
+          </div>
+        </div>
+        <div class="grid sm:grid-cols-3 gap-3 mb-4">
+          <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Solde actuel</div><div id="caisseSolde" class="text-2xl font-bold text-emerald-700">—</div></div>
+          <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Total encaissements (mois)</div><div id="caisseTotalEntree" class="text-xl font-bold text-blue-700">—</div></div>
+          <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Total décaissements (mois)</div><div id="caisseTotalSortie" class="text-xl font-bold text-red-700">—</div></div>
+        </div>
+        <form id="caisseForm" onsubmit="return handleAddCaisseOp(event)" class="card bg-white rounded-2xl p-4 grid sm:grid-cols-6 gap-2 mb-4">
+          <select id="caisseType" class="border rounded-lg px-2 py-1.5 text-sm"><option value="entree">Encaissement</option><option value="sortie">Décaissement</option></select>
+          <input id="caisseDate" type="date" required class="border rounded-lg px-2 py-1.5 text-sm">
+          <input id="caisseLibelle" placeholder="Libellé" required class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
+          <select id="caisseCompteCompta" class="border rounded-lg px-2 py-1.5 text-sm"></select>
+          <input id="caisseMontant" type="number" min="0" step="1" placeholder="Montant FCFA" required class="border rounded-lg px-2 py-1.5 text-sm">
+          <input id="caissePiece" placeholder="N° pièce (optionnel)" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
+          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold sm:col-span-1">+ Enregistrer</button>
+        </form>
+        <div class="card bg-white rounded-2xl p-4 overflow-x-auto">
+          <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Date</th><th class="text-left p-2">Libellé</th><th class="text-left p-2">Compte OHADA</th><th class="text-left p-2">Pièce</th><th class="text-right p-2">Entrée</th><th class="text-right p-2">Sortie</th><th class="text-right p-2">Solde</th><th class="p-2"></th></tr></thead><tbody id="caisseBody"></tbody></table>
+        </div>
+      </section>
+
+      <section id="compta" class="page hidden">
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+          <div><h2 class="text-lg font-bold">📒 Comptabilité SYSCOHADA</h2><p class="text-sm text-slate-500">Plan comptable, journal des écritures, grand livre et balance — système normal OHADA.</p></div>
+        </div>
+        <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1 items-center">
+          <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold active" data-comptatab="journal" onclick="showComptaTab('journal')">🗒️ Journal</button>
+          <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="grandlivre" onclick="showComptaTab('grandlivre')">📚 Grand livre</button>
+          <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="balance" onclick="showComptaTab('balance')">⚖️ Balance</button>
+          <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="plan" onclick="showComptaTab('plan')">📖 Plan comptable</button>
+        </div>
+
+        <div id="comptaTabJournal" class="compta-tab">
+          <form id="ecritureForm" onsubmit="return handleAddEcriture(event)" class="card bg-white rounded-2xl p-4 mb-4">
+            <div class="grid sm:grid-cols-5 gap-2 mb-2">
+              <input id="ecDate" type="date" required class="border rounded-lg px-2 py-1.5 text-sm">
+              <select id="ecJournal" class="border rounded-lg px-2 py-1.5 text-sm"><option value="CA">Caisse (CA)</option><option value="BQ">Banque (BQ)</option><option value="AC">Achats (AC)</option><option value="VE">Ventes (VE)</option><option value="OD">Opérations diverses (OD)</option></select>
+              <input id="ecPiece" placeholder="N° pièce" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="ecLibelle" placeholder="Libellé de l'écriture" required class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
+            </div>
+            <div id="ecLignes" class="space-y-1 mb-2"></div>
+            <div class="flex gap-2 items-center">
+              <button type="button" onclick="addEcritureLigne()" class="border px-3 py-1.5 rounded-lg text-xs font-semibold">+ Ligne</button>
+              <span class="text-xs text-slate-500">Total débit : <b id="ecTotalDebit">0</b> — Total crédit : <b id="ecTotalCredit">0</b></span>
+              <span id="ecEquilibre" class="text-xs font-semibold"></span>
+            </div>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-semibold mt-2">💾 Valider l'écriture</button>
+          </form>
+          <div class="card bg-white rounded-2xl p-4 overflow-x-auto">
+            <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Date</th><th class="text-left p-2">Jrn</th><th class="text-left p-2">Pièce</th><th class="text-left p-2">Compte</th><th class="text-left p-2">Libellé</th><th class="text-right p-2">Débit</th><th class="text-right p-2">Crédit</th><th class="p-2"></th></tr></thead><tbody id="journalBody"></tbody></table>
+          </div>
+        </div>
+
+        <div id="comptaTabGrandlivre" class="compta-tab hidden">
+          <div class="card bg-white rounded-2xl p-4 mb-4 flex flex-wrap gap-2 items-center">
+            <label class="text-sm font-semibold">Compte :</label>
+            <select id="glCompteSel" onchange="renderGrandLivre()" class="border rounded-lg px-2 py-1.5 text-sm min-w-[260px]"></select>
+          </div>
+          <div class="card bg-white rounded-2xl p-4 overflow-x-auto">
+            <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Date</th><th class="text-left p-2">Pièce</th><th class="text-left p-2">Libellé</th><th class="text-right p-2">Débit</th><th class="text-right p-2">Crédit</th><th class="text-right p-2">Solde</th></tr></thead><tbody id="grandLivreBody"></tbody></table>
+          </div>
+        </div>
+
+        <div id="comptaTabBalance" class="compta-tab hidden">
+          <div class="flex justify-end mb-2"><button onclick="renderBalance()" class="border px-3 py-2 rounded-lg text-sm font-semibold">🔄 Actualiser</button></div>
+          <div class="card bg-white rounded-2xl p-4 overflow-x-auto">
+            <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Compte</th><th class="text-left p-2">Libellé</th><th class="text-right p-2">Total débit</th><th class="text-right p-2">Total crédit</th><th class="text-right p-2">Solde débiteur</th><th class="text-right p-2">Solde créditeur</th></tr></thead><tbody id="balanceBody"></tbody><tfoot id="balanceFoot" class="font-bold bg-slate-50"></tfoot></table>
+          </div>
+        </div>
+
+        <div id="comptaTabPlan" class="compta-tab hidden">
+          <div class="flex flex-wrap justify-between gap-2 mb-2">
+            <p class="text-sm text-slate-500">Plan comptable général SYSCOHADA révisé (classes 1 à 8). Vous pouvez ajouter des sous-comptes spécifiques.</p>
+            <button onclick="openAddCompteModal()" class="border px-3 py-2 rounded-lg text-sm font-semibold">+ Ajouter un compte</button>
+          </div>
+          <div class="card bg-white rounded-2xl p-4 overflow-x-auto">
+            <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">N° compte</th><th class="text-left p-2">Libellé</th><th class="text-left p-2">Classe</th><th class="p-2"></th></tr></thead><tbody id="planComptableBody"></tbody></table>
+          </div>
+        </div>
       </section>
 
       <section id="utilisateurs" class="page hidden">
@@ -11881,6 +11972,213 @@ async function handleSaveParams(e){
 function money(n){return new Intl.NumberFormat('fr-FR').format(Math.round(n))+' FCFA';}
 
 /* =========================================================
+   MODULE CAISSE & COMPTABILITÉ SYSCOHADA
+   ========================================================= */
+const PLAN_COMPTABLE_DEFAULT=[
+  {num:'101',lib:'Capital social',cl:'1'},{num:'106',lib:'Réserves',cl:'1'},{num:'120',lib:'Résultat net (bénéfice)',cl:'1'},{num:'129',lib:'Résultat net (perte)',cl:'1'},{num:'161',lib:'Emprunts',cl:'1'},
+  {num:'211',lib:'Frais de développement',cl:'2'},{num:'2183',lib:'Matériel de bureau et informatique',cl:'2'},{num:'2184',lib:'Matériel et mobilier',cl:'2'},{num:'2441',lib:'Matériel industriel',cl:'2'},{num:'2831',lib:'Amort. bâtiments',cl:'2'},{num:'2841',lib:'Amort. matériel',cl:'2'},
+  {num:'311',lib:'Marchandises',cl:'3'},{num:'321',lib:'Matières premières',cl:'3'},{num:'355',lib:'Produits finis',cl:'3'},
+  {num:'401',lib:'Fournisseurs',cl:'4'},{num:'408',lib:'Fournisseurs — factures non parvenues',cl:'4'},{num:'411',lib:'Clients',cl:'4'},{num:'418',lib:'Clients — factures à établir',cl:'4'},{num:'421',lib:'Personnel — avances et acomptes',cl:'4'},{num:'422',lib:'Personnel — rémunérations dues',cl:'4'},{num:'431',lib:'Sécurité sociale / CNPS',cl:'4'},{num:'441',lib:"État — impôts sur les bénéfices",cl:'4'},{num:'443',lib:'État — TVA facturée',cl:'4'},{num:'445',lib:'État — TVA récupérable',cl:'4'},{num:'447',lib:'État — autres impôts et taxes',cl:'4'},
+  {num:'512',lib:'Banques',cl:'5'},{num:'521',lib:'Banques (compte 2)',cl:'5'},{num:'571',lib:'Caisse',cl:'5'},
+  {num:'601',lib:'Achats de marchandises',cl:'6'},{num:'602',lib:'Achats de matières premières',cl:'6'},{num:'604',lib:'Achats stockés — matières et fournitures',cl:'6'},{num:'605',lib:'Autres achats',cl:'6'},{num:'608',lib:"Frais accessoires d'achat",cl:'6'},{num:'611',lib:'Transports',cl:'6'},{num:'622',lib:'Locations',cl:'6'},{num:'624',lib:"Entretien, réparations",cl:'6'},{num:'626',lib:'Communications',cl:'6'},{num:'628',lib:'Services extérieurs — divers',cl:'6'},{num:'631',lib:'Impôts et taxes directs',cl:'6'},{num:'661',lib:'Rémunérations directes du personnel',cl:'6'},{num:'664',lib:'Charges sociales',cl:'6'},{num:'671',lib:'Frais financiers',cl:'6'},{num:'681',lib:'Dotations aux amortissements',cl:'6'},
+  {num:'701',lib:'Ventes de produits finis',cl:'7'},{num:'706',lib:'Services vendus',cl:'7'},{num:'707',lib:'Ventes de marchandises',cl:'7'},{num:'771',lib:'Revenus financiers',cl:'7'},{num:'781',lib:"Reprises d'amortissements",cl:'7'},
+  {num:'831',lib:'Charges hors activités ordinaires',cl:'8'},{num:'841',lib:'Produits hors activités ordinaires',cl:'8'}
+];
+function getPlanComptable(){ try{ let p=JSON.parse(localStorage.getItem('sanix_plan_comptable')||'null'); if(!p||!p.length){p=PLAN_COMPTABLE_DEFAULT.slice();savePlanComptable(p);} return p; }catch{ return PLAN_COMPTABLE_DEFAULT.slice(); } }
+function savePlanComptable(p){ localStorage.setItem('sanix_plan_comptable',JSON.stringify(p)); }
+function getCaisseComptes(){ try{ let c=JSON.parse(localStorage.getItem('sanix_caisse_comptes')||'null'); if(!c||!c.length){c=[{id:'CA1',nom:'Caisse principale'}];localStorage.setItem('sanix_caisse_comptes',JSON.stringify(c));} return c; }catch{ return [{id:'CA1',nom:'Caisse principale'}]; } }
+function saveCaisseComptes(c){ localStorage.setItem('sanix_caisse_comptes',JSON.stringify(c)); }
+function getCaisseOps(){ try{ return JSON.parse(localStorage.getItem('sanix_caisse_ops')||'[]'); }catch{ return []; } }
+function saveCaisseOps(o){ localStorage.setItem('sanix_caisse_ops',JSON.stringify(o)); }
+function getEcritures(){ try{ return JSON.parse(localStorage.getItem('sanix_ecritures')||'[]'); }catch{ return []; } }
+function saveEcritures(e){ localStorage.setItem('sanix_ecritures',JSON.stringify(e)); }
+function genUid(pfx){ return pfx+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
+
+/* ---- Caisse ---- */
+function openCaisseCompteModal(){
+  const comptes=getCaisseComptes();
+  const choix=prompt('Caisses existantes : '+comptes.map(c=>c.nom).join(', ')+'\n\nTapez un nom pour créer une nouvelle caisse (laisser vide pour annuler) :');
+  if(choix&&choix.trim()){ comptes.push({id:genUid('CA'),nom:choix.trim()}); saveCaisseComptes(comptes); renderCaisse(); }
+}
+function populateCaisseSelects(){
+  const compteSel=document.getElementById('caisseCompteSel'); if(!compteSel) return;
+  const comptes=getCaisseComptes();
+  const cur=compteSel.value||comptes[0]?.id;
+  compteSel.innerHTML=comptes.map(c=>`<option value="${c.id}">${escapeHtml(c.nom)}</option>`).join('');
+  compteSel.value=cur;
+  const cc=document.getElementById('caisseCompteCompta');
+  const plan=getPlanComptable();
+  cc.innerHTML=plan.map(p=>`<option value="${p.num}">${p.num} — ${escapeHtml(p.lib)}</option>`).join('');
+  if(!document.getElementById('caisseDate').value) document.getElementById('caisseDate').value=new Date().toISOString().slice(0,10);
+}
+function renderCaisse(){
+  populateCaisseSelects();
+  const compteId=document.getElementById('caisseCompteSel').value;
+  const ops=getCaisseOps().filter(o=>o.compteId===compteId).sort((a,b)=>new Date(a.date)-new Date(b.date)||a.ts-b.ts);
+  let solde=0,totE=0,totS=0; const nowM=new Date().toISOString().slice(0,7);
+  const rows=ops.map(o=>{
+    const mE=o.type==='entree'?o.montant:0, mS=o.type==='sortie'?o.montant:0;
+    solde+=mE-mS;
+    if(o.date.slice(0,7)===nowM){ totE+=mE; totS+=mS; }
+    return `<tr class="border-b"><td class="p-2">${new Date(o.date).toLocaleDateString('fr-FR')}</td><td class="p-2">${escapeHtml(o.libelle)}</td><td class="p-2 text-xs text-slate-500">${o.compteCompta}</td><td class="p-2 text-xs">${escapeHtml(o.piece||'—')}</td><td class="p-2 text-right text-emerald-700">${mE?money(mE):''}</td><td class="p-2 text-right text-red-700">${mS?money(mS):''}</td><td class="p-2 text-right font-semibold">${money(solde)}</td><td class="p-2"><button onclick="deleteCaisseOp('${o.id}')" class="text-red-500 text-xs">✕</button></td></tr>`;
+  }).join('');
+  document.getElementById('caisseBody').innerHTML=rows||'<tr><td colspan="8" class="text-center text-slate-400 p-4">Aucune opération</td></tr>';
+  document.getElementById('caisseSolde').textContent=money(solde);
+  document.getElementById('caisseTotalEntree').textContent=money(totE);
+  document.getElementById('caisseTotalSortie').textContent=money(totS);
+}
+function handleAddCaisseOp(ev){
+  ev.preventDefault();
+  const compteId=document.getElementById('caisseCompteSel').value;
+  const type=document.getElementById('caisseType').value;
+  const date=document.getElementById('caisseDate').value;
+  const libelle=document.getElementById('caisseLibelle').value.trim();
+  const compteCompta=document.getElementById('caisseCompteCompta').value;
+  const montant=parseFloat(document.getElementById('caisseMontant').value)||0;
+  const piece=document.getElementById('caissePiece').value.trim();
+  if(!libelle||montant<=0) return false;
+  const op={id:genUid('cop'),compteId,type,date,libelle,compteCompta,montant,piece,user:(typeof currentUser!=='undefined'&&currentUser)?currentUser.email:'—',ts:Date.now()};
+  const ops=getCaisseOps(); ops.push(op); saveCaisseOps(ops);
+  const lignes=type==='entree'
+    ?[{compte:'571',libelle,debit:montant,credit:0},{compte:compteCompta,libelle,debit:0,credit:montant}]
+    :[{compte:compteCompta,libelle,debit:montant,credit:0},{compte:'571',libelle,debit:0,credit:montant}];
+  const ecritures=getEcritures();
+  ecritures.push({id:genUid('ec'),date,journal:'CA',piece:piece||'',libelle,lignes,user:op.user,ts:Date.now()});
+  saveEcritures(ecritures);
+  document.getElementById('caisseForm').reset();
+  document.getElementById('caisseDate').value=date;
+  renderCaisse();
+  if(typeof audit==='function') audit('CAISSE_OPERATION',`${type==='entree'?'Encaissement':'Décaissement'} ${money(montant)} — ${libelle}`);
+  return false;
+}
+function deleteCaisseOp(id){
+  if(!confirm('Supprimer cette opération de caisse ?')) return;
+  saveCaisseOps(getCaisseOps().filter(o=>o.id!==id));
+  renderCaisse();
+}
+
+/* ---- Comptabilité : navigation onglets ---- */
+function showComptaTab(tab){
+  document.querySelectorAll('.compta-tab').forEach(t=>t.classList.add('hidden'));
+  document.getElementById('comptaTab'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.remove('hidden');
+  document.querySelectorAll('.compta-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.comptatab===tab));
+  if(tab==='journal'){ if(!document.getElementById('ecLignes').children.length){ addEcritureLigne(); addEcritureLigne(); } if(!document.getElementById('ecDate').value) document.getElementById('ecDate').value=new Date().toISOString().slice(0,10); renderJournal(); }
+  if(tab==='grandlivre') renderGrandLivre();
+  if(tab==='balance') renderBalance();
+  if(tab==='plan') renderPlanComptable();
+}
+function addEcritureLigne(compte,libelle,debit,credit){
+  const plan=getPlanComptable();
+  const div=document.createElement('div');
+  div.className='grid sm:grid-cols-12 gap-1 items-center ecLigne';
+  div.innerHTML=`<select class="border rounded-lg px-2 py-1 text-xs sm:col-span-4 ecCompte">${plan.map(p=>`<option value="${p.num}">${p.num} — ${escapeHtml(p.lib)}</option>`).join('')}</select>
+    <input class="border rounded-lg px-2 py-1 text-xs sm:col-span-4 ecLibLigne" placeholder="Libellé ligne" value="${libelle?escapeHtml(libelle):''}">
+    <input type="number" min="0" class="border rounded-lg px-2 py-1 text-xs sm:col-span-2 text-right ecDebit" placeholder="Débit" value="${debit||''}" oninput="updateEcTotals()">
+    <input type="number" min="0" class="border rounded-lg px-2 py-1 text-xs sm:col-span-1 text-right ecCredit" placeholder="Crédit" value="${credit||''}" oninput="updateEcTotals()">
+    <button type="button" onclick="this.parentElement.remove();updateEcTotals()" class="text-red-500 text-xs sm:col-span-1">✕</button>`;
+  document.getElementById('ecLignes').appendChild(div);
+  if(compte) div.querySelector('.ecCompte').value=compte;
+  updateEcTotals();
+}
+function updateEcTotals(){
+  let td=0,tc=0;
+  document.querySelectorAll('#ecLignes .ecLigne').forEach(l=>{ td+=parseFloat(l.querySelector('.ecDebit').value)||0; tc+=parseFloat(l.querySelector('.ecCredit').value)||0; });
+  document.getElementById('ecTotalDebit').textContent=money(td);
+  document.getElementById('ecTotalCredit').textContent=money(tc);
+  const eq=document.getElementById('ecEquilibre');
+  if(td===0&&tc===0){ eq.textContent=''; }
+  else if(td===tc){ eq.textContent='✅ Équilibrée'; eq.className='text-xs font-semibold text-emerald-600'; }
+  else { eq.textContent='⚠️ Non équilibrée'; eq.className='text-xs font-semibold text-red-600'; }
+}
+function handleAddEcriture(ev){
+  ev.preventDefault();
+  const date=document.getElementById('ecDate').value;
+  const journal=document.getElementById('ecJournal').value;
+  const piece=document.getElementById('ecPiece').value.trim();
+  const libelle=document.getElementById('ecLibelle').value.trim();
+  const lignes=[...document.querySelectorAll('#ecLignes .ecLigne')].map(l=>({compte:l.querySelector('.ecCompte').value,libelle:l.querySelector('.ecLibLigne').value.trim()||libelle,debit:parseFloat(l.querySelector('.ecDebit').value)||0,credit:parseFloat(l.querySelector('.ecCredit').value)||0})).filter(l=>l.debit||l.credit);
+  const td=lignes.reduce((s,l)=>s+l.debit,0), tc=lignes.reduce((s,l)=>s+l.credit,0);
+  if(lignes.length<2){ alert('Une écriture doit comporter au moins 2 lignes.'); return false; }
+  if(td!==tc||td===0){ alert("L'écriture n'est pas équilibrée (total débit ≠ total crédit)."); return false; }
+  const ecritures=getEcritures();
+  ecritures.push({id:genUid('ec'),date,journal,piece,libelle,lignes,user:(typeof currentUser!=='undefined'&&currentUser)?currentUser.email:'—',ts:Date.now()});
+  saveEcritures(ecritures);
+  document.getElementById('ecritureForm').reset();
+  document.getElementById('ecLignes').innerHTML='';
+  addEcritureLigne(); addEcritureLigne();
+  document.getElementById('ecDate').value=date;
+  renderJournal();
+  if(typeof audit==='function') audit('ECRITURE_COMPTABLE',`Écriture ${journal} — ${libelle} (${money(td)})`);
+  return false;
+}
+function deleteEcriture(id){
+  if(!confirm('Supprimer cette écriture comptable ?')) return;
+  saveEcritures(getEcritures().filter(e=>e.id!==id));
+  renderJournal();
+}
+function planLabel(num){ const p=getPlanComptable().find(x=>x.num===num); return p?p.lib:''; }
+function renderJournal(){
+  const ecritures=getEcritures().slice().sort((a,b)=>new Date(a.date)-new Date(b.date)||a.ts-b.ts);
+  let html='';
+  ecritures.forEach(e=>{
+    e.lignes.forEach((l,i)=>{
+      html+=`<tr class="border-b ${i===0?'':'text-slate-500'}">
+        <td class="p-2">${i===0?new Date(e.date).toLocaleDateString('fr-FR'):''}</td>
+        <td class="p-2">${i===0?e.journal:''}</td>
+        <td class="p-2 text-xs">${i===0?escapeHtml(e.piece||'—'):''}</td>
+        <td class="p-2 text-xs">${l.compte} — ${escapeHtml(planLabel(l.compte))}</td>
+        <td class="p-2 text-xs">${escapeHtml(l.libelle)}</td>
+        <td class="p-2 text-right">${l.debit?money(l.debit):''}</td>
+        <td class="p-2 text-right">${l.credit?money(l.credit):''}</td>
+        <td class="p-2">${i===0?`<button onclick="deleteEcriture('${e.id}')" class="text-red-500 text-xs">✕</button>`:''}</td>
+      </tr>`;
+    });
+  });
+  document.getElementById('journalBody').innerHTML=html||'<tr><td colspan="8" class="text-center text-slate-400 p-4">Aucune écriture</td></tr>';
+}
+function renderGrandLivre(){
+  const sel=document.getElementById('glCompteSel');
+  const plan=getPlanComptable();
+  if(!sel.dataset.filled){ sel.innerHTML=plan.map(p=>`<option value="${p.num}">${p.num} — ${escapeHtml(p.lib)}</option>`).join(''); sel.dataset.filled='1'; }
+  const compte=sel.value||plan[0]?.num;
+  const lignes=[];
+  getEcritures().forEach(e=>{ e.lignes.forEach(l=>{ if(l.compte===compte) lignes.push({date:e.date,piece:e.piece,libelle:l.libelle,debit:l.debit,credit:l.credit,ts:e.ts}); }); });
+  lignes.sort((a,b)=>new Date(a.date)-new Date(b.date)||a.ts-b.ts);
+  let solde=0;
+  const rows=lignes.map(l=>{ solde+=l.debit-l.credit; return `<tr class="border-b"><td class="p-2">${new Date(l.date).toLocaleDateString('fr-FR')}</td><td class="p-2 text-xs">${escapeHtml(l.piece||'—')}</td><td class="p-2">${escapeHtml(l.libelle)}</td><td class="p-2 text-right">${l.debit?money(l.debit):''}</td><td class="p-2 text-right">${l.credit?money(l.credit):''}</td><td class="p-2 text-right font-semibold">${money(Math.abs(solde))} ${solde>=0?'D':'C'}</td></tr>`; }).join('');
+  document.getElementById('grandLivreBody').innerHTML=rows||'<tr><td colspan="6" class="text-center text-slate-400 p-4">Aucun mouvement sur ce compte</td></tr>';
+}
+function renderBalance(){
+  const agg={};
+  getEcritures().forEach(e=>e.lignes.forEach(l=>{ if(!agg[l.compte]) agg[l.compte]={debit:0,credit:0}; agg[l.compte].debit+=l.debit; agg[l.compte].credit+=l.credit; }));
+  let totD=0,totC=0,totSD=0,totSC=0;
+  const rows=Object.keys(agg).sort().map(num=>{
+    const a=agg[num]; const solde=a.debit-a.credit; totD+=a.debit; totC+=a.credit;
+    const sd=solde>0?solde:0, sc=solde<0?-solde:0; totSD+=sd; totSC+=sc;
+    return `<tr class="border-b"><td class="p-2">${num}</td><td class="p-2 text-xs">${escapeHtml(planLabel(num))}</td><td class="p-2 text-right">${money(a.debit)}</td><td class="p-2 text-right">${money(a.credit)}</td><td class="p-2 text-right">${sd?money(sd):''}</td><td class="p-2 text-right">${sc?money(sc):''}</td></tr>`;
+  }).join('');
+  document.getElementById('balanceBody').innerHTML=rows||'<tr><td colspan="6" class="text-center text-slate-400 p-4">Aucune écriture enregistrée</td></tr>';
+  document.getElementById('balanceFoot').innerHTML=`<tr><td class="p-2" colspan="2">TOTAUX</td><td class="p-2 text-right">${money(totD)}</td><td class="p-2 text-right">${money(totC)}</td><td class="p-2 text-right">${money(totSD)}</td><td class="p-2 text-right">${money(totSC)}</td></tr>`;
+}
+function renderPlanComptable(){
+  const plan=getPlanComptable();
+  document.getElementById('planComptableBody').innerHTML=plan.map((p,i)=>`<tr class="border-b"><td class="p-2 font-semibold">${p.num}</td><td class="p-2">${escapeHtml(p.lib)}</td><td class="p-2 text-xs text-slate-500">Classe ${p.cl}</td><td class="p-2"><button onclick="deleteCompte(${i})" class="text-red-500 text-xs">✕</button></td></tr>`).join('');
+}
+function openAddCompteModal(){
+  const num=prompt('N° de compte (ex: 6285) :'); if(!num) return;
+  const lib=prompt('Libellé du compte :'); if(!lib) return;
+  const plan=getPlanComptable();
+  plan.push({num:num.trim(),lib:lib.trim(),cl:num.trim().charAt(0)});
+  plan.sort((a,b)=>a.num.localeCompare(b.num));
+  savePlanComptable(plan);
+  renderPlanComptable();
+}
+function deleteCompte(i){
+  if(!confirm('Supprimer ce compte du plan comptable ?')) return;
+  const plan=getPlanComptable(); plan.splice(i,1); savePlanComptable(plan); renderPlanComptable();
+}
+
+/* =========================================================
    Nomenclature multi-niveaux — CŒUR DE MÉTIER
    Niveau 0 : Produit fini
    Niveau 1 : Sous-ensembles fonctionnels
@@ -11996,7 +12294,7 @@ const ETUDE_TABS=['config','bom','cut','cost','proforma'];
 function showPage(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
   document.querySelectorAll('.nav').forEach(b=>b.classList.remove('active'));
-  const titles={dashboard:'Tableau de bord',flux:'Schéma des flux',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',atelierMobile:'Vue atelier',stock:'Stock',sav:'SAV & Garantie',chantier:'Circuit Chantier',cartechantiers:'Carte des chantiers',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs',catalogue:'Catalogue technique',controlegestion:'Contrôle de gestion',validations:'Validations en attente',etatpa:'État proforma & achats',gmao:'GMAO — Maintenance',prospects:'Prospects & Pipeline',relances:'Relances commerciales',analysecommerciale:'Analyse commerciale',partenaires:'Partenaires & commissions',ao:"Appels d'offres",rh:'RH & Paie'};
+  const titles={dashboard:'Tableau de bord',flux:'Schéma des flux',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',atelierMobile:'Vue atelier',stock:'Stock',sav:'SAV & Garantie',chantier:'Circuit Chantier',cartechantiers:'Carte des chantiers',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs',catalogue:'Catalogue technique',controlegestion:'Contrôle de gestion',validations:'Validations en attente',etatpa:'État proforma & achats',gmao:'GMAO — Maintenance',prospects:'Prospects & Pipeline',relances:'Relances commerciales',analysecommerciale:'Analyse commerciale',partenaires:'Partenaires & commissions',ao:"Appels d'offres",rh:'RH & Paie',caisse:'Caisse',compta:'Comptabilité SYSCOHADA'};
 
   if(ETUDE_TABS.includes(page)){
     document.getElementById('etude').classList.remove('hidden');
@@ -12035,6 +12333,8 @@ function showPage(page){
     if(page==='ao') showAOTab('pipeline');
     if(page==='cartechantiers') renderCarteChantiers();
     if(page==='rh') showRHTab(document.querySelector('.rh-tab-btn.active')?.dataset.rhtab||'employes');
+    if(page==='caisse') renderCaisse();
+    if(page==='compta') showComptaTab(document.querySelector('.compta-tab-btn.active')?.dataset.comptatab||'journal');
   }
   document.getElementById('pageTitle').textContent=titles[page];
 }
