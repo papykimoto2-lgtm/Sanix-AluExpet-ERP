@@ -9890,6 +9890,9 @@ async function openReceptionAchatModal(achatId,chantierId){
       <button onclick="closeReceptionAchatModal()" class="text-slate-400 text-xl leading-none">×</button>
     </div>
     <p class="text-sm text-slate-500 mb-3">${escapeHtml(rec.fournisseur)} — saisissez la quantité reçue par référence. Le stock sera incrémenté automatiquement.</p>
+    <label class="text-xs font-semibold block mb-3">Dépôt de réception
+      <select id="receptionDepot" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm"></select>
+    </label>
     <div id="receptionLignesBody" class="space-y-2 max-h-64 overflow-y-auto"></div>
     <div class="grid sm:grid-cols-3 gap-2 mt-3 pt-3 border-t">
       <label class="text-xs font-semibold block">N° facture fournisseur
@@ -9907,6 +9910,10 @@ async function openReceptionAchatModal(achatId,chantierId){
       <button type="button" onclick="validerReceptionAchat()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">✓ Valider réception (BR)</button>
     </div>`;
   renderReceptionLignes();
+  const depots=await getDepotsActifs();
+  const depotSel=document.getElementById('receptionDepot');
+  depotSel.innerHTML=depots.map(d=>`<option value="${escapeHtml(d.code)}">${escapeHtml(d.nom)}</option>`).join('');
+  depotSel.value='PRINC';
   modal.classList.remove('hidden');
   setModalOpen(true);
 }
@@ -9938,6 +9945,7 @@ async function validerReceptionAchat(){
   if(!hasRole('achat:manage')){ alert('Permission refusée.'); return; }
   const recues=receptionLignes.filter(l=>(l._recuMaintenant||0)>0.0001);
   if(!recues.length){ alert("Aucune quantité reçue saisie — renseignez au moins une quantité avant de valider."); return; }
+  const depotReception=document.getElementById('receptionDepot')?.value||'PRINC';
   const rows=await idbGetAll('achats');
   const rec=rows.find(a=>a.id===receptionAchatId); if(!rec) return;
   const EPS=0.001;
@@ -9951,11 +9959,11 @@ async function validerReceptionAchat(){
     const stockRows=await idbGetAll('stock');
     for(const l of recues){
       if(!l.code) continue;
-      let stockRec=stockRows.find(s=>s.ref===l.code && (s.depot||'PRINC')==='PRINC');
-      if(!stockRec){ stockRec={id:stockRowId(l.code,'PRINC'),ref:l.code,label:l.designation,dispo:0,reserve:0,prix:l.prix||0,depot:'PRINC',lots:[]}; }
+      let stockRec=stockRows.find(s=>s.ref===l.code && (s.depot||'PRINC')===depotReception);
+      if(!stockRec){ stockRec={id:stockRowId(l.code,depotReception),ref:l.code,label:l.designation,dispo:0,reserve:0,prix:l.prix||0,depot:depotReception,lots:[]}; }
       stockRec.dispo=(stockRec.dispo||0)+l._recuMaintenant;
       if(l.prix) stockRec.prix=l.prix;
-      stockRec.depot='PRINC';
+      stockRec.depot=depotReception;
       if(l._lot){
         stockRec.lots=(stockRec.lots||[]);
         stockRec.lots.push({lot:l._lot,qty:l._recuMaintenant,date:new Date().toISOString(),refDA:rec.numero,fournisseur:rec.fournisseur});
@@ -9964,7 +9972,7 @@ async function validerReceptionAchat(){
       stockRec._modifie=new Date().toISOString();
       await idbPut('stock',stockRec);
       queueSync('alubom_stock',stockRec);
-      const mv={id:'m_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),ref:l.code,depot:'PRINC',type:'entree',qty:l._recuMaintenant,prixUnitaire:l.prix||0,lot:l._lot||null,ts:new Date().toISOString(),user:currentUser?currentUser.email:undefined,refDA:rec.numero};
+      const mv={id:'m_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),ref:l.code,depot:depotReception,type:'entree',qty:l._recuMaintenant,prixUnitaire:l.prix||0,lot:l._lot||null,ts:new Date().toISOString(),user:currentUser?currentUser.email:undefined,refDA:rec.numero};
       await idbPut('stock_mouvements',mv);
       queueSync('alubom_stock_mouvements',mv);
     }
@@ -9983,7 +9991,7 @@ async function validerReceptionAchat(){
   rec.bonsReception=(rec.bonsReception||[]).concat([{numero:brNumero,date:new Date().toISOString(),lignes:recues.map(l=>({code:l.code,designation:l.designation,qte:l._recuMaintenant})),factureFournisseur:rec.factureFournisseur||null}]);
   await idbPut('achats',rec);
   queueSync('alubom_achats',rec);
-  await audit('RECEPTION_ACHAT',rec.numero+' → '+rec.statut+' — '+brNumero+(recues.length?' — stock incrémenté ('+recues.length+' réf.)':''));
+  await audit('RECEPTION_ACHAT',rec.numero+' → '+rec.statut+' — '+brNumero+(recues.length?' — stock incrémenté ('+recues.length+' réf., dépôt '+depotReception+')':''));
   if(recues.length) imprimerBonReception(brNumero,rec,recues);
   closeReceptionAchatModal();
   await refreshAllTables();
