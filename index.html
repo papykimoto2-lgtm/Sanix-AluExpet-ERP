@@ -209,7 +209,7 @@ window.SANIX_CFG = {
 
       <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">7 · Finance</div>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="caisse">💵 Caisse</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="compta">📒 Comptabilité SYSCOHADA</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="compta">📒 Comptabilité SYSCOHADA <span id="ventilationBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
 
       <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">8 · Pilotage</div>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="controlegestion">📈 Contrôle de gestion</button>
@@ -2461,16 +2461,16 @@ window.SANIX_CFG = {
           <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Total décaissements (mois)</div><div id="caisseTotalSortie" class="text-xl font-bold text-red-700">—</div></div>
         </div>
         <form id="caisseForm" onsubmit="return handleAddCaisseOp(event)" class="card bg-white rounded-2xl p-4 grid sm:grid-cols-6 gap-2 mb-4">
-          <select id="caisseType" class="border rounded-lg px-2 py-1.5 text-sm"><option value="entree">Encaissement</option><option value="sortie">Décaissement</option></select>
+          <select id="caisseType" class="border rounded-lg px-2 py-1.5 text-sm"><option value="entree">Encaissement (entrée)</option><option value="sortie">Décaissement (sortie)</option></select>
           <input id="caisseDate" type="date" required class="border rounded-lg px-2 py-1.5 text-sm">
-          <input id="caisseLibelle" placeholder="Libellé" required class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
-          <select id="caisseCompteCompta" class="border rounded-lg px-2 py-1.5 text-sm"></select>
+          <input id="caisseLibelle" placeholder="Libellé (ex: vente comptant, achat fournitures...)" required class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
           <input id="caisseMontant" type="number" min="0" step="1" placeholder="Montant FCFA" required class="border rounded-lg px-2 py-1.5 text-sm">
-          <input id="caissePiece" placeholder="N° pièce (optionnel)" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold sm:col-span-1">+ Enregistrer</button>
+          <input id="caissePiece" placeholder="N° pièce (optionnel)" class="border rounded-lg px-2 py-1.5 text-sm">
+          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold sm:col-span-6">+ Enregistrer dans le brouillard de caisse</button>
         </form>
+        <p class="text-xs text-slate-500 mb-2">ℹ️ La caissière saisit uniquement l'entrée ou la sortie. La ventilation comptable (choix du compte OHADA) est faite ensuite par le comptable dans <b>Comptabilité SYSCOHADA → Ventilation</b>.</p>
         <div class="card bg-white rounded-2xl p-4 overflow-x-auto">
-          <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Date</th><th class="text-left p-2">Libellé</th><th class="text-left p-2">Compte OHADA</th><th class="text-left p-2">Pièce</th><th class="text-right p-2">Entrée</th><th class="text-right p-2">Sortie</th><th class="text-right p-2">Solde</th><th class="p-2"></th></tr></thead><tbody id="caisseBody"></tbody></table>
+          <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Date</th><th class="text-left p-2">Libellé</th><th class="text-left p-2">Pièce</th><th class="text-right p-2">Entrée</th><th class="text-right p-2">Sortie</th><th class="text-right p-2">Solde</th><th class="text-left p-2">Statut</th><th class="p-2"></th></tr></thead><tbody id="caisseBody"></tbody></table>
         </div>
       </section>
 
@@ -2479,13 +2479,25 @@ window.SANIX_CFG = {
           <div><h2 class="text-lg font-bold">📒 Comptabilité SYSCOHADA</h2><p class="text-sm text-slate-500">Plan comptable, journal des écritures, grand livre et balance — système normal OHADA.</p></div>
         </div>
         <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1 items-center">
-          <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold active" data-comptatab="journal" onclick="showComptaTab('journal')">🗒️ Journal</button>
+          <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold active" data-comptatab="ventilation" onclick="showComptaTab('ventilation')">🧮 Ventilation caisse <span id="ventilationTabBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
+          <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="journal" onclick="showComptaTab('journal')">🗒️ Journal</button>
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="grandlivre" onclick="showComptaTab('grandlivre')">📚 Grand livre</button>
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="balance" onclick="showComptaTab('balance')">⚖️ Balance</button>
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="plan" onclick="showComptaTab('plan')">📖 Plan comptable</button>
         </div>
 
-        <div id="comptaTabJournal" class="compta-tab">
+        <div id="comptaTabVentilation" class="compta-tab">
+          <p class="text-sm text-slate-500 mb-3">Opérations de caisse en attente d'affectation à un compte OHADA. Choisissez le compte puis validez : l'écriture comptable équilibrée (571 Caisse / compte choisi) sera générée automatiquement.</p>
+          <div class="card bg-white rounded-2xl p-4 overflow-x-auto">
+            <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Date</th><th class="text-left p-2">Caisse</th><th class="text-left p-2">Libellé</th><th class="text-left p-2">Pièce</th><th class="text-left p-2">Sens</th><th class="text-right p-2">Montant</th><th class="text-left p-2">Compte OHADA</th><th class="p-2"></th></tr></thead><tbody id="ventilationBody"></tbody></table>
+          </div>
+          <h3 class="text-sm font-bold text-slate-600 mt-6 mb-2">Opérations déjà ventilées</h3>
+          <div class="card bg-white rounded-2xl p-4 overflow-x-auto">
+            <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Date</th><th class="text-left p-2">Caisse</th><th class="text-left p-2">Libellé</th><th class="text-right p-2">Montant</th><th class="text-left p-2">Compte OHADA</th><th class="p-2"></th></tr></thead><tbody id="ventilationDoneBody"></tbody></table>
+          </div>
+        </div>
+
+        <div id="comptaTabJournal" class="compta-tab hidden">
           <form id="ecritureForm" onsubmit="return handleAddEcriture(event)" class="card bg-white rounded-2xl p-4 mb-4">
             <div class="grid sm:grid-cols-5 gap-2 mb-2">
               <input id="ecDate" type="date" required class="border rounded-lg px-2 py-1.5 text-sm">
@@ -3363,7 +3375,7 @@ async function checkSession(){
 document.addEventListener('DOMContentLoaded',checkSession);
 
 /* ---------- Ordres de Fabrication (OF) ---------- */
-async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),seedArticlesIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable(),renderEnsemblesList(),renderPlansFacadeTable(),renderRevisionsTable(),populateAtelierSelect(),loadParams()]); renderUsersTable(); if(document.getElementById('costChart')) updateDashboard(); if(document.getElementById('prodTabKanban') && !document.getElementById('prodTabKanban').classList.contains('hidden')) renderKanban(); if(document.getElementById('prodTabGantt') && !document.getElementById('prodTabGantt').classList.contains('hidden')) renderGantt(); if(document.getElementById('prodTabCharge') && !document.getElementById('prodTabCharge').classList.contains('hidden')) renderChargePostes(); if(document.getElementById('atelierMobile') && !document.getElementById('atelierMobile').classList.contains('hidden')) renderAtelierMobile(); if(document.getElementById('controlegestion') && !document.getElementById('controlegestion').classList.contains('hidden')) renderControleGestion(); if(document.getElementById('validations') && !document.getElementById('validations').classList.contains('hidden')) renderValidationsQueue(); if(document.getElementById('etatpa') && !document.getElementById('etatpa').classList.contains('hidden')) renderEtatProformaAchats(); if(document.getElementById('gmao') && !document.getElementById('gmao').classList.contains('hidden')) showGmaoTab(document.querySelector('.gmao-tab-btn.active')?.dataset.gmaotab||'machines'); if(document.getElementById('relances') && !document.getElementById('relances').classList.contains('hidden')) renderRelances(); updateGmaoBadge(); updateValidationsBadge(); updateRelancesBadge(); updateAOBadge(); if(document.getElementById('rh') && !document.getElementById('rh').classList.contains('hidden')) showRHTab(document.querySelector('.rh-tab-btn.active')?.dataset.rhtab||'employes'); updateCongesBadge(); }
+async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),seedArticlesIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable(),renderEnsemblesList(),renderPlansFacadeTable(),renderRevisionsTable(),populateAtelierSelect(),loadParams()]); renderUsersTable(); if(document.getElementById('costChart')) updateDashboard(); if(document.getElementById('prodTabKanban') && !document.getElementById('prodTabKanban').classList.contains('hidden')) renderKanban(); if(document.getElementById('prodTabGantt') && !document.getElementById('prodTabGantt').classList.contains('hidden')) renderGantt(); if(document.getElementById('prodTabCharge') && !document.getElementById('prodTabCharge').classList.contains('hidden')) renderChargePostes(); if(document.getElementById('atelierMobile') && !document.getElementById('atelierMobile').classList.contains('hidden')) renderAtelierMobile(); if(document.getElementById('controlegestion') && !document.getElementById('controlegestion').classList.contains('hidden')) renderControleGestion(); if(document.getElementById('validations') && !document.getElementById('validations').classList.contains('hidden')) renderValidationsQueue(); if(document.getElementById('etatpa') && !document.getElementById('etatpa').classList.contains('hidden')) renderEtatProformaAchats(); if(document.getElementById('gmao') && !document.getElementById('gmao').classList.contains('hidden')) showGmaoTab(document.querySelector('.gmao-tab-btn.active')?.dataset.gmaotab||'machines'); if(document.getElementById('relances') && !document.getElementById('relances').classList.contains('hidden')) renderRelances(); updateGmaoBadge(); updateValidationsBadge(); updateRelancesBadge(); updateAOBadge(); updateVentilationBadge(); if(document.getElementById('rh') && !document.getElementById('rh').classList.contains('hidden')) showRHTab(document.querySelector('.rh-tab-btn.active')?.dataset.rhtab||'employes'); updateCongesBadge(); }
 
 function openNewOFForm(){
   if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
@@ -12006,10 +12018,12 @@ function populateCaisseSelects(){
   const cur=compteSel.value||comptes[0]?.id;
   compteSel.innerHTML=comptes.map(c=>`<option value="${c.id}">${escapeHtml(c.nom)}</option>`).join('');
   compteSel.value=cur;
-  const cc=document.getElementById('caisseCompteCompta');
-  const plan=getPlanComptable();
-  cc.innerHTML=plan.map(p=>`<option value="${p.num}">${p.num} — ${escapeHtml(p.lib)}</option>`).join('');
   if(!document.getElementById('caisseDate').value) document.getElementById('caisseDate').value=new Date().toISOString().slice(0,10);
+}
+function statutBadge(st){
+  return st==='ventile'
+    ?'<span class="badge bg-emerald-50 text-emerald-700">✅ Ventilé</span>'
+    :'<span class="badge bg-amber-50 text-amber-700">🕓 En attente</span>';
 }
 function renderCaisse(){
   populateCaisseSelects();
@@ -12020,12 +12034,13 @@ function renderCaisse(){
     const mE=o.type==='entree'?o.montant:0, mS=o.type==='sortie'?o.montant:0;
     solde+=mE-mS;
     if(o.date.slice(0,7)===nowM){ totE+=mE; totS+=mS; }
-    return `<tr class="border-b"><td class="p-2">${new Date(o.date).toLocaleDateString('fr-FR')}</td><td class="p-2">${escapeHtml(o.libelle)}</td><td class="p-2 text-xs text-slate-500">${o.compteCompta}</td><td class="p-2 text-xs">${escapeHtml(o.piece||'—')}</td><td class="p-2 text-right text-emerald-700">${mE?money(mE):''}</td><td class="p-2 text-right text-red-700">${mS?money(mS):''}</td><td class="p-2 text-right font-semibold">${money(solde)}</td><td class="p-2"><button onclick="deleteCaisseOp('${o.id}')" class="text-red-500 text-xs">✕</button></td></tr>`;
+    return `<tr class="border-b"><td class="p-2">${new Date(o.date).toLocaleDateString('fr-FR')}</td><td class="p-2">${escapeHtml(o.libelle)}</td><td class="p-2 text-xs">${escapeHtml(o.piece||'—')}</td><td class="p-2 text-right text-emerald-700">${mE?money(mE):''}</td><td class="p-2 text-right text-red-700">${mS?money(mS):''}</td><td class="p-2 text-right font-semibold">${money(solde)}</td><td class="p-2">${statutBadge(o.statut)}</td><td class="p-2">${o.statut!=='ventile'?`<button onclick="deleteCaisseOp('${o.id}')" class="text-red-500 text-xs">✕</button>`:''}</td></tr>`;
   }).join('');
   document.getElementById('caisseBody').innerHTML=rows||'<tr><td colspan="8" class="text-center text-slate-400 p-4">Aucune opération</td></tr>';
   document.getElementById('caisseSolde').textContent=money(solde);
   document.getElementById('caisseTotalEntree').textContent=money(totE);
   document.getElementById('caisseTotalSortie').textContent=money(totS);
+  updateVentilationBadge();
 }
 function handleAddCaisseOp(ev){
   ev.preventDefault();
@@ -12033,28 +12048,77 @@ function handleAddCaisseOp(ev){
   const type=document.getElementById('caisseType').value;
   const date=document.getElementById('caisseDate').value;
   const libelle=document.getElementById('caisseLibelle').value.trim();
-  const compteCompta=document.getElementById('caisseCompteCompta').value;
   const montant=parseFloat(document.getElementById('caisseMontant').value)||0;
   const piece=document.getElementById('caissePiece').value.trim();
   if(!libelle||montant<=0) return false;
-  const op={id:genUid('cop'),compteId,type,date,libelle,compteCompta,montant,piece,user:(typeof currentUser!=='undefined'&&currentUser)?currentUser.email:'—',ts:Date.now()};
+  const op={id:genUid('cop'),compteId,type,date,libelle,compteCompta:null,statut:'brouillard',montant,piece,user:(typeof currentUser!=='undefined'&&currentUser)?currentUser.email:'—',ts:Date.now()};
   const ops=getCaisseOps(); ops.push(op); saveCaisseOps(ops);
-  const lignes=type==='entree'
-    ?[{compte:'571',libelle,debit:montant,credit:0},{compte:compteCompta,libelle,debit:0,credit:montant}]
-    :[{compte:compteCompta,libelle,debit:montant,credit:0},{compte:'571',libelle,debit:0,credit:montant}];
-  const ecritures=getEcritures();
-  ecritures.push({id:genUid('ec'),date,journal:'CA',piece:piece||'',libelle,lignes,user:op.user,ts:Date.now()});
-  saveEcritures(ecritures);
   document.getElementById('caisseForm').reset();
   document.getElementById('caisseDate').value=date;
   renderCaisse();
-  if(typeof audit==='function') audit('CAISSE_OPERATION',`${type==='entree'?'Encaissement':'Décaissement'} ${money(montant)} — ${libelle}`);
+  if(typeof audit==='function') audit('CAISSE_OPERATION',`${type==='entree'?'Encaissement':'Décaissement'} ${money(montant)} — ${libelle} (en attente de ventilation)`);
   return false;
 }
 function deleteCaisseOp(id){
-  if(!confirm('Supprimer cette opération de caisse ?')) return;
+  if(!confirm('Supprimer cette opération de caisse ? (impossible si déjà ventilée)')) return;
+  const op=getCaisseOps().find(o=>o.id===id);
+  if(op&&op.statut==='ventile'){ alert('Cette opération est déjà ventilée en comptabilité. Annulez la ventilation avant suppression.'); return; }
   saveCaisseOps(getCaisseOps().filter(o=>o.id!==id));
   renderCaisse();
+}
+function updateVentilationBadge(){
+  const n=getCaisseOps().filter(o=>o.statut!=='ventile').length;
+  ['ventilationBadge','ventilationTabBadge'].forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    if(n>0){ el.textContent=n; el.classList.remove('hidden'); } else el.classList.add('hidden');
+  });
+}
+
+/* ---- Ventilation comptable (par le comptable) ---- */
+function renderVentilation(){
+  const plan=getPlanComptable();
+  const comptesMap={}; getCaisseComptes().forEach(c=>comptesMap[c.id]=c.nom);
+  const optsHtml=plan.map(p=>`<option value="${p.num}">${p.num} — ${escapeHtml(p.lib)}</option>`).join('');
+  const ops=getCaisseOps().sort((a,b)=>new Date(a.date)-new Date(b.date)||a.ts-b.ts);
+  const pending=ops.filter(o=>o.statut!=='ventile');
+  const done=ops.filter(o=>o.statut==='ventile');
+  document.getElementById('ventilationBody').innerHTML=pending.length?pending.map(o=>`<tr class="border-b" id="vrow_${o.id}">
+      <td class="p-2">${new Date(o.date).toLocaleDateString('fr-FR')}</td>
+      <td class="p-2 text-xs">${escapeHtml(comptesMap[o.compteId]||'—')}</td>
+      <td class="p-2">${escapeHtml(o.libelle)}</td>
+      <td class="p-2 text-xs">${escapeHtml(o.piece||'—')}</td>
+      <td class="p-2">${o.type==='entree'?'<span class="text-emerald-700">Entrée</span>':'<span class="text-red-700">Sortie</span>'}</td>
+      <td class="p-2 text-right font-semibold">${money(o.montant)}</td>
+      <td class="p-2"><select id="vsel_${o.id}" class="border rounded-lg px-2 py-1 text-xs min-w-[200px]">${optsHtml}</select></td>
+      <td class="p-2"><button onclick="ventilerOp('${o.id}')" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-2 py-1 text-xs font-semibold">✔ Ventiler</button></td>
+    </tr>`).join(''):'<tr><td colspan="8" class="text-center text-slate-400 p-4">Aucune opération en attente — le brouillard de caisse est à jour ✅</td></tr>';
+  document.getElementById('ventilationDoneBody').innerHTML=done.length?done.map(o=>`<tr class="border-b text-slate-500"><td class="p-2">${new Date(o.date).toLocaleDateString('fr-FR')}</td><td class="p-2 text-xs">${escapeHtml(comptesMap[o.compteId]||'—')}</td><td class="p-2">${escapeHtml(o.libelle)}</td><td class="p-2 text-right">${money(o.montant)}</td><td class="p-2 text-xs">${o.compteCompta} — ${escapeHtml(planLabel(o.compteCompta))}</td><td class="p-2"><button onclick="annulerVentilation('${o.id}')" class="text-amber-600 text-xs">↩ Annuler</button></td></tr>`).join(''):'<tr><td colspan="6" class="text-center text-slate-400 p-4">Aucune opération ventilée</td></tr>';
+  updateVentilationBadge();
+}
+function ventilerOp(id){
+  const ops=getCaisseOps();
+  const op=ops.find(o=>o.id===id); if(!op) return;
+  const compteCompta=document.getElementById('vsel_'+id).value;
+  const lignes=op.type==='entree'
+    ?[{compte:'571',libelle:op.libelle,debit:op.montant,credit:0},{compte:compteCompta,libelle:op.libelle,debit:0,credit:op.montant}]
+    :[{compte:compteCompta,libelle:op.libelle,debit:op.montant,credit:0},{compte:'571',libelle:op.libelle,debit:0,credit:op.montant}];
+  const ecritures=getEcritures();
+  const ec={id:genUid('ec'),date:op.date,journal:'CA',piece:op.piece||'',libelle:op.libelle,lignes,user:(typeof currentUser!=='undefined'&&currentUser)?currentUser.email:'—',ts:Date.now(),caisseOpId:op.id};
+  ecritures.push(ec); saveEcritures(ecritures);
+  op.statut='ventile'; op.compteCompta=compteCompta; op.ecritureId=ec.id;
+  saveCaisseOps(ops);
+  renderVentilation();
+  if(document.getElementById('caisse') && !document.getElementById('caisse').classList.contains('hidden')) renderCaisse();
+  if(typeof audit==='function') audit('VENTILATION_CAISSE',`Ventilation ${money(op.montant)} — ${op.libelle} → compte ${compteCompta}`);
+}
+function annulerVentilation(id){
+  if(!confirm('Annuler la ventilation ? L\'écriture comptable associée sera supprimée et l\'opération repassera en attente.')) return;
+  const ops=getCaisseOps();
+  const op=ops.find(o=>o.id===id); if(!op) return;
+  if(op.ecritureId) saveEcritures(getEcritures().filter(e=>e.id!==op.ecritureId));
+  op.statut='brouillard'; op.compteCompta=null; delete op.ecritureId;
+  saveCaisseOps(ops);
+  renderVentilation();
 }
 
 /* ---- Comptabilité : navigation onglets ---- */
@@ -12062,6 +12126,7 @@ function showComptaTab(tab){
   document.querySelectorAll('.compta-tab').forEach(t=>t.classList.add('hidden'));
   document.getElementById('comptaTab'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.remove('hidden');
   document.querySelectorAll('.compta-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.comptatab===tab));
+  if(tab==='ventilation') renderVentilation();
   if(tab==='journal'){ if(!document.getElementById('ecLignes').children.length){ addEcritureLigne(); addEcritureLigne(); } if(!document.getElementById('ecDate').value) document.getElementById('ecDate').value=new Date().toISOString().slice(0,10); renderJournal(); }
   if(tab==='grandlivre') renderGrandLivre();
   if(tab==='balance') renderBalance();
@@ -12334,7 +12399,7 @@ function showPage(page){
     if(page==='cartechantiers') renderCarteChantiers();
     if(page==='rh') showRHTab(document.querySelector('.rh-tab-btn.active')?.dataset.rhtab||'employes');
     if(page==='caisse') renderCaisse();
-    if(page==='compta') showComptaTab(document.querySelector('.compta-tab-btn.active')?.dataset.comptatab||'journal');
+    if(page==='compta') showComptaTab(document.querySelector('.compta-tab-btn.active')?.dataset.comptatab||'ventilation');
   }
   document.getElementById('pageTitle').textContent=titles[page];
 }
