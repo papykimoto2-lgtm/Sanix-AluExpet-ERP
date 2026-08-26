@@ -2832,6 +2832,89 @@ window.SANIX_CFG = {
           </div>
         </div>
 
+        <!-- ====== COMPTES TIERS SYSCOHADA ====== -->
+        <div id="comptaTabTiers" class="compta-tab hidden">
+          <div class="flex flex-wrap gap-2 items-center mb-4">
+            <div class="flex gap-1 bg-slate-100 rounded-xl p-1">
+              <button id="tiersBtnClients" onclick="showTiersType('clients')" class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-white shadow-sm text-blue-700">411 · Clients</button>
+              <button id="tiersBtnFournisseurs" onclick="showTiersType('fournisseurs')" class="px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-600">401 · Fournisseurs</button>
+              <button id="tiersBtnPersonnel" onclick="showTiersType('personnel')" class="px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-600">421 · Personnel</button>
+              <button id="tiersBtnEtat" onclick="showTiersType('etat')" class="px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-600">44x · État</button>
+              <button id="tiersBtnAutres" onclick="showTiersType('autres')" class="px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-600">46x · Autres tiers</button>
+            </div>
+            <input id="tiersSearch" placeholder="🔍 Rechercher..." onkeyup="renderTiersTable()" class="border rounded-lg px-2 py-1.5 text-sm w-48">
+            <button onclick="exportTiersCSV()" class="border border-slate-300 text-slate-700 px-3 py-1.5 rounded-lg text-sm font-semibold">📤 Export CSV</button>
+            <button onclick="openTiersForm()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold ml-auto">➕ Nouveau tiers</button>
+          </div>
+
+          <!-- KPI Tiers -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4" id="tiersKpis">
+            <div class="bg-white rounded-2xl p-4 border-l-4 border-blue-500 shadow-sm">
+              <div class="text-xs font-semibold text-slate-500 mb-1">SOLDE CLIENTS (411)</div>
+              <div class="text-xl font-black text-blue-700" id="tkSoldeClients">—</div>
+              <div class="text-xs text-slate-400 mt-1" id="tkSoldeClientsSub">—</div>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border-l-4 border-red-500 shadow-sm">
+              <div class="text-xs font-semibold text-slate-500 mb-1">SOLDE FOURNISSEURS (401)</div>
+              <div class="text-xl font-black text-red-700" id="tkSoldeFourn">—</div>
+              <div class="text-xs text-slate-400 mt-1" id="tkSoldeFournSub">—</div>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border-l-4 border-amber-500 shadow-sm">
+              <div class="text-xs font-semibold text-slate-500 mb-1">SOLDE PERSONNEL (421)</div>
+              <div class="text-xl font-black text-amber-700" id="tkSoldePerso">—</div>
+              <div class="text-xs text-slate-400 mt-1">avances & acomptes</div>
+            </div>
+            <div class="bg-white rounded-2xl p-4 border-l-4 border-emerald-500 shadow-sm">
+              <div class="text-xs font-semibold text-slate-500 mb-1">SOLDE ÉTAT (44x)</div>
+              <div class="text-xl font-black text-emerald-700" id="tkSoldeEtat">—</div>
+              <div class="text-xs text-slate-400 mt-1">TVA, IS, CNPS…</div>
+            </div>
+          </div>
+
+          <!-- Tableau tiers -->
+          <div class="card bg-white rounded-2xl p-4">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50">
+                  <tr>
+                    <th class="p-2 text-left">N° Compte</th>
+                    <th class="p-2 text-left">Tiers</th>
+                    <th class="p-2 text-left">Type</th>
+                    <th class="p-2 text-left">Référence ERP</th>
+                    <th class="p-2 text-right">Débit cumulé</th>
+                    <th class="p-2 text-right">Crédit cumulé</th>
+                    <th class="p-2 text-right font-bold">Solde</th>
+                    <th class="p-2 text-center">Sens</th>
+                    <th class="p-2">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="tiersBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Grand livre tiers (détail) -->
+          <div id="tiersDetailPanel" class="hidden mt-4 card bg-white rounded-2xl p-4">
+            <div class="flex justify-between items-center mb-3">
+              <h3 class="font-bold text-slate-700" id="tiersDetailTitle">Grand livre du tiers</h3>
+              <button onclick="document.getElementById('tiersDetailPanel').classList.add('hidden')" class="text-slate-400 text-xl">✕</button>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-xs">
+                <thead class="bg-slate-50">
+                  <tr>
+                    <th class="p-2">Date</th><th class="p-2">Journal</th><th class="p-2">Pièce</th>
+                    <th class="p-2 text-left">Libellé</th><th class="p-2 text-right">Débit</th>
+                    <th class="p-2 text-right">Crédit</th><th class="p-2 text-right font-bold">Solde cumulé</th>
+                  </tr>
+                </thead>
+                <tbody id="tiersDetailBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <!-- ====== FIN COMPTES TIERS ====== -->
+
         <div id="comptaTabPlan" class="compta-tab hidden">
           <div class="flex flex-wrap justify-between gap-2 mb-2">
             <p class="text-sm text-slate-500">Plan comptable général SYSCOHADA révisé (classes 1 à 8). Vous pouvez ajouter des sous-comptes spécifiques.</p>
@@ -13298,15 +13381,329 @@ function annulerVentilation(id){
 /* ---- Comptabilité : navigation onglets ---- */
 function showComptaTab(tab){
   document.querySelectorAll('.compta-tab').forEach(t=>t.classList.add('hidden'));
-  document.getElementById('comptaTab'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.remove('hidden');
+  const comptaTabTarget=document.getElementById('comptaTab'+tab.charAt(0).toUpperCase()+tab.slice(1));
+  if(!comptaTabTarget){ console.warn('[showComptaTab] onglet introuvable, build front probablement obsolète:',tab); return; }
+  comptaTabTarget.classList.remove('hidden');
   document.querySelectorAll('.compta-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.comptatab===tab));
   if(tab==='dashboard') renderComptaDashboard();
   if(tab==='ventilation') renderVentilation();
   if(tab==='journal'){ if(!document.getElementById('ecLignes').children.length){ addEcritureLigne(); addEcritureLigne(); } if(!document.getElementById('ecDate').value) document.getElementById('ecDate').value=new Date().toISOString().slice(0,10); renderJournal(); }
   if(tab==='grandlivre') renderGrandLivre();
   if(tab==='balance') renderBalance();
+  if(tab==='tiers') renderTiersComptaModule();
   if(tab==='plan') renderPlanComptable();
   if(tab==='parametres') renderComptesDefautMouvements();
+}
+
+/* ============================================================
+   COMPTES TIERS SYSCOHADA
+   ============================================================ */
+
+// Règles SYSCOHADA: racines de comptes tiers
+const TIERS_CONFIG={
+  clients:    {prefixes:['411','418'],label:'Clients',compte:'411',color:'blue'},
+  fournisseurs:{prefixes:['401','408'],label:'Fournisseurs',compte:'401',color:'red'},
+  personnel:  {prefixes:['421','422','423','424','425','426','427','428'],label:'Personnel',compte:'421',color:'amber'},
+  etat:       {prefixes:['441','442','443','444','445','446','447','448'],label:'État & Organismes',compte:'44x',color:'emerald'},
+  autres:     {prefixes:['461','462','465','467','468','481','482','485','486','487','491','499'],label:'Autres tiers',compte:'46x',color:'indigo'}
+};
+
+let _tiersTypeActif='clients';
+
+function showTiersType(type){
+  _tiersTypeActif=type;
+  Object.keys(TIERS_CONFIG).forEach(k=>{
+    const btn=document.getElementById('tiersBtn'+k.charAt(0).toUpperCase()+k.slice(1));
+    if(btn){ btn.className=k===type?'px-3 py-1.5 rounded-lg text-sm font-semibold bg-white shadow-sm text-blue-700':'px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-600'; }
+  });
+  renderTiersTable();
+}
+
+function getTiersComptes(){
+  try{ return JSON.parse(localStorage.getItem('sanix_tiers_comptes')||'[]'); }catch{ return []; }
+}
+function saveTiersComptes(t){ localStorage.setItem('sanix_tiers_comptes',JSON.stringify(t)); }
+
+// Calcul solde d'un compte tiers depuis les écritures
+function calcSoldeTiers(numCompte){
+  const ecritures=getEcritures();
+  let debit=0,credit=0;
+  ecritures.forEach(e=>{
+    (e.lignes||[]).forEach(l=>{
+      if(l.compte===numCompte){ debit+=+l.debit||0; credit+=+l.credit||0; }
+    });
+  });
+  return {debit,credit,solde:debit-credit};
+}
+
+// Calcul global par préfixes
+function calcSoldeByPrefixes(prefixes){
+  const ecritures=getEcritures();
+  let debit=0,credit=0;
+  ecritures.forEach(e=>{
+    (e.lignes||[]).forEach(l=>{
+      if(prefixes.some(p=>l.compte?.startsWith(p))){ debit+=+l.debit||0; credit+=+l.credit||0; }
+    });
+  });
+  return {debit,credit,solde:debit-credit};
+}
+
+async function renderTiersComptaModule(){
+  // KPI globaux
+  const cfg=TIERS_CONFIG;
+  const sc=calcSoldeByPrefixes(cfg.clients.prefixes);
+  const sf=calcSoldeByPrefixes(cfg.fournisseurs.prefixes);
+  const sp=calcSoldeByPrefixes(cfg.personnel.prefixes);
+  const se=calcSoldeByPrefixes(cfg.etat.prefixes);
+
+  document.getElementById('tkSoldeClients').textContent=money(sc.solde);
+  document.getElementById('tkSoldeClientsSub').textContent=`${money(sc.debit)} débit / ${money(sc.credit)} crédit`;
+  document.getElementById('tkSoldeFourn').textContent=money(Math.abs(sf.solde));
+  document.getElementById('tkSoldeFournSub').textContent=sf.solde<0?'Dû aux fournisseurs':'Avances versées';
+  document.getElementById('tkSoldePerso').textContent=money(sp.solde);
+  document.getElementById('tkSoldeEtat').textContent=money(se.solde);
+
+  // Sync comptes tiers depuis clients/fournisseurs ERP
+  await syncTiersFromERP();
+  renderTiersTable();
+}
+
+// Synchroniser automatiquement clients et fournisseurs ERP → comptes tiers
+async function syncTiersFromERP(){
+  const [clients,fournisseurs,employes]=await Promise.all(['clients','fournisseurs','employes'].map(idbGetAll));
+  let tiers=getTiersComptes();
+
+  // Clients → 411xxxx
+  clients.forEach((c,i)=>{
+    const num='411'+String(i+1).padStart(4,'0');
+    const exist=tiers.find(t=>t.erpId===c.id&&t.type==='clients');
+    if(!exist){
+      tiers.push({id:'tier_'+c.id,erpId:c.id,type:'clients',num:num,nom:c.nom||c.raisonSociale||'Client '+c.id.slice(-4),
+        ref:c.code||c.id.slice(-6),ville:c.ville||'',telephone:c.telephone||'',email:c.email||'',
+        rc:c.rc||'',contribuable:c.contribuable||'',_sync:new Date().toISOString()});
+    }
+  });
+
+  // Fournisseurs → 401xxxx
+  fournisseurs.forEach((f,i)=>{
+    const num='401'+String(i+1).padStart(4,'0');
+    const exist=tiers.find(t=>t.erpId===f.id&&t.type==='fournisseurs');
+    if(!exist){
+      tiers.push({id:'tier_f'+f.id,erpId:f.id,type:'fournisseurs',num:num,nom:f.nom||f.raisonSociale||'Fournisseur '+f.id.slice(-4),
+        ref:f.code||f.id.slice(-6),ville:f.ville||'',telephone:f.telephone||'',email:f.email||'',
+        rc:f.rc||'',contribuable:f.contribuable||'',_sync:new Date().toISOString()});
+    }
+  });
+
+  // Personnel → 421xxxx
+  employes.forEach((e,i)=>{
+    const num='421'+String(i+1).padStart(4,'0');
+    const exist=tiers.find(t=>t.erpId===e.id&&t.type==='personnel');
+    if(!exist){
+      tiers.push({id:'tier_e'+e.id,erpId:e.id,type:'personnel',num:num,nom:(e.prenoms||'')+' '+(e.nom||''),
+        ref:e.matricule||e.id.slice(-6),_sync:new Date().toISOString()});
+    }
+  });
+
+  saveTiersComptes(tiers);
+}
+
+function renderTiersTable(){
+  const el=document.getElementById('tiersBody'); if(!el) return;
+  const type=_tiersTypeActif;
+  const cfg=TIERS_CONFIG[type];
+  const search=(document.getElementById('tiersSearch')?.value||'').toLowerCase();
+  let tiers=getTiersComptes().filter(t=>t.type===type);
+  if(search) tiers=tiers.filter(t=>(t.nom||'').toLowerCase().includes(search)||(t.num||'').includes(search)||(t.ref||'').toLowerCase().includes(search));
+
+  // Ajouter comptes État et Autres depuis plan si pas en tiers manuels
+  if(type==='etat'||type==='autres'){
+    const plan=getPlanComptable();
+    const planTiers=plan.filter(p=>cfg.prefixes.some(px=>p.num.startsWith(px)));
+    planTiers.forEach(p=>{
+      if(!tiers.find(t=>t.num===p.num))
+        tiers.push({id:'plan_'+p.num,type,num:p.num,nom:p.lib,ref:'',_plan:true});
+    });
+  }
+
+  el.innerHTML=tiers.length?tiers.map(t=>{
+    const {debit,credit,solde}=calcSoldeTiers(t.num);
+    const sens=solde>0?'<span class="badge bg-blue-50 text-blue-700">Débiteur</span>':
+               solde<0?'<span class="badge bg-red-50 text-red-700">Créditeur</span>':
+               '<span class="badge bg-slate-50 text-slate-500">Équilibré</span>';
+    const soldeColor=solde>0?'text-blue-700':solde<0?'text-red-700':'text-slate-500';
+    return `<tr class="border-b hover:bg-slate-50 cursor-pointer" onclick="openTiersGrandLivre('${t.num}','${escapeHtml(t.nom)}')">
+      <td class="p-2 font-mono text-blue-700 font-semibold">${escapeHtml(t.num)}</td>
+      <td class="p-2">
+        <div class="font-semibold">${escapeHtml(t.nom)}</div>
+        ${t.ref?'<div class="text-xs text-slate-400">Réf: '+escapeHtml(t.ref)+'</div>':''}
+        ${t.telephone?'<div class="text-xs text-slate-400">📞 '+escapeHtml(t.telephone)+'</div>':''}
+      </td>
+      <td class="p-2 text-xs text-slate-600">${escapeHtml(cfg.label)}</td>
+      <td class="p-2 text-xs text-slate-500">${t._plan?'Plan comptable':t._sync?'Synchronisé ERP':'Manuel'}</td>
+      <td class="p-2 text-right text-sm">${debit?money(debit):'—'}</td>
+      <td class="p-2 text-right text-sm">${credit?money(credit):'—'}</td>
+      <td class="p-2 text-right font-bold ${soldeColor}">${money(Math.abs(solde))}</td>
+      <td class="p-2 text-center">${sens}</td>
+      <td class="p-2 text-xs">
+        ${!t._plan?`<button onclick="event.stopPropagation();openTiersForm('${t.id}')" class="text-blue-500 mr-2">✏️</button>
+        <button onclick="event.stopPropagation();deleteTiers('${t.id}')" class="text-red-400">🗑️</button>`:''}
+      </td>
+    </tr>`;
+  }).join(''):
+  `<tr><td colspan="9" class="p-4 text-center text-slate-400">Aucun compte tiers de type "${cfg.label}".</td></tr>`;
+}
+
+function openTiersGrandLivre(num,nom){
+  const panel=document.getElementById('tiersDetailPanel');
+  const title=document.getElementById('tiersDetailTitle');
+  const body=document.getElementById('tiersDetailBody');
+  if(!panel||!title||!body) return;
+  title.textContent=`Grand livre — ${num} · ${nom}`;
+  const ecritures=getEcritures().sort((a,b)=>a.date?.localeCompare(b.date)||a.ts-b.ts);
+  let soldeCumul=0; const rows=[];
+  ecritures.forEach(e=>{
+    (e.lignes||[]).forEach(l=>{
+      if(l.compte===num){
+        soldeCumul+=(+l.debit||0)-(+l.credit||0);
+        rows.push({date:e.date,journal:e.journal||'OD',piece:e.piece||'—',
+          libelle:l.libelle||e.libelle||'—',debit:+l.debit||0,credit:+l.credit||0,solde:soldeCumul});
+      }
+    });
+  });
+  body.innerHTML=rows.length?rows.map(r=>`<tr class="border-b">
+    <td class="p-1.5">${r.date}</td>
+    <td class="p-1.5 text-xs">${escapeHtml(r.journal)}</td>
+    <td class="p-1.5 text-xs font-mono">${escapeHtml(r.piece)}</td>
+    <td class="p-1.5">${escapeHtml(r.libelle)}</td>
+    <td class="p-1.5 text-right">${r.debit?money(r.debit):'—'}</td>
+    <td class="p-1.5 text-right">${r.credit?money(r.credit):'—'}</td>
+    <td class="p-1.5 text-right font-bold ${r.solde>=0?'text-blue-700':'text-red-700'}">${money(Math.abs(r.solde))} ${r.solde>=0?'D':'C'}</td>
+  </tr>`).join('')+`<tr class="bg-slate-100 font-bold">
+    <td colspan="4" class="p-2">TOTAL</td>
+    <td class="p-2 text-right">${money(rows.reduce((s,r)=>s+r.debit,0))}</td>
+    <td class="p-2 text-right">${money(rows.reduce((s,r)=>s+r.credit,0))}</td>
+    <td class="p-2 text-right ${soldeCumul>=0?'text-blue-700':'text-red-700'}">${money(Math.abs(soldeCumul))} ${soldeCumul>=0?'D':'C'}</td>
+  </tr>`:
+  '<tr><td colspan="7" class="p-3 text-slate-400 text-center">Aucune écriture pour ce compte.</td></tr>';
+  panel.classList.remove('hidden');
+  panel.scrollIntoView({behavior:'smooth'});
+}
+
+function openTiersForm(id){
+  const tiers=getTiersComptes();
+  const t=id?tiers.find(x=>x.id===id):null;
+  const types=Object.entries(TIERS_CONFIG).map(([k,v])=>`<option value="${k}" ${t?.type===k?'selected':''}>${v.compte} · ${v.label}</option>`).join('');
+  const plan=getPlanComptable();
+  const html=`<div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" id="tiersFormOverlay">
+    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-y-auto max-h-[95vh]">
+      <div class="flex justify-between items-center p-4 border-b sticky top-0 bg-white">
+        <h2 class="font-bold text-lg">${t?'Modifier':'Nouveau'} compte tiers</h2>
+        <button onclick="document.getElementById('tiersFormOverlay').remove()" class="text-slate-400 text-2xl">✕</button>
+      </div>
+      <form onsubmit="return saveTiersForm(event)" class="p-4 space-y-3">
+        <div class="grid sm:grid-cols-2 gap-3">
+          <div><label class="text-xs font-semibold block mb-1">Type SYSCOHADA *</label>
+            <select id="tfType" onchange="autoNumCompte()" class="border rounded-lg px-2 py-1.5 text-sm w-full">${types}</select></div>
+          <div><label class="text-xs font-semibold block mb-1">N° compte *</label>
+            <input id="tfNum" value="${t?.num||''}" required class="border rounded-lg px-2 py-1.5 text-sm w-full font-mono" placeholder="Ex: 4110001">
+            <div class="text-xs text-slate-400 mt-1">SYSCOHADA: 411xxxx clients, 401xxxx fournisseurs</div></div>
+          <div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Nom / Raison sociale *</label>
+            <input id="tfNom" value="${escapeHtml(t?.nom||'')}" required class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+          <div><label class="text-xs font-semibold block mb-1">Référence ERP</label>
+            <input id="tfRef" value="${escapeHtml(t?.ref||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full" placeholder="N° client/fournisseur…"></div>
+          <div><label class="text-xs font-semibold block mb-1">Téléphone</label>
+            <input id="tfTel" value="${escapeHtml(t?.telephone||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+          <div><label class="text-xs font-semibold block mb-1">Email</label>
+            <input id="tfEmail" type="email" value="${escapeHtml(t?.email||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+          <div><label class="text-xs font-semibold block mb-1">Ville</label>
+            <input id="tfVille" value="${escapeHtml(t?.ville||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+          <div><label class="text-xs font-semibold block mb-1">N° RC / RCCM</label>
+            <input id="tfRC" value="${escapeHtml(t?.rc||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full" placeholder="CI-ABJ-2024-xxxx"></div>
+          <div><label class="text-xs font-semibold block mb-1">N° Contribuable / DGI</label>
+            <input id="tfContrib" value="${escapeHtml(t?.contribuable||'')}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+          <div><label class="text-xs font-semibold block mb-1">Mode de règlement</label>
+            <select id="tfReglement" class="border rounded-lg px-2 py-1.5 text-sm w-full">
+              ${['Espèces','Virement bancaire','Chèque','Mobile Money (Wave)','Mobile Money (Orange Money)','MTN MoMo','Prélèvement','Autre'].map(m=>`<option ${t?.reglement===m?'selected':''}>${m}</option>`).join('')}
+            </select></div>
+          <div><label class="text-xs font-semibold block mb-1">Délai règlement (jours)</label>
+            <input id="tfDelai" type="number" value="${t?.delaiReglement||30}" class="border rounded-lg px-2 py-1.5 text-sm w-full"></div>
+        </div>
+        <div><label class="text-xs font-semibold block mb-1">Note</label>
+          <textarea id="tfNote" rows="2" class="border rounded-lg px-2 py-1.5 text-sm w-full">${escapeHtml(t?.note||'')}</textarea></div>
+        ${id?`<input type="hidden" id="tfId" value="${id}">`:''}
+        <div class="flex gap-2 justify-end pt-2">
+          <button type="button" onclick="document.getElementById('tiersFormOverlay').remove()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Annuler</button>
+          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">💾 Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend',html);
+  if(!t) autoNumCompte();
+}
+
+function autoNumCompte(){
+  const type=document.getElementById('tfType')?.value;
+  const cfg=TIERS_CONFIG[type];
+  if(!cfg) return;
+  const tiers=getTiersComptes().filter(t=>t.type===type);
+  const next=cfg.prefixes[0]+String(tiers.length+1).padStart(4,'0');
+  const el=document.getElementById('tfNum');
+  if(el&&!el.value.match(/\d{7}/)) el.value=next;
+}
+
+function saveTiersForm(ev){
+  ev.preventDefault();
+  const id=document.getElementById('tfId')?.value||'tier_'+Date.now();
+  const tiers=getTiersComptes();
+  const idx=tiers.findIndex(t=>t.id===id);
+  const rec={
+    id,type:document.getElementById('tfType').value,
+    num:document.getElementById('tfNum').value.trim(),
+    nom:document.getElementById('tfNom').value.trim(),
+    ref:document.getElementById('tfRef').value.trim(),
+    telephone:document.getElementById('tfTel').value.trim(),
+    email:document.getElementById('tfEmail').value.trim(),
+    ville:document.getElementById('tfVille').value.trim(),
+    rc:document.getElementById('tfRC').value.trim(),
+    contribuable:document.getElementById('tfContrib').value.trim(),
+    reglement:document.getElementById('tfReglement').value,
+    delaiReglement:+document.getElementById('tfDelai').value||30,
+    note:document.getElementById('tfNote').value.trim(),
+    _modifie:new Date().toISOString()
+  };
+  // Ajouter dans plan comptable si inexistant
+  const plan=getPlanComptable();
+  if(!plan.find(p=>p.num===rec.num)){
+    plan.push({num:rec.num,lib:rec.nom,cl:rec.num[0]});
+    savePlanComptable(plan);
+  }
+  if(idx>=0) tiers[idx]=rec; else tiers.push(rec);
+  saveTiersComptes(tiers);
+  document.getElementById('tiersFormOverlay').remove();
+  renderTiersTable();
+}
+
+function deleteTiers(id){
+  if(!confirm('Supprimer ce compte tiers ?')) return;
+  const tiers=getTiersComptes().filter(t=>t.id!==id);
+  saveTiersComptes(tiers);
+  renderTiersTable();
+}
+
+function exportTiersCSV(){
+  const type=_tiersTypeActif;
+  const tiers=getTiersComptes().filter(t=>t.type===type);
+  const header='N° Compte,Nom,Référence,Téléphone,Email,Ville,RC,Contribuable,Règlement,Délai (j),Débit,Crédit,Solde\n';
+  const rows=tiers.map(t=>{
+    const {debit,credit,solde}=calcSoldeTiers(t.num);
+    return [t.num,t.nom,t.ref,t.telephone,t.email,t.ville,t.rc,t.contribuable,t.reglement,t.delaiReglement,debit,credit,solde].map(v=>`"${v||''}"`).join(',');
+  }).join('\n');
+  const blob=new Blob([header+rows],{type:'text/csv'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`comptes_tiers_${type}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
 }
 function addEcritureLigne(compte,libelle,debit,credit){
   const plan=getPlanComptable();
