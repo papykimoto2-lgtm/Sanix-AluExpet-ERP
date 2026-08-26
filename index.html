@@ -2540,6 +2540,19 @@ window.SANIX_CFG = {
         </div>
 
         <div id="comptaTabVentilation" class="compta-tab">
+          <div class="card bg-white rounded-2xl p-4 mb-4">
+            <div class="flex flex-wrap justify-between items-center gap-2 mb-2">
+              <div><h3 class="text-sm font-bold">🤖 Règles de ventilation automatique</h3><p class="text-xs text-slate-500">Associez un mot-clé du libellé à un compte OHADA pour ventiler les opérations récurrentes automatiquement.</p></div>
+              <div class="flex flex-wrap gap-2">
+                <button onclick="openAddRegleVentilationModal()" class="border px-3 py-1.5 rounded-lg text-xs font-semibold">+ Nouvelle règle</button>
+                <button onclick="genererReglesDepuisHistorique()" class="border px-3 py-1.5 rounded-lg text-xs font-semibold">🧠 Générer depuis l'historique</button>
+                <button onclick="ventilerAutomatiquement()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">⚡ Ventilation auto</button>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-xs"><thead class="bg-slate-50"><tr><th class="text-left p-1.5">Mot-clé (libellé contient)</th><th class="text-left p-1.5">Sens</th><th class="text-left p-1.5">Compte OHADA</th><th class="p-1.5"></th></tr></thead><tbody id="reglesVentilationBody"></tbody></table>
+            </div>
+          </div>
           <p class="text-sm text-slate-500 mb-3">Opérations de caisse en attente d'affectation à un compte OHADA. Choisissez le compte puis validez : l'écriture comptable équilibrée (571 Caisse / compte choisi) sera générée automatiquement.</p>
           <div class="card bg-white rounded-2xl p-4 overflow-x-auto">
             <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Date</th><th class="text-left p-2">Caisse</th><th class="text-left p-2">Libellé</th><th class="text-left p-2">Pièce</th><th class="text-left p-2">Sens</th><th class="text-right p-2">Montant</th><th class="text-left p-2">Compte OHADA</th><th class="p-2"></th></tr></thead><tbody id="ventilationBody"></tbody></table>
@@ -2591,7 +2604,12 @@ window.SANIX_CFG = {
         <div id="comptaTabPlan" class="compta-tab hidden">
           <div class="flex flex-wrap justify-between gap-2 mb-2">
             <p class="text-sm text-slate-500">Plan comptable général SYSCOHADA révisé (classes 1 à 8). Vous pouvez ajouter des sous-comptes spécifiques.</p>
-            <button onclick="openAddCompteModal()" class="border px-3 py-2 rounded-lg text-sm font-semibold">+ Ajouter un compte</button>
+            <div class="flex gap-2">
+              <button onclick="downloadPlanComptableModele()" class="border px-3 py-2 rounded-lg text-sm font-semibold">📄 Modèle CSV</button>
+              <button onclick="document.getElementById('planComptableFileInput').click()" class="border px-3 py-2 rounded-lg text-sm font-semibold">⬆ Importer</button>
+              <input type="file" id="planComptableFileInput" accept=".csv,text/csv,.json,application/json" class="hidden" onchange="handleImportPlanComptable(event)">
+              <button onclick="openAddCompteModal()" class="border px-3 py-2 rounded-lg text-sm font-semibold">+ Ajouter un compte</button>
+            </div>
           </div>
           <div class="card bg-white rounded-2xl p-4 overflow-x-auto">
             <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">N° compte</th><th class="text-left p-2">Libellé</th><th class="text-left p-2">Classe</th><th class="p-2"></th></tr></thead><tbody id="planComptableBody"></tbody></table>
@@ -12368,8 +12386,167 @@ function updateVentilationBadge(){
   });
 }
 
+/* ---- Règles de ventilation automatique ---- */
+function normVentLibelle(s){ return (s||'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim(); }
+function getReglesVentilation(){ try{ return JSON.parse(localStorage.getItem('sanix_regles_ventilation')||'[]'); }catch{ return []; } }
+function saveReglesVentilation(r){ localStorage.setItem('sanix_regles_ventilation',JSON.stringify(r)); }
+function matchRegleVentilation(op,regles){
+  const lib=normVentLibelle(op.libelle);
+  const candidats=(regles||getReglesVentilation()).filter(r=>(r.sens==='tous'||r.sens===op.type)&&r.motif&&lib.includes(normVentLibelle(r.motif)));
+  if(!candidats.length) return null;
+  candidats.sort((a,b)=>b.motif.length-a.motif.length);
+  return candidats[0];
+}
+function renderReglesVentilation(){
+  const el=document.getElementById('reglesVentilationBody'); if(!el) return;
+  const regles=getReglesVentilation();
+  const sensLabel={tous:'Tous',entree:'Entrée',sortie:'Sortie'};
+  el.innerHTML=regles.length?regles.map((r,i)=>`<tr class="border-b"><td class="p-1.5 font-mono">${escapeHtml(r.motif)}</td><td class="p-1.5">${sensLabel[r.sens]||r.sens}</td><td class="p-1.5">${r.compte} — ${escapeHtml(planLabel(r.compte))}</td><td class="p-1.5"><button onclick="deleteRegleVentilation(${i})" class="text-red-500 text-xs">✕</button></td></tr>`).join(''):'<tr><td colspan="4" class="text-center text-slate-400 p-3">Aucune règle définie — créez-en une ou générez-les depuis l\'historique</td></tr>';
+}
+function deleteRegleVentilation(i){
+  if(!confirm('Supprimer cette règle de ventilation ?')) return;
+  const regles=getReglesVentilation(); regles.splice(i,1); saveReglesVentilation(regles); renderReglesVentilation();
+}
+function openAddRegleVentilationModal(){
+  const plan=getPlanComptable();
+  const optsHtml=plan.map(p=>`<option value="${p.num}">${p.num} — ${escapeHtml(p.lib)}</option>`).join('');
+  const html=`
+    <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" id="regleVentilationOverlay">
+      <div class="bg-white rounded-2xl shadow-xl max-w-md w-full">
+        <div class="flex justify-between items-center p-4 border-b">
+          <h2 class="text-lg font-bold">Nouvelle règle de ventilation</h2>
+          <button onclick="document.getElementById('regleVentilationOverlay').remove()" class="text-slate-400 text-2xl">✕</button>
+        </div>
+        <div class="p-4 space-y-3">
+          <label class="text-sm font-semibold block">Mot-clé du libellé
+            <input id="rvMotif" placeholder="ex : carburant, transport, fournitures..." class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+          </label>
+          <label class="text-sm font-semibold block">Sens concerné
+            <select id="rvSens" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+              <option value="tous">Tous (entrée et sortie)</option>
+              <option value="entree">Entrée uniquement</option>
+              <option value="sortie">Sortie uniquement</option>
+            </select>
+          </label>
+          <label class="text-sm font-semibold block">Compte OHADA
+            <select id="rvCompte" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">${optsHtml}</select>
+          </label>
+        </div>
+        <div class="flex justify-end gap-2 p-4 border-t">
+          <button onclick="document.getElementById('regleVentilationOverlay').remove()" class="border px-3 py-2 rounded-lg text-sm">Annuler</button>
+          <button onclick="saveRegleVentilationForm()" class="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-semibold">Enregistrer</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.insertAdjacentHTML('beforeend',html);
+}
+function saveRegleVentilationForm(){
+  const motif=document.getElementById('rvMotif').value.trim();
+  if(!motif){ alert('Mot-clé requis.'); return; }
+  const sens=document.getElementById('rvSens').value;
+  const compte=document.getElementById('rvCompte').value;
+  const regles=getReglesVentilation();
+  regles.push({id:genUid('rv'),motif,sens,compte});
+  saveReglesVentilation(regles);
+  document.getElementById('regleVentilationOverlay').remove();
+  renderReglesVentilation();
+  if(typeof audit==='function') audit('REGLE_VENTILATION_CREE',`Règle "${motif}" (${sens}) → ${compte}`);
+}
+function _tokensLibelleVentilation(s){
+  const stop=new Set(['de','du','des','la','le','les','et','pour','sur','en','au','aux','un','une','avec','par','ce','cet','cette','vers']);
+  return normVentLibelle(s).split(/[^a-z0-9]+/).filter(t=>t.length>=4&&!stop.has(t)&&!/^\d+$/.test(t));
+}
+function genererReglesDepuisHistorique(){
+  const ops=getCaisseOps().filter(o=>o.statut==='ventile'&&o.compteCompta);
+  if(ops.length<2){ alert("Pas assez d'opérations déjà ventilées dans l'historique pour proposer des règles."); return; }
+  const stats={};
+  ops.forEach(o=>{
+    _tokensLibelleVentilation(o.libelle).forEach(tok=>{
+      const key=tok+'|'+o.type;
+      if(!stats[key]) stats[key]={motif:tok,sens:o.type,comptes:{},total:0};
+      stats[key].comptes[o.compteCompta]=(stats[key].comptes[o.compteCompta]||0)+1;
+      stats[key].total++;
+    });
+  });
+  const existantes=getReglesVentilation();
+  const propositions=[];
+  Object.values(stats).forEach(s=>{
+    if(s.total<2) return;
+    const [bestCompte,bestCount]=Object.entries(s.comptes).sort((a,b)=>b[1]-a[1])[0];
+    if(bestCount/s.total<0.75) return;
+    if(existantes.some(r=>normVentLibelle(r.motif)===s.motif&&(r.sens==='tous'||r.sens===s.sens))) return;
+    propositions.push({motif:s.motif,sens:s.sens,compte:bestCompte,occurrences:bestCount});
+  });
+  propositions.sort((a,b)=>b.occurrences-a.occurrences);
+  if(!propositions.length){ alert('Aucune nouvelle règle pertinente détectée (mots-clés déjà couverts ou pas assez récurrents).'); return; }
+  openReviewReglesModal(propositions);
+}
+function openReviewReglesModal(propositions){
+  window._reglesPropositionsTmp=propositions;
+  const sensLabel={tous:'Tous',entree:'Entrée',sortie:'Sortie'};
+  const rows=propositions.map((p,i)=>`<tr class="border-b"><td class="p-1.5"><input type="checkbox" id="rvp_${i}" checked></td><td class="p-1.5 font-mono">${escapeHtml(p.motif)}</td><td class="p-1.5">${sensLabel[p.sens]||p.sens}</td><td class="p-1.5">${p.compte} — ${escapeHtml(planLabel(p.compte))}</td><td class="p-1.5 text-right text-slate-500">${p.occurrences}×</td></tr>`).join('');
+  const html=`
+    <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" id="reglesReviewOverlay">
+      <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+        <div class="flex justify-between items-center p-4 border-b sticky top-0 bg-white">
+          <h2 class="text-lg font-bold">Règles proposées depuis l'historique</h2>
+          <button onclick="document.getElementById('reglesReviewOverlay').remove()" class="text-slate-400 text-2xl">✕</button>
+        </div>
+        <div class="p-4">
+          <p class="text-xs text-slate-500 mb-3">Décochez les propositions non pertinentes, puis validez pour les ajouter aux règles.</p>
+          <table class="w-full text-xs"><thead class="bg-slate-50"><tr><th class="p-1.5"></th><th class="text-left p-1.5">Mot-clé</th><th class="text-left p-1.5">Sens</th><th class="text-left p-1.5">Compte OHADA</th><th class="text-right p-1.5">Occurrences</th></tr></thead><tbody>${rows}</tbody></table>
+        </div>
+        <div class="flex justify-end gap-2 p-4 border-t">
+          <button onclick="document.getElementById('reglesReviewOverlay').remove()" class="border px-3 py-2 rounded-lg text-sm">Annuler</button>
+          <button onclick="confirmReglesDepuisHistorique()" class="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-semibold">Ajouter la sélection</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.insertAdjacentHTML('beforeend',html);
+}
+function confirmReglesDepuisHistorique(){
+  const propositions=window._reglesPropositionsTmp||[];
+  const regles=getReglesVentilation();
+  let n=0;
+  propositions.forEach((p,i)=>{
+    const cb=document.getElementById('rvp_'+i);
+    if(cb&&cb.checked){ regles.push({id:genUid('rv'),motif:p.motif,sens:p.sens,compte:p.compte}); n++; }
+  });
+  saveReglesVentilation(regles);
+  const overlay=document.getElementById('reglesReviewOverlay'); if(overlay) overlay.remove();
+  renderReglesVentilation();
+  delete window._reglesPropositionsTmp;
+  alert(`${n} règle(s) ajoutée(s).`);
+  if(typeof audit==='function'&&n) audit('REGLES_VENTILATION_GENEREES',`${n} règle(s) générée(s) depuis l'historique`);
+}
+function ventilerAutomatiquement(){
+  const regles=getReglesVentilation();
+  if(!regles.length){ alert("Aucune règle de ventilation définie. Créez une règle ou générez-les depuis l'historique."); return; }
+  const ops=getCaisseOps();
+  const pending=ops.filter(o=>o.statut!=='ventile');
+  const ecritures=getEcritures();
+  let count=0;
+  pending.forEach(op=>{
+    const regle=matchRegleVentilation(op,regles);
+    if(!regle) return;
+    const lignes=op.type==='entree'
+      ?[{compte:'571',libelle:op.libelle,debit:op.montant,credit:0},{compte:regle.compte,libelle:op.libelle,debit:0,credit:op.montant}]
+      :[{compte:regle.compte,libelle:op.libelle,debit:op.montant,credit:0},{compte:'571',libelle:op.libelle,debit:0,credit:op.montant}];
+    const ec={id:genUid('ec'),date:op.date,journal:'CA',piece:op.piece||'',libelle:op.libelle,lignes,user:(typeof currentUser!=='undefined'&&currentUser)?currentUser.email:'—',ts:Date.now(),caisseOpId:op.id,auto:true};
+    ecritures.push(ec);
+    op.statut='ventile'; op.compteCompta=regle.compte; op.ecritureId=ec.id;
+    count++;
+  });
+  if(count){ saveEcritures(ecritures); saveCaisseOps(ops); }
+  renderVentilation();
+  if(document.getElementById('caisse')&&!document.getElementById('caisse').classList.contains('hidden')) renderCaisse();
+  alert(count?`Ventilation automatique : ${count} opération(s) ventilée(s) via les règles.`:'Aucune opération en attente ne correspond à une règle existante.');
+  if(typeof audit==='function'&&count) audit('VENTILATION_AUTO',`${count} opération(s) ventilée(s) automatiquement via règles`);
+}
+
 /* ---- Ventilation comptable (par le comptable) ---- */
 function renderVentilation(){
+  renderReglesVentilation();
   const plan=getPlanComptable();
   const comptesMap={}; getCaisseComptes().forEach(c=>comptesMap[c.id]=c.nom);
   const optsHtml=plan.map(p=>`<option value="${p.num}">${p.num} — ${escapeHtml(p.lib)}</option>`).join('');
@@ -12535,6 +12712,67 @@ function openAddCompteModal(){
 function deleteCompte(i){
   if(!confirm('Supprimer ce compte du plan comptable ?')) return;
   const plan=getPlanComptable(); plan.splice(i,1); savePlanComptable(plan); renderPlanComptable();
+}
+function downloadPlanComptableModele(){
+  const csv='num;lib;classe\n601;Achats de matières premières;6\n701;Ventes de produits finis;7\n';
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='modele_plan_comptable.csv'; a.click();
+}
+async function handleImportPlanComptable(e){
+  const file=e.target.files[0]; if(!file) return;
+  let entries=[];
+  try{
+    if(/\.json$/i.test(file.name)){
+      const data=JSON.parse(await file.text());
+      const arr=Array.isArray(data)?data:(Array.isArray(data.plan)?data.plan:null);
+      if(!arr) throw new Error('format');
+      entries=arr.map(x=>({num:String(x.num||x.numero||x.compte||'').trim(),lib:String(x.lib||x.libelle||x.label||'').trim(),cl:String(x.cl||x.classe||(x.num||'').toString().charAt(0)||'').trim()}));
+    } else {
+      const text=await file.text();
+      const lines=text.split(/\r?\n/).filter(l=>l.trim());
+      if(lines.length<2){ alert('Fichier CSV vide ou invalide.'); e.target.value=''; return; }
+      const sep=lines[0].includes(';')?';':',';
+      const headers=lines[0].split(sep).map(h=>h.trim().replace(/^\ufeff/,'').toLowerCase());
+      const idx={}; headers.forEach((h,i)=>idx[h]=i);
+      const numKey=['num','numero','n° compte','compte'].find(k=>idx[k]!==undefined);
+      const libKey=['lib','libelle','libellé','label'].find(k=>idx[k]!==undefined);
+      if(numKey===undefined||libKey===undefined){
+        alert('Colonnes obligatoires manquantes : num, lib (classe optionnelle) — téléchargez le modèle CSV pour le bon format.');
+        e.target.value=''; return;
+      }
+      const clKey=['cl','classe'].find(k=>idx[k]!==undefined);
+      for(let i=1;i<lines.length;i++){
+        const cols=lines[i].split(sep); if(!cols.length) continue;
+        const num=(cols[idx[numKey]]||'').trim();
+        const lib=(cols[idx[libKey]]||'').trim();
+        if(!num||!lib) continue;
+        const cl=clKey!==undefined?(cols[idx[clKey]]||'').trim():num.charAt(0);
+        entries.push({num,lib,cl:cl||num.charAt(0)});
+      }
+    }
+  }catch(err){
+    alert('Fichier invalide. Vérifiez le format CSV (num;lib;classe) ou JSON.');
+    e.target.value=''; return;
+  }
+  entries=entries.filter(x=>x.num&&x.lib);
+  if(!entries.length){ alert('Aucun compte valide trouvé dans le fichier.'); e.target.value=''; return; }
+  const mode=confirm(`${entries.length} compte(s) détecté(s).\n\nOK = Fusionner avec le plan comptable existant (mise à jour des comptes existants, ajout des nouveaux)\nAnnuler = Remplacer entièrement le plan comptable actuel`)?'merge':'replace';
+  let plan;
+  if(mode==='replace'){
+    plan=entries.slice();
+  } else {
+    plan=getPlanComptable();
+    entries.forEach(en=>{
+      const existing=plan.find(p=>p.num===en.num);
+      if(existing){ existing.lib=en.lib; existing.cl=en.cl; } else plan.push(en);
+    });
+  }
+  plan.sort((a,b)=>a.num.localeCompare(b.num));
+  savePlanComptable(plan);
+  renderPlanComptable();
+  e.target.value='';
+  alert(`Import terminé : ${entries.length} compte(s) traité(s) (mode ${mode==='replace'?'remplacement':'fusion'}).`);
+  if(typeof audit==='function') audit('IMPORT_PLAN_COMPTABLE',`${entries.length} compte(s) importé(s) (${mode})`);
 }
 
 /* =========================================================
