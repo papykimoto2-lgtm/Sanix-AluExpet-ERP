@@ -125,6 +125,9 @@ window.SANIX_CFG = {
   .etat-periode-btn.active{background:var(--ds-accent);color:#fff;border-color:var(--ds-accent)}
   .tb-periode-btn{color:var(--ds-slate-500)}
   .tb-periode-btn.active{background:var(--ds-accent);color:#fff;border-color:var(--ds-accent)}
+  .caisse-card{border:1px solid var(--ds-border);border-radius:var(--ds-radius-lg);background:#fff;padding:16px;transition:box-shadow .15s ease,border-color .15s ease;cursor:pointer}
+  .caisse-card:hover{box-shadow:var(--ds-shadow)}
+  .caisse-card.selected{border-color:var(--ds-accent);box-shadow:0 0 0 2px rgba(29,78,216,.15)}
   #sunToggleBtn.active{background:#d97706;color:#fff;border-color:#d97706}
   .editor-tool-btn{color:var(--ds-slate-500);background:transparent;transition:background-color .12s ease,color .12s ease}
   .editor-tool-btn:hover{background:var(--ds-slate-100)}
@@ -2636,8 +2639,7 @@ window.SANIX_CFG = {
         <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
           <div><h2 class="text-lg font-bold">💵 Caisse</h2><p class="text-sm text-slate-500">Brouillard de caisse — ouverture, opérations du jour et clôture avec contrôle du comptage.</p></div>
           <div class="flex gap-2">
-            <select id="caisseCompteSel" onchange="renderCaisse()" class="border rounded-lg px-2 py-1.5 text-sm"></select>
-            <button onclick="openCaisseCompteModal()" class="border px-3 py-2 rounded-lg text-sm font-semibold">⚙️ Caisses</button>
+            <select id="caisseCompteSel" onchange="renderCaisse()" class="hidden"></select>
             <button onclick="document.getElementById('caisseCsvInput').click()" class="border px-3 py-2 rounded-lg text-sm font-semibold">📥 Importer CSV</button>
             <input type="file" id="caisseCsvInput" accept=".csv,text/csv" class="hidden" onchange="handleImportCaisseCSV(event)">
           </div>
@@ -2645,13 +2647,17 @@ window.SANIX_CFG = {
         <div class="flex justify-end mb-2"><a href="#" onclick="downloadCaisseCsvTemplate();return false;" class="text-xs text-blue-600 underline">⬇️ Télécharger le modèle CSV caisse</a></div>
 
         <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+          <h3 class="text-sm font-bold text-slate-600">🗂️ Caisses</h3>
+          <button onclick="openCaisseCompteModal()" class="border px-3 py-1.5 rounded-lg text-sm font-semibold">➕ Nouvelle caisse</button>
+        </div>
+        <div id="caisseListeGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6"></div>
+
+        <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
           <h3 class="text-sm font-bold text-slate-600">📊 Tableau de bord caisse (toutes caisses)</h3>
           <div class="flex gap-1" id="tbCaissePresets">
-            <button type="button" onclick="setTbCaissePeriode('jour')" class="tb-periode-btn border px-2 py-1.5 rounded-lg text-xs font-semibold active" data-p="jour">Jour</button>
-            <button type="button" onclick="setTbCaissePeriode('semaine')" class="tb-periode-btn border px-2 py-1.5 rounded-lg text-xs font-semibold" data-p="semaine">Semaine</button>
-            <button type="button" onclick="setTbCaissePeriode('mois')" class="tb-periode-btn border px-2 py-1.5 rounded-lg text-xs font-semibold" data-p="mois">Mois</button>
-            <button type="button" onclick="setTbCaissePeriode('trimestre')" class="tb-periode-btn border px-2 py-1.5 rounded-lg text-xs font-semibold" data-p="trimestre">Trim.</button>
-            <button type="button" onclick="setTbCaissePeriode('annee')" class="tb-periode-btn border px-2 py-1.5 rounded-lg text-xs font-semibold" data-p="annee">Année</button>
+            <button type="button" onclick="setTbCaissePeriode('semaine')" class="tb-periode-btn border px-2 py-1.5 rounded-lg text-xs font-semibold active" data-p="semaine">Semaine (7 jours)</button>
+            <button type="button" onclick="setTbCaissePeriode('exercice')" class="tb-periode-btn border px-2 py-1.5 rounded-lg text-xs font-semibold" data-p="exercice">Exercice (année)</button>
+            <button type="button" onclick="setTbCaissePeriode('annee')" class="tb-periode-btn border px-2 py-1.5 rounded-lg text-xs font-semibold" data-p="annee">Année (12 mois)</button>
           </div>
         </div>
         <div class="grid sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
@@ -12843,6 +12849,56 @@ function openCaisseCompteModal(){
   const choix=prompt('Caisses existantes : '+comptes.map(c=>c.nom).join(', ')+'\n\nTapez un nom pour créer une nouvelle caisse (laisser vide pour annuler) :');
   if(choix&&choix.trim()){ comptes.push({id:genUid('CA'),nom:choix.trim()}); saveCaisseComptes(comptes); renderCaisse(); }
 }
+function selectCaisseCompte(id){
+  const sel=document.getElementById('caisseCompteSel'); if(!sel) return;
+  sel.value=id;
+  renderCaisse();
+}
+function supprimerCaisseCompte(id,ev){
+  if(ev) ev.stopPropagation();
+  const comptes=getCaisseComptes();
+  if(comptes.length<=1){ alert('Impossible de supprimer la dernière caisse.'); return; }
+  if(getOpenSession(id)){ alert('Fermez/clôturez cette caisse avant de la supprimer.'); return; }
+  const c=comptes.find(x=>x.id===id);
+  if(!confirm(`Supprimer la caisse « ${c?.nom||id} » ? Les mouvements et sessions liés seront conservés dans l'historique mais la caisse n'apparaîtra plus.`)) return;
+  saveCaisseComptes(comptes.filter(x=>x.id!==id));
+  renderCaisse();
+}
+function renderCaisseListeGrid(){
+  const el=document.getElementById('caisseListeGrid'); if(!el) return;
+  const comptes=getCaisseComptes();
+  const sessions=getCaisseSessions();
+  const selectedId=document.getElementById('caisseCompteSel').value;
+  el.innerHTML=comptes.map(c=>{
+    const session=sessions.find(s=>s.compteId===c.id&&s.statut==='ouverte');
+    const isSel=c.id===selectedId;
+    const badge=session?'<span class="badge bg-emerald-50 text-emerald-700">OUVERTE</span>':'<span class="badge bg-slate-100 text-slate-600">FERMÉE</span>';
+    let corps;
+    if(session){
+      const solde=sessionSoldeTheorique(session);
+      corps=`<div class="text-2xl font-black text-emerald-700 mt-1">${money(solde)}</div>
+        <div class="text-xs text-slate-400 mt-1">Ouverte le ${new Date(session.dateOuverture).toLocaleDateString('fr-FR')} · fond initial ${money(session.soldeInitial)}</div>`;
+    } else {
+      const lastClosed=sessions.filter(s=>s.compteId===c.id&&s.statut==='cloturee').sort((a,b)=>b.ts-a.ts)[0];
+      corps=`<div class="text-sm text-slate-400 mt-1">Caisse fermée</div>
+        ${lastClosed?`<div class="text-xs text-slate-400 mt-1">Dernier solde réel : ${money(lastClosed.soldeReel)}</div>`:''}`;
+    }
+    return `<div class="caisse-card ${isSel?'selected':''}" onclick="selectCaisseCompte('${c.id}')">
+      <div class="flex justify-between items-start gap-2">
+        <div class="font-bold">${escapeHtml(c.nom)}</div>
+        ${badge}
+      </div>
+      ${corps}
+      <div class="flex gap-1 mt-3 flex-wrap" onclick="event.stopPropagation()">
+        ${session?`<button onclick="selectCaisseCompte('${c.id}');document.querySelector('#caisseForm select#caisseType').value='entree'" class="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded font-semibold">💵 Entrée</button>
+        <button onclick="selectCaisseCompte('${c.id}');document.querySelector('#caisseForm select#caisseType').value='sortie'" class="text-xs bg-red-50 text-red-700 px-2 py-1 rounded font-semibold">💸 Sortie</button>
+        <button onclick="selectCaisseCompte('${c.id}');document.getElementById('caisseBrouillardBlock').classList.remove('hidden');document.getElementById('btnToggleBrouillard').textContent='🙈 Masquer le brouillard'" class="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded font-semibold">📒 Brouillard</button>`
+        :`<button onclick="selectCaisseCompte('${c.id}')" class="text-xs bg-emerald-600 text-white px-2 py-1 rounded font-semibold">🔓 Ouvrir la caisse</button>`}
+        <button onclick="supprimerCaisseCompte('${c.id}',event)" class="text-xs text-red-500 px-2 py-1 rounded font-semibold ml-auto">🗑️</button>
+      </div>
+    </div>`;
+  }).join('')||'<p class="text-slate-400 text-sm col-span-full">Aucune caisse. Cliquez sur « Nouvelle caisse ».</p>';
+}
 function populateCaisseSelects(){
   const compteSel=document.getElementById('caisseCompteSel'); if(!compteSel) return;
   const comptes=getCaisseComptes();
@@ -12862,17 +12918,15 @@ function sessionSoldeTheorique(session){
   return solde;
 }
 let _tbCaisseChartInstance=null;
-let _tbCaissePeriode='jour';
+let _tbCaissePeriode='semaine';
 function tbCaissePeriodeBounds(p){
   const now=new Date(),y=now.getFullYear(),m=now.getMonth(),d=now.getDate();
   const iso=dt=>dt.toISOString().slice(0,10);
   const fin=iso(now);
   let debut;
-  if(p==='jour') debut=fin;
-  else if(p==='semaine'){ const jsDay=now.getDay()||7; debut=iso(new Date(y,m,d-jsDay+1)); }
-  else if(p==='mois') debut=iso(new Date(y,m,1));
-  else if(p==='trimestre'){ const q=Math.floor(m/3)*3; debut=iso(new Date(y,q,1)); }
-  else if(p==='annee') debut=iso(new Date(y,0,1));
+  if(p==='semaine') debut=iso(new Date(y,m,d-6));
+  else if(p==='exercice') debut=iso(new Date(y,0,1));
+  else if(p==='annee') debut=iso(new Date(y,m-11,1));
   else debut=fin;
   return {debut,fin};
 }
@@ -12886,7 +12940,7 @@ function renderTableauBordCaisse(){
   const sessions=getCaisseSessions();
   const ops=getCaisseOps();
   const {debut,fin}=tbCaissePeriodeBounds(_tbCaissePeriode);
-  const labels={jour:'du jour',semaine:'de la semaine',mois:'du mois',trimestre:'du trimestre',annee:"de l'année"};
+  const labels={semaine:'de la semaine (7 jours)',exercice:"de l'exercice",annee:'des 12 derniers mois'};
   const lbl=labels[_tbCaissePeriode]||'de la période';
 
   let soldeTotal=0, nbOuvertes=0;
@@ -12920,20 +12974,31 @@ function renderTableauBordCaisse(){
 
   const canvas=document.getElementById('tbCaisseChart');
   if(canvas && typeof Chart!=='undefined'){
-    const jours=[]; const byDay={};
-    const dStart=new Date(debut), dEnd=new Date(fin);
-    const nbJours=Math.max(1,Math.round((dEnd-dStart)/86400000)+1);
-    for(let i=0;i<nbJours;i++){ const d=new Date(dStart); d.setDate(d.getDate()+i); const key=d.toISOString().slice(0,10); jours.push(key); byDay[key]={entree:0,sortie:0}; }
-    ops.forEach(o=>{ if(byDay[o.date]){ if(o.type==='entree') byDay[o.date].entree+=o.montant; else byDay[o.date].sortie+=o.montant; } });
-    const titres={jour:"Entrées / Sorties — aujourd'hui",semaine:'Entrées / Sorties — cette semaine',mois:'Entrées / Sorties — ce mois',trimestre:'Entrées / Sorties — ce trimestre',annee:"Entrées / Sorties — cette année"};
+    const titres={semaine:'Entrées / Sorties — 7 derniers jours',exercice:"Entrées / Sorties — exercice (par mois)",annee:'Entrées / Sorties — 12 derniers mois'};
     const elTitle=document.getElementById('tbCaisseChartTitle'); if(elTitle) elTitle.textContent=titres[_tbCaissePeriode]||'Entrées / Sorties';
+    let chartLabels=[], dataE=[], dataS=[];
+    if(_tbCaissePeriode==='semaine'){
+      const jours=[]; const byDay={};
+      const dStart=new Date(debut);
+      for(let i=0;i<7;i++){ const d=new Date(dStart); d.setDate(d.getDate()+i); const key=d.toISOString().slice(0,10); jours.push(key); byDay[key]={entree:0,sortie:0}; }
+      ops.forEach(o=>{ if(byDay[o.date]){ if(o.type==='entree') byDay[o.date].entree+=o.montant; else byDay[o.date].sortie+=o.montant; } });
+      chartLabels=jours.map(j=>new Date(j).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}));
+      dataE=jours.map(j=>byDay[j].entree); dataS=jours.map(j=>byDay[j].sortie);
+    } else {
+      const now=new Date(); const mois=[]; const byMonth={};
+      const dStart=new Date(debut); const nbMois=_tbCaissePeriode==='exercice'?(now.getMonth()+1):12;
+      for(let i=0;i<nbMois;i++){ const d=new Date(dStart.getFullYear(),dStart.getMonth()+i,1); const key=d.toISOString().slice(0,7); mois.push(key); byMonth[key]={entree:0,sortie:0}; }
+      ops.forEach(o=>{ const key=(o.date||'').slice(0,7); if(byMonth[key]){ if(o.type==='entree') byMonth[key].entree+=o.montant; else byMonth[key].sortie+=o.montant; } });
+      chartLabels=mois.map(k=>{ const [yy,mm]=k.split('-'); return new Date(+yy,+mm-1,1).toLocaleDateString('fr-FR',{month:'short',year:'2-digit'}); });
+      dataE=mois.map(k=>byMonth[k].entree); dataS=mois.map(k=>byMonth[k].sortie);
+    }
     if(_tbCaisseChartInstance) _tbCaisseChartInstance.destroy();
     _tbCaisseChartInstance=new Chart(canvas.getContext('2d'),{
       type:'bar',
-      data:{ labels:jours.map(j=>new Date(j).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})),
+      data:{ labels:chartLabels,
         datasets:[
-          {label:'Entrées',data:jours.map(j=>byDay[j].entree),backgroundColor:'#2563eb'},
-          {label:'Sorties',data:jours.map(j=>byDay[j].sortie),backgroundColor:'#dc2626'}
+          {label:'Entrées',data:dataE,backgroundColor:'#2563eb'},
+          {label:'Sorties',data:dataS,backgroundColor:'#dc2626'}
         ]},
       options:{scales:{y:{beginAtZero:true,ticks:{callback:v=>(v/1000).toFixed(0)+'k'}}},plugins:{legend:{position:'top'}}}
     });
@@ -12942,6 +13007,7 @@ function renderTableauBordCaisse(){
 function renderCaisse(){
   renderTableauBordCaisse();
   populateCaisseSelects();
+  renderCaisseListeGrid();
   populateCaisseAnnees();
   const compteId=document.getElementById('caisseCompteSel').value;
   const session=getOpenSession(compteId);
