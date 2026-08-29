@@ -123,6 +123,8 @@ window.SANIX_CFG = {
   .config-view-btn.active{background:var(--ds-accent);color:#fff}
   .etat-periode-btn{color:var(--ds-slate-500)}
   .etat-periode-btn.active{background:var(--ds-accent);color:#fff;border-color:var(--ds-accent)}
+  .tb-periode-btn{color:var(--ds-slate-500)}
+  .tb-periode-btn.active{background:var(--ds-accent);color:#fff;border-color:var(--ds-accent)}
   #sunToggleBtn.active{background:#d97706;color:#fff;border-color:#d97706}
   .editor-tool-btn{color:var(--ds-slate-500);background:transparent;transition:background-color .12s ease,color .12s ease}
   .editor-tool-btn:hover{background:var(--ds-slate-100)}
@@ -2642,18 +2644,27 @@ window.SANIX_CFG = {
         </div>
         <div class="flex justify-end mb-2"><a href="#" onclick="downloadCaisseCsvTemplate();return false;" class="text-xs text-blue-600 underline">⬇️ Télécharger le modèle CSV caisse</a></div>
 
-        <h3 class="text-sm font-bold text-slate-600 mb-2">📊 Tableau de bord caisse (toutes caisses)</h3>
+        <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+          <h3 class="text-sm font-bold text-slate-600">📊 Tableau de bord caisse (toutes caisses)</h3>
+          <div class="flex gap-1" id="tbCaissePresets">
+            <button type="button" onclick="setTbCaissePeriode('jour')" class="tb-periode-btn border px-2 py-1.5 rounded-lg text-xs font-semibold active" data-p="jour">Jour</button>
+            <button type="button" onclick="setTbCaissePeriode('semaine')" class="tb-periode-btn border px-2 py-1.5 rounded-lg text-xs font-semibold" data-p="semaine">Semaine</button>
+            <button type="button" onclick="setTbCaissePeriode('mois')" class="tb-periode-btn border px-2 py-1.5 rounded-lg text-xs font-semibold" data-p="mois">Mois</button>
+            <button type="button" onclick="setTbCaissePeriode('trimestre')" class="tb-periode-btn border px-2 py-1.5 rounded-lg text-xs font-semibold" data-p="trimestre">Trim.</button>
+            <button type="button" onclick="setTbCaissePeriode('annee')" class="tb-periode-btn border px-2 py-1.5 rounded-lg text-xs font-semibold" data-p="annee">Année</button>
+          </div>
+        </div>
         <div class="grid sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
           <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Solde total (caisses ouvertes)</div><div id="tbCaisseSoldeTotal" class="text-xl font-bold text-slate-800">—</div></div>
           <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Caisses ouvertes / total</div><div id="tbCaisseNbOuvertes" class="text-xl font-bold text-slate-700">—</div></div>
-          <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Entrées du jour</div><div id="tbCaisseEntreeJour" class="text-xl font-bold text-blue-700">—</div></div>
-          <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Sorties du jour</div><div id="tbCaisseSortieJour" class="text-xl font-bold text-red-700">—</div></div>
-          <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">Solde net du mois</div><div id="tbCaisseSoldeMois" class="text-xl font-bold text-emerald-700">—</div></div>
+          <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500" id="tbCaisseEntreeLbl">Entrées (période)</div><div id="tbCaisseEntreeJour" class="text-xl font-bold text-blue-700">—</div></div>
+          <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500" id="tbCaisseSortieLbl">Sorties (période)</div><div id="tbCaisseSortieJour" class="text-xl font-bold text-red-700">—</div></div>
+          <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500" id="tbCaisseNetLbl">Solde net (période)</div><div id="tbCaisseSoldeMois" class="text-xl font-bold text-emerald-700">—</div></div>
           <div class="card bg-white rounded-2xl p-4"><div class="text-xs text-slate-500">En attente de ventilation</div><div id="tbCaisseEnAttente" class="text-xl font-bold text-amber-700">—</div></div>
         </div>
         <div class="grid lg:grid-cols-3 gap-4 mb-4">
           <div class="card bg-white rounded-2xl p-4 lg:col-span-2">
-            <h4 class="text-sm font-bold text-slate-600 mb-2">Entrées / Sorties — 30 derniers jours</h4>
+            <h4 class="text-sm font-bold text-slate-600 mb-2" id="tbCaisseChartTitle">Entrées / Sorties — 30 derniers jours</h4>
             <canvas id="tbCaisseChart" height="90"></canvas>
           </div>
           <div class="card bg-white rounded-2xl p-4 overflow-x-auto">
@@ -12847,12 +12858,32 @@ function sessionSoldeTheorique(session){
   return solde;
 }
 let _tbCaisseChartInstance=null;
+let _tbCaissePeriode='jour';
+function tbCaissePeriodeBounds(p){
+  const now=new Date(),y=now.getFullYear(),m=now.getMonth(),d=now.getDate();
+  const iso=dt=>dt.toISOString().slice(0,10);
+  const fin=iso(now);
+  let debut;
+  if(p==='jour') debut=fin;
+  else if(p==='semaine'){ const jsDay=now.getDay()||7; debut=iso(new Date(y,m,d-jsDay+1)); }
+  else if(p==='mois') debut=iso(new Date(y,m,1));
+  else if(p==='trimestre'){ const q=Math.floor(m/3)*3; debut=iso(new Date(y,q,1)); }
+  else if(p==='annee') debut=iso(new Date(y,0,1));
+  else debut=fin;
+  return {debut,fin};
+}
+function setTbCaissePeriode(p){
+  _tbCaissePeriode=p;
+  document.querySelectorAll('.tb-periode-btn').forEach(b=>b.classList.toggle('active',b.dataset.p===p));
+  renderTableauBordCaisse();
+}
 function renderTableauBordCaisse(){
   const comptes=getCaisseComptes();
   const sessions=getCaisseSessions();
   const ops=getCaisseOps();
-  const today=new Date().toISOString().slice(0,10);
-  const moisActuel=today.slice(0,7);
+  const {debut,fin}=tbCaissePeriodeBounds(_tbCaissePeriode);
+  const labels={jour:'du jour',semaine:'de la semaine',mois:'du mois',trimestre:'du trimestre',annee:"de l'année"};
+  const lbl=labels[_tbCaissePeriode]||'de la période';
 
   let soldeTotal=0, nbOuvertes=0;
   const parCaisseRows=comptes.map(c=>{
@@ -12870,22 +12901,28 @@ function renderTableauBordCaisse(){
   const elST=document.getElementById('tbCaisseSoldeTotal'); if(elST) elST.textContent=money(soldeTotal);
   const elNO=document.getElementById('tbCaisseNbOuvertes'); if(elNO) elNO.textContent=`${nbOuvertes} / ${comptes.length}`;
 
-  let entreeJour=0, sortieJour=0, netMois=0, enAttente=0;
+  let entreePer=0, sortiePer=0, netPer=0, enAttente=0;
   ops.forEach(o=>{
-    if(o.date===today){ if(o.type==='entree') entreeJour+=o.montant; else sortieJour+=o.montant; }
-    if((o.date||'').slice(0,7)===moisActuel){ netMois+= o.type==='entree'?o.montant:-o.montant; }
+    if(o.date>=debut && o.date<=fin){ if(o.type==='entree'){entreePer+=o.montant;netPer+=o.montant;} else {sortiePer+=o.montant;netPer-=o.montant;} }
     if(o.statut!=='ventile') enAttente++;
   });
-  const elEJ=document.getElementById('tbCaisseEntreeJour'); if(elEJ) elEJ.textContent=money(entreeJour);
-  const elSJ=document.getElementById('tbCaisseSortieJour'); if(elSJ) elSJ.textContent=money(sortieJour);
-  const elSM=document.getElementById('tbCaisseSoldeMois'); if(elSM) elSM.textContent=(netMois>=0?'+':'')+money(netMois);
+  document.getElementById('tbCaisseEntreeLbl').textContent=`Entrées ${lbl}`;
+  document.getElementById('tbCaisseSortieLbl').textContent=`Sorties ${lbl}`;
+  document.getElementById('tbCaisseNetLbl').textContent=`Solde net ${lbl}`;
+  const elEJ=document.getElementById('tbCaisseEntreeJour'); if(elEJ) elEJ.textContent=money(entreePer);
+  const elSJ=document.getElementById('tbCaisseSortieJour'); if(elSJ) elSJ.textContent=money(sortiePer);
+  const elSM=document.getElementById('tbCaisseSoldeMois'); if(elSM) elSM.textContent=(netPer>=0?'+':'')+money(netPer);
   const elEA=document.getElementById('tbCaisseEnAttente'); if(elEA) elEA.textContent=enAttente;
 
   const canvas=document.getElementById('tbCaisseChart');
   if(canvas && typeof Chart!=='undefined'){
     const jours=[]; const byDay={};
-    for(let i=29;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const key=d.toISOString().slice(0,10); jours.push(key); byDay[key]={entree:0,sortie:0}; }
+    const dStart=new Date(debut), dEnd=new Date(fin);
+    const nbJours=Math.max(1,Math.round((dEnd-dStart)/86400000)+1);
+    for(let i=0;i<nbJours;i++){ const d=new Date(dStart); d.setDate(d.getDate()+i); const key=d.toISOString().slice(0,10); jours.push(key); byDay[key]={entree:0,sortie:0}; }
     ops.forEach(o=>{ if(byDay[o.date]){ if(o.type==='entree') byDay[o.date].entree+=o.montant; else byDay[o.date].sortie+=o.montant; } });
+    const titres={jour:"Entrées / Sorties — aujourd'hui",semaine:'Entrées / Sorties — cette semaine',mois:'Entrées / Sorties — ce mois',trimestre:'Entrées / Sorties — ce trimestre',annee:"Entrées / Sorties — cette année"};
+    const elTitle=document.getElementById('tbCaisseChartTitle'); if(elTitle) elTitle.textContent=titres[_tbCaissePeriode]||'Entrées / Sorties';
     if(_tbCaisseChartInstance) _tbCaisseChartInstance.destroy();
     _tbCaisseChartInstance=new Chart(canvas.getContext('2d'),{
       type:'bar',
