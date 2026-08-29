@@ -2702,7 +2702,10 @@ window.SANIX_CFG = {
             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold sm:col-span-6">+ Enregistrer dans le brouillard de caisse</button>
           </form>
           <p class="text-xs text-slate-500 mb-2">ℹ️ La caissière saisit uniquement l'entrée ou la sortie. La ventilation comptable (choix du compte OHADA) est faite ensuite par le comptable dans <b>Comptabilité SYSCOHADA → Ventilation</b>.</p>
-          <div class="card bg-white rounded-2xl p-4 overflow-x-auto mb-4">
+          <div class="flex justify-end mb-2">
+            <button type="button" onclick="toggleBrouillardCaisse()" id="btnToggleBrouillard" class="border px-3 py-1.5 rounded-lg text-xs font-semibold">🙈 Masquer le brouillard</button>
+          </div>
+          <div class="card bg-white rounded-2xl p-4 overflow-x-auto mb-4" id="caisseBrouillardBlock">
             <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Date</th><th class="text-left p-2">Libellé</th><th class="text-left p-2">Pièce</th><th class="text-right p-2">Entrée</th><th class="text-right p-2">Sortie</th><th class="text-right p-2">Solde</th><th class="text-left p-2">Statut</th><th class="p-2"></th></tr></thead><tbody id="caisseBody"></tbody></table>
           </div>
 
@@ -2721,6 +2724,7 @@ window.SANIX_CFG = {
         <h3 class="text-sm font-bold text-slate-600 mt-6 mb-2">📊 État périodique du brouillard de caisse</h3>
         <div class="card bg-white rounded-2xl p-4 mb-4">
           <div class="flex flex-wrap gap-2 items-end mb-3">
+            <div><label class="text-xs text-slate-500 block mb-1">Année d'exercice</label><select id="etatCaisseAnnee" onchange="setCaisseAnnee(this.value)" class="border rounded-lg px-2 py-1.5 text-sm"></select></div>
             <div><label class="text-xs text-slate-500 block mb-1">Date début</label><input id="etatCaisseDebut" type="date" class="border rounded-lg px-2 py-1.5 text-sm"></div>
             <div><label class="text-xs text-slate-500 block mb-1">Date fin</label><input id="etatCaisseFin" type="date" class="border rounded-lg px-2 py-1.5 text-sm"></div>
             <div class="flex gap-1" id="etatCaissePresets">
@@ -12938,6 +12942,7 @@ function renderTableauBordCaisse(){
 function renderCaisse(){
   renderTableauBordCaisse();
   populateCaisseSelects();
+  populateCaisseAnnees();
   const compteId=document.getElementById('caisseCompteSel').value;
   const session=getOpenSession(compteId);
   const banner=document.getElementById('caisseSessionBanner');
@@ -12992,6 +12997,33 @@ function buildCaisseLedger(compteId){
   });
   entries.sort((a,b)=>new Date(a.date)-new Date(b.date)||a.ts-b.ts);
   return entries;
+}
+function toggleBrouillardCaisse(){
+  const el=document.getElementById('caisseBrouillardBlock');
+  const btn=document.getElementById('btnToggleBrouillard');
+  const hidden=el.classList.toggle('hidden');
+  btn.textContent=hidden?'👁️ Afficher le brouillard':'🙈 Masquer le brouillard';
+}
+function populateCaisseAnnees(){
+  const sel=document.getElementById('etatCaisseAnnee'); if(!sel) return;
+  const compteId=document.getElementById('caisseCompteSel').value;
+  const ledger=buildCaisseLedger(compteId);
+  const anneeActuelle=new Date().getFullYear();
+  const annees=new Set([anneeActuelle]);
+  ledger.forEach(e=>{ if(e.date) annees.add(+e.date.slice(0,4)); });
+  const liste=[...annees].sort((a,b)=>b-a);
+  const val=sel.value||String(anneeActuelle);
+  sel.innerHTML=liste.map(a=>`<option value="${a}">${a}</option>`).join('');
+  sel.value=liste.includes(+val)?val:String(anneeActuelle);
+}
+function setCaisseAnnee(annee){
+  const y=+annee, anneeActuelle=new Date().getFullYear();
+  const debut=`${y}-01-01`;
+  const fin=y===anneeActuelle?new Date().toISOString().slice(0,10):`${y}-12-31`;
+  document.getElementById('etatCaisseDebut').value=debut;
+  document.getElementById('etatCaisseFin').value=fin;
+  document.querySelectorAll('.etat-periode-btn').forEach(b=>b.classList.remove('active'));
+  renderCaisseEtat();
 }
 function setCaissePeriode(p){
   const now=new Date(),y=now.getFullYear(),m=now.getMonth(),d=now.getDate();
