@@ -152,6 +152,19 @@ window.SANIX_CFG = {
   .caisse-card{border:1px solid var(--ds-border);border-radius:var(--ds-radius-lg);background:#fff;padding:16px;transition:box-shadow .2s var(--ds-ease),border-color .2s var(--ds-ease),transform .2s var(--ds-ease);cursor:pointer;border-left:3px solid transparent}
   .caisse-card:hover{box-shadow:var(--ds-shadow);transform:translateY(-2px)}
   .caisse-card.selected{border-left-color:var(--ds-accent);box-shadow:0 0 0 1px var(--ds-accent);animation:dsPulseRing 1.2s var(--ds-ease) 1}
+  .pc-node{border-bottom:1px solid var(--ds-slate-100)}
+  .pc-row{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;transition:background .12s ease}
+  .pc-row:hover{background:var(--ds-slate-100)}
+  .pc-toggle{width:18px;height:18px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ds-slate-400);transition:transform .15s ease}
+  .pc-toggle.open{transform:rotate(90deg)}
+  .pc-num{font-family:var(--ds-mono);font-weight:700;font-size:.8rem;min-width:64px}
+  .pc-lib{flex:1;font-size:.85rem}
+  .pc-lib.pc-group{font-weight:700;color:var(--ds-slate-700)}
+  .pc-count{font-size:.68rem;color:var(--ds-slate-400);font-family:var(--ds-mono)}
+  .pc-actions{display:none;gap:6px}
+  .pc-row:hover .pc-actions{display:flex}
+  .pc-children{display:none}
+  .pc-children.open{display:block}
   #sunToggleBtn.active{background:#d97706;color:#fff;border-color:#d97706}
   .editor-tool-btn{color:var(--ds-slate-500);background:transparent;transition:background-color .15s var(--ds-ease),color .15s var(--ds-ease)}
   .editor-tool-btn:hover{background:var(--ds-slate-100)}
@@ -2858,7 +2871,8 @@ window.SANIX_CFG = {
         <div id="comptaTabParametres" class="compta-tab hidden">
           <div class="card bg-white rounded-2xl p-6">
             <h2 class="text-lg font-bold mb-1">⚙️ Comptes par défaut des mouvements Débit / Crédit automatiques</h2>
-            <p class="text-sm text-slate-500 mb-4">Ces comptes sont utilisés automatiquement par l'application pour générer les écritures (versements clients, commissions, paiements fournisseurs…), sans que vous ayez à les saisir manuellement à chaque fois. Tapez pour rechercher dans le plan comptable (saisie prédictive) ou cliquez sur la flèche du champ pour dérouler la liste. Un code inexistant sera créé automatiquement dans le plan comptable à l'enregistrement.</p>
+            <p class="text-sm text-slate-500 mb-2">Ces comptes sont utilisés automatiquement par l'application pour générer les écritures, sans que vous ayez à les saisir manuellement à chaque fois. Tapez pour rechercher dans le plan comptable (saisie prédictive) ou cliquez sur la flèche du champ pour dérouler la liste. Un code inexistant sera créé automatiquement dans le plan comptable à l'enregistrement.</p>
+            <p class="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg p-2.5 mb-4">✅ <b>Automatisation active</b> — dès que ces comptes sont configurés, l'écriture SYSCOHADA correspondante est générée automatiquement dans le Journal (repérable par le journal « AUTO ») : réception d'une facture fournisseur (module Achats), validation d'un bulletin de paie et son paiement (module RH), paiement d'une commission partenaire. Aucune saisie manuelle requise pour ces événements. Les versements clients et paiements fournisseurs en espèces restent ventilés depuis le module Caisse.</p>
             <div class="overflow-x-auto">
               <table class="w-full text-sm">
                 <thead class="bg-slate-50"><tr><th class="text-left p-2">Mouvement</th><th class="text-left p-2">Compte Débit</th><th class="text-left p-2">Compte Crédit</th></tr></thead>
@@ -2872,18 +2886,18 @@ window.SANIX_CFG = {
           </div>
         </div>
         <div id="comptaTabPlan" class="compta-tab hidden">
-          <div class="flex flex-wrap justify-between gap-2 mb-2">
-            <p class="text-sm text-slate-500">Plan comptable général SYSCOHADA révisé (classes 1 à 8). Vous pouvez ajouter des sous-comptes spécifiques.</p>
-            <div class="flex gap-2">
+          <div class="flex flex-wrap justify-between gap-2 mb-2 items-center">
+            <p class="text-sm text-slate-500">Plan comptable général SYSCOHADA révisé (classes 1 à 8), structure arborescente. Vous pouvez ajouter des sous-comptes spécifiques.</p>
+            <div class="flex gap-2 flex-wrap">
+              <button onclick="toggleAllPlanComptable(true)" class="border px-3 py-2 rounded-lg text-sm font-semibold">⬇️ Tout déplier</button>
+              <button onclick="toggleAllPlanComptable(false)" class="border px-3 py-2 rounded-lg text-sm font-semibold">⬆️ Tout replier</button>
               <button onclick="downloadPlanComptableModele()" class="border px-3 py-2 rounded-lg text-sm font-semibold">📄 Modèle CSV</button>
               <button onclick="document.getElementById('planComptableFileInput').click()" class="border px-3 py-2 rounded-lg text-sm font-semibold">⬆ Importer</button>
               <input type="file" id="planComptableFileInput" accept=".csv,text/csv,.json,application/json" class="hidden" onchange="handleImportPlanComptable(event)">
-              <button onclick="openAddCompteModal()" class="border px-3 py-2 rounded-lg text-sm font-semibold">+ Ajouter un compte</button>
+              <button onclick="openAddCompteModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">+ Ajouter un compte</button>
             </div>
           </div>
-          <div class="card bg-white rounded-2xl p-4 overflow-x-auto">
-            <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">N° compte</th><th class="text-left p-2">Libellé</th><th class="text-left p-2">Classe</th><th class="p-2"></th></tr></thead><tbody id="planComptableBody"></tbody></table>
-          </div>
+          <div class="card bg-white rounded-2xl p-2" id="planComptableTree"></div>
         </div>
 
         <div id="comptaTabVentilation" class="compta-tab hidden">
@@ -9453,6 +9467,14 @@ async function marquerCommissionPayee(chantierId){
   rec.commissionPayee=true; rec.commissionPayeeDate=new Date().toISOString();
   await saveChantier(rec);
   await audit('COMMISSION_PAYEE',rec.numero);
+  if(rec.partenaireId){
+    const partenaires=await idbGetAll('partenaires');
+    const partenaire=partenaires.find(p=>p.id===rec.partenaireId);
+    if(partenaire){
+      const montantCommission=(rec.montantTotal||0)*(partenaire.tauxCommission||0)/100;
+      genererEcritureAuto('commission_payee',montantCommission,'Commission '+partenaire.nom+' — dossier '+rec.numero,new Date().toISOString().slice(0,10),'commission_paiement',rec.id,rec.numero);
+    }
+  }
   await renderPartenaires();
 }
 
@@ -11330,6 +11352,9 @@ async function validerReceptionAchat(){
   await idbPut('achats',rec);
   queueSync('alubom_achats',rec);
   await audit('RECEPTION_ACHAT',rec.numero+' → '+rec.statut+' — '+brNumero+(recues.length?' — stock incrémenté ('+recues.length+' réf., dépôt '+depotReception+')':''));
+  if(factureMontant>0){
+    genererEcritureAuto('achat_facture',factureMontant,'Facture fournisseur '+(factureNumero||rec.numero)+' — '+rec.fournisseur,factureDate||new Date().toISOString().slice(0,10),'achat_facture',rec.id+'_'+brNumero,factureNumero||brNumero);
+  }
   if(recues.length) imprimerBonReception(brNumero,rec,recues);
   closeReceptionAchatModal();
   await refreshAllTables();
@@ -14560,32 +14585,158 @@ function renderComptaDashboard(){
     });
   }
 }
-function renderPlanComptable(){
-  const plan=getPlanComptable();
-  document.getElementById('planComptableBody').innerHTML=plan.map((p,i)=>`<tr class="border-b"><td class="p-2 font-semibold">${p.num}</td><td class="p-2">${escapeHtml(p.lib)}</td><td class="p-2 text-xs text-slate-500">Classe ${p.cl}</td><td class="p-2"><button onclick="deleteCompte(${i})" class="text-red-500 text-xs">✕</button></td></tr>`).join('');
+const SYSCOHADA_CLASSES={
+  '1':'Comptes de ressources durables',
+  '2':"Comptes d'actif immobilisé",
+  '3':'Comptes de stocks',
+  '4':'Comptes de tiers',
+  '5':'Comptes de trésorerie',
+  '6':'Comptes de charges',
+  '7':'Comptes de produits',
+  '8':'Comptes des autres charges et produits (HAO)'
+};
+let _pcOpenNodes=new Set(); // clés de groupes actuellement dépliés
+function buildPlanComptableTree(plan){
+  // Arbre par préfixes numériques : classe (1) → 2 chiffres → 3 chiffres → compte réel
+  const roots={};
+  plan.forEach(p=>{
+    const num=(p.num||'').trim(); if(!num) return;
+    const cl=num.charAt(0);
+    if(!roots[cl]) roots[cl]={key:cl,num:cl,lib:SYSCOHADA_CLASSES[cl]||('Classe '+cl),isGroup:true,children:{},accounts:[]};
+    let node=roots[cl];
+    // niveaux intermédiaires par préfixe croissant (2 puis 3 chiffres), seulement si le compte a plus de chiffres
+    const prefixes=[]; for(let len=2;len<num.length;len++) prefixes.push(num.slice(0,len));
+    prefixes.forEach(prefix=>{
+      if(!node.children[prefix]) node.children[prefix]={key:prefix,num:prefix,lib:null,isGroup:true,children:{},accounts:[]};
+      node=node.children[prefix];
+    });
+    node.accounts.push(p);
+  });
+  return roots;
 }
-function openAddCompteModal(){
-  const num=prompt('N° de compte (ex: 6285) :'); if(!num) return;
-  const lib=prompt('Libellé du compte :'); if(!lib) return;
-  const plan=getPlanComptable();
-  plan.push({num:num.trim(),lib:lib.trim(),cl:num.trim().charAt(0)});
-  plan.sort((a,b)=>a.num.localeCompare(b.num));
-  savePlanComptable(plan);
+function pcCountLeaves(node){
+  let n=node.accounts.length;
+  Object.values(node.children).forEach(c=>n+=pcCountLeaves(c));
+  return n;
+}
+function renderPcNode(node,depth){
+  const hasKids=Object.keys(node.children).length>0 || node.accounts.length>0;
+  const nbLeaves=pcCountLeaves(node);
+  const isOpen=_pcOpenNodes.has(node.key);
+  const label=node.lib||planLabel(node.num)||'—';
+  let html=`<div class="pc-node">
+    <div class="pc-row" style="padding-left:${10+depth*20}px" onclick="togglePcNode('${node.key}')">
+      <span class="pc-toggle ${isOpen?'open':''}">${hasKids?'▶':''}</span>
+      <span class="pc-num">${node.num}</span>
+      <span class="pc-lib pc-group">${escapeHtml(label)}</span>
+      <span class="pc-count">${nbLeaves} compte${nbLeaves>1?'s':''}</span>
+      <span class="pc-actions" onclick="event.stopPropagation()">
+        <button onclick="openAddCompteModal('${node.num}')" class="text-blue-600 text-xs font-semibold">+ Sous-compte</button>
+      </span>
+    </div>
+    <div class="pc-children ${isOpen?'open':''}" id="pcchild_${node.key}">`;
+  const sortedChildren=Object.values(node.children).sort((a,b)=>a.num.localeCompare(b.num));
+  sortedChildren.forEach(c=>{ html+=renderPcNode(c,depth+1); });
+  const sortedAccounts=node.accounts.slice().sort((a,b)=>a.num.localeCompare(b.num));
+  sortedAccounts.forEach(p=>{
+    html+=`<div class="pc-node">
+      <div class="pc-row" style="padding-left:${10+(depth+1)*20}px">
+        <span class="pc-toggle"></span>
+        <span class="pc-num">${p.num}</span>
+        <span class="pc-lib">${escapeHtml(p.lib)}</span>
+        <span class="pc-actions" onclick="event.stopPropagation()">
+          <button onclick="openAddCompteModal('${p.num}')" class="text-blue-600 text-xs font-semibold">+ Sous-compte</button>
+          <button onclick="deleteCompte('${p.num}')" class="text-red-500 text-xs font-semibold">✕</button>
+        </span>
+      </div>
+    </div>`;
+  });
+  html+=`</div></div>`;
+  return html;
+}
+function togglePcNode(key){
+  if(_pcOpenNodes.has(key)) _pcOpenNodes.delete(key); else _pcOpenNodes.add(key);
+  const toggle=document.querySelector(`#planComptableTree`);
   renderPlanComptable();
 }
-function deleteCompte(i){
-  if(!confirm('Supprimer ce compte du plan comptable ?')) return;
-  const plan=getPlanComptable(); plan.splice(i,1); savePlanComptable(plan); renderPlanComptable();
+function toggleAllPlanComptable(open){
+  const plan=getPlanComptable();
+  const roots=buildPlanComptableTree(plan);
+  _pcOpenNodes=new Set();
+  if(open){
+    const collect=node=>{ _pcOpenNodes.add(node.key); Object.values(node.children).forEach(collect); };
+    Object.values(roots).forEach(collect);
+  }
+  renderPlanComptable();
+}
+function renderPlanComptable(){
+  const plan=getPlanComptable();
+  const roots=buildPlanComptableTree(plan);
+  const el=document.getElementById('planComptableTree'); if(!el) return;
+  const sortedRoots=Object.values(roots).sort((a,b)=>a.num.localeCompare(b.num));
+  el.innerHTML=sortedRoots.length?sortedRoots.map(r=>renderPcNode(r,0)).join(''):'<p class="text-slate-400 text-center py-8">Plan comptable vide.</p>';
+}
+function openAddCompteModal(prefixSuggere){
+  const suggestion=prefixSuggere?prefixSuggere+'':'';
+  const html=`
+    <div class="flex justify-between items-start mb-4">
+      <h2 class="text-lg font-bold">➕ Ajouter un compte${prefixSuggere?' sous '+escapeHtml(prefixSuggere):''}</h2>
+      <button onclick="document.getElementById('addCompteOverlay').remove()" class="text-slate-400 text-xl leading-none">×</button>
+    </div>
+    <form onsubmit="return handleAddCompte(event)" class="space-y-3">
+      <label class="text-xs font-semibold block">N° de compte
+        <input id="acNum" value="${escapeHtml(suggestion)}" required placeholder="ex : ${suggestion?suggestion+'1':'6285'}" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm font-mono">
+      </label>
+      <label class="text-xs font-semibold block">Libellé
+        <input id="acLib" required placeholder="ex : Frais de télécommunication" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+      </label>
+      <p class="text-xs text-slate-400">La classe (1 à 8) est déduite automatiquement du premier chiffre du numéro.</p>
+      <div class="flex gap-2 pt-2">
+        <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 text-sm font-semibold">Enregistrer</button>
+        <button type="button" onclick="document.getElementById('addCompteOverlay').remove()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Annuler</button>
+      </div>
+    </form>`;
+  document.body.insertAdjacentHTML('beforeend',`<div id="addCompteOverlay" class="modal-overlay fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"><div class="bg-white rounded-2xl p-6 w-full max-w-sm">${html}</div></div>`);
+  setModalOpen(true);
+  setTimeout(()=>document.getElementById('acNum')?.focus(),50);
+}
+function handleAddCompte(e){
+  e.preventDefault();
+  const num=document.getElementById('acNum').value.trim();
+  const lib=document.getElementById('acLib').value.trim();
+  if(!num||!lib) return false;
+  const plan=getPlanComptable();
+  if(plan.some(p=>p.num===num)){ alert('Ce numéro de compte existe déjà.'); return false; }
+  plan.push({num,lib,cl:num.charAt(0)});
+  plan.sort((a,b)=>a.num.localeCompare(b.num));
+  savePlanComptable(plan);
+  _pcOpenNodes.add(num.charAt(0));
+  for(let len=2;len<num.length;len++) _pcOpenNodes.add(num.slice(0,len));
+  document.getElementById('addCompteOverlay').remove();
+  setModalOpen(false);
+  renderPlanComptable();
+  if(typeof audit==='function') audit('AJOUT_COMPTE_PLAN',num+' — '+lib);
+  return false;
+}
+function deleteCompte(num){
+  if(!confirm('Supprimer le compte '+num+' du plan comptable ?')) return;
+  const plan=getPlanComptable();
+  const filtered=plan.filter(p=>p.num!==num);
+  savePlanComptable(filtered);
+  renderPlanComptable();
+  if(typeof audit==='function') audit('SUPPRESSION_COMPTE_PLAN',num);
 }
 
 /* ---- Comptes par défaut des mouvements auto (Débit/Crédit) ---- */
 const MOUVEMENTS_COMPTA_DEFAUT=[
   {key:'versement_client',label:'Versements clients (encaissement)',debit:'571',credit:'411'},
   {key:'paiement_fournisseur',label:'Paiements fournisseurs (décaissement)',debit:'401',credit:'571'},
-  {key:'commission_partenaire',label:'Commissions partenaires',debit:'628',credit:'401'},
+  {key:'commission_partenaire',label:'Commissions partenaires (charge constatée)',debit:'628',credit:'401'},
   {key:'vente_facture',label:'Facturation client (vente)',debit:'411',credit:'701'},
-  {key:'achat_facture',label:'Facture fournisseur (achat)',debit:'602',credit:'401'},
-  {key:'salaire_paie',label:'Paie du personnel',debit:'661',credit:'422'}
+  {key:'achat_facture',label:'Facture fournisseur reçue (achat)',debit:'602',credit:'401'},
+  {key:'salaire_paie',label:'Salaires bruts — paie validée',debit:'661',credit:'422'},
+  {key:'paiement_salaire',label:'Paiement net des salaires (décaissement)',debit:'422',credit:'571'},
+  {key:'commission_payee',label:'Commission partenaire payée (décaissement direct)',debit:'628',credit:'571'}
 ];
 function getComptesDefautMouvements(){
   try{ return JSON.parse(localStorage.getItem('sanix_comptes_defaut_mouvements')||'null')||{}; }catch{ return {}; }
@@ -14640,6 +14791,28 @@ function getCompteDefautMouvement(key){
   if(saved) return saved;
   const d=MOUVEMENTS_COMPTA_DEFAUT.find(m=>m.key===key);
   return d?{debit:d.debit,credit:d.credit}:null;
+}
+/* ============================================================
+   AUTOMATISATION DES ÉCRITURES COMPTABLES (à l'image d'ImmoSuite)
+   Génère automatiquement l'écriture SYSCOHADA à partir des
+   comptes par défaut, dès qu'un événement métier s'y prête
+   (facture fournisseur reçue, paie validée/payée, commission payée…).
+   Anti-doublon via sourceType+sourceId. Journal 'AUTO'.
+   ============================================================ */
+function genererEcritureAuto(key,montant,libelle,date,sourceType,sourceId,piece){
+  montant=+montant||0;
+  if(!montant||!sourceId) return null;
+  const cfg=getCompteDefautMouvement(key);
+  if(!cfg||!cfg.debit||!cfg.credit) return null; // non configuré → le comptable le fera en ventilation manuelle
+  const ecritures=getEcritures();
+  if(ecritures.some(e=>e.sourceType===sourceType && e.sourceId===sourceId)) return null; // déjà généré
+  const lignes=[{compte:cfg.debit,libelle,debit:montant,credit:0},{compte:cfg.credit,libelle,debit:0,credit:montant}];
+  const ec={id:genUid('ec'),date:date||new Date().toISOString().slice(0,10),journal:'AUTO',piece:piece||'',libelle,lignes,
+    user:(typeof currentUser!=='undefined'&&currentUser)?currentUser.email:'Auto',ts:Date.now(),auto:true,sourceType,sourceId};
+  ecritures.push(ec);
+  saveEcritures(ecritures);
+  if(typeof audit==='function') audit('ECRITURE_AUTO',`${libelle} — ${money(montant)} (${cfg.debit}→${cfg.credit})`);
+  return ec;
 }
 function downloadPlanComptableModele(){
   const csv='num;lib;classe\n601;Achats de matières premières;6\n701;Ventes de produits finis;7\n';
@@ -19150,6 +19323,7 @@ async function validatePaie(id){
   pa.statut='valide'; pa._modifie=new Date().toISOString();
   await idbPut('paies',pa); queueSync('alubom_paies',pa);
   await audit('VALIDATE_PAIE',pa.employeNom+' — '+pa.periode);
+  genererEcritureAuto('salaire_paie',pa.brut,'Salaire brut '+pa.employeNom+' — '+pa.periode,pa.periode+'-28','salaire_paie',pa.id,pa.matricule||'');
   await renderPaieTable();
 }
 async function markPaiePaye(id){
@@ -19161,6 +19335,7 @@ async function markPaiePaye(id){
   pa.statut='paye'; pa.datePaiement=date; pa._modifie=new Date().toISOString();
   await idbPut('paies',pa); queueSync('alubom_paies',pa);
   await audit('PAY_PAIE',pa.employeNom+' — '+pa.periode+' — '+date);
+  genererEcritureAuto('paiement_salaire',pa.net,'Paiement net salaire '+pa.employeNom+' — '+pa.periode,date,'paie_paiement',pa.id,pa.matricule||'');
   await renderPaieTable();
 }
 async function deletePaie(id){
