@@ -13117,8 +13117,17 @@ const PLAN_COMPTABLE_DEFAULT=[
   {num:'512',lib:'Banques',cl:'5'},{num:'521',lib:'Banques (compte 2)',cl:'5'},{num:'571',lib:'Caisse',cl:'5'},
   {num:'601',lib:'Achats de marchandises',cl:'6'},{num:'602',lib:'Achats de matières premières',cl:'6'},{num:'604',lib:'Achats stockés — matières et fournitures',cl:'6'},{num:'605',lib:'Autres achats',cl:'6'},{num:'608',lib:"Frais accessoires d'achat",cl:'6'},{num:'611',lib:'Transports',cl:'6'},{num:'622',lib:'Locations',cl:'6'},{num:'624',lib:"Entretien, réparations",cl:'6'},{num:'626',lib:'Communications',cl:'6'},{num:'628',lib:'Services extérieurs — divers',cl:'6'},{num:'631',lib:'Impôts et taxes directs',cl:'6'},{num:'661',lib:'Rémunérations directes du personnel',cl:'6'},{num:'664',lib:'Charges sociales',cl:'6'},{num:'671',lib:'Frais financiers',cl:'6'},{num:'681',lib:'Dotations aux amortissements',cl:'6'},
   {num:'701',lib:'Ventes de produits finis',cl:'7'},{num:'706',lib:'Services vendus',cl:'7'},{num:'707',lib:'Ventes de marchandises',cl:'7'},{num:'771',lib:'Revenus financiers',cl:'7'},{num:'781',lib:"Reprises d'amortissements",cl:'7'},
-  {num:'831',lib:'Charges hors activités ordinaires',cl:'8'},{num:'841',lib:'Produits hors activités ordinaires',cl:'8'}
+  {num:'831',lib:'Charges hors activités ordinaires',cl:'8'},{num:'841',lib:'Produits hors activités ordinaires',cl:'8'},
+  {num:'901',lib:'Avals, cautions et garanties obtenus',cl:'9'},{num:'902',lib:'Engagements réciproques obtenus',cl:'9'},{num:'941',lib:'Avals, cautions et garanties donnés',cl:'9'},{num:'942',lib:'Engagements réciproques donnés',cl:'9'},{num:'95',lib:'Engagements sur commandes en cours',cl:'9'},{num:'96',lib:'Comptabilité analytique — comptes réfléchis',cl:'9'},{num:'97',lib:'Comptabilité analytique — centres d\'analyse',cl:'9'},{num:'98',lib:'Comptabilité analytique — coûts et coûts de revient',cl:'9'},{num:'99',lib:'Comptabilité analytique — résultats analytiques',cl:'9'}
 ];
+const PLAN_COMPTABLE_CLASSE9_MIGRATION=PLAN_COMPTABLE_DEFAULT.filter(p=>p.cl==='9');
+function ensurePlanComptableClasse9(){
+  const plan=getPlanComptable();
+  if(plan.some(p=>(p.num||'').charAt(0)==='9')) return;
+  let changed=false;
+  PLAN_COMPTABLE_CLASSE9_MIGRATION.forEach(c=>{ if(!plan.some(p=>p.num===c.num)){ plan.push({...c}); changed=true; } });
+  if(changed){ plan.sort((a,b)=>a.num.localeCompare(b.num)); savePlanComptable(plan); }
+}
 function getPlanComptable(){ try{ let p=JSON.parse(localStorage.getItem('sanix_plan_comptable')||'null'); if(!p||!p.length){p=PLAN_COMPTABLE_DEFAULT.slice();savePlanComptable(p);} return p; }catch{ return PLAN_COMPTABLE_DEFAULT.slice(); } }
 function savePlanComptable(p){ localStorage.setItem('sanix_plan_comptable',JSON.stringify(p)); }
 function getCaisseComptes(){ try{ let c=JSON.parse(localStorage.getItem('sanix_caisse_comptes')||'null'); if(!c||!c.length){c=[{id:'CA1',nom:'Caisse principale'}];localStorage.setItem('sanix_caisse_comptes',JSON.stringify(c));} return c; }catch{ return [{id:'CA1',nom:'Caisse principale'}]; } }
@@ -14593,7 +14602,8 @@ const SYSCOHADA_CLASSES={
   '5':'Comptes de trésorerie',
   '6':'Comptes de charges',
   '7':'Comptes de produits',
-  '8':'Comptes des autres charges et produits (HAO)'
+  '8':'Comptes des autres charges et produits (HAO)',
+  '9':'Engagements hors bilan et comptabilité analytique'
 };
 let _pcOpenNodes=new Set(); // clés de groupes actuellement dépliés
 function buildPlanComptableTree(plan){
@@ -14672,6 +14682,7 @@ function toggleAllPlanComptable(open){
   renderPlanComptable();
 }
 function renderPlanComptable(){
+  ensurePlanComptableClasse9();
   const plan=getPlanComptable();
   const roots=buildPlanComptableTree(plan);
   const el=document.getElementById('planComptableTree'); if(!el) return;
