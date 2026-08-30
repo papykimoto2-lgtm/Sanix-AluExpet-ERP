@@ -2768,6 +2768,9 @@ window.SANIX_CFG = {
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="journal" onclick="showComptaTab('journal')">🗒️ Journal</button>
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="grandlivre" onclick="showComptaTab('grandlivre')">📚 Grand livre</button>
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="balance" onclick="showComptaTab('balance')">⚖️ Balance</button>
+          <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="resultat" onclick="showComptaTab('resultat')">📈 Résultat & Bilan</button>
+          <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="fiscal" onclick="showComptaTab('fiscal')">🧾 Fiscal (TVA/ITS/IS)</button>
+          <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="audit" onclick="showComptaTab('audit')">🔍 Audit & Lettrage</button>
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="tiers" onclick="showComptaTab('tiers')">👥 Comptes tiers</button>
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="plan" onclick="showComptaTab('plan')">📖 Plan comptable</button>
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="parametres" onclick="showComptaTab('parametres')">⚙️ Paramètres</button>
@@ -2859,6 +2862,106 @@ window.SANIX_CFG = {
           <div class="flex justify-end mb-2"><button onclick="renderBalance()" class="border px-3 py-2 rounded-lg text-sm font-semibold">🔄 Actualiser</button></div>
           <div class="card bg-white rounded-2xl p-4 overflow-x-auto">
             <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Compte</th><th class="text-left p-2">Libellé</th><th class="text-right p-2">Total débit</th><th class="text-right p-2">Total crédit</th><th class="text-right p-2">Solde débiteur</th><th class="text-right p-2">Solde créditeur</th></tr></thead><tbody id="balanceBody"></tbody><tfoot id="balanceFoot" class="font-bold bg-slate-50"></tfoot></table>
+          </div>
+        </div>
+
+        <!-- ====== RÉSULTAT & BILAN ====== -->
+        <div id="comptaTabResultat" class="compta-tab hidden">
+          <div class="card bg-white rounded-2xl p-4 mb-4">
+            <div class="flex flex-wrap gap-2 items-end">
+              <div><label class="text-xs text-slate-500 block mb-1">Exercice</label><select id="rbAnnee" onchange="renderResultatBilan()" class="border rounded-lg px-2 py-1.5 text-sm"></select></div>
+              <button onclick="renderResultatBilan()" class="border px-3 py-2 rounded-lg text-sm font-semibold">🔄 Générer</button>
+              <button onclick="imprimerResultatBilan()" class="border border-blue-600 text-blue-600 px-3 py-2 rounded-lg text-sm font-semibold">🖨 Aperçu avant impression</button>
+            </div>
+          </div>
+          <div class="grid lg:grid-cols-2 gap-4">
+            <div class="card bg-white rounded-2xl p-4">
+              <h3 class="font-bold mb-2">📈 Compte de résultat</h3>
+              <table class="w-full text-sm mb-2"><thead class="bg-slate-50"><tr><th class="text-left p-2">Compte</th><th class="text-left p-2">Libellé</th><th class="text-right p-2">Montant</th></tr></thead><tbody id="rbProduitsBody"></tbody><tfoot><tr class="font-bold border-t-2"><td colspan="2" class="p-2">Total produits</td><td class="p-2 text-right" id="rbTotalProduits">—</td></tr></tfoot></table>
+              <table class="w-full text-sm"><tbody id="rbChargesBody"></tbody><tfoot><tr class="font-bold border-t-2"><td colspan="2" class="p-2">Total charges</td><td class="p-2 text-right" id="rbTotalCharges">—</td></tr></tfoot></table>
+              <div class="mt-3 p-3 rounded-xl bg-slate-50 flex justify-between items-center">
+                <span class="font-bold">Résultat net (bénéfice / perte)</span>
+                <span id="rbResultat" class="text-xl font-black">—</span>
+              </div>
+            </div>
+            <div class="card bg-white rounded-2xl p-4">
+              <h3 class="font-bold mb-2">🏛️ Bilan</h3>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <div class="text-xs font-bold text-slate-500 mb-1">ACTIF</div>
+                  <table class="w-full text-xs"><tbody id="rbActifBody"></tbody><tfoot><tr class="font-bold border-t"><td class="p-1.5">Total actif</td><td class="p-1.5 text-right" id="rbTotalActif">—</td></tr></tfoot></table>
+                </div>
+                <div>
+                  <div class="text-xs font-bold text-slate-500 mb-1">PASSIF</div>
+                  <table class="w-full text-xs"><tbody id="rbPassifBody"></tbody><tfoot><tr class="font-bold border-t"><td class="p-1.5">Total passif</td><td class="p-1.5 text-right" id="rbTotalPassif">—</td></tr></tfoot></table>
+                </div>
+              </div>
+              <div id="rbEquilibre" class="mt-3 text-xs font-semibold"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== FISCAL : TVA / ITS / IS ====== -->
+        <div id="comptaTabFiscal" class="compta-tab hidden">
+          <div class="card bg-white rounded-2xl p-4 mb-4">
+            <div class="flex flex-wrap gap-2 items-end">
+              <div><label class="text-xs text-slate-500 block mb-1">Mois</label><input id="fiscalMois" type="month" class="border rounded-lg px-2 py-1.5 text-sm"></div>
+              <button onclick="renderFiscalDeclarations()" class="border px-3 py-2 rounded-lg text-sm font-semibold">🔄 Générer</button>
+            </div>
+          </div>
+          <div class="grid lg:grid-cols-3 gap-4">
+            <div class="card bg-white rounded-2xl p-4">
+              <h3 class="font-bold mb-2">💰 TVA</h3>
+              <div class="text-xs text-slate-500 mb-2">Régime réel — TVA collectée (443) − TVA récupérable (445)</div>
+              <div class="flex justify-between text-sm py-1 border-b"><span>TVA collectée</span><span id="fiscTvaCollectee" class="font-semibold">—</span></div>
+              <div class="flex justify-between text-sm py-1 border-b"><span>TVA récupérable</span><span id="fiscTvaRecup" class="font-semibold">—</span></div>
+              <div class="flex justify-between text-sm py-2 mt-1 font-bold"><span>TVA nette due</span><span id="fiscTvaNette">—</span></div>
+              <p class="text-xs text-slate-400 mt-2">⚠️ À télédéclarer et payer avant le 15 du mois suivant (DGI).</p>
+            </div>
+            <div class="card bg-white rounded-2xl p-4">
+              <h3 class="font-bold mb-2">👤 ITS / CNPS / CMU</h3>
+              <div class="text-xs text-slate-500 mb-2">Depuis les bulletins de paie validés du mois (module RH)</div>
+              <div class="flex justify-between text-sm py-1 border-b"><span>Masse salariale brute</span><span id="fiscBrut" class="font-semibold">—</span></div>
+              <div class="flex justify-between text-sm py-1 border-b"><span>ITS retenu</span><span id="fiscIts" class="font-semibold">—</span></div>
+              <div class="flex justify-between text-sm py-1 border-b"><span>CNPS salarié</span><span id="fiscCnps" class="font-semibold">—</span></div>
+              <div class="flex justify-between text-sm py-2 mt-1 font-bold"><span>Total à reverser</span><span id="fiscTotalRetenues">—</span></div>
+              <p class="text-xs text-slate-400 mt-2">⚠️ ITS et CNPS dus le 15 du mois suivant (DISA CNPS avant le 31 janvier N+1).</p>
+            </div>
+            <div class="card bg-white rounded-2xl p-4">
+              <h3 class="font-bold mb-2">🏢 Impôt sur les sociétés (IS) — estimation</h3>
+              <div class="text-xs text-slate-500 mb-2">Estimation sur le résultat de l'exercice en cours (taux 25% CI, indicatif)</div>
+              <div class="flex justify-between text-sm py-1 border-b"><span>Résultat cumulé exercice</span><span id="fiscResultat" class="font-semibold">—</span></div>
+              <div class="flex justify-between text-sm py-2 mt-1 font-bold"><span>IS estimé (25%)</span><span id="fiscIsEstime">—</span></div>
+              <p class="text-xs text-slate-400 mt-2">⚠️ IS dû avant le 30 avril N+1. Estimation indicative — validez avec votre comptable/CGA.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== AUDIT ÉCARTS CAISSE & LETTRAGE ====== -->
+        <div id="comptaTabAudit" class="compta-tab hidden">
+          <div class="card bg-white rounded-2xl p-4 mb-4">
+            <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+              <h3 class="font-bold">⚖️ Audit des écarts de caisse (toutes caisses, toutes clôtures)</h3>
+              <label class="text-xs flex items-center gap-1"><input type="checkbox" id="auditSeulementEcarts" checked onchange="renderAuditCaisse()"> N'afficher que les écarts ≠ 0</label>
+            </div>
+            <div class="grid sm:grid-cols-3 gap-3 mb-3">
+              <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Clôtures avec écart</div><div id="auditNbEcarts" class="text-lg font-bold text-amber-700">—</div></div>
+              <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Écart cumulé</div><div id="auditEcartCumul" class="text-lg font-bold">—</div></div>
+              <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Non justifiés (sans observation)</div><div id="auditNonJustifies" class="text-lg font-bold text-red-700">—</div></div>
+            </div>
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Caisse</th><th class="text-left p-2">Clôture</th><th class="text-right p-2">Solde théorique</th><th class="text-right p-2">Solde réel</th><th class="text-right p-2">Écart</th><th class="text-left p-2">Justification</th></tr></thead><tbody id="auditCaisseBody"></tbody></table></div>
+          </div>
+
+          <div class="card bg-white rounded-2xl p-4">
+            <h3 class="font-bold mb-2">🔗 Lettrage des comptes tiers</h3>
+            <p class="text-xs text-slate-500 mb-3">Sélectionnez un compte tiers (411 client ou 401 fournisseur), cochez les lignes qui s'équilibrent (débit = crédit), puis lettrez-les pour marquer le rapprochement.</p>
+            <div class="flex flex-wrap gap-2 items-end mb-3">
+              <div class="flex-1 min-w-[220px]"><label class="text-xs text-slate-500 block mb-1">Compte tiers</label><select id="lettrageCompteSel" onchange="renderLettrage()" class="border rounded-lg px-2 py-1.5 text-sm w-full"></select></div>
+              <button onclick="lettrerSelection()" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 text-sm font-semibold">🔗 Lettrer la sélection</button>
+              <label class="text-xs flex items-center gap-1"><input type="checkbox" id="lettrageMasquerLettrees" onchange="renderLettrage()"> Masquer les lignes déjà lettrées</label>
+            </div>
+            <div id="lettrageMsg" class="text-xs mb-2"></div>
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="p-2"></th><th class="text-left p-2">Date</th><th class="text-left p-2">Pièce</th><th class="text-left p-2">Libellé</th><th class="text-right p-2">Débit</th><th class="text-right p-2">Crédit</th><th class="text-center p-2">Lettre</th></tr></thead><tbody id="lettrageBody"></tbody></table></div>
           </div>
         </div>
 
@@ -13549,6 +13652,9 @@ function showComptaTab(tab){
   if(tab==='journal'){ if(!document.getElementById('ecLignes').children.length){ addEcritureLigne(); addEcritureLigne(); } if(!document.getElementById('ecDate').value) document.getElementById('ecDate').value=new Date().toISOString().slice(0,10); renderJournal(); }
   if(tab==='grandlivre') renderGrandLivre();
   if(tab==='balance') renderBalance();
+  if(tab==='resultat') renderResultatBilan();
+  if(tab==='fiscal'){ if(!document.getElementById('fiscalMois').value) document.getElementById('fiscalMois').value=new Date().toISOString().slice(0,7); renderFiscalDeclarations(); }
+  if(tab==='audit'){ renderAuditCaisse(); populateLettrageComptes(); renderLettrage(); }
   if(tab==='tiers') renderTiersComptaModule();
   if(tab==='plan') renderPlanComptable();
   if(tab==='parametres') renderComptesDefautMouvements();
@@ -13957,6 +14063,235 @@ function renderBalance(){
   document.getElementById('balanceBody').innerHTML=rows||'<tr><td colspan="6" class="text-center text-slate-400 p-4">Aucune écriture enregistrée</td></tr>';
   document.getElementById('balanceFoot').innerHTML=`<tr><td class="p-2" colspan="2">TOTAUX</td><td class="p-2 text-right">${money(totD)}</td><td class="p-2 text-right">${money(totC)}</td><td class="p-2 text-right">${money(totSD)}</td><td class="p-2 text-right">${money(totSC)}</td></tr>`;
 }
+
+/* ============================================================
+   RÉSULTAT & BILAN
+   ============================================================ */
+function populateRbAnnees(){
+  const sel=document.getElementById('rbAnnee'); if(!sel) return;
+  const anneeActuelle=new Date().getFullYear();
+  const annees=new Set([anneeActuelle]);
+  getEcritures().forEach(e=>{ if(e.date) annees.add(+e.date.slice(0,4)); });
+  const liste=[...annees].sort((a,b)=>b-a);
+  const val=sel.value||String(anneeActuelle);
+  sel.innerHTML=liste.map(a=>`<option value="${a}">${a}</option>`).join('');
+  sel.value=liste.includes(+val)?val:String(anneeActuelle);
+}
+function computeResultatBilan(annee){
+  const plan=getPlanComptable();
+  const agg={};
+  getEcritures().forEach(e=>{
+    if((e.date||'').slice(0,4)!==String(annee)) return;
+    e.lignes.forEach(l=>{
+      if(!l.compte) return;
+      const a=agg[l.compte]||(agg[l.compte]={debit:0,credit:0});
+      a.debit+=(+l.debit||0); a.credit+=(+l.credit||0);
+    });
+  });
+  const produits=[], charges=[]; let totProduits=0, totCharges=0;
+  const actif=[], passif=[]; let totActif=0, totPassif=0;
+  Object.keys(agg).sort().forEach(num=>{
+    const a=agg[num], cl=_compteClasse(num,plan), lib=planLabel(num)||('Compte '+num), solde=a.debit-a.credit;
+    if(cl==='7'){ const m=a.credit-a.debit; if(m){ produits.push({num,lib,m}); totProduits+=m; } }
+    else if(cl==='6'){ const m=a.debit-a.credit; if(m){ charges.push({num,lib,m}); totCharges+=m; } }
+    else if(['2','3','4','5'].includes(cl)){
+      // Actif = soldes débiteurs des classes 2/3/5, et 4 débiteur (clients, créances)
+      if(solde>0){ actif.push({num,lib,m:solde}); totActif+=solde; }
+      else if(solde<0){ passif.push({num,lib,m:-solde}); totPassif+=(-solde); }
+    } else if(cl==='1'){
+      if(solde<0){ passif.push({num,lib,m:-solde}); totPassif+=(-solde); }
+      else if(solde>0){ actif.push({num,lib,m:solde}); totActif+=solde; }
+    }
+  });
+  const resultat=totProduits-totCharges;
+  return {produits,charges,totProduits,totCharges,resultat,actif,passif,totActif,totPassif};
+}
+let _rbData=null;
+function renderResultatBilan(){
+  populateRbAnnees();
+  const annee=document.getElementById('rbAnnee').value||new Date().getFullYear();
+  const r=computeResultatBilan(annee);
+  _rbData={annee,...r};
+  document.getElementById('rbProduitsBody').innerHTML=r.produits.map(p=>`<tr class="border-b"><td class="p-2 font-mono text-xs">${p.num}</td><td class="p-2">${escapeHtml(p.lib)}</td><td class="p-2 text-right">${money(p.m)}</td></tr>`).join('')||'<tr><td colspan="3" class="text-center text-slate-400 p-3">Aucun produit</td></tr>';
+  document.getElementById('rbChargesBody').innerHTML=r.charges.map(c=>`<tr class="border-b"><td class="p-2 font-mono text-xs">${c.num}</td><td class="p-2">${escapeHtml(c.lib)}</td><td class="p-2 text-right">${money(c.m)}</td></tr>`).join('')||'<tr><td colspan="3" class="text-center text-slate-400 p-3">Aucune charge</td></tr>';
+  document.getElementById('rbTotalProduits').textContent=money(r.totProduits);
+  document.getElementById('rbTotalCharges').textContent=money(r.totCharges);
+  const elRes=document.getElementById('rbResultat');
+  elRes.textContent=(r.resultat>=0?'+':'')+money(r.resultat)+(r.resultat>=0?' (bénéfice)':' (perte)');
+  elRes.className='text-xl font-black '+(r.resultat>=0?'text-emerald-700':'text-red-700');
+  // Bilan : intégrer le résultat de l'exercice au passif (capitaux propres)
+  const passifAvecResultat=r.passif.slice();
+  if(r.resultat) passifAvecResultat.push({num:r.resultat>=0?'120':'129',lib:'Résultat net de l\'exercice',m:Math.abs(r.resultat)});
+  const totPassifFinal=r.totPassif+Math.abs(r.resultat);
+  document.getElementById('rbActifBody').innerHTML=r.actif.map(a=>`<tr class="border-b"><td class="p-1.5">${a.num} ${escapeHtml(a.lib)}</td><td class="p-1.5 text-right">${money(a.m)}</td></tr>`).join('')||'<tr><td colspan="2" class="text-center text-slate-400 p-2">—</td></tr>';
+  document.getElementById('rbPassifBody').innerHTML=passifAvecResultat.map(p=>`<tr class="border-b"><td class="p-1.5">${p.num} ${escapeHtml(p.lib)}</td><td class="p-1.5 text-right">${money(p.m)}</td></tr>`).join('')||'<tr><td colspan="2" class="text-center text-slate-400 p-2">—</td></tr>';
+  document.getElementById('rbTotalActif').textContent=money(r.totActif);
+  document.getElementById('rbTotalPassif').textContent=money(totPassifFinal);
+  const eq=document.getElementById('rbEquilibre');
+  const diff=r.totActif-totPassifFinal;
+  eq.innerHTML=Math.abs(diff)<1?'<span class="text-emerald-700">✅ Bilan équilibré</span>':`<span class="text-amber-700">⚠️ Écart actif/passif : ${money(diff)} — vérifiez les écritures</span>`;
+}
+function imprimerResultatBilan(){
+  if(!_rbData) renderResultatBilan();
+  const r=_rbData;
+  const c=(typeof getCompanyInfo==='function')?getCompanyInfo():{nom:'SANIX AluExpert'};
+  const win=window.open('','_blank','width=1000,height=1200'); if(!win) return;
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Résultat & Bilan ${r.annee}</title>
+  <style>*{box-sizing:border-box}body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#e2e8f0;margin:0}
+  .toolbar{position:sticky;top:0;background:#0f172a;color:#fff;padding:12px 24px;display:flex;justify-content:space-between}
+  .toolbar button{background:#2563eb;color:#fff;border:0;padding:9px 18px;border-radius:8px;font-weight:700;cursor:pointer;margin-left:8px}
+  .sheet{max-width:900px;margin:24px auto;background:#fff;padding:40px;box-shadow:0 10px 40px rgba(15,23,42,.25)}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0 18px}
+  th{background:#f8fafc;text-align:left;padding:5px 8px;border-bottom:1px solid #e2e8f0}
+  td{padding:5px 8px;border-bottom:1px solid #f1f5f9}.right{text-align:right}
+  @media print{.toolbar{display:none}body{background:#fff}.sheet{box-shadow:none;margin:0}}</style></head><body>
+  <div class="toolbar"><span>Aperçu avant impression</span><div><button onclick="window.print()">🖨 Imprimer</button><button onclick="window.close()">Fermer</button></div></div>
+  <div class="sheet">
+    <h1>${escapeHtml(c.nom||'SANIX AluExpert')}</h1>
+    <p>Compte de résultat & Bilan — Exercice ${r.annee}</p>
+    <h3>Compte de résultat</h3>
+    <table><thead><tr><th>Compte</th><th>Libellé</th><th class="right">Montant</th></tr></thead><tbody>
+    <tr><td colspan="3"><b>Produits</b></td></tr>
+    ${r.produits.map(p=>`<tr><td>${p.num}</td><td>${escapeHtml(p.lib)}</td><td class="right">${money(p.m)}</td></tr>`).join('')}
+    <tr><td colspan="2"><b>Total produits</b></td><td class="right"><b>${money(r.totProduits)}</b></td></tr>
+    <tr><td colspan="3"><b>Charges</b></td></tr>
+    ${r.charges.map(cg=>`<tr><td>${cg.num}</td><td>${escapeHtml(cg.lib)}</td><td class="right">${money(cg.m)}</td></tr>`).join('')}
+    <tr><td colspan="2"><b>Total charges</b></td><td class="right"><b>${money(r.totCharges)}</b></td></tr>
+    <tr><td colspan="2"><b>Résultat net</b></td><td class="right"><b>${money(r.resultat)}</b></td></tr>
+    </tbody></table>
+    <h3>Bilan</h3>
+    <table><thead><tr><th>Actif</th><th class="right">Montant</th><th>Passif</th><th class="right">Montant</th></tr></thead><tbody>
+    ${Array.from({length:Math.max(r.actif.length,r.passif.length+1)}).map((_,i)=>{
+      const a=r.actif[i], p=i<r.passif.length?r.passif[i]:(i===r.passif.length?{lib:'Résultat net',m:r.resultat}:null);
+      return `<tr><td>${a?escapeHtml(a.num+' '+a.lib):''}</td><td class="right">${a?money(a.m):''}</td><td>${p?escapeHtml(p.lib):''}</td><td class="right">${p?money(p.m):''}</td></tr>`;
+    }).join('')}
+    <tr><td><b>Total actif</b></td><td class="right"><b>${money(r.totActif)}</b></td><td><b>Total passif</b></td><td class="right"><b>${money(r.totPassif+Math.abs(r.resultat))}</b></td></tr>
+    </tbody></table>
+  </div></body></html>`);
+  win.document.close();
+}
+
+/* ============================================================
+   FISCAL — TVA / ITS-CNPS / IS (estimation)
+   ============================================================ */
+async function renderFiscalDeclarations(){
+  const mois=document.getElementById('fiscalMois').value||new Date().toISOString().slice(0,7);
+  const agg={};
+  getEcritures().forEach(e=>{
+    if((e.date||'').slice(0,7)!==mois) return;
+    e.lignes.forEach(l=>{ if(!l.compte) return; const a=agg[l.compte]||(agg[l.compte]={debit:0,credit:0}); a.debit+=(+l.debit||0); a.credit+=(+l.credit||0); });
+  });
+  const soldeCl=(prefix)=>Object.keys(agg).filter(n=>n.startsWith(prefix)).reduce((s,n)=>s+(agg[n].credit-agg[n].debit),0);
+  const tvaCollectee=soldeCl('443'), tvaRecup=Object.keys(agg).filter(n=>n.startsWith('445')).reduce((s,n)=>s+(agg[n].debit-agg[n].credit),0);
+  const tvaNette=tvaCollectee-tvaRecup;
+  document.getElementById('fiscTvaCollectee').textContent=money(tvaCollectee);
+  document.getElementById('fiscTvaRecup').textContent=money(tvaRecup);
+  document.getElementById('fiscTvaNette').textContent=money(tvaNette);
+
+  let paies=[];
+  try{ paies=(await idbGetAll('paies')).filter(p=>p.periode===mois); }catch{ paies=[]; }
+  const brut=paies.reduce((s,p)=>s+(p.brut||0),0), its=paies.reduce((s,p)=>s+(p.its||0),0), cnps=paies.reduce((s,p)=>s+(p.cnpsSalarie||0),0);
+  document.getElementById('fiscBrut').textContent=money(brut);
+  document.getElementById('fiscIts').textContent=money(its);
+  document.getElementById('fiscCnps').textContent=money(cnps);
+  document.getElementById('fiscTotalRetenues').textContent=money(its+cnps);
+
+  const annee=mois.slice(0,4);
+  const rb=computeResultatBilan(annee);
+  document.getElementById('fiscResultat').textContent=money(rb.resultat);
+  document.getElementById('fiscIsEstime').textContent=money(Math.max(0,rb.resultat)*0.25);
+}
+
+/* ============================================================
+   AUDIT ÉCARTS CAISSE
+   ============================================================ */
+function renderAuditCaisse(){
+  const comptes=getCaisseComptes();
+  const seulementEcarts=document.getElementById('auditSeulementEcarts').checked;
+  let rows=[];
+  getCaisseSessions().filter(s=>s.statut==='cloturee').forEach(s=>{
+    if(seulementEcarts && !s.ecart) return;
+    const nomCaisse=comptes.find(c=>c.id===s.compteId)?.nom||s.compteId;
+    rows.push({...s,nomCaisse});
+  });
+  rows.sort((a,b)=>b.ts-a.ts);
+  const nbEcarts=rows.filter(r=>r.ecart).length;
+  const ecartCumul=rows.reduce((s,r)=>s+(r.ecart||0),0);
+  const nonJustifies=rows.filter(r=>r.ecart && !(r.observations||'').trim()).length;
+  document.getElementById('auditNbEcarts').textContent=nbEcarts;
+  const elCumul=document.getElementById('auditEcartCumul'); elCumul.textContent=(ecartCumul>=0?'+':'')+money(ecartCumul); elCumul.className='text-lg font-bold '+(ecartCumul===0?'text-slate-700':ecartCumul>0?'text-emerald-700':'text-red-700');
+  document.getElementById('auditNonJustifies').textContent=nonJustifies;
+  document.getElementById('auditCaisseBody').innerHTML=rows.map(r=>{
+    const justif=(r.observations||'').trim()?`<span class="text-slate-600">${escapeHtml(r.observations)}</span>`:(r.ecart?'<span class="text-red-600 font-semibold">⚠️ Non justifié</span>':'<span class="text-slate-400">—</span>');
+    const ecartColor=r.ecart===0?'text-slate-700':(r.ecart>0?'text-emerald-700':'text-red-700');
+    return `<tr class="border-b"><td class="p-2">${escapeHtml(r.nomCaisse)}</td><td class="p-2">${new Date(r.dateCloture).toLocaleDateString('fr-FR')}</td><td class="p-2 text-right">${money(r.soldeTheorique)}</td><td class="p-2 text-right">${money(r.soldeReel)}</td><td class="p-2 text-right font-semibold ${ecartColor}">${r.ecart>0?'+':''}${money(r.ecart)}</td><td class="p-2 text-xs">${justif}</td></tr>`;
+  }).join('')||'<tr><td colspan="6" class="text-center text-slate-400 p-4">Aucune clôture correspondante</td></tr>';
+}
+
+/* ============================================================
+   LETTRAGE DES COMPTES TIERS
+   ============================================================ */
+function getLettrage(){ try{ return JSON.parse(localStorage.getItem('sanix_lettrage')||'{}'); }catch{ return {}; } }
+function saveLettrage(l){ localStorage.setItem('sanix_lettrage',JSON.stringify(l)); }
+function populateLettrageComptes(){
+  const sel=document.getElementById('lettrageCompteSel'); if(!sel) return;
+  const tiers=getTiersComptes().filter(t=>t.type==='clients'||t.type==='fournisseurs').sort((a,b)=>a.num.localeCompare(b.num));
+  const cur=sel.value;
+  sel.innerHTML=tiers.map(t=>`<option value="${t.num}">${t.num} — ${escapeHtml(t.nom)}</option>`).join('')||'<option value="">Aucun tiers</option>';
+  if(cur && tiers.some(t=>t.num===cur)) sel.value=cur;
+}
+function renderLettrage(){
+  const compte=document.getElementById('lettrageCompteSel').value;
+  const body=document.getElementById('lettrageBody');
+  const msg=document.getElementById('lettrageMsg');
+  if(!compte){ body.innerHTML='<tr><td colspan="7" class="text-center text-slate-400 p-3">Sélectionnez un compte tiers</td></tr>'; return; }
+  const lettrage=getLettrage()[compte]||{};
+  const ligneToLettre={};
+  Object.entries(lettrage).forEach(([code,keys])=>keys.forEach(k=>ligneToLettre[k]=code));
+  const masquer=document.getElementById('lettrageMasquerLettrees').checked;
+  const ecritures=getEcritures().slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')||a.ts-b.ts);
+  let rows=[];
+  ecritures.forEach(e=>{
+    (e.lignes||[]).forEach((l,i)=>{
+      if(l.compte!==compte) return;
+      const key=e.id+'#'+i;
+      const lettre=ligneToLettre[key];
+      if(masquer && lettre) return;
+      rows.push({key,date:e.date,piece:e.piece||'—',libelle:l.libelle||e.libelle||'—',debit:+l.debit||0,credit:+l.credit||0,lettre});
+    });
+  });
+  body.innerHTML=rows.map(r=>`<tr class="border-b ${r.lettre?'bg-emerald-50/40':''}">
+    <td class="p-2 text-center">${r.lettre?'':`<input type="checkbox" class="lettrage-chk" data-key="${r.key}" data-debit="${r.debit}" data-credit="${r.credit}">`}</td>
+    <td class="p-2">${new Date(r.date).toLocaleDateString('fr-FR')}</td>
+    <td class="p-2 text-xs font-mono">${escapeHtml(r.piece)}</td>
+    <td class="p-2">${escapeHtml(r.libelle)}</td>
+    <td class="p-2 text-right">${r.debit?money(r.debit):''}</td>
+    <td class="p-2 text-right">${r.credit?money(r.credit):''}</td>
+    <td class="p-2 text-center font-bold ${r.lettre?'text-emerald-700':''}">${r.lettre||''}</td>
+  </tr>`).join('')||'<tr><td colspan="7" class="text-center text-slate-400 p-3">Aucun mouvement pour ce compte</td></tr>';
+  msg.innerHTML='';
+}
+function lettrerSelection(){
+  const compte=document.getElementById('lettrageCompteSel').value;
+  if(!compte) return;
+  const chks=[...document.querySelectorAll('.lettrage-chk:checked')];
+  const msg=document.getElementById('lettrageMsg');
+  if(chks.length<2){ msg.innerHTML='<span class="text-red-600">Sélectionnez au moins deux lignes (un débit et un crédit).</span>'; return; }
+  let td=0, tc=0;
+  chks.forEach(c=>{ td+=+c.dataset.debit; tc+=+c.dataset.credit; });
+  if(Math.abs(td-tc)>0.5){ msg.innerHTML=`<span class="text-red-600">Sélection déséquilibrée : débit ${money(td)} ≠ crédit ${money(tc)}. Le lettrage n'est possible que si les montants s'équilibrent.</span>`; return; }
+  const lettrage=getLettrage();
+  const compteMap=lettrage[compte]||{};
+  const lettres=Object.keys(compteMap);
+  let nextCode='A';
+  for(let i=0;i<lettres.length+1;i++){ const c=String.fromCharCode(65+i); if(!lettres.includes(c)){ nextCode=c; break; } }
+  compteMap[nextCode]=chks.map(c=>c.dataset.key);
+  lettrage[compte]=compteMap;
+  saveLettrage(lettrage);
+  renderLettrage();
+  msg.innerHTML=`<span class="text-emerald-700">✅ Lignes lettrées sous la référence ${nextCode}.</span>`;
+}
+
 function _compteClasse(num,plan){ const p=plan.find(x=>x.num===num); return p?p.cl:(num||'').charAt(0); }
 let _cdChartMoisInstance=null;
 function renderComptaDashboard(){
