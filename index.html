@@ -2220,6 +2220,7 @@ window.SANIX_CFG = {
 
           <div class="grid lg:grid-cols-[1fr_300px] gap-4">
             <div>
+              <div id="carteChantiersCoordWarn" class="hidden text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2.5 mb-2"></div>
               <div id="carteChantiersMap" style="height:60vh;min-height:420px;border-radius:12px;overflow:hidden;border:1px solid var(--ds-border)"></div>
               <div class="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-xs text-slate-500">
                 <span id="carteChantiersLatLng">Lat/Lng : —</span>
@@ -10069,7 +10070,8 @@ async function renderCarteChantiers(refetch){
   populateCarteFiltreEtape();
   const all = (refetch===false && carteChantiersAllRows) ? carteChantiersAllRows : await idbGetAll('chantiers');
   carteChantiersAllRows=all;
-  const geoloc=all.filter(c=>c.geoLat!=null && c.geoLng!=null && !isNaN(+c.geoLat) && !isNaN(+c.geoLng));
+  const geoloc=all.filter(c=>c.geoLat!=null && c.geoLng!=null && !isNaN(+c.geoLat) && !isNaN(+c.geoLng) && Math.abs(+c.geoLat)<=90 && Math.abs(+c.geoLng)<=180);
+  const geolocInvalides=all.filter(c=>c.geoLat!=null && c.geoLng!=null && (isNaN(+c.geoLat)||isNaN(+c.geoLng)||Math.abs(+c.geoLat)>90||Math.abs(+c.geoLng)>180));
 
   renderCarteKpis(all,geoloc);
 
@@ -10089,6 +10091,13 @@ async function renderCarteChantiers(refetch){
 
   const countEl=document.getElementById('carteChantiersCount');
   if(countEl) countEl.textContent = geoloc.length ? rows.length+' / '+geoloc.length+' dossier(s) affiché(s)' : 'Aucun dossier géolocalisé — ajoutez une adresse/GPS depuis "✏️ Modifier" dans Circuit Chantier.';
+  const warnEl=document.getElementById('carteChantiersCoordWarn');
+  if(warnEl){
+    if(geolocInvalides.length){
+      warnEl.classList.remove('hidden');
+      warnEl.innerHTML=`⚠️ ${geolocInvalides.length} dossier(s) avec coordonnées GPS invalides (hors plage -90/90, -180/180) — non affiché(s) sur la carte : ${geolocInvalides.map(c=>`<button onclick="showPage('chantier');openEditChantierModal('${c.id}')" class="underline font-semibold">${escapeHtml(c.numero)}</button>`).join(', ')}. Corrigez la latitude/longitude (vérifiez le point décimal).`;
+    } else warnEl.classList.add('hidden');
+  }
 
   if(!carteChantiersMap){
     carteChantiersMap=L.map('carteChantiersMap',{zoomControl:true}).setView([7.54,-5.55],7); // vue par défaut Côte d'Ivoire
@@ -10157,8 +10166,11 @@ async function handleEditChantier(e,id){
   rec.contact=document.getElementById('ecContact').value.trim();
   rec.adresseChantier=document.getElementById('ecAdresseChantier').value.trim();
   const ecLatVal=document.getElementById('ecLat').value, ecLngVal=document.getElementById('ecLng').value;
-  rec.geoLat=ecLatVal!==''?+ecLatVal:null;
-  rec.geoLng=ecLngVal!==''?+ecLngVal:null;
+  const newLat=ecLatVal!==''?+ecLatVal:null, newLng=ecLngVal!==''?+ecLngVal:null;
+  if(newLat!=null && (isNaN(newLat)||newLat<-90||newLat>90)){ alert('Latitude invalide : doit être comprise entre -90 et 90 (ex : 5.359951 pour Abidjan). Vérifiez qu\'il n\'y a pas de point décimal manquant.'); return false; }
+  if(newLng!=null && (isNaN(newLng)||newLng<-180||newLng>180)){ alert('Longitude invalide : doit être comprise entre -180 et 180 (ex : -4.008256 pour Abidjan). Vérifiez qu\'il n\'y a pas de point décimal manquant.'); return false; }
+  rec.geoLat=newLat;
+  rec.geoLng=newLng;
   let logSuffix='client/contact modifiés';
   if(!locked){
     const lignesOntChange = JSON.stringify(rec.lignes||[])!==JSON.stringify(editChantierLignes);
