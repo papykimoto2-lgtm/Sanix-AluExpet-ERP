@@ -13757,12 +13757,18 @@ function ventilerAutomatiquement(){
 function renderVentilation(){
   renderReglesVentilation();
   const plan=getPlanComptable();
+  const planMap={}; plan.forEach(p=>planMap[p.num]=p.lib);
   const comptesMap={}; getCaisseComptes().forEach(c=>comptesMap[c.id]=c.nom);
   const optsHtml=plan.map(p=>`<option value="${p.num}">${p.num} — ${escapeHtml(p.lib)}</option>`).join('');
-  const ops=getCaisseOps().sort((a,b)=>new Date(a.date)-new Date(b.date)||a.ts-b.ts);
+  const ops=getCaisseOps().sort((a,b)=>(a.date<b.date?-1:a.date>b.date?1:a.ts-b.ts));
   const pending=ops.filter(o=>o.statut!=='ventile');
   const done=ops.filter(o=>o.statut==='ventile');
-  document.getElementById('ventilationBody').innerHTML=pending.length?pending.map(o=>`<tr class="border-b" id="vrow_${o.id}">
+  document.getElementById('ventilationBody').innerHTML=pending.length?pending.map(o=>ventilationPendingRowHtml(o,comptesMap,optsHtml)).join(''):'<tr><td colspan="8" class="text-center text-slate-400 p-4">Aucune opération en attente — le brouillard de caisse est à jour ✅</td></tr>';
+  document.getElementById('ventilationDoneBody').innerHTML=done.length?done.map(o=>ventilationDoneRowHtml(o,comptesMap,planMap)).join(''):'<tr><td colspan="6" class="text-center text-slate-400 p-4">Aucune opération ventilée</td></tr>';
+  updateVentilationBadge();
+}
+function ventilationPendingRowHtml(o,comptesMap,optsHtml){
+  return `<tr class="border-b" id="vrow_${o.id}">
       <td class="p-2">${new Date(o.date).toLocaleDateString('fr-FR')}</td>
       <td class="p-2 text-xs">${escapeHtml(comptesMap[o.compteId]||'—')}</td>
       <td class="p-2">${escapeHtml(o.libelle)}</td>
@@ -13771,9 +13777,10 @@ function renderVentilation(){
       <td class="p-2 text-right font-semibold">${money(o.montant)}</td>
       <td class="p-2"><select id="vsel_${o.id}" class="border rounded-lg px-2 py-1 text-xs min-w-[200px]">${optsHtml}</select></td>
       <td class="p-2"><button onclick="ventilerOp('${o.id}')" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-2 py-1 text-xs font-semibold">✔ Ventiler</button></td>
-    </tr>`).join(''):'<tr><td colspan="8" class="text-center text-slate-400 p-4">Aucune opération en attente — le brouillard de caisse est à jour ✅</td></tr>';
-  document.getElementById('ventilationDoneBody').innerHTML=done.length?done.map(o=>`<tr class="border-b text-slate-500"><td class="p-2">${new Date(o.date).toLocaleDateString('fr-FR')}</td><td class="p-2 text-xs">${escapeHtml(comptesMap[o.compteId]||'—')}</td><td class="p-2">${escapeHtml(o.libelle)}</td><td class="p-2 text-right">${money(o.montant)}</td><td class="p-2 text-xs">${o.compteCompta} — ${escapeHtml(planLabel(o.compteCompta))}</td><td class="p-2"><button onclick="annulerVentilation('${o.id}')" class="text-amber-600 text-xs">↩ Annuler</button></td></tr>`).join(''):'<tr><td colspan="6" class="text-center text-slate-400 p-4">Aucune opération ventilée</td></tr>';
-  updateVentilationBadge();
+    </tr>`;
+}
+function ventilationDoneRowHtml(o,comptesMap,planMap){
+  return `<tr class="border-b text-slate-500" id="vdrow_${o.id}"><td class="p-2">${new Date(o.date).toLocaleDateString('fr-FR')}</td><td class="p-2 text-xs">${escapeHtml(comptesMap[o.compteId]||'—')}</td><td class="p-2">${escapeHtml(o.libelle)}</td><td class="p-2 text-right">${money(o.montant)}</td><td class="p-2 text-xs">${o.compteCompta} — ${escapeHtml(planMap[o.compteCompta]||'')}</td><td class="p-2"><button onclick="annulerVentilation('${o.id}')" class="text-amber-600 text-xs">↩ Annuler</button></td></tr>`;
 }
 function ventilerOp(id){
   const ops=getCaisseOps();
@@ -13787,7 +13794,21 @@ function ventilerOp(id){
   ecritures.push(ec); saveEcritures(ecritures);
   op.statut='ventile'; op.compteCompta=compteCompta; op.ecritureId=ec.id;
   saveCaisseOps(ops);
-  renderVentilation();
+  // Mise à jour chirurgicale du DOM (évite de reconstruire tout le tableau + tous les <select>)
+  const row=document.getElementById('vrow_'+id);
+  if(row){
+    row.remove();
+    const pendingBody=document.getElementById('ventilationBody');
+    if(!pendingBody.querySelector('tr[id^="vrow_"]')) pendingBody.innerHTML='<tr><td colspan="8" class="text-center text-slate-400 p-4">Aucune opération en attente — le brouillard de caisse est à jour ✅</td></tr>';
+    const comptesMap={}; getCaisseComptes().forEach(c=>comptesMap[c.id]=c.nom);
+    const planMap={}; getPlanComptable().forEach(p=>planMap[p.num]=p.lib);
+    const doneBody=document.getElementById('ventilationDoneBody');
+    const emptyRow=doneBody.querySelector('td[colspan="6"]'); if(emptyRow) doneBody.innerHTML='';
+    doneBody.insertAdjacentHTML('afterbegin',ventilationDoneRowHtml(op,comptesMap,planMap));
+    updateVentilationBadge();
+  } else {
+    renderVentilation();
+  }
   if(document.getElementById('caisse') && !document.getElementById('caisse').classList.contains('hidden')) renderCaisse();
   if(typeof audit==='function') audit('VENTILATION_CAISSE',`Ventilation ${money(op.montant)} — ${op.libelle} → compte ${compteCompta}`);
 }
