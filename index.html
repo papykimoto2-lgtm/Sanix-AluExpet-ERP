@@ -146,6 +146,20 @@ window.SANIX_CFG = {
     #sidebarOverlay{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:30;opacity:0;pointer-events:none;transition:opacity .2s ease}
     #sidebarOverlay.open{opacity:1;pointer-events:auto}
   }
+  .badge-card{width:260px;border-radius:16px;background:linear-gradient(160deg,#0f172a,#1e293b);color:#fff;padding:0;overflow:hidden;box-shadow:0 6px 18px rgba(15,23,42,.18);page-break-inside:avoid}
+  .badge-card-head{padding:12px 14px 8px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.12)}
+  .badge-card-head img{height:22px}
+  .badge-card-head .co{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+  .badge-card-body{background:#fff;color:#0f172a;padding:14px;text-align:center}
+  .badge-avatar{width:64px;height:64px;border-radius:50%;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;color:#fff;background:#2563eb;overflow:hidden}
+  .badge-avatar img{width:100%;height:100%;object-fit:cover}
+  .badge-card-nom{font-weight:800;font-size:14px}
+  .badge-card-fonction{font-size:11px;color:#475569;margin-top:1px}
+  .badge-card-mat{font-size:10px;color:#94a3b8;margin-top:6px;font-family:monospace}
+  .badge-card canvas{margin:10px auto 4px;display:block}
+  .badge-card-code{font-size:9px;color:#94a3b8;font-family:monospace;letter-spacing:.05em}
+  .badge-card-foot{background:#0f172a;color:#94a3b8;font-size:9px;padding:6px 10px;text-align:center}
+  @media print{.badge-card{margin:8px;break-inside:avoid;box-shadow:none;border:1px solid #cbd5e1}}
   .badge-qr{border:1px solid #e5e7eb;border-radius:8px;padding:12px;text-align:center;background:#f9fafb;page-break-inside:avoid}
   .badge-qr canvas{margin:8px auto;display:block;border:1px solid #e5e7eb}
   .badge-qr-nom{font-weight:bold;font-size:12px;margin-top:8px;word-break:break-word}
@@ -3118,6 +3132,7 @@ window.SANIX_CFG = {
           <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="conges" onclick="showRHTab('conges')">🌴 Absences & congés</button>
           <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="pointagerh" onclick="showRHTab('pointagerh')">⏱ Pointage</button>
           <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="badges" onclick="showRHTab('badges')">🎫 Badges QR</button>
+          <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="scanpointage" onclick="showRHTab('scanpointage')">📷 Pointage par scan</button>
           <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="paie" onclick="showRHTab('paie')">💰 Paie</button>
           <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="registre" onclick="showRHTab('registre')">📜 Registre & masse salariale</button>
           <button class="rh-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rhtab="livre" onclick="showRHTab('livre')">📚 Livre de paie</button>
@@ -3190,11 +3205,39 @@ window.SANIX_CFG = {
         <!-- ===== BADGES QR ===== -->
         <div id="rhTabBadges" class="rh-tab hidden">
           <div class="card bg-white rounded-2xl p-6 mb-4">
-            <div class="flex justify-between items-center mb-4">
-              <div><h2 class="text-lg font-bold">Badges Pointage</h2><p class="text-sm text-slate-500">Générer et imprimer les badges QR code pour pointage</p></div>
-              <button onclick="generateAllBadges()" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">🖨️ Imprimer tous les badges</button>
+            <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+              <div><h2 class="text-lg font-bold">🎫 Badges d'identification & pointage</h2><p class="text-sm text-slate-500">Badge sécurisé (QR code + code de vérification unique), utilisable pour le pointage par scan caméra.</p></div>
+              <div class="flex gap-2">
+                <input id="badgesSearch" placeholder="🔍 Rechercher un employé..." onkeyup="renderRHBadges()" class="border rounded-lg px-2 py-1.5 text-sm">
+                <button onclick="generateAllBadges()" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">🖨️ Imprimer tous les badges</button>
+              </div>
             </div>
-            <div id="rhBadgesGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+            <div id="rhBadgesGrid" class="flex flex-wrap gap-4"></div>
+          </div>
+        </div>
+
+        <!-- ===== POINTAGE PAR SCAN DE BADGE ===== -->
+        <div id="rhTabScanpointage" class="rh-tab hidden">
+          <div class="card bg-white rounded-2xl p-6 mb-4">
+            <div class="flex flex-wrap justify-between items-center gap-3 mb-3">
+              <div><h2 class="text-lg font-bold">📷 Pointage par scan de badge</h2><p class="text-sm text-slate-500">Présentez le badge (QR code) devant la caméra pour un pointage automatique, horodaté et infalsifiable.</p></div>
+              <div class="flex gap-2 items-center">
+                <input id="scanDate" type="date" class="border rounded-lg px-2 py-1.5 text-sm">
+                <button id="btnScanToggle" onclick="toggleBadgeScanner()" class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">▶️ Démarrer le scan</button>
+              </div>
+            </div>
+            <div id="scanUnsupported" class="hidden text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">⚠️ Votre navigateur ne prend pas en charge le scan caméra natif (BarcodeDetector). Utilisez Chrome ou Edge à jour, ou saisissez le pointage manuellement dans l'onglet « Pointage ».</div>
+            <div class="grid lg:grid-cols-2 gap-4">
+              <div class="border rounded-xl bg-black flex items-center justify-center overflow-hidden" style="aspect-ratio:4/3">
+                <video id="scanVideo" class="w-full h-full object-cover hidden" playsinline muted></video>
+                <p id="scanIdleMsg" class="text-slate-400 text-sm">Caméra inactive</p>
+              </div>
+              <div>
+                <h3 class="font-bold text-sm mb-2">Pointages du jour (scan)</h3>
+                <div class="overflow-x-auto max-h-80 overflow-y-auto border rounded-xl"><table class="w-full text-sm"><thead class="bg-slate-50 sticky top-0"><tr><th class="text-left p-2">Heure</th><th class="text-left p-2">Employé</th><th class="text-left p-2">Statut</th></tr></thead><tbody id="scanLogBody"><tr><td colspan="3" class="text-center text-slate-400 p-3">Aucun scan pour l'instant</td></tr></tbody></table></div>
+                <p class="text-xs text-slate-400 mt-2">Un badge scanné après l'heure limite de retard (paramétrable dans Paramètres RH) est automatiquement enregistré en « Retard ».</p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -19820,48 +19863,184 @@ function collectGrilleData(){
 }
 
 /* ---------- BADGES QR POINTAGE ---------- */
+function qrSvgString(text,cell){
+  cell=cell||4;
+  if(typeof qrcode==='undefined') return '';
+  const qr=qrcode(0,'M'); qr.addData(text); qr.make();
+  const n=qr.getModuleCount();
+  let svg=`<svg viewBox="0 0 ${n*cell} ${n*cell}" width="${n*cell}" height="${n*cell}" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#fff"/>`;
+  for(let r=0;r<n;r++) for(let c=0;c<n;c++) if(qr.isDark(r,c)) svg+=`<rect x="${c*cell}" y="${r*cell}" width="${cell}" height="${cell}" fill="#0f172a"/>`;
+  svg+='</svg>';
+  return svg;
+}
+function ensureBadgeCode(e){
+  if(e.badgeCode) return e.badgeCode;
+  const code=Math.random().toString(36).slice(2,8).toUpperCase();
+  e.badgeCode=code;
+  idbPut('employes',e).catch(()=>{});
+  return code;
+}
+function initiales(nomComplet){
+  return (nomComplet||'??').trim().split(/\s+/).slice(0,2).map(s=>s[0]||'').join('').toUpperCase()||'??';
+}
+async function regenererBadgeCode(empId){
+  if(!confirm('Régénérer le code de ce badge ? L\'ancien badge imprimé deviendra invalide pour le pointage par scan.')) return;
+  const employes=await idbGetAll('employes');
+  const e=employes.find(x=>x.id===empId); if(!e) return;
+  e.badgeCode=Math.random().toString(36).slice(2,8).toUpperCase();
+  await idbPut('employes',e);
+  queueSync('alubom_employes',e);
+  await audit('BADGE_REGENERE',(e.prenoms||'')+' '+(e.nom||''));
+  renderRHBadges();
+}
 async function renderRHBadges(){
   const el=document.getElementById('rhBadgesGrid');
   if(!el) return;
-  const employes=await idbGetAll('employes')||[];
-  const html=employes.map(e=>{
-    const qrid='EMP_'+e.id;
-    return `<div class="badge-qr" data-emp-id="${e.id}"><div id="qr_${e.id}"></div><div class="badge-qr-nom">${escapeHtml(e.nom||'')}</div><div class="badge-qr-id">#${escapeHtml(e.matricule||e.id)}</div><button onclick="printBadge('${e.id}')" class="text-xs bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded mt-2 w-full">🖨️</button></div>`;
+  const search=(document.getElementById('badgesSearch')?.value||'').toLowerCase();
+  let employes=(await idbGetAll('employes')||[]).filter(e=>e.statut!=='inactif');
+  if(search) employes=employes.filter(e=>((e.prenoms||'')+' '+(e.nom||'')+' '+(e.matricule||'')+' '+(e.fonction||'')).toLowerCase().includes(search));
+  employes.sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
+  const co=(typeof getCompanyInfo==='function')?getCompanyInfo():{};
+  el.innerHTML=employes.map(e=>{
+    const nomComplet=(e.prenoms||'')+' '+(e.nom||'');
+    const code=ensureBadgeCode(e);
+    const payload=`SANIX|EMP|${e.id}|${e.matricule||''}|${code}`;
+    const avatar=e.photo?`<img src="${e.photo}">`:initiales(nomComplet);
+    return `<div class="badge-card" data-emp-id="${e.id}" data-payload="${escapeHtml(payload)}">
+      <div class="badge-card-head"><span class="co">${escapeHtml(co.nom||'SANIX Africa')}</span></div>
+      <div class="badge-card-body">
+        <div class="badge-avatar">${avatar}</div>
+        <div class="badge-card-nom">${escapeHtml(nomComplet)}</div>
+        <div class="badge-card-fonction">${escapeHtml(e.fonction||'—')}</div>
+        <div class="badge-card-mat">Matricule ${escapeHtml(e.matricule||e.id.slice(-6))}</div>
+        <div class="badge-qr-canvas">${qrSvgString(payload,3)}</div>
+        <div class="badge-card-code">Code ${code}</div>
+      </div>
+      <div class="badge-card-foot">Badge de pointage — usage personnel et non transférable</div>
+      <div class="p-2 flex gap-1 bg-white">
+        <button onclick="printBadge('${e.id}')" class="flex-1 text-xs bg-slate-100 hover:bg-slate-200 px-2 py-1.5 rounded font-semibold">🖨️ Imprimer</button>
+        <button onclick="regenererBadgeCode('${e.id}')" class="text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 px-2 py-1.5 rounded font-semibold">♻️</button>
+      </div>
+    </div>`;
   }).join('');
-  el.innerHTML=html||'<p class="col-span-full text-slate-400 text-center py-8">Aucun employé enregistré.</p>';
-  employes.forEach(e=>{
-    const qr=new QRCode({text:'EMP_'+e.id,width:120,height:120,colorDark:'#000',colorLight:'#fff'});
-    const canvas=qr.createCanvas();
-    const container=document.getElementById('qr_'+e.id);
-    if(container) container.appendChild(canvas);
-  });
+  if(!employes.length) el.innerHTML='<p class="text-slate-400 text-center py-8 w-full">Aucun employé actif trouvé.</p>';
 }
 
 function generateAllBadges(){
-  const badges=document.querySelectorAll('.badge-qr');
+  const badges=document.querySelectorAll('#rhBadgesGrid .badge-card');
   if(!badges.length){alert('Aucun badge à imprimer.');return;}
-  window.print();
+  const printW=window.open('','_blank','width=900,height=1200');
+  printW.document.write('<html><head><title>Badges — impression</title><style>body{font-family:Arial,sans-serif;display:flex;flex-wrap:wrap;gap:14px;padding:14px;margin:0}</style></head><body>');
+  badges.forEach(b=>{ const clone=b.cloneNode(true); const foot=clone.querySelector('.p-2.flex'); if(foot) foot.remove(); printW.document.write(clone.outerHTML); });
+  printW.document.write('</body></html>');
+  printW.document.close();
+  setTimeout(()=>printW.print(),300);
 }
 
 function printBadge(empId){
-  const badge=document.querySelector(`[data-emp-id="${empId}"]`);
+  const badge=document.querySelector(`.badge-card[data-emp-id="${empId}"]`);
   if(!badge) return;
-  const printW=window.open('','','width=400,height=300');
-  printW.document.write(badge.outerHTML);
-  printW.document.write('<style>.badge-qr{margin:20px;}.badge-qr canvas{max-width:100%}@media print{body{margin:0}}</style>');
+  const clone=badge.cloneNode(true);
+  const foot=clone.querySelector('.p-2.flex'); if(foot) foot.remove();
+  const printW=window.open('','','width=340,height=460');
+  printW.document.write('<html><head><style>body{margin:20px;font-family:Arial,sans-serif}</style></head><body>'+clone.outerHTML+'</body></html>');
   printW.document.close();
-  setTimeout(()=>printW.print(),100);
+  setTimeout(()=>printW.print(),200);
+}
+
+/* ============================================================
+   POINTAGE PAR SCAN DE BADGE (caméra, BarcodeDetector natif)
+   ============================================================ */
+let _scanStream=null, _scanLoopId=null, _scanDetector=null;
+function heureLimiteRetard(){ return localStorage.getItem('sanix_rh_heure_limite')||'08:15'; }
+async function toggleBadgeScanner(){
+  const btn=document.getElementById('btnScanToggle');
+  if(_scanStream){ stopBadgeScanner(); return; }
+  if(!('BarcodeDetector' in window)){ document.getElementById('scanUnsupported').classList.remove('hidden'); return; }
+  if(!document.getElementById('scanDate').value) document.getElementById('scanDate').value=new Date().toISOString().slice(0,10);
+  try{
+    _scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+  }catch(err){
+    alert('Impossible d\'accéder à la caméra : '+(err.message||err));
+    return;
+  }
+  const video=document.getElementById('scanVideo');
+  video.srcObject=_scanStream;
+  video.classList.remove('hidden');
+  document.getElementById('scanIdleMsg').classList.add('hidden');
+  await video.play();
+  _scanDetector=new BarcodeDetector({formats:['qr_code']});
+  btn.textContent='⏹️ Arrêter le scan';
+  btn.className='bg-red-600 hover:bg-red-700 text-white rounded-lg px-4 py-2 text-sm font-semibold';
+  _scanLoopId=setInterval(scanBadgeFrame,500);
+}
+function stopBadgeScanner(){
+  if(_scanLoopId) clearInterval(_scanLoopId);
+  _scanLoopId=null;
+  if(_scanStream) _scanStream.getTracks().forEach(t=>t.stop());
+  _scanStream=null;
+  const video=document.getElementById('scanVideo');
+  video.classList.add('hidden'); video.srcObject=null;
+  document.getElementById('scanIdleMsg').classList.remove('hidden');
+  const btn=document.getElementById('btnScanToggle');
+  btn.textContent='▶️ Démarrer le scan';
+  btn.className='bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-4 py-2 text-sm font-semibold';
+}
+let _lastScanCode='', _lastScanTs=0;
+async function scanBadgeFrame(){
+  const video=document.getElementById('scanVideo');
+  if(!video || video.readyState<2) return;
+  try{
+    const codes=await _scanDetector.detect(video);
+    if(!codes.length) return;
+    const raw=codes[0].rawValue||'';
+    const now=Date.now();
+    if(raw===_lastScanCode && (now-_lastScanTs)<4000) return; // anti-doublon
+    _lastScanCode=raw; _lastScanTs=now;
+    await handleBadgeScan(raw);
+  }catch{}
+}
+async function handleBadgeScan(raw){
+  const parts=raw.split('|');
+  if(parts.length<5 || parts[0]!=='SANIX' || parts[1]!=='EMP'){ pushScanLog(null,'❌ QR code non reconnu'); return; }
+  const [,,empId,matricule,code]=parts;
+  const employes=await idbGetAll('employes');
+  const e=employes.find(x=>x.id===empId);
+  if(!e){ pushScanLog(null,'❌ Employé introuvable'); return; }
+  if(e.badgeCode!==code){ pushScanLog(e,'❌ Badge invalide (régénéré ou falsifié)'); return; }
+  const date=document.getElementById('scanDate').value||new Date().toISOString().slice(0,10);
+  const nowT=new Date().toTimeString().slice(0,5);
+  const statut=nowT>heureLimiteRetard()?'retard':'present';
+  if(e.modePaie!=='pointage'){ pushScanLog(e,'ℹ️ Salaire fixe — pointage informatif (non lié à la paie)'); }
+  const id='pt_'+empId+'_'+date;
+  const existing=(await idbGetAll('pointages_rh')).find(p=>p.id===id);
+  if(existing && existing.statut){ pushScanLog(e,`ℹ️ Déjà pointé aujourd'hui (${existing.statut})`); return; }
+  const rec={id,employeId:empId,date,statut,note:'Scan badge '+nowT,_modifie:new Date().toISOString()};
+  await idbPut('pointages_rh',rec);
+  queueSync('alubom_pointages_rh',rec);
+  await audit('POINTAGE_SCAN_BADGE',(e.prenoms||'')+' '+(e.nom||'')+' — '+statut+' — '+nowT);
+  pushScanLog(e,statut==='retard'?'🕒 Retard':'✅ Présent',nowT);
+  if(document.getElementById('rhTabPointagerh') && !document.getElementById('rhTabPointagerh').classList.contains('hidden')){ renderPointageRHJour(); renderPointageRHRecap(); }
+}
+function pushScanLog(e,label,heure){
+  const body=document.getElementById('scanLogBody'); if(!body) return;
+  if(body.children.length===1 && body.children[0].children.length===1) body.innerHTML='';
+  const tr=document.createElement('tr'); tr.className='border-b';
+  tr.innerHTML=`<td class="p-2">${heure||new Date().toTimeString().slice(0,5)}</td><td class="p-2">${e?escapeHtml((e.prenoms||'')+' '+(e.nom||'')):'—'}</td><td class="p-2">${label}</td>`;
+  body.insertBefore(tr,body.firstChild);
 }
 
 /* ---------- Routeur d'onglets RH ---------- */
 function showRHTab(tab){
   document.querySelectorAll('.rh-tab').forEach(t=>t.classList.add('hidden'));
+  if(tab!=='scanpointage' && _scanStream) stopBadgeScanner();
   const el=document.getElementById('rhTab'+tab.charAt(0).toUpperCase()+tab.slice(1)); if(el) el.classList.remove('hidden');
   document.querySelectorAll('.rh-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.rhtab===tab));
   if(tab==='employes') renderEmployesTable();
   if(tab==='conges') renderCongesTable();
   if(tab==='pointagerh'){ renderPointageRHJour(); renderPointageRHRecap(); }
   if(tab==='badges') renderRHBadges();
+  if(tab==='scanpointage'){ if(!document.getElementById('scanDate').value) document.getElementById('scanDate').value=new Date().toISOString().slice(0,10); }
   if(tab==='paie') renderPaieTable();
   if(tab==='registre') renderRegistrePaie();
   if(tab==='livre') showLivreTab(document.querySelector('.livre-tab-btn.active')?.dataset.livretab||'journal');
