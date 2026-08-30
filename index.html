@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://tile.openstreetmap.org https://*.tile.openstreetmap.org; connect-src 'self' https://*.supabase.co https://cdn.jsdelivr.net; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.basemaps.cartocdn.com; connect-src 'self' https://*.supabase.co https://cdn.jsdelivr.net; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
 <title>Sanix AluExpert ERP — Menuiserie Aluminium</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -10092,9 +10092,11 @@ async function renderCarteChantiers(refetch){
 
   if(!carteChantiersMap){
     carteChantiersMap=L.map('carteChantiersMap',{zoomControl:true}).setView([7.54,-5.55],7); // vue par défaut Côte d'Ivoire
-    const osmLayer=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    const osmLayer=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
       maxZoom:19,
-      attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributeurs'
+      subdomains:'abcd',
+      detectRetina:true,
+      attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributeurs © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>'
     }).addTo(carteChantiersMap);
     let tilesEnErreur=0;
     osmLayer.on('tileerror',()=>{
