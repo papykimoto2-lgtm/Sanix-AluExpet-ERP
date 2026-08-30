@@ -146,20 +146,23 @@ window.SANIX_CFG = {
     #sidebarOverlay{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:30;opacity:0;pointer-events:none;transition:opacity .2s ease}
     #sidebarOverlay.open{opacity:1;pointer-events:auto}
   }
-  .badge-card{width:260px;border-radius:16px;background:linear-gradient(160deg,#0f172a,#1e293b);color:#fff;padding:0;overflow:hidden;box-shadow:0 6px 18px rgba(15,23,42,.18);page-break-inside:avoid}
-  .badge-card-head{padding:12px 14px 8px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.12)}
-  .badge-card-head img{height:22px}
-  .badge-card-head .co{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
-  .badge-card-body{background:#fff;color:#0f172a;padding:14px;text-align:center}
-  .badge-avatar{width:64px;height:64px;border-radius:50%;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;color:#fff;background:#2563eb;overflow:hidden}
+  .badge-card{width:270px;border-radius:14px;background:#fff;box-shadow:0 6px 18px rgba(15,23,42,.15);overflow:hidden;page-break-inside:avoid;border:1px solid #e2e8f0}
+  .badge-card-head{padding:10px 12px;display:flex;align-items:center;gap:8px;background:linear-gradient(120deg,#0f172a,#1e3a8a)}
+  .badge-card-head img.logo{height:26px;width:26px;object-fit:contain;border-radius:6px;background:#fff;padding:2px}
+  .badge-card-head .co{color:#fff;font-size:11px;font-weight:800;letter-spacing:.03em;line-height:1.15}
+  .badge-card-head .co small{display:block;font-weight:500;font-size:8.5px;color:#93c5fd;letter-spacing:.02em}
+  .badge-card-body{padding:12px;display:flex;gap:10px;align-items:flex-start}
+  .badge-avatar{width:46px;height:46px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#fff;background:linear-gradient(135deg,#2563eb,#1e40af);overflow:hidden}
   .badge-avatar img{width:100%;height:100%;object-fit:cover}
-  .badge-card-nom{font-weight:800;font-size:14px}
-  .badge-card-fonction{font-size:11px;color:#475569;margin-top:1px}
-  .badge-card-mat{font-size:10px;color:#94a3b8;margin-top:6px;font-family:monospace}
-  .badge-card canvas{margin:10px auto 4px;display:block}
-  .badge-card-code{font-size:9px;color:#94a3b8;font-family:monospace;letter-spacing:.05em}
-  .badge-card-foot{background:#0f172a;color:#94a3b8;font-size:9px;padding:6px 10px;text-align:center}
-  @media print{.badge-card{margin:8px;break-inside:avoid;box-shadow:none;border:1px solid #cbd5e1}}
+  .badge-card-info{flex:1;min-width:0}
+  .badge-card-nom{font-weight:800;font-size:13px;color:#0f172a;line-height:1.2}
+  .badge-card-fonction{font-size:10.5px;color:#2563eb;font-weight:700;margin-top:1px}
+  .badge-card-mat{font-size:9px;color:#94a3b8;margin-top:4px;font-family:monospace}
+  .badge-card-qrblock{text-align:center;flex-shrink:0}
+  .badge-card-qrblock svg{border:1px solid #e2e8f0;border-radius:4px}
+  .badge-card-code{font-size:7.5px;color:#94a3b8;font-family:monospace;margin-top:2px}
+  .badge-card-foot{background:#f1f5f9;color:#64748b;font-size:8px;padding:5px 12px;text-align:center;letter-spacing:.02em}
+  @media print{.badge-card{box-shadow:none;border:1px solid #cbd5e1}}
   .badge-qr{border:1px solid #e5e7eb;border-radius:8px;padding:12px;text-align:center;background:#f9fafb;page-break-inside:avoid}
   .badge-qr canvas{margin:8px auto;display:block;border:1px solid #e5e7eb}
   .badge-qr-nom{font-weight:bold;font-size:12px;margin-top:8px;word-break:break-word}
@@ -14976,7 +14979,7 @@ async function sha256Hex(str){
 
 /* ---------- Entête entreprise & pied de page sécurisé (impressions) ---------- */
 function getCompanyInfo(){
-  const def={nom:'SANIX AluExpert',tagline:'SANIX Africa • Division Technologies',adresse:'',tel:'',email:'',rccm:'',ncc:'',numeroEmployeurCnps:'',numeroEmployeurCmu:'',seuilValidationAchat:500000,telDG:'',seuilMargeCommerciale:25};
+  const def={nom:'SANIX AluExpert',tagline:'SANIX Africa • Division Technologies',logo:'',adresse:'',tel:'',email:'',rccm:'',ncc:'',numeroEmployeurCnps:'',numeroEmployeurCmu:'',seuilValidationAchat:500000,telDG:'',seuilMargeCommerciale:25};
   try{
     const raw=localStorage.getItem('alubom_company_info');
     return raw ? {...def,...JSON.parse(raw)} : def;
@@ -14992,6 +14995,12 @@ function openCompanyInfoModal(){
     <form id="companyInfoForm" onsubmit="return handleSaveCompanyInfo(event)" class="grid sm:grid-cols-2 gap-2">
       <input id="ciNom" value="${escapeHtml(c.nom)}" placeholder="Nom de l'entreprise" required class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
       <input id="ciTagline" value="${escapeHtml(c.tagline)}" placeholder="Slogan / activité" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
+      <div class="sm:col-span-2 flex items-center gap-3 border rounded-lg px-2 py-1.5">
+        <div id="ciLogoPreview" class="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden shrink-0">${c.logo?`<img src="${c.logo}" class="w-full h-full object-contain">`:'<span class="text-slate-300 text-xs">Logo</span>'}</div>
+        <input id="ciLogoFile" type="file" accept="image/*" onchange="handleCiLogoUpload(event)" class="text-xs flex-1">
+        ${c.logo?'<button type="button" onclick="clearCiLogo()" class="text-xs text-red-500 font-semibold">✕ Retirer</button>':''}
+        <input type="hidden" id="ciLogo" value="${c.logo?escapeHtml(c.logo):''}">
+      </div>
       <input id="ciAdresse" value="${escapeHtml(c.adresse)}" placeholder="Adresse" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
       <input id="ciTel" value="${escapeHtml(c.tel)}" placeholder="Téléphone" class="border rounded-lg px-2 py-1.5 text-sm">
       <input id="ciEmail" type="email" value="${escapeHtml(c.email)}" placeholder="Email" class="border rounded-lg px-2 py-1.5 text-sm">
@@ -15010,11 +15019,25 @@ function openCompanyInfoModal(){
   document.getElementById('companyInfoModal').classList.remove('hidden');
   setModalOpen(true);
 }
+function handleCiLogoUpload(ev){
+  const file=ev.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    document.getElementById('ciLogo').value=reader.result;
+    document.getElementById('ciLogoPreview').innerHTML=`<img src="${reader.result}" class="w-full h-full object-contain">`;
+  };
+  reader.readAsDataURL(file);
+}
+function clearCiLogo(){
+  document.getElementById('ciLogo').value='';
+  document.getElementById('ciLogoPreview').innerHTML='<span class="text-slate-300 text-xs">Logo</span>';
+}
 function handleSaveCompanyInfo(e){
   e.preventDefault();
   saveCompanyInfo({
     nom:document.getElementById('ciNom').value.trim()||'SANIX AluExpert',
     tagline:document.getElementById('ciTagline').value.trim(),
+    logo:document.getElementById('ciLogo').value||'',
     adresse:document.getElementById('ciAdresse').value.trim(),
     tel:document.getElementById('ciTel').value.trim(),
     email:document.getElementById('ciEmail').value.trim(),
@@ -19906,19 +19929,21 @@ async function renderRHBadges(){
     const code=ensureBadgeCode(e);
     const payload=`SANIX|EMP|${e.id}|${e.matricule||''}|${code}`;
     const avatar=e.photo?`<img src="${e.photo}">`:initiales(nomComplet);
+    const logoImg=co.logo?`<img class="logo" src="${co.logo}">`:'';
     return `<div class="badge-card" data-emp-id="${e.id}" data-payload="${escapeHtml(payload)}">
-      <div class="badge-card-head"><span class="co">${escapeHtml(co.nom||'SANIX Africa')}</span></div>
+      <div class="badge-card-head">${logoImg}<span class="co">${escapeHtml(co.nom||'SANIX Africa')}<small>${escapeHtml(co.tagline||'Badge de pointage')}</small></span></div>
       <div class="badge-card-body">
         <div class="badge-avatar">${avatar}</div>
-        <div class="badge-card-nom">${escapeHtml(nomComplet)}</div>
-        <div class="badge-card-fonction">${escapeHtml(e.fonction||'—')}</div>
-        <div class="badge-card-mat">Matricule ${escapeHtml(e.matricule||e.id.slice(-6))}</div>
-        <div class="badge-qr-canvas">${qrSvgString(payload,3)}</div>
-        <div class="badge-card-code">Code ${code}</div>
+        <div class="badge-card-info">
+          <div class="badge-card-nom">${escapeHtml(nomComplet)}</div>
+          <div class="badge-card-fonction">${escapeHtml(e.fonction||'—')}</div>
+          <div class="badge-card-mat">Matricule ${escapeHtml(e.matricule||e.id.slice(-6))}</div>
+        </div>
+        <div class="badge-card-qrblock">${qrSvgString(payload,2.4)}<div class="badge-card-code">${code}</div></div>
       </div>
       <div class="badge-card-foot">Badge de pointage — usage personnel et non transférable</div>
-      <div class="p-2 flex gap-1 bg-white">
-        <button onclick="printBadge('${e.id}')" class="flex-1 text-xs bg-slate-100 hover:bg-slate-200 px-2 py-1.5 rounded font-semibold">🖨️ Imprimer</button>
+      <div class="p-2 flex gap-1 bg-white border-t">
+        <button onclick="printBadge('${e.id}')" class="flex-1 text-xs bg-slate-100 hover:bg-slate-200 px-2 py-1.5 rounded font-semibold">🖨️ Imprimer (carte)</button>
         <button onclick="regenererBadgeCode('${e.id}')" class="text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 px-2 py-1.5 rounded font-semibold">♻️</button>
       </div>
     </div>`;
@@ -19926,26 +19951,67 @@ async function renderRHBadges(){
   if(!employes.length) el.innerHTML='<p class="text-slate-400 text-center py-8 w-full">Aucun employé actif trouvé.</p>';
 }
 
-function generateAllBadges(){
-  const badges=document.querySelectorAll('#rhBadgesGrid .badge-card');
-  if(!badges.length){alert('Aucun badge à imprimer.');return;}
-  const printW=window.open('','_blank','width=900,height=1200');
-  printW.document.write('<html><head><title>Badges — impression</title><style>body{font-family:Arial,sans-serif;display:flex;flex-wrap:wrap;gap:14px;padding:14px;margin:0}</style></head><body>');
-  badges.forEach(b=>{ const clone=b.cloneNode(true); const foot=clone.querySelector('.p-2.flex'); if(foot) foot.remove(); printW.document.write(clone.outerHTML); });
-  printW.document.write('</body></html>');
-  printW.document.close();
-  setTimeout(()=>printW.print(),300);
+/* Gabarit carte magnétique CR80 (85.6mm × 53.98mm) — format standard badge/carte de pointage, CSS autonome pour fenêtre d'impression */
+function badgePrintCss(){
+  return `
+    *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{margin:0;padding:10mm;font-family:'Segoe UI',Arial,sans-serif;background:#e2e8f0;display:flex;flex-wrap:wrap;gap:6mm}
+    .card{width:85.6mm;height:53.98mm;border-radius:3mm;background:#fff;overflow:hidden;box-shadow:0 2mm 4mm rgba(15,23,42,.12);display:flex;flex-direction:column;page-break-inside:avoid}
+    .head{background:linear-gradient(120deg,#0f172a,#1e3a8a);padding:2.2mm 3mm;display:flex;align-items:center;gap:2mm}
+    .head img{height:6mm;width:6mm;object-fit:contain;border-radius:1.2mm;background:#fff;padding:0.5mm}
+    .head .co{color:#fff;font-size:3mm;font-weight:800;line-height:1.15}
+    .head .co small{display:block;font-weight:500;font-size:2.1mm;color:#93c5fd}
+    .body{flex:1;padding:2.6mm 3mm;display:flex;gap:2.6mm;align-items:center}
+    .avatar{width:12mm;height:12mm;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:4.2mm;color:#fff;background:linear-gradient(135deg,#2563eb,#1e40af);overflow:hidden}
+    .avatar img{width:100%;height:100%;object-fit:cover}
+    .info{flex:1;min-width:0}
+    .nom{font-weight:800;font-size:3.4mm;color:#0f172a;line-height:1.2}
+    .fonction{font-size:2.6mm;color:#2563eb;font-weight:700;margin-top:.3mm}
+    .mat{font-size:2.3mm;color:#94a3b8;margin-top:1mm;font-family:monospace}
+    .qrblock{text-align:center;flex-shrink:0}
+    .qrblock svg{width:15mm;height:15mm;border:.2mm solid #e2e8f0;border-radius:1mm}
+    .code{font-size:1.9mm;color:#94a3b8;font-family:monospace;margin-top:.5mm}
+    .foot{background:#f1f5f9;color:#64748b;font-size:1.9mm;padding:1.2mm 3mm;text-align:center}
+    @media print{ body{background:#fff;padding:0} .card{box-shadow:none;border:.2mm solid #cbd5e1} }
+  `;
 }
-
-function printBadge(empId){
-  const badge=document.querySelector(`.badge-card[data-emp-id="${empId}"]`);
-  if(!badge) return;
-  const clone=badge.cloneNode(true);
-  const foot=clone.querySelector('.p-2.flex'); if(foot) foot.remove();
-  const printW=window.open('','','width=340,height=460');
-  printW.document.write('<html><head><style>body{margin:20px;font-family:Arial,sans-serif}</style></head><body>'+clone.outerHTML+'</body></html>');
+function badgeCardHtml(e,co){
+  const nomComplet=(e.prenoms||'')+' '+(e.nom||'');
+  const code=ensureBadgeCode(e);
+  const payload=`SANIX|EMP|${e.id}|${e.matricule||''}|${code}`;
+  const avatar=e.photo?`<img src="${e.photo}">`:initiales(nomComplet);
+  const logoImg=co.logo?`<img src="${co.logo}">`:'';
+  return `<div class="card">
+    <div class="head">${logoImg}<span class="co">${escapeHtml(co.nom||'SANIX Africa')}<small>${escapeHtml(co.tagline||'Badge de pointage')}</small></span></div>
+    <div class="body">
+      <div class="avatar">${avatar}</div>
+      <div class="info">
+        <div class="nom">${escapeHtml(nomComplet)}</div>
+        <div class="fonction">${escapeHtml(e.fonction||'—')}</div>
+        <div class="mat">Matricule ${escapeHtml(e.matricule||e.id.slice(-6))}</div>
+      </div>
+      <div class="qrblock">${qrSvgString(payload,2.4)}<div class="code">${code}</div></div>
+    </div>
+    <div class="foot">Badge de pointage — usage personnel et non transférable</div>
+  </div>`;
+}
+function generateAllBadges(){
+  const cards=document.querySelectorAll('#rhBadgesGrid .badge-card');
+  if(!cards.length){alert('Aucun badge à imprimer.');return;}
+  const empIds=[...cards].map(c=>c.dataset.empId);
+  imprimerBadgesParIds(empIds);
+}
+async function imprimerBadgesParIds(empIds){
+  const co=(typeof getCompanyInfo==='function')?getCompanyInfo():{};
+  const employes=await idbGetAll('employes');
+  const html=empIds.map(id=>employes.find(e=>e.id===id)).filter(Boolean).map(e=>badgeCardHtml(e,co)).join('');
+  const printW=window.open('','_blank','width=1000,height=1200');
+  printW.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Badges — impression carte magnétique</title><style>${badgePrintCss()}</style></head><body>${html}</body></html>`);
   printW.document.close();
-  setTimeout(()=>printW.print(),200);
+  setTimeout(()=>printW.print(),350);
+}
+function printBadge(empId){
+  imprimerBadgesParIds([empId]);
 }
 
 /* ============================================================
