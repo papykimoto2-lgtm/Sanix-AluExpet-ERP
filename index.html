@@ -8,7 +8,7 @@
 <title>Sanix AluExpert ERP — Menuiserie Aluminium</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -39,20 +39,21 @@ window.SANIX_CFG = {
 <style>
   /* ===================== SANIX DESIGN SYSTEM — ERP industriel ===================== */
   :root{
-    --ds-ink:#2b2318; --ds-ink-2:#2b2318; --ds-slate-900:#2b2318; --ds-slate-700:#5c5138;
-    --ds-slate-500:#8a7a5f; --ds-slate-400:#a3937a; --ds-slate-200:#e8dfc9; --ds-slate-100:#f3ecdc;
-    --ds-surface:#ffffff; --ds-canvas:#faf6ef;
-    --ds-accent:#b8541f; --ds-accent-ink:#8f3f16; --ds-accent-soft:#fbe9dd; --ds-accent-2:#c9a227;
-    --ds-grad:linear-gradient(120deg,#b8541f,#d4691f);
-    --ds-ok:#3a7a2e; --ds-warn:#b8541f; --ds-danger:#c0392b;
-    --ds-radius-sm:8px; --ds-radius:10px; --ds-radius-lg:16px;
-    --ds-border:#e8dfc9;
-    --ds-shadow-sm:0 1px 2px rgba(43,35,24,.05);
-    --ds-shadow:0 2px 6px rgba(43,35,24,.05), 0 8px 20px -8px rgba(43,35,24,.12);
-    --ds-shadow-lg:0 14px 34px -14px rgba(43,35,24,.22);
-    --ds-mono:ui-monospace,'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
-    --ds-display:'Fraunces',ui-serif,Georgia,serif;
+    --ds-ink:#1a1d21; --ds-ink-2:#1a1d21; --ds-slate-900:#1a1d21; --ds-slate-700:#3f434a;
+    --ds-slate-500:#5b6472; --ds-slate-400:#8b93a0; --ds-slate-200:#d7dbe0; --ds-slate-100:#eef0f2;
+    --ds-surface:#ffffff; --ds-canvas:#eef0f2;
+    --ds-accent:#ff5a1f; --ds-accent-ink:#c2410c; --ds-accent-soft:#fff1ea; --ds-accent-2:#ff7a45;
+    --ds-grad:linear-gradient(120deg,#ff5a1f,#ff8a3d);
+    --ds-ok:#15803d; --ds-warn:#c2410c; --ds-danger:#dc2626;
+    --ds-radius-sm:3px; --ds-radius:5px; --ds-radius-lg:6px;
+    --ds-border:#d7dbe0;
+    --ds-shadow-sm:0 1px 2px rgba(26,29,33,.05);
+    --ds-shadow:0 2px 4px rgba(26,29,33,.06), 0 8px 20px -8px rgba(26,29,33,.14);
+    --ds-shadow-lg:0 16px 34px -14px rgba(26,29,33,.26);
+    --ds-mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Consolas,monospace;
+    --ds-display:'Space Grotesk',var(--ds-mono),sans-serif;
     --ds-font:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --ds-ease:cubic-bezier(.22,1,.36,1);
   }
 
   *{scrollbar-width:thin;scrollbar-color:#cbd5e1 transparent}
@@ -69,80 +70,98 @@ window.SANIX_CFG = {
   @keyframes dsFadeIn{from{opacity:0}to{opacity:1}}
   @keyframes dsPopIn{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 
-  h1,h2,h3{letter-spacing:-.01em;font-weight:600;font-family:var(--ds-display)}
+  h1,h2,h3{letter-spacing:-.02em;font-weight:700;font-family:var(--ds-display)}
   table{font-variant-numeric:tabular-nums}
-  td.text-right,th.text-right,.text-right{font-variant-numeric:tabular-nums}
+  td.text-right,th.text-right,.text-right{font-variant-numeric:tabular-nums;font-family:var(--ds-mono)}
+  .text-3xl.font-black,.text-2xl.font-black,.text-xl.font-black{font-family:var(--ds-mono)}
 
   .glass{background:rgba(255,255,255,.88);backdrop-filter:blur(12px)}
 
+  /* ===== Animations globales ===== */
+  @keyframes dsRise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes dsScaleIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+  @keyframes dsShimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+  @keyframes dsPulseRing{0%{box-shadow:0 0 0 0 rgba(255,90,31,.35)}70%{box-shadow:0 0 0 8px rgba(255,90,31,0)}100%{box-shadow:0 0 0 0 rgba(255,90,31,0)}}
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+  }
+  .page:not(.hidden){animation:dsRise .35s var(--ds-ease)}
+  .card{animation:dsScaleIn .3s var(--ds-ease)}
+
   /* Sidebar */
-  .sidebar{background:linear-gradient(180deg,#2b2318,#1d1710);border-right:1px solid rgba(255,255,255,.05)}
-  #sidebar{scrollbar-width:thin;scrollbar-color:#5c5138 transparent}
+  .sidebar{background:var(--ds-ink);border-right:1px solid rgba(255,255,255,.05)}
+  #sidebar{scrollbar-width:thin;scrollbar-color:#3f434a transparent}
   #sidebar::-webkit-scrollbar{width:6px}
   #sidebar::-webkit-scrollbar-track{background:transparent}
-  #sidebar::-webkit-scrollbar-thumb{background:#5c5138;border-radius:999px}
-  #sidebar::-webkit-scrollbar-thumb:hover{background:#8a7a5f}
-  .nav{color:#d8cdb8;transition:background .12s ease,color .12s ease;font-weight:500;border-radius:0 20px 20px 0;margin-right:10px}
-  .nav:hover{background:rgba(201,162,39,.10);color:#fff}
-  .active{background:rgba(201,162,39,.18)!important;color:#f5deac!important;font-weight:700}
+  #sidebar::-webkit-scrollbar-thumb{background:#3f434a;border-radius:999px}
+  #sidebar::-webkit-scrollbar-thumb:hover{background:#5b6472}
+  .nav{color:#c4c9d0;transition:background .16s var(--ds-ease),color .16s var(--ds-ease),border-color .16s var(--ds-ease),padding-left .16s var(--ds-ease);font-weight:600;border-left:3px solid transparent;border-radius:0;position:relative}
+  .nav:hover{background:rgba(255,255,255,.07);color:#fff;padding-left:16px}
+  .active{background:#232730!important;color:#fff!important;font-weight:700;border-left-color:var(--ds-accent)!important;animation:dsRise .25s var(--ds-ease)}
 
   /* Header */
   header{border-bottom:1px solid var(--ds-border);background:#ffffff}
 
-  /* Cards — chaleureuses, arrondies */
-  .card{background:var(--ds-surface);border:1px solid var(--ds-border);box-shadow:var(--ds-shadow-sm);border-radius:var(--ds-radius-lg);transition:box-shadow .18s ease}
-  .card:hover{box-shadow:var(--ds-shadow)}
+  /* Cards — industriel, accent gauche, vivant */
+  .card{background:var(--ds-surface);border:1px solid var(--ds-border);box-shadow:var(--ds-shadow-sm);border-radius:var(--ds-radius-lg);transition:box-shadow .22s var(--ds-ease),transform .22s var(--ds-ease),border-color .22s var(--ds-ease)}
+  .card:hover{box-shadow:var(--ds-shadow);transform:translateY(-2px);border-color:#c7ccd3}
   .carte-marker{width:20px;height:20px;border-radius:50%;background:var(--mc);border:3px solid #fff;box-shadow:0 1px 4px rgba(15,23,42,.35);transition:transform .15s ease,box-shadow .15s ease;cursor:pointer}
   .carte-marker-active{width:26px;height:26px;border-width:4px;box-shadow:0 2px 12px rgba(15,23,42,.5);transform:scale(1.05)}
-  .carte-liste-item{border-bottom:1px solid var(--ds-slate-100);border-left:3px solid transparent}
+  .carte-liste-item{border-bottom:1px solid var(--ds-slate-100);border-left:3px solid transparent;transition:background .15s ease,border-color .15s ease}
   .carte-liste-item:hover{background:#fff}
   .carte-liste-item.selected{background:#fff}
   .carte-liste-item:last-child{border-bottom:none}
 
   /* Inputs */
-  input,select,textarea{outline:none;transition:border-color .12s ease,box-shadow .12s ease;font-family:var(--ds-font);border-radius:var(--ds-radius-sm)}
-  input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(184,84,31,.14);border-color:var(--ds-accent)!important}
+  input,select,textarea{outline:none;transition:border-color .15s var(--ds-ease),box-shadow .15s var(--ds-ease);font-family:var(--ds-font);border-radius:var(--ds-radius-sm)}
+  input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(255,90,31,.16);border-color:var(--ds-accent)!important}
   input::placeholder,textarea::placeholder{color:#a0aec0}
 
-  /* Badges — statuts, arrondis */
-  .badge{font-size:.7rem;font-weight:700;padding:.25rem .65rem;border-radius:999px;letter-spacing:.01em;white-space:nowrap}
+  /* Badges — statuts, cadre net */
+  .badge{font-size:.68rem;font-weight:700;padding:.22rem .55rem;border-radius:2px;letter-spacing:.02em;white-space:nowrap;font-family:var(--ds-mono);transition:transform .15s var(--ds-ease)}
 
-  /* Buttons — universal interaction polish (colors/classes untouched) */
-  button{transition:background-color .12s ease,color .12s ease,border-color .12s ease,transform .08s ease,box-shadow .12s ease;cursor:pointer;font-weight:600;border-radius:var(--ds-radius)}
-  button:active{transform:translateY(1px)}
+  /* Buttons — universal interaction polish + micro-animations */
+  button{transition:background-color .15s var(--ds-ease),color .15s var(--ds-ease),border-color .15s var(--ds-ease),transform .12s var(--ds-ease),box-shadow .15s var(--ds-ease);cursor:pointer;font-weight:700;border-radius:var(--ds-radius-sm)}
+  button:active{transform:translateY(1px) scale(.98)}
   button:disabled{cursor:not-allowed}
   button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ds-accent);outline-offset:2px}
-  .bg-blue-600{background-image:var(--ds-grad)!important}
-  .hover\:bg-blue-700:hover{background-image:linear-gradient(120deg,#8f3f16,#b8541f)!important}
-  .rounded-lg{border-radius:var(--ds-radius)!important}
-  .rounded-xl{border-radius:14px!important}
+  .bg-blue-600{background-image:var(--ds-grad)!important;background-size:160% 100%;background-position:0% 0%;transition:background-position .35s var(--ds-ease),transform .12s var(--ds-ease),box-shadow .2s var(--ds-ease)}
+  .bg-blue-600:hover{background-position:100% 0%;box-shadow:0 6px 16px -6px rgba(255,90,31,.5);transform:translateY(-1px)}
+  .hover\:bg-blue-700:hover{background-image:var(--ds-grad)!important}
+  .rounded-lg{border-radius:var(--ds-radius-sm)!important}
+  .rounded-xl{border-radius:4px!important}
   .rounded-2xl{border-radius:var(--ds-radius-lg)!important}
 
   /* Tables — zebra + sticky head + hover, generic, non-invasive */
-  table thead th{font-weight:700;letter-spacing:.03em;text-transform:uppercase;font-size:.68rem;color:var(--ds-slate-500)}
-  table tbody tr{transition:background-color .1s ease}
-  table tbody tr:hover{background-color:#fbf8f2}
+  table thead th{font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:.68rem;color:var(--ds-slate-500)}
+  table tbody tr{transition:background-color .12s ease}
+  table tbody tr:hover{background-color:#f8f9fa}
 
   /* Tab-bar buttons (config/ref/stock/prod/flux/catalogue) */
-  .etude-tab-btn,.ref-tab-btn,.flux-view-btn,.cat-tab-btn,.stock-tab-btn,.prod-tab-btn,.fe-tab-btn,.livre-tab-btn,.compta-tab-btn,.rh-tab-btn,.gmao-tab-btn,.prospects-tab-btn,.ao-tab-btn{color:var(--ds-slate-500);background:transparent;border-radius:999px;font-weight:600;transition:background-color .12s ease,color .12s ease}
+  .etude-tab-btn,.ref-tab-btn,.flux-view-btn,.cat-tab-btn,.stock-tab-btn,.prod-tab-btn,.fe-tab-btn,.livre-tab-btn,.compta-tab-btn,.rh-tab-btn,.gmao-tab-btn,.prospects-tab-btn,.ao-tab-btn{color:var(--ds-slate-500);background:transparent;border-radius:2px;font-weight:700;transition:background-color .15s var(--ds-ease),color .15s var(--ds-ease)}
   .etude-tab-btn:hover,.ref-tab-btn:hover,.cat-tab-btn:hover,.stock-tab-btn:hover,.prod-tab-btn:hover,.fe-tab-btn:hover,.livre-tab-btn:hover,.compta-tab-btn:hover,.rh-tab-btn:hover,.gmao-tab-btn:hover,.prospects-tab-btn:hover,.ao-tab-btn:hover{background:var(--ds-slate-100);color:var(--ds-slate-700)}
   .flux-view-btn:hover{background:#e2e8f0}
   .etude-tab-btn.active,.ref-tab-btn.active,.cat-tab-btn.active,.stock-tab-btn.active,.prod-tab-btn.active,.gmao-tab-btn.active,.prospects-tab-btn.active,.ao-tab-btn.active,.fe-tab-btn.active,.livre-tab-btn.active,.compta-tab-btn.active,.rh-tab-btn.active{background-image:var(--ds-grad);color:#fff;box-shadow:var(--ds-shadow-sm)}
-  .config-view-btn{color:var(--ds-slate-500);background:transparent;border-radius:8px;transition:background-color .12s ease,color .12s ease}
+  .config-view-btn{color:var(--ds-slate-500);background:transparent;border-radius:2px;transition:background-color .15s var(--ds-ease),color .15s var(--ds-ease)}
   .config-view-btn:hover{background:var(--ds-slate-100)}
   .config-view-btn.active{background-image:var(--ds-grad);color:#fff}
-  .etat-periode-btn{color:var(--ds-slate-500);border-radius:999px}
+  .etat-periode-btn{color:var(--ds-slate-500);border-radius:2px}
   .etat-periode-btn.active{background-image:var(--ds-grad);color:#fff;border-color:transparent}
-  .tb-periode-btn{color:var(--ds-slate-500);border-radius:999px}
+  .tb-periode-btn{color:var(--ds-slate-500);border-radius:2px}
   .tb-periode-btn.active{background-image:var(--ds-grad);color:#fff;border-color:transparent}
-  .caisse-card{border:1px solid var(--ds-border);border-radius:var(--ds-radius-lg);background:#fff;padding:16px;transition:box-shadow .15s ease,border-color .15s ease,transform .12s ease;cursor:pointer}
-  .caisse-card:hover{box-shadow:var(--ds-shadow);transform:translateY(-1px)}
-  .caisse-card.selected{border-color:var(--ds-accent);box-shadow:0 0 0 2px rgba(184,84,31,.15)}
+  .caisse-card{border:1px solid var(--ds-border);border-radius:var(--ds-radius-lg);background:#fff;padding:16px;transition:box-shadow .2s var(--ds-ease),border-color .2s var(--ds-ease),transform .2s var(--ds-ease);cursor:pointer;border-left:3px solid transparent}
+  .caisse-card:hover{box-shadow:var(--ds-shadow);transform:translateY(-2px)}
+  .caisse-card.selected{border-left-color:var(--ds-accent);box-shadow:0 0 0 1px var(--ds-accent);animation:dsPulseRing 1.2s var(--ds-ease) 1}
   #sunToggleBtn.active{background:#d97706;color:#fff;border-color:#d97706}
-  .editor-tool-btn{color:var(--ds-slate-500);background:transparent;transition:background-color .12s ease,color .12s ease}
+  .editor-tool-btn{color:var(--ds-slate-500);background:transparent;transition:background-color .15s var(--ds-ease),color .15s var(--ds-ease)}
   .editor-tool-btn:hover{background:var(--ds-slate-100)}
   .editor-tool-btn.active{background:var(--ds-accent-soft);color:var(--ds-accent);font-weight:700}
   .flux-view-btn.active{background:#fff;color:var(--ds-ink-2);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+
+  /* Compteurs KPI animés */
+  .text-3xl.font-black,.text-2xl.font-black,.text-xl.font-black{transition:color .2s ease}
+  .card:has(.text-3xl.font-black):hover .text-3xl.font-black,
+  .card:has(.text-2xl.font-black):hover .text-2xl.font-black{color:var(--ds-accent)}
 
   /* Page — pas d'animation, aspect statique robuste */
 
