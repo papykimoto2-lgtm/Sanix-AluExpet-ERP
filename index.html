@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self' https://*.supabase.co https://cdn.jsdelivr.net; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://tile.openstreetmap.org https://*.tile.openstreetmap.org; connect-src 'self' https://*.supabase.co https://cdn.jsdelivr.net; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
 <title>Sanix AluExpert ERP — Menuiserie Aluminium</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2201,6 +2201,7 @@ window.SANIX_CFG = {
           <div class="flex items-center gap-2">
             <button onclick="renderCarteChantiers(true)" class="border px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-white hover:bg-slate-50">🔄 Actualiser</button>
             <button onclick="zoomCarteChantiers()" class="border px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-white hover:bg-slate-50">⤢ Cadrer les points</button>
+            <button onclick="carteChantiersMap && carteChantiersMap.setView([7.54,-5.55],7)" class="border px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-white hover:bg-slate-50">🇨🇮 Vue Côte d'Ivoire</button>
           </div>
         </div>
 
@@ -10091,10 +10092,22 @@ async function renderCarteChantiers(refetch){
 
   if(!carteChantiersMap){
     carteChantiersMap=L.map('carteChantiersMap',{zoomControl:true}).setView([7.54,-5.55],7); // vue par défaut Côte d'Ivoire
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    const osmLayer=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
       maxZoom:19,
-      attribution:'© OpenStreetMap'
+      attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributeurs'
     }).addTo(carteChantiersMap);
+    let tilesEnErreur=0;
+    osmLayer.on('tileerror',()=>{
+      tilesEnErreur++;
+      if(tilesEnErreur===1){
+        const container=document.getElementById('carteChantiersMap');
+        const warn=document.createElement('div');
+        warn.className='absolute bottom-2 left-2 z-[1000] bg-amber-50 border border-amber-300 text-amber-800 text-xs rounded-lg px-2.5 py-1.5 shadow';
+        warn.textContent='⚠️ Certaines tuiles de fond de carte ne se chargent pas (connexion internet ?)';
+        container.style.position='relative';
+        container.appendChild(warn);
+      }
+    });
     carteChantiersMap.on('mousemove',e=>{
       const el=document.getElementById('carteChantiersLatLng');
       if(el) el.textContent='Lat/Lng : '+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5);
