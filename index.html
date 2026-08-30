@@ -3,9 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self' https://*.supabase.co https://cdn.jsdelivr.net; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self' https://*.supabase.co https://cdn.jsdelivr.net; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
 <title>Sanix AluExpert ERP — Menuiserie Aluminium</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -40,12 +43,13 @@ window.SANIX_CFG = {
     --ds-slate-500:#64748b; --ds-slate-400:#94a3b8; --ds-slate-200:#e2e8f0; --ds-slate-100:#f1f5f9;
     --ds-surface:#ffffff; --ds-canvas:#f5f6f8;
     --ds-accent:#1d4ed8; --ds-accent-ink:#1e3a8a; --ds-accent-soft:#eff6ff; --ds-accent-2:#1d4ed8;
+    --ds-grad:linear-gradient(120deg,#0f172a,#1e3a8a);
     --ds-ok:#059669; --ds-warn:#d97706; --ds-danger:#dc2626;
-    --ds-radius-sm:6px; --ds-radius:8px; --ds-radius-lg:10px;
+    --ds-radius-sm:8px; --ds-radius:10px; --ds-radius-lg:14px;
     --ds-border:#e3e6ec;
     --ds-shadow-sm:0 1px 2px rgba(15,23,42,.05);
-    --ds-shadow:0 1px 2px rgba(15,23,42,.04), 0 4px 14px -6px rgba(15,23,42,.10);
-    --ds-shadow-lg:0 10px 30px -12px rgba(15,23,42,.20);
+    --ds-shadow:0 2px 6px rgba(15,23,42,.05), 0 8px 20px -8px rgba(15,23,42,.12);
+    --ds-shadow-lg:0 14px 34px -14px rgba(15,23,42,.22);
     --ds-mono:ui-monospace,'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
     --ds-font:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   }
@@ -64,28 +68,28 @@ window.SANIX_CFG = {
   @keyframes dsFadeIn{from{opacity:0}to{opacity:1}}
   @keyframes dsPopIn{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 
-  h1,h2,h3{letter-spacing:-.015em}
+  h1,h2,h3{letter-spacing:-.02em;font-weight:800}
   table{font-variant-numeric:tabular-nums}
   td.text-right,th.text-right,.text-right{font-variant-numeric:tabular-nums}
 
   .glass{background:rgba(255,255,255,.88);backdrop-filter:blur(12px)}
 
   /* Sidebar */
-  .sidebar{background:#0f172a;border-right:1px solid rgba(255,255,255,.05)}
+  .sidebar{background:var(--ds-grad);border-right:1px solid rgba(255,255,255,.05)}
   #sidebar{scrollbar-width:thin;scrollbar-color:#334155 transparent}
   #sidebar::-webkit-scrollbar{width:6px}
   #sidebar::-webkit-scrollbar-track{background:transparent}
   #sidebar::-webkit-scrollbar-thumb{background:#334155;border-radius:999px}
   #sidebar::-webkit-scrollbar-thumb:hover{background:#475569}
-  .nav{color:#cbd5e1;transition:background .12s ease,color .12s ease}
-  .nav:hover{background:rgba(255,255,255,.06);color:#fff}
-  .active{background:var(--ds-accent)!important;color:#fff!important;font-weight:600}
+  .nav{color:#cbd5e1;transition:background .12s ease,color .12s ease,transform .1s ease;font-weight:500;border-radius:10px}
+  .nav:hover{background:rgba(255,255,255,.08);color:#fff}
+  .active{background:rgba(37,99,235,.9)!important;color:#fff!important;font-weight:700;box-shadow:0 4px 14px -4px rgba(37,99,235,.55)}
 
   /* Header */
   header{border-bottom:1px solid var(--ds-border);background:#ffffff}
 
-  /* Cards — sobre, discret */
-  .card{background:var(--ds-surface);border:1px solid var(--ds-border);box-shadow:var(--ds-shadow-sm);border-radius:var(--ds-radius-lg);transition:box-shadow .15s ease}
+  /* Cards — modernes, chaleureuses */
+  .card{background:var(--ds-surface);border:1px solid var(--ds-border);box-shadow:var(--ds-shadow-sm);border-radius:var(--ds-radius-lg);transition:box-shadow .18s ease,transform .12s ease}
   .card:hover{box-shadow:var(--ds-shadow)}
   .carte-marker{width:20px;height:20px;border-radius:50%;background:var(--mc);border:3px solid #fff;box-shadow:0 1px 4px rgba(15,23,42,.35);transition:transform .15s ease,box-shadow .15s ease;cursor:pointer}
   .carte-marker-active{width:26px;height:26px;border-width:4px;box-shadow:0 2px 12px rgba(15,23,42,.5);transform:scale(1.05)}
@@ -95,18 +99,23 @@ window.SANIX_CFG = {
   .carte-liste-item:last-child{border-bottom:none}
 
   /* Inputs */
-  input,select,textarea{outline:none;transition:border-color .12s ease,box-shadow .12s ease;font-family:var(--ds-font)}
+  input,select,textarea{outline:none;transition:border-color .12s ease,box-shadow .12s ease;font-family:var(--ds-font);border-radius:var(--ds-radius-sm)}
   input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(37,99,235,.14);border-color:var(--ds-accent)!important}
   input::placeholder,textarea::placeholder{color:#a0aec0}
 
   /* Badges — statuts discrets */
-  .badge{font-size:.7rem;font-weight:600;padding:.25rem .6rem;border-radius:5px;letter-spacing:.01em;white-space:nowrap}
+  .badge{font-size:.7rem;font-weight:700;padding:.25rem .65rem;border-radius:999px;letter-spacing:.01em;white-space:nowrap}
 
   /* Buttons — universal interaction polish (colors/classes untouched) */
-  button{transition:background-color .12s ease,color .12s ease,border-color .12s ease,transform .08s ease,box-shadow .12s ease;cursor:pointer}
+  button{transition:background-color .12s ease,color .12s ease,border-color .12s ease,transform .08s ease,box-shadow .12s ease;cursor:pointer;font-weight:600;border-radius:var(--ds-radius)}
   button:active{transform:translateY(1px)}
   button:disabled{cursor:not-allowed}
   button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ds-accent);outline-offset:2px}
+  .bg-blue-600{background-image:var(--ds-grad)!important}
+  .hover\:bg-blue-700:hover{background-image:linear-gradient(120deg,#1e293b,#1d4ed8)!important}
+  .rounded-lg{border-radius:var(--ds-radius)!important}
+  .rounded-xl{border-radius:12px!important}
+  .rounded-2xl{border-radius:var(--ds-radius-lg)!important}
 
   /* Tables — zebra + sticky head + hover, generic, non-invasive */
   table thead th{font-weight:700;letter-spacing:.02em}
@@ -114,19 +123,19 @@ window.SANIX_CFG = {
   table tbody tr:hover{background-color:#f8fafc}
 
   /* Tab-bar buttons (config/ref/stock/prod/flux/catalogue) */
-  .etude-tab-btn,.ref-tab-btn,.flux-view-btn,.cat-tab-btn,.stock-tab-btn,.prod-tab-btn,.fe-tab-btn,.livre-tab-btn,.compta-tab-btn{color:var(--ds-slate-500);background:transparent;border-radius:8px;font-weight:600;transition:background-color .12s ease,color .12s ease}
-  .etude-tab-btn:hover,.ref-tab-btn:hover,.cat-tab-btn:hover,.stock-tab-btn:hover,.prod-tab-btn:hover,.fe-tab-btn:hover,.livre-tab-btn:hover,.compta-tab-btn:hover{background:var(--ds-slate-100);color:var(--ds-slate-700)}
+  .etude-tab-btn,.ref-tab-btn,.flux-view-btn,.cat-tab-btn,.stock-tab-btn,.prod-tab-btn,.fe-tab-btn,.livre-tab-btn,.compta-tab-btn,.rh-tab-btn,.gmao-tab-btn,.prospects-tab-btn,.ao-tab-btn{color:var(--ds-slate-500);background:transparent;border-radius:999px;font-weight:600;transition:background-color .12s ease,color .12s ease}
+  .etude-tab-btn:hover,.ref-tab-btn:hover,.cat-tab-btn:hover,.stock-tab-btn:hover,.prod-tab-btn:hover,.fe-tab-btn:hover,.livre-tab-btn:hover,.compta-tab-btn:hover,.rh-tab-btn:hover,.gmao-tab-btn:hover,.prospects-tab-btn:hover,.ao-tab-btn:hover{background:var(--ds-slate-100);color:var(--ds-slate-700)}
   .flux-view-btn:hover{background:#e2e8f0}
-  .etude-tab-btn.active,.ref-tab-btn.active,.cat-tab-btn.active,.stock-tab-btn.active,.prod-tab-btn.active,.gmao-tab-btn.active,.prospects-tab-btn.active,.ao-tab-btn.active,.fe-tab-btn.active,.livre-tab-btn.active,.compta-tab-btn.active{background:var(--ds-accent);color:#fff;box-shadow:var(--ds-shadow-sm)}
-  .config-view-btn{color:var(--ds-slate-500);background:transparent;border-radius:6px;transition:background-color .12s ease,color .12s ease}
+  .etude-tab-btn.active,.ref-tab-btn.active,.cat-tab-btn.active,.stock-tab-btn.active,.prod-tab-btn.active,.gmao-tab-btn.active,.prospects-tab-btn.active,.ao-tab-btn.active,.fe-tab-btn.active,.livre-tab-btn.active,.compta-tab-btn.active,.rh-tab-btn.active{background-image:var(--ds-grad);color:#fff;box-shadow:var(--ds-shadow-sm)}
+  .config-view-btn{color:var(--ds-slate-500);background:transparent;border-radius:8px;transition:background-color .12s ease,color .12s ease}
   .config-view-btn:hover{background:var(--ds-slate-100)}
-  .config-view-btn.active{background:var(--ds-accent);color:#fff}
-  .etat-periode-btn{color:var(--ds-slate-500)}
-  .etat-periode-btn.active{background:var(--ds-accent);color:#fff;border-color:var(--ds-accent)}
-  .tb-periode-btn{color:var(--ds-slate-500)}
-  .tb-periode-btn.active{background:var(--ds-accent);color:#fff;border-color:var(--ds-accent)}
-  .caisse-card{border:1px solid var(--ds-border);border-radius:var(--ds-radius-lg);background:#fff;padding:16px;transition:box-shadow .15s ease,border-color .15s ease;cursor:pointer}
-  .caisse-card:hover{box-shadow:var(--ds-shadow)}
+  .config-view-btn.active{background-image:var(--ds-grad);color:#fff}
+  .etat-periode-btn{color:var(--ds-slate-500);border-radius:999px}
+  .etat-periode-btn.active{background-image:var(--ds-grad);color:#fff;border-color:transparent}
+  .tb-periode-btn{color:var(--ds-slate-500);border-radius:999px}
+  .tb-periode-btn.active{background-image:var(--ds-grad);color:#fff;border-color:transparent}
+  .caisse-card{border:1px solid var(--ds-border);border-radius:var(--ds-radius-lg);background:#fff;padding:16px;transition:box-shadow .15s ease,border-color .15s ease,transform .12s ease;cursor:pointer}
+  .caisse-card:hover{box-shadow:var(--ds-shadow);transform:translateY(-1px)}
   .caisse-card.selected{border-color:var(--ds-accent);box-shadow:0 0 0 2px rgba(29,78,216,.15)}
   #sunToggleBtn.active{background:#d97706;color:#fff;border-color:#d97706}
   .editor-tool-btn{color:var(--ds-slate-500);background:transparent;transition:background-color .12s ease,color .12s ease}
