@@ -198,14 +198,14 @@ window.SANIX_CFG = {
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="prospects">🎯 Prospects & Pipeline</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="ao">📑 Appels d'offres <span id="aoBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
 
-      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">2 · Conception & devis</div>
+      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">3 · Conception & devis</div>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="etude">🧑‍💻 Bureau d'étude</button>
 
-      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">3 · Engagement commercial</div>
+      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">4 · Engagement commercial</div>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="chantier">🏗️ Circuit Chantier</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="cartechantiers">🗺️ Carte des chantiers</button>
 
-      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">4 · Exécution</div>
+      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">5 · Exécution</div>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="production">🏭 Production</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="atelierMobile">📱 Vue atelier (mobile)</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="stock">📦 Stock</button>
@@ -226,7 +226,7 @@ window.SANIX_CFG = {
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="analysecommerciale">📊 Analyse commerciale</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="partenaires">🤝 Partenaires & commissions</button>
 
-      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">5 · Administration</div>
+      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">9 · Administration</div>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="utilisateurs">👥 Utilisateurs</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="rh">🧑‍💼 RH & Paie <span id="congesBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
     </nav>
@@ -2764,16 +2764,16 @@ window.SANIX_CFG = {
         </div>
         <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1 items-center">
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold active" data-comptatab="dashboard" onclick="showComptaTab('dashboard')">📊 Tableau de bord</button>
+          <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="parametres" onclick="showComptaTab('parametres')">⚙️ Paramètres</button>
+          <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="plan" onclick="showComptaTab('plan')">📖 Plan comptable</button>
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="ventilation" onclick="showComptaTab('ventilation')">🧮 Ventilation caisse <span id="ventilationTabBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="journal" onclick="showComptaTab('journal')">🗒️ Journal</button>
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="grandlivre" onclick="showComptaTab('grandlivre')">📚 Grand livre</button>
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="balance" onclick="showComptaTab('balance')">⚖️ Balance</button>
+          <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="tiers" onclick="showComptaTab('tiers')">👥 Comptes tiers</button>
+          <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="audit" onclick="showComptaTab('audit')">🔍 Audit & Lettrage</button>
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="resultat" onclick="showComptaTab('resultat')">📈 Résultat & Bilan</button>
           <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="fiscal" onclick="showComptaTab('fiscal')">🧾 Fiscal (TVA/ITS/IS)</button>
-          <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="audit" onclick="showComptaTab('audit')">🔍 Audit & Lettrage</button>
-          <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="tiers" onclick="showComptaTab('tiers')">👥 Comptes tiers</button>
-          <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="plan" onclick="showComptaTab('plan')">📖 Plan comptable</button>
-          <button class="compta-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-comptatab="parametres" onclick="showComptaTab('parametres')">⚙️ Paramètres</button>
         </div>
 
         <div id="comptaTabDashboard" class="compta-tab">
@@ -2800,6 +2800,37 @@ window.SANIX_CFG = {
           <div class="card bg-white rounded-2xl p-4 overflow-x-auto">
             <h4 class="text-sm font-bold text-slate-600 mb-2">Top 10 comptes les plus mouvementés</h4>
             <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Compte</th><th class="text-left p-2">Libellé</th><th class="text-right p-2">Total débit</th><th class="text-right p-2">Total crédit</th><th class="text-right p-2">Mouvement cumulé</th></tr></thead><tbody id="cdTopComptes"></tbody></table>
+          </div>
+        </div>
+
+        <div id="comptaTabParametres" class="compta-tab hidden">
+          <div class="card bg-white rounded-2xl p-6">
+            <h2 class="text-lg font-bold mb-1">⚙️ Comptes par défaut des mouvements Débit / Crédit automatiques</h2>
+            <p class="text-sm text-slate-500 mb-4">Ces comptes sont utilisés automatiquement par l'application pour générer les écritures (versements clients, commissions, paiements fournisseurs…), sans que vous ayez à les saisir manuellement à chaque fois. Tapez pour rechercher dans le plan comptable (saisie prédictive) ou cliquez sur la flèche du champ pour dérouler la liste. Un code inexistant sera créé automatiquement dans le plan comptable à l'enregistrement.</p>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50"><tr><th class="text-left p-2">Mouvement</th><th class="text-left p-2">Compte Débit</th><th class="text-left p-2">Compte Crédit</th></tr></thead>
+                <tbody id="comptesDefautBody"></tbody>
+              </table>
+            </div>
+            <datalist id="planComptableDatalist"></datalist>
+            <div class="flex justify-end mt-4">
+              <button onclick="saveComptesDefautMouvements()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">💾 Enregistrer</button>
+            </div>
+          </div>
+        </div>
+        <div id="comptaTabPlan" class="compta-tab hidden">
+          <div class="flex flex-wrap justify-between gap-2 mb-2">
+            <p class="text-sm text-slate-500">Plan comptable général SYSCOHADA révisé (classes 1 à 8). Vous pouvez ajouter des sous-comptes spécifiques.</p>
+            <div class="flex gap-2">
+              <button onclick="downloadPlanComptableModele()" class="border px-3 py-2 rounded-lg text-sm font-semibold">📄 Modèle CSV</button>
+              <button onclick="document.getElementById('planComptableFileInput').click()" class="border px-3 py-2 rounded-lg text-sm font-semibold">⬆ Importer</button>
+              <input type="file" id="planComptableFileInput" accept=".csv,text/csv,.json,application/json" class="hidden" onchange="handleImportPlanComptable(event)">
+              <button onclick="openAddCompteModal()" class="border px-3 py-2 rounded-lg text-sm font-semibold">+ Ajouter un compte</button>
+            </div>
+          </div>
+          <div class="card bg-white rounded-2xl p-4 overflow-x-auto">
+            <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">N° compte</th><th class="text-left p-2">Libellé</th><th class="text-left p-2">Classe</th><th class="p-2"></th></tr></thead><tbody id="planComptableBody"></tbody></table>
           </div>
         </div>
 
@@ -2866,106 +2897,6 @@ window.SANIX_CFG = {
         </div>
 
         <!-- ====== RÉSULTAT & BILAN ====== -->
-        <div id="comptaTabResultat" class="compta-tab hidden">
-          <div class="card bg-white rounded-2xl p-4 mb-4">
-            <div class="flex flex-wrap gap-2 items-end">
-              <div><label class="text-xs text-slate-500 block mb-1">Exercice</label><select id="rbAnnee" onchange="renderResultatBilan()" class="border rounded-lg px-2 py-1.5 text-sm"></select></div>
-              <button onclick="renderResultatBilan()" class="border px-3 py-2 rounded-lg text-sm font-semibold">🔄 Générer</button>
-              <button onclick="imprimerResultatBilan()" class="border border-blue-600 text-blue-600 px-3 py-2 rounded-lg text-sm font-semibold">🖨 Aperçu avant impression</button>
-            </div>
-          </div>
-          <div class="grid lg:grid-cols-2 gap-4">
-            <div class="card bg-white rounded-2xl p-4">
-              <h3 class="font-bold mb-2">📈 Compte de résultat</h3>
-              <table class="w-full text-sm mb-2"><thead class="bg-slate-50"><tr><th class="text-left p-2">Compte</th><th class="text-left p-2">Libellé</th><th class="text-right p-2">Montant</th></tr></thead><tbody id="rbProduitsBody"></tbody><tfoot><tr class="font-bold border-t-2"><td colspan="2" class="p-2">Total produits</td><td class="p-2 text-right" id="rbTotalProduits">—</td></tr></tfoot></table>
-              <table class="w-full text-sm"><tbody id="rbChargesBody"></tbody><tfoot><tr class="font-bold border-t-2"><td colspan="2" class="p-2">Total charges</td><td class="p-2 text-right" id="rbTotalCharges">—</td></tr></tfoot></table>
-              <div class="mt-3 p-3 rounded-xl bg-slate-50 flex justify-between items-center">
-                <span class="font-bold">Résultat net (bénéfice / perte)</span>
-                <span id="rbResultat" class="text-xl font-black">—</span>
-              </div>
-            </div>
-            <div class="card bg-white rounded-2xl p-4">
-              <h3 class="font-bold mb-2">🏛️ Bilan</h3>
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <div class="text-xs font-bold text-slate-500 mb-1">ACTIF</div>
-                  <table class="w-full text-xs"><tbody id="rbActifBody"></tbody><tfoot><tr class="font-bold border-t"><td class="p-1.5">Total actif</td><td class="p-1.5 text-right" id="rbTotalActif">—</td></tr></tfoot></table>
-                </div>
-                <div>
-                  <div class="text-xs font-bold text-slate-500 mb-1">PASSIF</div>
-                  <table class="w-full text-xs"><tbody id="rbPassifBody"></tbody><tfoot><tr class="font-bold border-t"><td class="p-1.5">Total passif</td><td class="p-1.5 text-right" id="rbTotalPassif">—</td></tr></tfoot></table>
-                </div>
-              </div>
-              <div id="rbEquilibre" class="mt-3 text-xs font-semibold"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ====== FISCAL : TVA / ITS / IS ====== -->
-        <div id="comptaTabFiscal" class="compta-tab hidden">
-          <div class="card bg-white rounded-2xl p-4 mb-4">
-            <div class="flex flex-wrap gap-2 items-end">
-              <div><label class="text-xs text-slate-500 block mb-1">Mois</label><input id="fiscalMois" type="month" class="border rounded-lg px-2 py-1.5 text-sm"></div>
-              <button onclick="renderFiscalDeclarations()" class="border px-3 py-2 rounded-lg text-sm font-semibold">🔄 Générer</button>
-            </div>
-          </div>
-          <div class="grid lg:grid-cols-3 gap-4">
-            <div class="card bg-white rounded-2xl p-4">
-              <h3 class="font-bold mb-2">💰 TVA</h3>
-              <div class="text-xs text-slate-500 mb-2">Régime réel — TVA collectée (443) − TVA récupérable (445)</div>
-              <div class="flex justify-between text-sm py-1 border-b"><span>TVA collectée</span><span id="fiscTvaCollectee" class="font-semibold">—</span></div>
-              <div class="flex justify-between text-sm py-1 border-b"><span>TVA récupérable</span><span id="fiscTvaRecup" class="font-semibold">—</span></div>
-              <div class="flex justify-between text-sm py-2 mt-1 font-bold"><span>TVA nette due</span><span id="fiscTvaNette">—</span></div>
-              <p class="text-xs text-slate-400 mt-2">⚠️ À télédéclarer et payer avant le 15 du mois suivant (DGI).</p>
-            </div>
-            <div class="card bg-white rounded-2xl p-4">
-              <h3 class="font-bold mb-2">👤 ITS / CNPS / CMU</h3>
-              <div class="text-xs text-slate-500 mb-2">Depuis les bulletins de paie validés du mois (module RH)</div>
-              <div class="flex justify-between text-sm py-1 border-b"><span>Masse salariale brute</span><span id="fiscBrut" class="font-semibold">—</span></div>
-              <div class="flex justify-between text-sm py-1 border-b"><span>ITS retenu</span><span id="fiscIts" class="font-semibold">—</span></div>
-              <div class="flex justify-between text-sm py-1 border-b"><span>CNPS salarié</span><span id="fiscCnps" class="font-semibold">—</span></div>
-              <div class="flex justify-between text-sm py-2 mt-1 font-bold"><span>Total à reverser</span><span id="fiscTotalRetenues">—</span></div>
-              <p class="text-xs text-slate-400 mt-2">⚠️ ITS et CNPS dus le 15 du mois suivant (DISA CNPS avant le 31 janvier N+1).</p>
-            </div>
-            <div class="card bg-white rounded-2xl p-4">
-              <h3 class="font-bold mb-2">🏢 Impôt sur les sociétés (IS) — estimation</h3>
-              <div class="text-xs text-slate-500 mb-2">Estimation sur le résultat de l'exercice en cours (taux 25% CI, indicatif)</div>
-              <div class="flex justify-between text-sm py-1 border-b"><span>Résultat cumulé exercice</span><span id="fiscResultat" class="font-semibold">—</span></div>
-              <div class="flex justify-between text-sm py-2 mt-1 font-bold"><span>IS estimé (25%)</span><span id="fiscIsEstime">—</span></div>
-              <p class="text-xs text-slate-400 mt-2">⚠️ IS dû avant le 30 avril N+1. Estimation indicative — validez avec votre comptable/CGA.</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- ====== AUDIT ÉCARTS CAISSE & LETTRAGE ====== -->
-        <div id="comptaTabAudit" class="compta-tab hidden">
-          <div class="card bg-white rounded-2xl p-4 mb-4">
-            <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
-              <h3 class="font-bold">⚖️ Audit des écarts de caisse (toutes caisses, toutes clôtures)</h3>
-              <label class="text-xs flex items-center gap-1"><input type="checkbox" id="auditSeulementEcarts" checked onchange="renderAuditCaisse()"> N'afficher que les écarts ≠ 0</label>
-            </div>
-            <div class="grid sm:grid-cols-3 gap-3 mb-3">
-              <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Clôtures avec écart</div><div id="auditNbEcarts" class="text-lg font-bold text-amber-700">—</div></div>
-              <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Écart cumulé</div><div id="auditEcartCumul" class="text-lg font-bold">—</div></div>
-              <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Non justifiés (sans observation)</div><div id="auditNonJustifies" class="text-lg font-bold text-red-700">—</div></div>
-            </div>
-            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Caisse</th><th class="text-left p-2">Clôture</th><th class="text-right p-2">Solde théorique</th><th class="text-right p-2">Solde réel</th><th class="text-right p-2">Écart</th><th class="text-left p-2">Justification</th></tr></thead><tbody id="auditCaisseBody"></tbody></table></div>
-          </div>
-
-          <div class="card bg-white rounded-2xl p-4">
-            <h3 class="font-bold mb-2">🔗 Lettrage des comptes tiers</h3>
-            <p class="text-xs text-slate-500 mb-3">Sélectionnez un compte tiers (411 client ou 401 fournisseur), cochez les lignes qui s'équilibrent (débit = crédit), puis lettrez-les pour marquer le rapprochement.</p>
-            <div class="flex flex-wrap gap-2 items-end mb-3">
-              <div class="flex-1 min-w-[220px]"><label class="text-xs text-slate-500 block mb-1">Compte tiers</label><select id="lettrageCompteSel" onchange="renderLettrage()" class="border rounded-lg px-2 py-1.5 text-sm w-full"></select></div>
-              <button onclick="lettrerSelection()" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 text-sm font-semibold">🔗 Lettrer la sélection</button>
-              <label class="text-xs flex items-center gap-1"><input type="checkbox" id="lettrageMasquerLettrees" onchange="renderLettrage()"> Masquer les lignes déjà lettrées</label>
-            </div>
-            <div id="lettrageMsg" class="text-xs mb-2"></div>
-            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="p-2"></th><th class="text-left p-2">Date</th><th class="text-left p-2">Pièce</th><th class="text-left p-2">Libellé</th><th class="text-right p-2">Débit</th><th class="text-right p-2">Crédit</th><th class="text-center p-2">Lettre</th></tr></thead><tbody id="lettrageBody"></tbody></table></div>
-          </div>
-        </div>
-
-        <!-- ====== COMPTES TIERS SYSCOHADA ====== -->
         <div id="comptaTabTiers" class="compta-tab hidden">
           <div class="flex flex-wrap gap-2 items-center mb-4">
             <div class="flex gap-1 bg-slate-100 rounded-xl p-1">
@@ -3048,37 +2979,106 @@ window.SANIX_CFG = {
         </div>
         <!-- ====== FIN COMPTES TIERS ====== -->
 
-        <div id="comptaTabPlan" class="compta-tab hidden">
-          <div class="flex flex-wrap justify-between gap-2 mb-2">
-            <p class="text-sm text-slate-500">Plan comptable général SYSCOHADA révisé (classes 1 à 8). Vous pouvez ajouter des sous-comptes spécifiques.</p>
-            <div class="flex gap-2">
-              <button onclick="downloadPlanComptableModele()" class="border px-3 py-2 rounded-lg text-sm font-semibold">📄 Modèle CSV</button>
-              <button onclick="document.getElementById('planComptableFileInput').click()" class="border px-3 py-2 rounded-lg text-sm font-semibold">⬆ Importer</button>
-              <input type="file" id="planComptableFileInput" accept=".csv,text/csv,.json,application/json" class="hidden" onchange="handleImportPlanComptable(event)">
-              <button onclick="openAddCompteModal()" class="border px-3 py-2 rounded-lg text-sm font-semibold">+ Ajouter un compte</button>
+        <div id="comptaTabAudit" class="compta-tab hidden">
+          <div class="card bg-white rounded-2xl p-4 mb-4">
+            <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+              <h3 class="font-bold">⚖️ Audit des écarts de caisse (toutes caisses, toutes clôtures)</h3>
+              <label class="text-xs flex items-center gap-1"><input type="checkbox" id="auditSeulementEcarts" checked onchange="renderAuditCaisse()"> N'afficher que les écarts ≠ 0</label>
             </div>
+            <div class="grid sm:grid-cols-3 gap-3 mb-3">
+              <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Clôtures avec écart</div><div id="auditNbEcarts" class="text-lg font-bold text-amber-700">—</div></div>
+              <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Écart cumulé</div><div id="auditEcartCumul" class="text-lg font-bold">—</div></div>
+              <div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">Non justifiés (sans observation)</div><div id="auditNonJustifies" class="text-lg font-bold text-red-700">—</div></div>
+            </div>
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Caisse</th><th class="text-left p-2">Clôture</th><th class="text-right p-2">Solde théorique</th><th class="text-right p-2">Solde réel</th><th class="text-right p-2">Écart</th><th class="text-left p-2">Justification</th></tr></thead><tbody id="auditCaisseBody"></tbody></table></div>
           </div>
-          <div class="card bg-white rounded-2xl p-4 overflow-x-auto">
-            <table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">N° compte</th><th class="text-left p-2">Libellé</th><th class="text-left p-2">Classe</th><th class="p-2"></th></tr></thead><tbody id="planComptableBody"></tbody></table>
+
+          <div class="card bg-white rounded-2xl p-4">
+            <h3 class="font-bold mb-2">🔗 Lettrage des comptes tiers</h3>
+            <p class="text-xs text-slate-500 mb-3">Sélectionnez un compte tiers (411 client ou 401 fournisseur), cochez les lignes qui s'équilibrent (débit = crédit), puis lettrez-les pour marquer le rapprochement.</p>
+            <div class="flex flex-wrap gap-2 items-end mb-3">
+              <div class="flex-1 min-w-[220px]"><label class="text-xs text-slate-500 block mb-1">Compte tiers</label><select id="lettrageCompteSel" onchange="renderLettrage()" class="border rounded-lg px-2 py-1.5 text-sm w-full"></select></div>
+              <button onclick="lettrerSelection()" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 text-sm font-semibold">🔗 Lettrer la sélection</button>
+              <label class="text-xs flex items-center gap-1"><input type="checkbox" id="lettrageMasquerLettrees" onchange="renderLettrage()"> Masquer les lignes déjà lettrées</label>
+            </div>
+            <div id="lettrageMsg" class="text-xs mb-2"></div>
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="p-2"></th><th class="text-left p-2">Date</th><th class="text-left p-2">Pièce</th><th class="text-left p-2">Libellé</th><th class="text-right p-2">Débit</th><th class="text-right p-2">Crédit</th><th class="text-center p-2">Lettre</th></tr></thead><tbody id="lettrageBody"></tbody></table></div>
           </div>
         </div>
 
-        <div id="comptaTabParametres" class="compta-tab hidden">
-          <div class="card bg-white rounded-2xl p-6">
-            <h2 class="text-lg font-bold mb-1">⚙️ Comptes par défaut des mouvements Débit / Crédit automatiques</h2>
-            <p class="text-sm text-slate-500 mb-4">Ces comptes sont utilisés automatiquement par l'application pour générer les écritures (versements clients, commissions, paiements fournisseurs…), sans que vous ayez à les saisir manuellement à chaque fois. Tapez pour rechercher dans le plan comptable (saisie prédictive) ou cliquez sur la flèche du champ pour dérouler la liste. Un code inexistant sera créé automatiquement dans le plan comptable à l'enregistrement.</p>
-            <div class="overflow-x-auto">
-              <table class="w-full text-sm">
-                <thead class="bg-slate-50"><tr><th class="text-left p-2">Mouvement</th><th class="text-left p-2">Compte Débit</th><th class="text-left p-2">Compte Crédit</th></tr></thead>
-                <tbody id="comptesDefautBody"></tbody>
-              </table>
+        <!-- ====== COMPTES TIERS SYSCOHADA ====== -->
+        <div id="comptaTabResultat" class="compta-tab hidden">
+          <div class="card bg-white rounded-2xl p-4 mb-4">
+            <div class="flex flex-wrap gap-2 items-end">
+              <div><label class="text-xs text-slate-500 block mb-1">Exercice</label><select id="rbAnnee" onchange="renderResultatBilan()" class="border rounded-lg px-2 py-1.5 text-sm"></select></div>
+              <button onclick="renderResultatBilan()" class="border px-3 py-2 rounded-lg text-sm font-semibold">🔄 Générer</button>
+              <button onclick="imprimerResultatBilan()" class="border border-blue-600 text-blue-600 px-3 py-2 rounded-lg text-sm font-semibold">🖨 Aperçu avant impression</button>
             </div>
-            <datalist id="planComptableDatalist"></datalist>
-            <div class="flex justify-end mt-4">
-              <button onclick="saveComptesDefautMouvements()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">💾 Enregistrer</button>
+          </div>
+          <div class="grid lg:grid-cols-2 gap-4">
+            <div class="card bg-white rounded-2xl p-4">
+              <h3 class="font-bold mb-2">📈 Compte de résultat</h3>
+              <table class="w-full text-sm mb-2"><thead class="bg-slate-50"><tr><th class="text-left p-2">Compte</th><th class="text-left p-2">Libellé</th><th class="text-right p-2">Montant</th></tr></thead><tbody id="rbProduitsBody"></tbody><tfoot><tr class="font-bold border-t-2"><td colspan="2" class="p-2">Total produits</td><td class="p-2 text-right" id="rbTotalProduits">—</td></tr></tfoot></table>
+              <table class="w-full text-sm"><tbody id="rbChargesBody"></tbody><tfoot><tr class="font-bold border-t-2"><td colspan="2" class="p-2">Total charges</td><td class="p-2 text-right" id="rbTotalCharges">—</td></tr></tfoot></table>
+              <div class="mt-3 p-3 rounded-xl bg-slate-50 flex justify-between items-center">
+                <span class="font-bold">Résultat net (bénéfice / perte)</span>
+                <span id="rbResultat" class="text-xl font-black">—</span>
+              </div>
+            </div>
+            <div class="card bg-white rounded-2xl p-4">
+              <h3 class="font-bold mb-2">🏛️ Bilan</h3>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <div class="text-xs font-bold text-slate-500 mb-1">ACTIF</div>
+                  <table class="w-full text-xs"><tbody id="rbActifBody"></tbody><tfoot><tr class="font-bold border-t"><td class="p-1.5">Total actif</td><td class="p-1.5 text-right" id="rbTotalActif">—</td></tr></tfoot></table>
+                </div>
+                <div>
+                  <div class="text-xs font-bold text-slate-500 mb-1">PASSIF</div>
+                  <table class="w-full text-xs"><tbody id="rbPassifBody"></tbody><tfoot><tr class="font-bold border-t"><td class="p-1.5">Total passif</td><td class="p-1.5 text-right" id="rbTotalPassif">—</td></tr></tfoot></table>
+                </div>
+              </div>
+              <div id="rbEquilibre" class="mt-3 text-xs font-semibold"></div>
             </div>
           </div>
         </div>
+
+        <!-- ====== FISCAL : TVA / ITS / IS ====== -->
+        <div id="comptaTabFiscal" class="compta-tab hidden">
+          <div class="card bg-white rounded-2xl p-4 mb-4">
+            <div class="flex flex-wrap gap-2 items-end">
+              <div><label class="text-xs text-slate-500 block mb-1">Mois</label><input id="fiscalMois" type="month" class="border rounded-lg px-2 py-1.5 text-sm"></div>
+              <button onclick="renderFiscalDeclarations()" class="border px-3 py-2 rounded-lg text-sm font-semibold">🔄 Générer</button>
+            </div>
+          </div>
+          <div class="grid lg:grid-cols-3 gap-4">
+            <div class="card bg-white rounded-2xl p-4">
+              <h3 class="font-bold mb-2">💰 TVA</h3>
+              <div class="text-xs text-slate-500 mb-2">Régime réel — TVA collectée (443) − TVA récupérable (445)</div>
+              <div class="flex justify-between text-sm py-1 border-b"><span>TVA collectée</span><span id="fiscTvaCollectee" class="font-semibold">—</span></div>
+              <div class="flex justify-between text-sm py-1 border-b"><span>TVA récupérable</span><span id="fiscTvaRecup" class="font-semibold">—</span></div>
+              <div class="flex justify-between text-sm py-2 mt-1 font-bold"><span>TVA nette due</span><span id="fiscTvaNette">—</span></div>
+              <p class="text-xs text-slate-400 mt-2">⚠️ À télédéclarer et payer avant le 15 du mois suivant (DGI).</p>
+            </div>
+            <div class="card bg-white rounded-2xl p-4">
+              <h3 class="font-bold mb-2">👤 ITS / CNPS / CMU</h3>
+              <div class="text-xs text-slate-500 mb-2">Depuis les bulletins de paie validés du mois (module RH)</div>
+              <div class="flex justify-between text-sm py-1 border-b"><span>Masse salariale brute</span><span id="fiscBrut" class="font-semibold">—</span></div>
+              <div class="flex justify-between text-sm py-1 border-b"><span>ITS retenu</span><span id="fiscIts" class="font-semibold">—</span></div>
+              <div class="flex justify-between text-sm py-1 border-b"><span>CNPS salarié</span><span id="fiscCnps" class="font-semibold">—</span></div>
+              <div class="flex justify-between text-sm py-2 mt-1 font-bold"><span>Total à reverser</span><span id="fiscTotalRetenues">—</span></div>
+              <p class="text-xs text-slate-400 mt-2">⚠️ ITS et CNPS dus le 15 du mois suivant (DISA CNPS avant le 31 janvier N+1).</p>
+            </div>
+            <div class="card bg-white rounded-2xl p-4">
+              <h3 class="font-bold mb-2">🏢 Impôt sur les sociétés (IS) — estimation</h3>
+              <div class="text-xs text-slate-500 mb-2">Estimation sur le résultat de l'exercice en cours (taux 25% CI, indicatif)</div>
+              <div class="flex justify-between text-sm py-1 border-b"><span>Résultat cumulé exercice</span><span id="fiscResultat" class="font-semibold">—</span></div>
+              <div class="flex justify-between text-sm py-2 mt-1 font-bold"><span>IS estimé (25%)</span><span id="fiscIsEstime">—</span></div>
+              <p class="text-xs text-slate-400 mt-2">⚠️ IS dû avant le 30 avril N+1. Estimation indicative — validez avec votre comptable/CGA.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== AUDIT ÉCARTS CAISSE & LETTRAGE ====== -->
       </section>
 
       <section id="utilisateurs" class="page hidden">
