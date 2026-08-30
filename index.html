@@ -354,6 +354,8 @@ window.SANIX_CFG = {
               <button onclick="showDeptTab('commercial')" class="dept-tab-btn px-3 py-1.5 rounded-md text-xs font-semibold" data-depttab="commercial">💰 Commercial</button>
               <button onclick="showDeptTab('stock')" class="dept-tab-btn px-3 py-1.5 rounded-md text-xs font-semibold" data-depttab="stock">📦 Stock &amp; Achats</button>
               <button onclick="showDeptTab('maintenance')" class="dept-tab-btn px-3 py-1.5 rounded-md text-xs font-semibold" data-depttab="maintenance">🛠️ Maintenance</button>
+              <button onclick="showDeptTab('finance')" class="dept-tab-btn px-3 py-1.5 rounded-md text-xs font-semibold" data-depttab="finance">💵 Finance</button>
+              <button onclick="showDeptTab('rh')" class="dept-tab-btn px-3 py-1.5 rounded-md text-xs font-semibold" data-depttab="rh">🧑‍💼 RH</button>
             </div>
           </div>
           <div id="deptTabProduction" class="dept-tab"><p class="text-sm text-slate-400">Chargement…</p></div>
@@ -361,6 +363,8 @@ window.SANIX_CFG = {
           <div id="deptTabCommercial" class="dept-tab hidden"><p class="text-sm text-slate-400">Chargement…</p></div>
           <div id="deptTabStock" class="dept-tab hidden"><p class="text-sm text-slate-400">Chargement…</p></div>
           <div id="deptTabMaintenance" class="dept-tab hidden"><p class="text-sm text-slate-400">Chargement…</p></div>
+          <div id="deptTabFinance" class="dept-tab hidden"><p class="text-sm text-slate-400">Chargement…</p></div>
+          <div id="deptTabRh" class="dept-tab hidden"><p class="text-sm text-slate-400">Chargement…</p></div>
         </div>
 
         <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
@@ -4357,7 +4361,8 @@ async function updateDashboard(){
   }
 
   // ===== Cockpit dirigeant — actions prioritaires, tous modules =====
-  const [chantiersCk,achatsCk,maintsCk,prospectsCk,aosCk]=await Promise.all(['chantiers','achats','maintenances','prospects','appels_offres'].map(idbGetAll));
+  const [chantiersCk,achatsCk,maintsCk,prospectsCk,aosCk,savCk,congesCk]=await Promise.all(['chantiers','achats','maintenances','prospects','appels_offres','sav','conges'].map(idbGetAll));
+  const caisseOpsCkReal=getCaisseOps(), caisseSessionsCkReal=getCaisseSessions();
   const seuilAchatCk=getCompanyInfo().seuilValidationAchat||500000;
   let nValidations=0;
   const peutValider=hasRole('chantier:validate');
@@ -4377,6 +4382,10 @@ async function updateDashboard(){
   nRelances += prospectsCk.filter(p=>p.etape!=='gagne'&&p.etape!=='perdu'&&p.echeanceAction&&p.echeanceAction<=today).length;
   const dans7jCk=new Date(); dans7jCk.setDate(dans7jCk.getDate()+7);
   const nAO = aosCk.filter(a=>!['gagne','contrat','perdu'].includes(a.etape) && a.dateDepot && new Date(a.dateDepot)<=dans7jCk).length;
+  const nSav = savCk.filter(s=>s.statut==='ouvert').length;
+  const nConges = congesCk.filter(c=>c.statut==='demande').length;
+  const nVentilation = caisseOpsCkReal.filter(o=>o.statut!=='ventile').length;
+  const nEcartsCaisse = caisseSessionsCkReal.filter(s=>s.statut==='cloturee' && s.ecart && !(s.observations||'').trim()).length;
 
   const cockpitEl=document.getElementById('cockpitActions');
   if(cockpitEl){
@@ -4386,7 +4395,11 @@ async function updateDashboard(){
       {icon:'📞',label:'Relances commerciales',count:nRelances,color:'orange',page:'relances'},
       {icon:'📋',label:"Appels d'offres < 7j",count:nAO,color:'purple',page:'ao'},
       {icon:'⏰',label:'OF en retard',count:enRetard.length,color:'red',page:'production'},
-      {icon:'📦',label:'Stock critique',count:faibles,color:'rose',page:'stock'}
+      {icon:'📦',label:'Stock critique',count:faibles,color:'rose',page:'stock'},
+      {icon:'🎫',label:'Tickets SAV ouverts',count:nSav,color:'pink',page:'sav'},
+      {icon:'🧮',label:'Caisse à ventiller',count:nVentilation,color:'cyan',page:'compta'},
+      {icon:'⚖️',label:'Écarts caisse non justifiés',count:nEcartsCaisse,color:'red',page:'compta'},
+      {icon:'🌴',label:'Congés à valider',count:nConges,color:'teal',page:'rh',show:hasRole('rh:manage')}
     ].filter(t=>t.show!==false);
     cockpitEl.innerHTML=tiles.map(t=>{
       const urgent=t.count>0;
@@ -4399,7 +4412,7 @@ async function updateDashboard(){
       </button>`;
     }).join('');
   }
-  const totalUrgentCk=nValidations+nGmao+nRelances+nAO+enRetard.length+(faibles?1:0);
+  const totalUrgentCk=nValidations+nGmao+nRelances+nAO+enRetard.length+(faibles?1:0)+nSav+nEcartsCaisse+nConges;
   const santeEl=document.getElementById('cockpitSante');
   if(santeEl){
     let sante;
@@ -4512,6 +4525,8 @@ function showDeptTab(tab){
   if(tab==='commercial') renderDeptCommercial();
   if(tab==='stock') renderDeptStock();
   if(tab==='maintenance') renderDeptMaintenance();
+  if(tab==='finance') renderDeptFinance();
+  if(tab==='rh') renderDeptRh();
 }
 async function renderDeptProduction(){
   const el=document.getElementById('deptTabProduction'); if(!el) return;
@@ -4620,6 +4635,51 @@ async function renderDeptMaintenance(){
     </div>
     <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Top pannes — 12 derniers mois</h3>
     <div class="space-y-1.5">${topPannes.length?topPannes.map(x=>`<div class="flex items-center justify-between text-sm border-b pb-1.5"><span>${escapeHtml(x.machine.code)} — ${escapeHtml(x.machine.designation||'')}</span><span class="font-semibold text-red-600">${x.nb} panne${x.nb>1?'s':''}</span></div>`).join(''):'<p class="text-sm text-slate-400">Aucune panne curative sur la période.</p>'}</div>`;
+}
+async function renderDeptFinance(){
+  const el=document.getElementById('deptTabFinance'); if(!el) return;
+  const comptes=getCaisseComptes(), sessions=getCaisseSessions(), ops=getCaisseOps(), ecritures=getEcritures();
+  const today=new Date().toISOString().slice(0,10), moisStr=today.slice(0,7);
+  let soldeTotal=0, nbOuvertes=0;
+  comptes.forEach(c=>{ const s=sessions.find(x=>x.compteId===c.id&&x.statut==='ouverte'); if(s){ nbOuvertes++; soldeTotal+=sessionSoldeTheorique(s); } });
+  const enAttenteVentilation=ops.filter(o=>o.statut!=='ventile').length;
+  const ecartsNonJustifies=sessions.filter(s=>s.statut==='cloturee'&&s.ecart&&!(s.observations||'').trim()).length;
+  const agg={};
+  ecritures.forEach(e=>{ if((e.date||'').slice(0,7)!==moisStr) return; e.lignes.forEach(l=>{ if(!l.compte) return; const a=agg[l.compte]||(agg[l.compte]={debit:0,credit:0}); a.debit+=(+l.debit||0); a.credit+=(+l.credit||0); }); });
+  const plan=getPlanComptable();
+  let caMois=0, chargesMois=0;
+  Object.keys(agg).forEach(num=>{ const cl=_compteClasse(num,plan); if(cl==='7') caMois+=(agg[num].credit-agg[num].debit); if(cl==='6') chargesMois+=(agg[num].debit-agg[num].credit); });
+  el.innerHTML=`
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+      ${deptKpiCard('💵','Solde caisses ouvertes',money(soldeTotal),nbOuvertes+' / '+comptes.length+' caisse(s) ouverte(s)','emerald')}
+      ${deptKpiCard('🧮','En attente de ventilation',enAttenteVentilation,'mouvements de caisse',enAttenteVentilation?'amber':'slate')}
+      ${deptKpiCard('⚖️','Écarts caisse non justifiés',ecartsNonJustifies,'clôtures à justifier',ecartsNonJustifies?'red':'emerald')}
+      ${deptKpiCard('📈','Résultat du mois',money(caMois-chargesMois),'produits − charges (SYSCOHADA)',(caMois-chargesMois)>=0?'emerald':'red')}
+    </div>
+    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Caisses</h3>
+    <div class="space-y-1.5">${comptes.length?comptes.map(c=>{ const s=sessions.find(x=>x.compteId===c.id&&x.statut==='ouverte'); return `<div class="flex items-center justify-between text-sm border-b pb-1.5"><span>${escapeHtml(c.nom)}</span><span class="font-semibold ${s?'text-emerald-700':'text-slate-400'}">${s?money(sessionSoldeTheorique(s)):'Fermée'}</span></div>`; }).join(''):'<p class="text-sm text-slate-400">Aucune caisse configurée.</p>'}</div>`;
+}
+async function renderDeptRh(){
+  const el=document.getElementById('deptTabRh'); if(!el) return;
+  const [employes,paies,conges]=await Promise.all(['employes','paies','conges'].map(idbGetAll));
+  const today=new Date().toISOString().slice(0,10), moisStr=today.slice(0,7);
+  const actifs=employes.filter(e=>e.statut!=='inactif');
+  const paiesMois=paies.filter(p=>p.periode===moisStr);
+  const masseBrute=paiesMois.reduce((s,p)=>s+(p.brut||0),0);
+  const congesEnAttente=conges.filter(c=>c.statut==='demande');
+  const bulletinsAGenerer=paiesMois.length===0 && actifs.length>0;
+  const parFonction={};
+  actifs.forEach(e=>{ const k=e.fonction||'Non défini'; parFonction[k]=(parFonction[k]||0)+1; });
+  const topFonctions=Object.entries(parFonction).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  el.innerHTML=`
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+      ${deptKpiCard('👤','Effectif actif',actifs.length,employes.length+' employé(s) au total','blue')}
+      ${deptKpiCard('💵','Masse salariale du mois',masseBrute?money(masseBrute):'—',paiesMois.length+' bulletin(s)',bulletinsAGenerer?'amber':'emerald')}
+      ${deptKpiCard('🌴','Congés à valider',congesEnAttente.length,'demandes en attente',congesEnAttente.length?'amber':'slate')}
+      ${deptKpiCard('🧾','Bulletins du mois',paiesMois.length,bulletinsAGenerer?"à générer !":'sur '+actifs.length+' actif(s)',bulletinsAGenerer?'red':'emerald')}
+    </div>
+    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Effectif par fonction</h3>
+    <div class="space-y-1.5">${topFonctions.length?topFonctions.map(([k,v])=>`<div class="flex items-center justify-between text-sm border-b pb-1.5"><span>${escapeHtml(k)}</span><span class="font-semibold">${v}</span></div>`).join(''):'<p class="text-sm text-slate-400">Aucun employé enregistré.</p>'}</div>`;
 }
 
 /* ---------- Contrôle de gestion — calcul coût réel OF (factorisé, réutilisé par voirCoutReelOF et le cockpit) ---------- */
