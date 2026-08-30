@@ -14631,6 +14631,7 @@ function renderPcNode(node,depth){
       <span class="pc-lib pc-group">${escapeHtml(label)}</span>
       <span class="pc-count">${nbLeaves} compte${nbLeaves>1?'s':''}</span>
       <span class="pc-actions" onclick="event.stopPropagation()">
+        ${planLabel(node.num)?`<button onclick="openEditCompteModal('${node.num}')" class="text-slate-500 text-xs font-semibold">✏️</button>`:''}
         <button onclick="openAddCompteModal('${node.num}')" class="text-blue-600 text-xs font-semibold">+ Sous-compte</button>
       </span>
     </div>
@@ -14645,6 +14646,7 @@ function renderPcNode(node,depth){
         <span class="pc-num">${p.num}</span>
         <span class="pc-lib">${escapeHtml(p.lib)}</span>
         <span class="pc-actions" onclick="event.stopPropagation()">
+          <button onclick="openEditCompteModal('${p.num}')" class="text-slate-500 text-xs font-semibold">✏️</button>
           <button onclick="openAddCompteModal('${p.num}')" class="text-blue-600 text-xs font-semibold">+ Sous-compte</button>
           <button onclick="deleteCompte('${p.num}')" class="text-red-500 text-xs font-semibold">✕</button>
         </span>
@@ -14716,6 +14718,63 @@ function handleAddCompte(e){
   setModalOpen(false);
   renderPlanComptable();
   if(typeof audit==='function') audit('AJOUT_COMPTE_PLAN',num+' — '+lib);
+  return false;
+}
+function openEditCompteModal(num){
+  const plan=getPlanComptable();
+  const rec=plan.find(p=>p.num===num); if(!rec) return;
+  const nbEcritures=getEcritures().reduce((s,e)=>s+e.lignes.filter(l=>l.compte===num).length,0);
+  const html=`
+    <div class="flex justify-between items-start mb-4">
+      <h2 class="text-lg font-bold">✏️ Modifier le compte ${escapeHtml(num)}</h2>
+      <button onclick="document.getElementById('editCompteOverlay').remove()" class="text-slate-400 text-xl leading-none">×</button>
+    </div>
+    <form onsubmit="return handleEditCompte(event,'${num}')" class="space-y-3">
+      <label class="text-xs font-semibold block">N° de compte
+        <input id="ecNum" value="${escapeHtml(num)}" required class="mt-1 w-full border rounded-lg px-3 py-2 text-sm font-mono">
+      </label>
+      <label class="text-xs font-semibold block">Libellé
+        <input id="ecLib" value="${escapeHtml(rec.lib)}" required class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+      </label>
+      ${nbEcritures?`<p class="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-2">⚠️ ${nbEcritures} ligne(s) d'écriture utilisent déjà ce compte. Si vous changez le numéro, elles seront automatiquement mises à jour vers le nouveau numéro (historique conservé).</p>`:''}
+      <div class="flex gap-2 pt-2">
+        <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 text-sm font-semibold">Enregistrer</button>
+        <button type="button" onclick="document.getElementById('editCompteOverlay').remove()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Annuler</button>
+      </div>
+    </form>`;
+  document.body.insertAdjacentHTML('beforeend',`<div id="editCompteOverlay" class="modal-overlay fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"><div class="bg-white rounded-2xl p-6 w-full max-w-sm">${html}</div></div>`);
+  setModalOpen(true);
+  setTimeout(()=>document.getElementById('ecNum')?.focus(),50);
+}
+function handleEditCompte(e,oldNum){
+  e.preventDefault();
+  const newNum=document.getElementById('ecNum').value.trim();
+  const newLib=document.getElementById('ecLib').value.trim();
+  if(!newNum||!newLib) return false;
+  const plan=getPlanComptable();
+  if(newNum!==oldNum && plan.some(p=>p.num===newNum)){ alert('Ce numéro de compte existe déjà.'); return false; }
+  const rec=plan.find(p=>p.num===oldNum); if(!rec) return false;
+  rec.num=newNum; rec.lib=newLib; rec.cl=newNum.charAt(0);
+  plan.sort((a,b)=>a.num.localeCompare(b.num));
+  savePlanComptable(plan);
+  let nbMaj=0;
+  if(newNum!==oldNum){
+    const ecritures=getEcritures();
+    ecritures.forEach(ec=>{ ec.lignes.forEach(l=>{ if(l.compte===oldNum){ l.compte=newNum; nbMaj++; } }); });
+    if(nbMaj) saveEcritures(ecritures);
+    // Comptes par défaut des mouvements : basculer aussi les références
+    const defauts=getComptesDefautMouvements();
+    let defautsChange=false;
+    Object.values(defauts).forEach(d=>{ if(d.debit===oldNum){ d.debit=newNum; defautsChange=true; } if(d.credit===oldNum){ d.credit=newNum; defautsChange=true; } });
+    if(defautsChange) saveComptesDefautMouvementsData(defauts);
+  }
+  document.getElementById('editCompteOverlay').remove();
+  setModalOpen(false);
+  _pcOpenNodes.add(newNum.charAt(0));
+  for(let len=2;len<newNum.length;len++) _pcOpenNodes.add(newNum.slice(0,len));
+  renderPlanComptable();
+  if(typeof audit==='function') audit('MODIF_COMPTE_PLAN',oldNum+' → '+newNum+' — '+newLib+(nbMaj?` (${nbMaj} ligne(s) d'écriture mises à jour)`:''));
+  if(nbMaj) alert(`Compte renuméroté. ${nbMaj} ligne(s) d'écriture ont été mises à jour vers le compte ${newNum}.`);
   return false;
 }
 function deleteCompte(num){
