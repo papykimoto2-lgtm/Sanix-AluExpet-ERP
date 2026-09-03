@@ -30,8 +30,8 @@
 <script>
 // === CONFIG SUPABASE — à renseigner par Papi ===
 window.SANIX_CFG = {
-  SUPABASE_URL: 'https://VOTRE-PROJET.supabase.co',
-  SUPABASE_ANON_KEY: 'VOTRE_ANON_KEY',
+  SUPABASE_URL: 'https://xmmogualzmcisyddukms.supabase.co',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtbW9ndWFsem1jaXN5ZGR1a21zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0NTg2ODksImV4cCI6MjEwNDAzNDY4OX0.8O_VZl-wnFpr462N5iFEEXl_ZEV9O4s-IqTGiGMfQNc',
   APP: 'alubom_pro',
   COMPANY_ID: 'default'
 };
@@ -3687,7 +3687,7 @@ function xhrJSON(method,url,body,extraHeaders){
 }
 function restUrl(table){ return CFG.SUPABASE_URL.replace(/\/$/,'')+'/rest/v1/'+table; }
 async function restUpsert(table,row){
-  return xhrJSON('POST',restUrl(table),{...row,company_id:CFG.COMPANY_ID},{'Prefer':'resolution=merge-duplicates,return=minimal'});
+  return xhrJSON('POST',restUrl(table),{id:row.id,company_id:CFG.COMPANY_ID,updated_at:new Date().toISOString(),data:row},{'Prefer':'resolution=merge-duplicates,return=minimal'});
 }
 
 /* ---------- File de synchronisation offline-first ---------- */
