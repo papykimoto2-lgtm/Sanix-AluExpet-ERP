@@ -3830,12 +3830,32 @@ async function queueSync(table,data){
 async function syncNow(){
   if(!navigator.onLine || CFG.SUPABASE_URL.includes('VOTRE-PROJET')) return;
   const queue=await idbGetAll('sync_queue');
-  let envoyes=0;
+  let envoyes=0, bloques=0;
   for(const item of queue){
-    try{ await restUpsert(item.table,item.data); await idbDelete('sync_queue',item.id); envoyes++; }
-    catch(e){ console.warn('Sync différée:',item.table,e.message); break; }
+    try{
+      await restUpsert(item.table,item.data);
+      await idbDelete('sync_queue',item.id);
+      envoyes++;
+    }catch(e){
+      const msg=e.message||'';
+      const estAuth=/HTTP 401|HTTP 403/.test(msg);
+      // Échec réseau réel (pas de code HTTP) → on arrête, tout repartira au retour du réseau.
+      if(!estAuth && !/HTTP \d/.test(msg)){ console.warn('Sync interrompue (réseau) :',item.table,msg); break; }
+      // Échec applicatif (401/403/validation) → ne bloque pas les autres, mais on isole
+      // l'item après quelques tentatives pour ne pas boucler indéfiniment dessus.
+      item.echecs=(item.echecs||0)+1;
+      if(item.echecs>=5){
+        await idbDelete('sync_queue',item.id);
+        bloques++;
+        console.error('Sync abandonnée après 5 échecs :',item.table,item.id,msg);
+      } else {
+        await idbPut('sync_queue',item);
+        console.warn('Sync différée ('+item.echecs+'/5) :',item.table,msg);
+      }
+    }
   }
   if(envoyes){ localStorage.setItem('alubom_last_push',new Date().toISOString()); }
+  if(bloques){ localStorage.setItem('alubom_sync_erreurs',bloques+' enregistrement(s) rejeté(s) le '+new Date().toLocaleString('fr-FR')+' — reconnectez-vous puis relancez la synchro.'); }
   updateSyncBadge();
 }
 /* Renvoie TOUT le contenu local vers le cloud, même ce qui est déjà synchronisé
@@ -6087,9 +6107,12 @@ function rgRenderCloud(){
 async function updateRgSyncStatus(){
   const el=document.getElementById('rgSyncProgress'); if(!el) return;
   const q=await idbGetAll('sync_queue');
-  el.innerHTML = q.length
+  const erreur=localStorage.getItem('alubom_sync_erreurs');
+  let html = q.length
     ? `<span class="text-amber-600 font-semibold">● ${q.length} enregistrement(s) en attente dans la file locale.</span>`
     : `<span class="text-emerald-600 font-semibold">● File d'attente vide — tout est envoyé.</span>`;
+  if(erreur) html += `<div class="mt-2 text-red-600 font-semibold">⚠️ ${escapeHtml(erreur)} <button onclick="localStorage.removeItem('alubom_sync_erreurs');updateRgSyncStatus()" class="underline font-normal ml-1">Effacer ce message</button></div>`;
+  el.innerHTML=html;
 }
 async function testerConnexionCloud(){
   const url=document.getElementById('rgSupaUrl').value.trim();
