@@ -3809,6 +3809,17 @@ function restUrl(table){ return CFG.SUPABASE_URL.replace(/\/$/,'')+'/rest/v1/'+t
 async function restUpsert(table,row){
   return xhrJSON('POST',restUrl(table),{id:row.id,company_id:CFG.COMPANY_ID,updated_at:new Date().toISOString(),data:row},{'Prefer':'resolution=merge-duplicates,return=minimal'});
 }
+async function restFetchAll(table){
+  const rows=await xhrJSON('GET',restUrl(table)+'?company_id=eq.'+encodeURIComponent(CFG.COMPANY_ID)+'&select=id,data,updated_at');
+  return rows||[];
+}
+
+/* ---------- Stores synchronisés (nom local ⇄ table Supabase alubom_<store>) ---------- */
+function syncedStoreNames(){
+  if(!window.db) return [];
+  return Array.from(db.objectStoreNames).filter(s=>s!=='sync_queue');
+}
+function syncTableName(store){ return 'alubom_'+store; }
 
 /* ---------- File de synchronisation offline-first ---------- */
 async function queueSync(table,data){
@@ -3819,11 +3830,71 @@ async function queueSync(table,data){
 async function syncNow(){
   if(!navigator.onLine || CFG.SUPABASE_URL.includes('VOTRE-PROJET')) return;
   const queue=await idbGetAll('sync_queue');
+  let envoyes=0;
   for(const item of queue){
-    try{ await restUpsert(item.table,item.data); await idbDelete('sync_queue',item.id); }
+    try{ await restUpsert(item.table,item.data); await idbDelete('sync_queue',item.id); envoyes++; }
     catch(e){ console.warn('Sync différée:',item.table,e.message); break; }
   }
+  if(envoyes){ localStorage.setItem('alubom_last_push',new Date().toISOString()); }
   updateSyncBadge();
+}
+/* Renvoie TOUT le contenu local vers le cloud, même ce qui est déjà synchronisé
+   (utile après un doute sur l'état du cloud, ou pour un nouvel appareil). */
+async function pushAllToCloud(onProgress){
+  if(!isSupabaseConfigured()) throw new Error('Cloud non configuré.');
+  const stores=syncedStoreNames();
+  let total=0,fait=0;
+  const rowsByStore={};
+  for(const s of stores){ rowsByStore[s]=await idbGetAll(s); total+=rowsByStore[s].length; }
+  for(const s of stores){
+    for(const row of rowsByStore[s]){
+      if(!row || !row.id) continue;
+      await restUpsert(syncTableName(s),row);
+      fait++;
+      if(onProgress) onProgress(fait,total,s);
+    }
+  }
+  localStorage.setItem('alubom_last_push',new Date().toISOString());
+  return {total,fait};
+}
+/* Récupère tout le cloud et fusionne en local. Le cloud ne l'emporte que s'il
+   est plus récent (comparaison sur updated_at cloud vs _modifie local), ou si
+   l'enregistrement n'existe pas encore localement — aucune perte de saisie
+   locale non encore synchronisée. */
+async function pullAllFromCloud(onProgress){
+  if(!isSupabaseConfigured()) throw new Error('Cloud non configuré.');
+  const stores=syncedStoreNames();
+  let total=0,recuperes=0,ignores=0;
+  for(const s of stores){
+    let cloudRows;
+    try{ cloudRows=await restFetchAll(syncTableName(s)); }
+    catch(e){ console.warn('Table cloud introuvable ou erreur:',s,e.message); continue; }
+    total+=cloudRows.length;
+    const locaux=await idbGetAll(s);
+    const localById={}; locaux.forEach(r=>{ if(r&&r.id) localById[r.id]=r; });
+    for(const cr of cloudRows){
+      const local=localById[cr.id];
+      const cloudDate=cr.updated_at?new Date(cr.updated_at).getTime():0;
+      const localDate=local?._modifie?new Date(local._modifie).getTime():0;
+      if(!local || cloudDate>localDate){ await idbPut(s,cr.data); recuperes++; }
+      else { ignores++; }
+      if(onProgress) onProgress(recuperes+ignores,total,s);
+    }
+  }
+  localStorage.setItem('alubom_last_pull',new Date().toISOString());
+  return {total,recuperes,ignores};
+}
+/* Compare, table par table, le nombre d'enregistrements locaux et cloud. */
+async function comparerLocalCloud(){
+  const stores=syncedStoreNames();
+  const resultats=[];
+  for(const s of stores){
+    const locaux=await idbGetAll(s);
+    let cloudRows=[];
+    try{ cloudRows=await restFetchAll(syncTableName(s)); }catch(e){ /* table absente ou erreur réseau */ }
+    resultats.push({store:s,local:locaux.length,cloud:cloudRows.length,ecart:locaux.length-cloudRows.length});
+  }
+  return resultats;
 }
 async function updateSyncBadge(){
   const q=await idbGetAll('sync_queue');
@@ -5958,38 +6029,120 @@ function handleSaveFacturation(e){
 /* --- 6. Cloud / Import / Sauvegardes --- */
 function rgRenderCloud(){
   const configured=isSupabaseConfigured();
-  rgPanel('☁️ Connexion cloud (Supabase)','Synchronisation multi-appareils. Laisser vide = mode local uniquement (hors ligne).',`
-    <div class="mb-3"><span class="badge ${configured?'bg-emerald-50 text-emerald-700':'bg-slate-100 text-slate-500'}">${configured?'☁️ Connecté':'📴 Mode local uniquement'}</span></div>
-    <form onsubmit="return handleSaveCloudConfig(event)" class="grid sm:grid-cols-2 gap-2 mb-6">
-      <input id="rgSupaUrl" value="${escapeHtml(CFG.SUPABASE_URL.includes('VOTRE-PROJET')?'':CFG.SUPABASE_URL)}" placeholder="https://votre-projet.supabase.co" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
-      <input id="rgSupaKey" value="${escapeHtml(CFG.SUPABASE_ANON_KEY==='VOTRE_ANON_KEY'?'':CFG.SUPABASE_ANON_KEY)}" placeholder="Clé anonyme (anon key)" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2 font-mono">
-      <input id="rgSupaCompany" value="${escapeHtml(CFG.COMPANY_ID)}" placeholder="Identifiant entreprise (company_id)" class="border rounded-lg px-2 py-1.5 text-sm">
-      <div class="sm:col-span-2 flex gap-2">
-        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">Enregistrer</button>
-        ${getCloudConfigOverride()?`<button type="button" onclick="handleResetCloudConfig()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Réinitialiser</button>`:''}
+  const lastPush=localStorage.getItem('alubom_last_push');
+  const lastPull=localStorage.getItem('alubom_last_pull');
+  const fmtDate=d=>d?new Date(d).toLocaleString('fr-FR'):'—';
+
+  rgPanel('☁️ Connexion cloud (Supabase)','',`
+    <div class="mb-2 flex items-center gap-2">
+      <span class="badge ${configured?'bg-emerald-50 text-emerald-700':'bg-slate-100 text-slate-500'}">${configured?'🟢 Connecté au cloud':'📴 Mode local uniquement'}</span>
+      ${configured?`<span class="text-xs text-slate-400">${escapeHtml(CFG.SUPABASE_URL)}</span>`:''}
+    </div>
+    <form onsubmit="return handleSaveCloudConfig(event)" class="grid sm:grid-cols-2 gap-2 mb-2">
+      <label class="text-xs font-semibold block sm:col-span-2">URL du projet Supabase
+        <input id="rgSupaUrl" value="${escapeHtml(CFG.SUPABASE_URL.includes('VOTRE-PROJET')?'':CFG.SUPABASE_URL)}" placeholder="https://votre-projet.supabase.co" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <label class="text-xs font-semibold block sm:col-span-2">Clé anonyme (anon key)
+        <input id="rgSupaKey" value="${escapeHtml(CFG.SUPABASE_ANON_KEY==='VOTRE_ANON_KEY'?'':CFG.SUPABASE_ANON_KEY)}" placeholder="Clé anonyme" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm font-mono">
+      </label>
+      <label class="text-xs font-semibold block">Identifiant entreprise (company_id)
+        <input id="rgSupaCompany" value="${escapeHtml(CFG.COMPANY_ID)}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <div class="sm:col-span-2 flex gap-2 mt-1">
+        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">💾 Enregistrer</button>
+        <button type="button" onclick="testerConnexionCloud()" class="border px-4 py-2 rounded-lg text-sm font-semibold">🔍 Tester</button>
+        ${getCloudConfigOverride()?`<button type="button" onclick="handleResetCloudConfig()" class="border border-red-300 text-red-600 px-4 py-2 rounded-lg text-sm font-semibold">Effacer</button>`:''}
       </div>
-      <p class="text-xs text-slate-400 sm:col-span-2">Un rechargement de la page est nécessaire après modification pour que la reconnexion prenne effet.</p>
+      <p id="rgTestResult" class="text-xs sm:col-span-2"></p>
     </form>
-    <div class="border-t pt-4">
-      <h3 class="font-bold text-sm mb-2">🔄 État de synchronisation</h3>
-      <div id="rgSyncStatus" class="text-sm text-slate-600 mb-3"></div>
-      <button onclick="forcerSyncMaintenant()" class="border px-4 py-2 rounded-lg text-sm font-semibold">🔄 Forcer la synchro maintenant</button>
-    </div>`);
+  `);
+
+  const syncHtml=`
+    <div class="card bg-white rounded-2xl p-6 mt-6">
+      <h2 class="font-bold text-lg mb-1">🔁 Synchronisation</h2>
+      <p class="text-sm text-slate-500 mb-4">Synchronisez les données locales (IndexedDB) vers Supabase pour un accès multi-appareils.</p>
+      <div class="flex flex-wrap gap-2 mb-3">
+        <button onclick="handlePushAll()" id="btnPushAll" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">⬆️ Tout envoyer (local → cloud)</button>
+        <button onclick="handlePullAll()" id="btnPullAll" class="border border-blue-600 text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold">⬇️ Tout récupérer (cloud → local)</button>
+        <button onclick="forcerSyncMaintenant()" class="border px-4 py-2 rounded-lg text-sm font-semibold">🔄 Rejouer la file d'attente</button>
+      </div>
+      <div id="rgSyncProgress" class="text-xs text-slate-500 mb-2"></div>
+      <div class="grid sm:grid-cols-2 gap-2 text-xs text-slate-500">
+        <div>Dernier envoi : <b>${fmtDate(lastPush)}</b></div>
+        <div>Dernière réception : <b>${fmtDate(lastPull)}</b></div>
+      </div>
+    </div>
+
+    <div class="card bg-white rounded-2xl p-6 mt-6">
+      <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
+        <h2 class="font-bold text-lg">📊 État de la synchronisation</h2>
+        <button onclick="renderComparatifSync()" class="border px-3 py-1.5 rounded-lg text-xs font-semibold">🔍 Vérifier l'état (local ↔ cloud)</button>
+      </div>
+      <p class="text-sm text-slate-500 mb-3">Compare le nombre d'enregistrements en local (ce poste) et dans le cloud, table par table.</p>
+      <div id="rgSyncCompare" class="text-sm text-slate-400">Cliquez sur « Vérifier l'état » pour comparer.</div>
+    </div>`;
+  document.getElementById('rgDetailPanel').insertAdjacentHTML('beforeend',syncHtml);
   updateRgSyncStatus();
 }
 async function updateRgSyncStatus(){
-  const el=document.getElementById('rgSyncStatus'); if(!el) return;
+  const el=document.getElementById('rgSyncProgress'); if(!el) return;
   const q=await idbGetAll('sync_queue');
   el.innerHTML = q.length
-    ? `<span class="text-amber-600 font-semibold">● ${q.length} enregistrement(s) en attente de synchronisation.</span>`
-    : `<span class="text-emerald-600 font-semibold">● Tout est synchronisé.</span>`;
+    ? `<span class="text-amber-600 font-semibold">● ${q.length} enregistrement(s) en attente dans la file locale.</span>`
+    : `<span class="text-emerald-600 font-semibold">● File d'attente vide — tout est envoyé.</span>`;
+}
+async function testerConnexionCloud(){
+  const url=document.getElementById('rgSupaUrl').value.trim();
+  const key=document.getElementById('rgSupaKey').value.trim();
+  const res=document.getElementById('rgTestResult');
+  if(!url||!key){ res.className='text-xs text-red-600'; res.textContent='Renseignez URL et clé avant de tester.'; return; }
+  res.className='text-xs text-slate-400'; res.textContent='Test en cours…';
+  try{
+    await xhrJSON('GET',url.replace(/\/$/,'')+'/rest/v1/alubom_clients?limit=1',null,{apikey:key,Authorization:'Bearer '+key});
+    res.className='text-xs text-emerald-600 font-semibold'; res.textContent='✅ Connexion réussie.';
+  }catch(e){
+    res.className='text-xs text-red-600 font-semibold'; res.textContent='❌ Échec : '+e.message;
+  }
+}
+async function handlePushAll(){
+  if(!isSupabaseConfigured()){ alert('Configurez d\'abord la connexion cloud ci-dessus.'); return; }
+  if(!confirm('Envoyer TOUTES les données locales vers le cloud (peut prendre plusieurs minutes) ?')) return;
+  const btn=document.getElementById('btnPushAll'); btn.disabled=true;
+  const prog=document.getElementById('rgSyncProgress');
+  try{
+    const r=await pushAllToCloud((fait,total,store)=>{ prog.innerHTML=`Envoi… ${fait}/${total} (${escapeHtml(store)})`; });
+    prog.innerHTML=`<span class="text-emerald-600 font-semibold">✅ ${r.fait} enregistrement(s) envoyés.</span>`;
+    await audit('SYNC_PUSH_ALL',r.fait+' enregistrement(s)');
+  }catch(e){ prog.innerHTML=`<span class="text-red-600 font-semibold">❌ ${escapeHtml(e.message)}</span>`; }
+  finally{ btn.disabled=false; updateRgSyncStatus(); }
+}
+async function handlePullAll(){
+  if(!isSupabaseConfigured()){ alert('Configurez d\'abord la connexion cloud ci-dessus.'); return; }
+  if(!confirm('Récupérer toutes les données du cloud ? Les enregistrements locaux plus anciens seront mis à jour.')) return;
+  const btn=document.getElementById('btnPullAll'); btn.disabled=true;
+  const prog=document.getElementById('rgSyncProgress');
+  try{
+    const r=await pullAllFromCloud((fait,total,store)=>{ prog.innerHTML=`Réception… ${fait}/${total} (${escapeHtml(store)})`; });
+    prog.innerHTML=`<span class="text-emerald-600 font-semibold">✅ ${r.recuperes} mis à jour, ${r.ignores} déjà à jour localement.</span>`;
+    await audit('SYNC_PULL_ALL',r.recuperes+' récupéré(s)');
+  }catch(e){ prog.innerHTML=`<span class="text-red-600 font-semibold">❌ ${escapeHtml(e.message)}</span>`; }
+  finally{ btn.disabled=false; updateRgSyncStatus(); }
+}
+async function renderComparatifSync(){
+  const el=document.getElementById('rgSyncCompare'); if(!el) return;
+  if(!isSupabaseConfigured()){ el.innerHTML='<span class="text-slate-400">Cloud non configuré.</span>'; return; }
+  el.innerHTML='<span class="text-slate-400">Comparaison en cours…</span>';
+  const resultats=await comparerLocalCloud();
+  el.innerHTML=`<div class="overflow-x-auto"><table class="w-full text-xs"><thead class="bg-slate-50"><tr><th class="text-left p-2">Table</th><th class="text-right p-2">Local</th><th class="text-right p-2">Cloud</th><th class="text-right p-2">Écart</th></tr></thead><tbody>
+    ${resultats.map(r=>`<tr class="border-b ${r.ecart!==0?'bg-amber-50':''}"><td class="p-2">${escapeHtml(r.store)}</td><td class="p-2 text-right">${r.local}</td><td class="p-2 text-right">${r.cloud}</td><td class="p-2 text-right ${r.ecart!==0?'text-amber-600 font-bold':'text-emerald-600'}">${r.ecart>0?'+':''}${r.ecart}</td></tr>`).join('')}
+  </tbody></table></div>`;
 }
 function handleSaveCloudConfig(e){
   e.preventDefault();
   const url=document.getElementById('rgSupaUrl').value.trim();
   const key=document.getElementById('rgSupaKey').value.trim();
   const company=document.getElementById('rgSupaCompany').value.trim()||'default';
-  if(!url || !key){ alert("Renseignez l'URL et la clé anonyme, ou utilisez Réinitialiser pour repasser en mode local."); return false; }
+  if(!url || !key){ alert("Renseignez l'URL et la clé anonyme, ou utilisez Effacer pour repasser en mode local."); return false; }
   saveCloudConfigOverride({SUPABASE_URL:url,SUPABASE_ANON_KEY:key,COMPANY_ID:company});
   alert('Configuration cloud enregistrée. Rechargez la page pour appliquer.');
   rgRenderCloud();
@@ -6006,7 +6159,7 @@ async function forcerSyncMaintenant(){
   if(!isSupabaseConfigured()){ alert('Aucune connexion cloud configurée.'); return; }
   await syncNow();
   await updateRgSyncStatus();
-  alert('Synchronisation lancée.');
+  alert('File d\'attente rejouée.');
 }
 function rgRenderImport(){
   rgPanel('📥 Import de données','Séries, profils, vitrages, quincaillerie… par fichier CSV ou collé.',
