@@ -3816,7 +3816,7 @@ async function restFetchAll(table){
 
 /* ---------- Stores synchronisés (nom local ⇄ table Supabase alubom_<store>) ---------- */
 function syncedStoreNames(){
-  if(!window.db) return [];
+  if(!db) return [];
   return Array.from(db.objectStoreNames).filter(s=>s!=='sync_queue');
 }
 function syncTableName(store){ return 'alubom_'+store; }
