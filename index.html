@@ -98,6 +98,14 @@ window.SANIX_CFG = {
   .nav{color:#c4c9d0;transition:background .16s var(--ds-ease),color .16s var(--ds-ease),border-color .16s var(--ds-ease),padding-left .16s var(--ds-ease);font-weight:600;border-left:3px solid transparent;border-radius:0;position:relative}
   .nav:hover{background:rgba(255,255,255,.07);color:#fff;padding-left:16px}
   .active{background:#232730!important;color:#fff!important;font-weight:700;border-left-color:var(--ds-accent)!important;animation:dsRise .25s var(--ds-ease)}
+  .module-toggle{cursor:pointer;transition:color .12s ease}
+  .module-toggle:hover{color:#e2e8f0}
+  .module-toggle .chevron{transition:transform .18s ease;display:inline-block}
+  .module-toggle.open .chevron{transform:rotate(90deg)}
+  .module-group{overflow:hidden}
+  .rg-pill{font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;background:var(--ds-slate-100);color:var(--ds-slate-700);border:1px solid var(--ds-border);transition:background .12s ease,color .12s ease}
+  .rg-pill:hover{background:var(--ds-slate-200)}
+  .rg-pill.active{background-image:var(--ds-grad);color:#fff;border-color:transparent}
 
   /* Header */
   header{border-bottom:1px solid var(--ds-border);background:#ffffff}
@@ -141,7 +149,7 @@ window.SANIX_CFG = {
   .etude-tab-btn,.ref-tab-btn,.flux-view-btn,.cat-tab-btn,.stock-tab-btn,.prod-tab-btn,.fe-tab-btn,.livre-tab-btn,.compta-tab-btn,.rh-tab-btn,.gmao-tab-btn,.prospects-tab-btn,.ao-tab-btn{color:var(--ds-slate-500);background:transparent;border-radius:2px;font-weight:700;transition:background-color .15s var(--ds-ease),color .15s var(--ds-ease)}
   .etude-tab-btn:hover,.ref-tab-btn:hover,.cat-tab-btn:hover,.stock-tab-btn:hover,.prod-tab-btn:hover,.fe-tab-btn:hover,.livre-tab-btn:hover,.compta-tab-btn:hover,.rh-tab-btn:hover,.gmao-tab-btn:hover,.prospects-tab-btn:hover,.ao-tab-btn:hover{background:var(--ds-slate-100);color:var(--ds-slate-700)}
   .flux-view-btn:hover{background:#e2e8f0}
-  .etude-tab-btn.active,.ref-tab-btn.active,.cat-tab-btn.active,.stock-tab-btn.active,.prod-tab-btn.active,.gmao-tab-btn.active,.prospects-tab-btn.active,.ao-tab-btn.active,.fe-tab-btn.active,.livre-tab-btn.active,.compta-tab-btn.active,.rh-tab-btn.active,.reglages-tab-btn.active{background-image:var(--ds-grad);color:#fff;box-shadow:var(--ds-shadow-sm)}
+  .etude-tab-btn.active,.ref-tab-btn.active,.cat-tab-btn.active,.stock-tab-btn.active,.prod-tab-btn.active,.gmao-tab-btn.active,.prospects-tab-btn.active,.ao-tab-btn.active,.fe-tab-btn.active,.livre-tab-btn.active,.compta-tab-btn.active,.rh-tab-btn.active{background-image:var(--ds-grad);color:#fff;box-shadow:var(--ds-shadow-sm)}
   .config-view-btn{color:var(--ds-slate-500);background:transparent;border-radius:2px;transition:background-color .15s var(--ds-ease),color .15s var(--ds-ease)}
   .config-view-btn:hover{background:var(--ds-slate-100)}
   .config-view-btn.active{background-image:var(--ds-grad);color:#fff}
@@ -243,52 +251,88 @@ window.SANIX_CFG = {
       <button onclick="closeSidebar()" class="md:hidden text-slate-400 text-2xl leading-none px-2">×</button>
     </div>
     <div class="text-xs uppercase tracking-widest text-slate-500 px-3 mb-3">Menu</div>
-    <nav class="space-y-1">
+    <nav class="space-y-1" id="mainNav">
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg active" data-page="dashboard">📊 Tableau de bord</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="flux">🔄 Schéma des flux</button>
 
-      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">1 · Fondations</div>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="referentiel">📚 Référentiel technique</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="catalogue">📖 Catalogue technique</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="clients">👤 Clients</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="fournisseurs">🏭 Fournisseurs</button>
+      <button class="module-toggle w-full flex items-center justify-between px-3 pt-4 pb-1 text-[10px] uppercase tracking-widest text-slate-600" onclick="toggleModule('mod1')">
+        <span>1 · Fondations</span><span class="chevron" id="chev-mod1">▸</span>
+      </button>
+      <div id="mod1" class="module-group hidden space-y-1">
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="referentiel">📚 Référentiel technique</button>
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="catalogue">📖 Catalogue technique</button>
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="clients">👤 Clients</button>
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="fournisseurs">🏭 Fournisseurs</button>
+      </div>
 
-      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">2 · Prospection</div>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="prospects">🎯 Prospects & Pipeline</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="ao">📑 Appels d'offres <span id="aoBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
+      <button class="module-toggle w-full flex items-center justify-between px-3 pt-4 pb-1 text-[10px] uppercase tracking-widest text-slate-600" onclick="toggleModule('mod2')">
+        <span>2 · Prospection</span><span class="chevron" id="chev-mod2">▸</span>
+      </button>
+      <div id="mod2" class="module-group hidden space-y-1">
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="prospects">🎯 Prospects & Pipeline</button>
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="ao">📑 Appels d'offres <span id="aoBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
+      </div>
 
-      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">3 · Conception & devis</div>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="etude">🧑‍💻 Bureau d'étude</button>
+      <button class="module-toggle w-full flex items-center justify-between px-3 pt-4 pb-1 text-[10px] uppercase tracking-widest text-slate-600" onclick="toggleModule('mod3')">
+        <span>3 · Conception & devis</span><span class="chevron" id="chev-mod3">▸</span>
+      </button>
+      <div id="mod3" class="module-group hidden space-y-1">
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="etude">🧑‍💻 Bureau d'étude</button>
+      </div>
 
-      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">4 · Engagement commercial</div>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="chantier">🏗️ Circuit Chantier</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="cartechantiers">🗺️ Carte des chantiers</button>
+      <button class="module-toggle w-full flex items-center justify-between px-3 pt-4 pb-1 text-[10px] uppercase tracking-widest text-slate-600" onclick="toggleModule('mod4')">
+        <span>4 · Engagement commercial</span><span class="chevron" id="chev-mod4">▸</span>
+      </button>
+      <div id="mod4" class="module-group hidden space-y-1">
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="chantier">🏗️ Circuit Chantier</button>
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="cartechantiers">🗺️ Carte des chantiers</button>
+      </div>
 
-      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">5 · Exécution</div>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="production">🏭 Production</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="atelierMobile">📱 Vue atelier (mobile)</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="stock">📦 Stock</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="gmao">🔧 GMAO <span id="gmaoBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
+      <button class="module-toggle w-full flex items-center justify-between px-3 pt-4 pb-1 text-[10px] uppercase tracking-widest text-slate-600" onclick="toggleModule('mod5')">
+        <span>5 · Exécution</span><span class="chevron" id="chev-mod5">▸</span>
+      </button>
+      <div id="mod5" class="module-group hidden space-y-1">
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="production">🏭 Production</button>
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="atelierMobile">📱 Vue atelier (mobile)</button>
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="stock">📦 Stock</button>
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="gmao">🔧 GMAO <span id="gmaoBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
+      </div>
 
-      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">6 · Après-vente</div>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="sav">🛠️ SAV & Garantie</button>
+      <button class="module-toggle w-full flex items-center justify-between px-3 pt-4 pb-1 text-[10px] uppercase tracking-widest text-slate-600" onclick="toggleModule('mod6')">
+        <span>6 · Après-vente</span><span class="chevron" id="chev-mod6">▸</span>
+      </button>
+      <div id="mod6" class="module-group hidden space-y-1">
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="sav">🛠️ SAV & Garantie</button>
+      </div>
 
-      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">7 · Finance</div>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="caisse">💵 Caisse</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="compta">📒 Comptabilité SYSCOHADA <span id="ventilationBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
+      <button class="module-toggle w-full flex items-center justify-between px-3 pt-4 pb-1 text-[10px] uppercase tracking-widest text-slate-600" onclick="toggleModule('mod7')">
+        <span>7 · Finance</span><span class="chevron" id="chev-mod7">▸</span>
+      </button>
+      <div id="mod7" class="module-group hidden space-y-1">
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="caisse">💵 Caisse</button>
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="compta">📒 Comptabilité SYSCOHADA <span id="ventilationBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
+      </div>
 
-      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">8 · Pilotage</div>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="controlegestion">📈 Contrôle de gestion</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="validations">✅ Validations <span id="validationsBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="etatpa">📋 État proforma & achats</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="relances">🔔 Relances commerciales <span id="relancesBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="analysecommerciale">📊 Analyse commerciale</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="partenaires">🤝 Partenaires & commissions</button>
+      <button class="module-toggle w-full flex items-center justify-between px-3 pt-4 pb-1 text-[10px] uppercase tracking-widest text-slate-600" onclick="toggleModule('mod8')">
+        <span>8 · Pilotage</span><span class="chevron" id="chev-mod8">▸</span>
+      </button>
+      <div id="mod8" class="module-group hidden space-y-1">
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="controlegestion">📈 Contrôle de gestion</button>
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="validations">✅ Validations <span id="validationsBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="etatpa">📋 État proforma & achats</button>
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="relances">🔔 Relances commerciales <span id="relancesBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="analysecommerciale">📊 Analyse commerciale</button>
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="partenaires">🤝 Partenaires & commissions</button>
+      </div>
 
-      <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">9 · Administration</div>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="utilisateurs">👥 Utilisateurs</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="reglages">⚙️ Paramètres</button>
-      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="rh">🧑‍💼 RH & Paie <span id="congesBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
+      <button class="module-toggle w-full flex items-center justify-between px-3 pt-4 pb-1 text-[10px] uppercase tracking-widest text-slate-600" onclick="toggleModule('mod9')">
+        <span>9 · Administration</span><span class="chevron" id="chev-mod9">▸</span>
+      </button>
+      <div id="mod9" class="module-group hidden space-y-1">
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="utilisateurs">👥 Utilisateurs</button>
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="reglages">⚙️ Paramètres</button>
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="rh">🧑‍💼 RH & Paie <span id="congesBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
+      </div>
     </nav>
     <div class="mt-8 border-t border-slate-700 pt-4 text-xs text-slate-500">
       Version prototype<br>Module BOM Menuiserie Aluminium<br>
@@ -3149,108 +3193,59 @@ window.SANIX_CFG = {
       </section>
 
       <section id="reglages" class="page hidden">
-        <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1 items-center">
-          <button class="reglages-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rgtab="societe" onclick="showReglagesTab('societe')">🏢 Société</button>
-          <button class="reglages-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rgtab="utilisateurs" onclick="showReglagesTab('utilisateurs')">👥 Utilisateurs & sécurité</button>
-          <button class="reglages-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rgtab="compta" onclick="showReglagesTab('compta')">📒 Plan comptable</button>
-          <button class="reglages-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rgtab="gestion" onclick="showReglagesTab('gestion')">📐 Règles de gestion</button>
-          <button class="reglages-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rgtab="cloud" onclick="showReglagesTab('cloud')">☁️ Cloud & sauvegarde</button>
-        </div>
-
-        <!-- 1. Société, localisation, portail public -->
-        <div id="rgTabSociete" class="rg-tab">
-          <div class="card bg-white rounded-2xl p-6 mb-6">
-            <h2 class="font-bold text-lg mb-1">🏢 Entreprise</h2>
-            <p class="text-sm text-slate-500 mb-4">Utilisé sur tous les documents imprimés (devis, factures, feuilles de route…).</p>
-            <form onsubmit="return handleSaveSociete(event)" class="grid sm:grid-cols-2 gap-2" id="rgSocieteForm"></form>
-          </div>
-          <div class="card bg-white rounded-2xl p-6 mb-6">
-            <h2 class="font-bold text-lg mb-1">📍 Localisation</h2>
-            <p class="text-sm text-slate-500 mb-4">Adresse de l'atelier/siège — utile pour les futures fonctions de carte et de métré.</p>
-            <div id="rgLocalisationForm" class="grid sm:grid-cols-2 gap-2"></div>
-          </div>
-          <div class="card bg-white rounded-2xl p-6">
-            <h2 class="font-bold text-lg mb-1">🔗 Portail public</h2>
-            <p class="text-sm text-slate-500 mb-4">Lien de suivi client (état du dossier, sans connexion) — généré depuis chaque dossier chantier.</p>
-            <div id="rgPortailForm"></div>
-          </div>
-        </div>
-
-        <!-- 2. Utilisateurs, sécurité, API partners -->
-        <div id="rgTabUtilisateurs" class="rg-tab hidden">
-          <div class="card bg-white rounded-2xl p-6 mb-6">
-            <h2 class="font-bold text-lg mb-1">👥 Utilisateurs & rôles</h2>
-            <p class="text-sm text-slate-500 mb-4">Gestion complète des comptes et permissions.</p>
-            <button onclick="showPage('utilisateurs')" class="border border-blue-600 text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold">Ouvrir Utilisateurs & rôles →</button>
-          </div>
-          <div class="card bg-white rounded-2xl p-6 mb-6">
-            <h2 class="font-bold text-lg mb-1">🔒 Sécurité de connexion</h2>
-            <form onsubmit="return handleSaveSecurite(event)" class="grid sm:grid-cols-2 gap-3" id="rgSecuriteForm"></form>
-          </div>
-          <div class="card bg-white rounded-2xl p-6">
-            <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
-              <h2 class="font-bold text-lg">🔌 API & intégrations partenaires</h2>
-              <button onclick="openApiPartnerForm(null)" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold">+ Nouvelle clé</button>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+          <div class="card bg-white rounded-2xl p-4">
+            <div class="text-[10px] font-bold uppercase text-slate-400 mb-2">1 · Société</div>
+            <div class="flex flex-wrap gap-1.5">
+              <button class="rg-pill" data-rg="societe" onclick="rgSelect('societe')">🏢 Société</button>
+              <button class="rg-pill" data-rg="localisation" onclick="rgSelect('localisation')">📍 Localisation</button>
+              <button class="rg-pill" data-rg="portail" onclick="rgSelect('portail')">🔗 Portail public</button>
             </div>
-            <p class="text-sm text-slate-500 mb-4">Clés/jetons pour intégrations externes (WhatsApp Business, SMS, comptabilité tierce…).</p>
-            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Partenaire</th><th class="text-left p-2">Type</th><th class="text-left p-2">Clé</th><th class="text-left p-2">Statut</th><th class="p-2"></th></tr></thead><tbody id="rgApiPartnersBody"></tbody></table></div>
           </div>
-        </div>
-
-        <!-- 3. Plan comptable, compte par défaut -->
-        <div id="rgTabCompta" class="rg-tab hidden">
-          <div class="card bg-white rounded-2xl p-6">
-            <h2 class="font-bold text-lg mb-1">📒 Plan comptable SYSCOHADA & comptes par défaut</h2>
-            <p class="text-sm text-slate-500 mb-4">Gestion complète déjà disponible dans le module Comptabilité — pas de duplication ici, un seul endroit pour l'éditer.</p>
-            <div class="flex flex-wrap gap-2">
-              <button onclick="showPage('compta');showComptaTab('parametres')" class="border border-blue-600 text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold">Ouvrir Comptabilité → Paramètres →</button>
+          <div class="card bg-white rounded-2xl p-4">
+            <div class="text-[10px] font-bold uppercase text-slate-400 mb-2">2 · Utilisateurs & sécurité</div>
+            <div class="flex flex-wrap gap-1.5">
+              <button class="rg-pill" data-rg="utilisateurs" onclick="rgSelect('utilisateurs')">👥 Utilisateurs</button>
+              <button class="rg-pill" data-rg="securite" onclick="rgSelect('securite')">🔒 Sécurité</button>
+              <button class="rg-pill" data-rg="api" onclick="rgSelect('api')">🔌 API partenaires</button>
+            </div>
+          </div>
+          <div class="card bg-white rounded-2xl p-4">
+            <div class="text-[10px] font-bold uppercase text-slate-400 mb-2">3 · Comptabilité</div>
+            <div class="flex flex-wrap gap-1.5">
+              <button class="rg-pill" data-rg="plancomptable" onclick="rgSelect('plancomptable')">📒 Plan comptable</button>
+              <button class="rg-pill" data-rg="comptesdefaut" onclick="rgSelect('comptesdefaut')">⚙️ Comptes par défaut</button>
+            </div>
+          </div>
+          <div class="card bg-white rounded-2xl p-4">
+            <div class="text-[10px] font-bold uppercase text-slate-400 mb-2">4 · Règles de gestion</div>
+            <div class="flex flex-wrap gap-1.5">
+              <button class="rg-pill" data-rg="validation" onclick="rgSelect('validation')">✅ Validation & marge</button>
+              <button class="rg-pill" data-rg="relances" onclick="rgSelect('relances')">🔔 Relances</button>
+              <button class="rg-pill" data-rg="facturation" onclick="rgSelect('facturation')">💰 Facturation</button>
+            </div>
+          </div>
+          <div class="card bg-white rounded-2xl p-4">
+            <div class="text-[10px] font-bold uppercase text-slate-400 mb-2">5 · Modules métier</div>
+            <div class="flex flex-wrap gap-1.5">
+              <button class="rg-pill" onclick="showPage('rh')">🧑‍💼 RH & Paie →</button>
+              <button class="rg-pill" onclick="showPage('gmao')">🔧 GMAO →</button>
+              <button class="rg-pill" onclick="showPage('compta')">📒 Comptabilité →</button>
+            </div>
+          </div>
+          <div class="card bg-white rounded-2xl p-4">
+            <div class="text-[10px] font-bold uppercase text-slate-400 mb-2">6 · Cloud & données</div>
+            <div class="flex flex-wrap gap-1.5">
+              <button class="rg-pill" data-rg="cloud" onclick="rgSelect('cloud')">☁️ Cloud / Sync</button>
+              <button class="rg-pill" data-rg="import" onclick="rgSelect('import')">📥 Import de données</button>
+              <button class="rg-pill" data-rg="sauvegarde" onclick="rgSelect('sauvegarde')">💾 Sauvegardes</button>
             </div>
           </div>
         </div>
 
-        <!-- 4. Règles de gestion -->
-        <div id="rgTabGestion" class="rg-tab hidden">
-          <div class="card bg-white rounded-2xl p-6">
-            <h2 class="font-bold text-lg mb-1">📐 Règles de gestion</h2>
-            <p class="text-sm text-slate-500 mb-4">Seuils et paramètres appliqués automatiquement dans toute l'application.</p>
-            <form onsubmit="return handleSaveReglesGestion(event)" class="space-y-5" id="rgGestionForm"></form>
-          </div>
-        </div>
-
-        <!-- 5. Cloud/Synch, import, sauvegarde -->
-        <div id="rgTabCloud" class="rg-tab hidden">
-          <div class="card bg-white rounded-2xl p-6 mb-6">
-            <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
-              <h2 class="font-bold text-lg">☁️ Connexion cloud (Supabase)</h2>
-              <span id="rgCloudStatutBadge" class="badge"></span>
-            </div>
-            <p class="text-sm text-slate-500 mb-4">Synchronisation multi-appareils. Laisser vide = mode local uniquement (hors ligne).</p>
-            <form onsubmit="return handleSaveCloudConfig(event)" class="grid sm:grid-cols-2 gap-2" id="rgCloudForm"></form>
-          </div>
-          <div class="card bg-white rounded-2xl p-6 mb-6">
-            <h2 class="font-bold text-lg mb-1">🔄 État de synchronisation</h2>
-            <div id="rgSyncStatus" class="text-sm text-slate-600 mb-3"></div>
-            <button onclick="forcerSyncMaintenant()" class="border px-4 py-2 rounded-lg text-sm font-semibold">🔄 Forcer la synchro maintenant</button>
-          </div>
-          <div class="card bg-white rounded-2xl p-6 mb-6">
-            <h2 class="font-bold text-lg mb-1">📥 Import de données</h2>
-            <p class="text-sm text-slate-500 mb-4">Séries, profils, vitrages, quincaillerie… par fichier CSV ou collé.</p>
-            <button onclick="showPage('referentiel');showRefTab('import')" class="border border-blue-600 text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold">Ouvrir Référentiel → Importation →</button>
-          </div>
-          <div class="card bg-white rounded-2xl p-6">
-            <h2 class="font-bold text-lg mb-1">💾 Sauvegarde locale</h2>
-            <p class="text-sm text-slate-500 mb-4">Export complet de toutes les données de l'appareil (fichier .json) — à faire régulièrement, en plus du cloud.</p>
-            <div class="flex flex-wrap gap-2">
-              <button onclick="exporterSauvegardeComplete()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">⬇️ Exporter toutes les données</button>
-              <label class="border px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer">
-                ⬆️ Restaurer depuis un fichier
-                <input type="file" accept=".json" onchange="restaurerSauvegarde(event)" class="hidden">
-              </label>
-            </div>
-            <p class="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 mt-3">⚠️ La restauration fusionne les données du fichier avec celles déjà présentes (mêmes id = écrasés). Elle ne supprime rien d'existant.</p>
-          </div>
-        </div>
+        <div id="rgDetailPanel"></div>
       </section>
+
 
       <section id="utilisateurs" class="page hidden">
         <div class="card bg-white rounded-2xl p-6">
@@ -5665,43 +5660,55 @@ async function demarrerMaintenance(id){
   await updateGmaoBadge();
 }
 
-/* ---------- Paramètres — hub central (société, sécurité, règles, cloud, sauvegarde) ---------- */
-function showReglagesTab(tab){
-  document.querySelectorAll('.rg-tab').forEach(t=>t.classList.add('hidden'));
-  const el=document.getElementById('rgTab'+tab.charAt(0).toUpperCase()+tab.slice(1)); if(el) el.classList.remove('hidden');
-  document.querySelectorAll('.reglages-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.rgtab===tab));
-  if(tab==='societe') renderSocieteTab();
-  if(tab==='utilisateurs'){ renderSecuriteTab(); renderApiPartners(); }
-  if(tab==='gestion') renderGestionTab();
-  if(tab==='cloud') renderCloudTab();
+/* ---------- Paramètres — hub central module/sous-module ---------- */
+const RG_SECTIONS={
+  societe:'Société',localisation:'Localisation',portail:'Portail public',
+  utilisateurs:'Utilisateurs',securite:'Sécurité',api:'API partenaires',
+  plancomptable:'Plan comptable',comptesdefaut:'Comptes par défaut',
+  validation:'Validation & marge',relances:'Relances',facturation:'Facturation',
+  cloud:'Cloud / Sync',import:'Import de données',sauvegarde:'Sauvegardes'
+};
+function rgSelect(key){
+  document.querySelectorAll('.rg-pill[data-rg]').forEach(b=>b.classList.toggle('active',b.dataset.rg===key));
+  localStorage.setItem('alubom_reglages_last',key);
+  const renderers={
+    societe:rgRenderSociete, localisation:rgRenderLocalisation, portail:rgRenderPortail,
+    utilisateurs:rgRenderUtilisateurs, securite:rgRenderSecurite, api:rgRenderApi,
+    plancomptable:rgRenderComptaLink, comptesdefaut:rgRenderComptaLink,
+    validation:rgRenderValidation, relances:rgRenderRelances, facturation:rgRenderFacturation,
+    cloud:rgRenderCloud, import:rgRenderImport, sauvegarde:rgRenderSauvegarde
+  };
+  (renderers[key]||rgRenderSociete)();
+}
+function showReglagesTab(){
+  const last=localStorage.getItem('alubom_reglages_last')||'societe';
+  rgSelect(RG_SECTIONS[last]?last:'societe');
+}
+function rgPanel(title,desc,bodyHtml){
+  document.getElementById('rgDetailPanel').innerHTML=`
+    <div class="card bg-white rounded-2xl p-6">
+      <h2 class="font-bold text-lg mb-1">${title}</h2>
+      ${desc?`<p class="text-sm text-slate-500 mb-4">${desc}</p>`:''}
+      ${bodyHtml}
+    </div>`;
 }
 
-/* --- 1. Société, localisation, portail public --- */
-function renderSocieteTab(){
+/* --- 1. Société --- */
+function rgRenderSociete(){
   const c=getCompanyInfo();
-  document.getElementById('rgSocieteForm').innerHTML=`
-    <input id="rgNom" value="${escapeHtml(c.nom)}" placeholder="Nom de l'entreprise" required class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
-    <input id="rgTagline" value="${escapeHtml(c.tagline)}" placeholder="Slogan / activité" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
-    <input id="rgAdresse" value="${escapeHtml(c.adresse)}" placeholder="Adresse" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
-    <input id="rgTel" value="${escapeHtml(c.tel)}" placeholder="Téléphone" class="border rounded-lg px-2 py-1.5 text-sm">
-    <input id="rgEmail" type="email" value="${escapeHtml(c.email)}" placeholder="Email" class="border rounded-lg px-2 py-1.5 text-sm">
-    <input id="rgRccm" value="${escapeHtml(c.rccm)}" placeholder="RCCM" class="border rounded-lg px-2 py-1.5 text-sm">
-    <input id="rgNcc" value="${escapeHtml(c.ncc)}" placeholder="NCC (compte contribuable)" class="border rounded-lg px-2 py-1.5 text-sm">
-    <input id="rgCnps" value="${escapeHtml(c.numeroEmployeurCnps||'')}" placeholder="N° employeur CNPS" class="border rounded-lg px-2 py-1.5 text-sm">
-    <input id="rgCmu" value="${escapeHtml(c.numeroEmployeurCmu||'')}" placeholder="N° employeur CMU" class="border rounded-lg px-2 py-1.5 text-sm">
-    <div class="sm:col-span-2"><button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">Enregistrer</button></div>
-  `;
-  document.getElementById('rgLocalisationForm').innerHTML=`
-    <input id="rgVille" value="${escapeHtml(c.ville||'')}" placeholder="Ville" class="border rounded-lg px-2 py-1.5 text-sm">
-    <input id="rgPays" value="${escapeHtml(c.pays||'')}" placeholder="Pays" class="border rounded-lg px-2 py-1.5 text-sm">
-    <input id="rgLat" value="${escapeHtml(c.latitude||'')}" placeholder="Latitude (optionnel)" class="border rounded-lg px-2 py-1.5 text-sm">
-    <input id="rgLng" value="${escapeHtml(c.longitude||'')}" placeholder="Longitude (optionnel)" class="border rounded-lg px-2 py-1.5 text-sm">
-    <div class="sm:col-span-2"><button type="button" onclick="handleSaveLocalisation()" class="border border-blue-600 text-blue-600 rounded-lg px-4 py-2 text-sm font-semibold">Enregistrer la localisation</button></div>
-  `;
-  document.getElementById('rgPortailForm').innerHTML=`
-    <label class="flex items-center gap-2 text-sm font-semibold mb-2"><input id="rgPortailActif" type="checkbox" ${c.portailPublicActif!==false?'checked':''} onchange="handleSavePortail()"> Autoriser la génération de liens de suivi client</label>
-    <p class="text-xs text-slate-400">Quand désactivé, le bouton « Lien de suivi » reste visible mais génère un lien inactif — utile en cas d'incident ou de maintenance du portail.</p>
-  `;
+  rgPanel('🏢 Société','Utilisé sur tous les documents imprimés (devis, factures, feuilles de route…).',`
+    <form onsubmit="return handleSaveSociete(event)" class="grid sm:grid-cols-2 gap-2">
+      <input id="rgNom" value="${escapeHtml(c.nom)}" placeholder="Nom de l'entreprise" required class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
+      <input id="rgTagline" value="${escapeHtml(c.tagline)}" placeholder="Slogan / activité" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
+      <input id="rgAdresse" value="${escapeHtml(c.adresse)}" placeholder="Adresse" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
+      <input id="rgTel" value="${escapeHtml(c.tel)}" placeholder="Téléphone" class="border rounded-lg px-2 py-1.5 text-sm">
+      <input id="rgEmail" type="email" value="${escapeHtml(c.email)}" placeholder="Email" class="border rounded-lg px-2 py-1.5 text-sm">
+      <input id="rgRccm" value="${escapeHtml(c.rccm)}" placeholder="RCCM" class="border rounded-lg px-2 py-1.5 text-sm">
+      <input id="rgNcc" value="${escapeHtml(c.ncc)}" placeholder="NCC (compte contribuable)" class="border rounded-lg px-2 py-1.5 text-sm">
+      <input id="rgCnps" value="${escapeHtml(c.numeroEmployeurCnps||'')}" placeholder="N° employeur CNPS" class="border rounded-lg px-2 py-1.5 text-sm">
+      <input id="rgCmu" value="${escapeHtml(c.numeroEmployeurCmu||'')}" placeholder="N° employeur CMU" class="border rounded-lg px-2 py-1.5 text-sm">
+      <div class="sm:col-span-2"><button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">Enregistrer</button></div>
+    </form>`);
 }
 function handleSaveSociete(e){
   e.preventDefault();
@@ -5718,7 +5725,21 @@ function handleSaveSociete(e){
     numeroEmployeurCmu:document.getElementById('rgCmu').value.trim()
   });
   audit('MAJ_SOCIETE','Entête entreprise mise à jour');
+  rgRenderSociete();
   return false;
+}
+
+/* --- Localisation --- */
+function rgRenderLocalisation(){
+  const c=getCompanyInfo();
+  rgPanel('📍 Localisation','Adresse de l\'atelier/siège — utile pour les futures fonctions de carte et de métré.',`
+    <div class="grid sm:grid-cols-2 gap-2">
+      <input id="rgVille" value="${escapeHtml(c.ville||'')}" placeholder="Ville" class="border rounded-lg px-2 py-1.5 text-sm">
+      <input id="rgPays" value="${escapeHtml(c.pays||'')}" placeholder="Pays" class="border rounded-lg px-2 py-1.5 text-sm">
+      <input id="rgLat" value="${escapeHtml(c.latitude||'')}" placeholder="Latitude (optionnel)" class="border rounded-lg px-2 py-1.5 text-sm">
+      <input id="rgLng" value="${escapeHtml(c.longitude||'')}" placeholder="Longitude (optionnel)" class="border rounded-lg px-2 py-1.5 text-sm">
+      <div class="sm:col-span-2"><button type="button" onclick="handleSaveLocalisation()" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">Enregistrer</button></div>
+    </div>`);
 }
 function handleSaveLocalisation(){
   const c=getCompanyInfo();
@@ -5729,6 +5750,15 @@ function handleSaveLocalisation(){
     longitude:document.getElementById('rgLng').value.trim()
   });
   audit('MAJ_LOCALISATION','Localisation entreprise mise à jour');
+  rgRenderLocalisation();
+}
+
+/* --- Portail public --- */
+function rgRenderPortail(){
+  const c=getCompanyInfo();
+  rgPanel('🔗 Portail public','Lien de suivi client (état du dossier, sans connexion) — généré depuis chaque dossier chantier.',`
+    <label class="flex items-center gap-2 text-sm font-semibold mb-2"><input id="rgPortailActif" type="checkbox" ${c.portailPublicActif!==false?'checked':''} onchange="handleSavePortail()"> Autoriser la génération de liens de suivi client</label>
+    <p class="text-xs text-slate-400">Quand désactivé, le bouton « Lien de suivi » reste visible mais génère un lien inactif — utile en cas d'incident ou de maintenance du portail.</p>`);
 }
 function handleSavePortail(){
   const c=getCompanyInfo();
@@ -5736,18 +5766,23 @@ function handleSavePortail(){
   audit('MAJ_PORTAIL_PUBLIC',document.getElementById('rgPortailActif').checked?'Activé':'Désactivé');
 }
 
-/* --- 2. Sécurité + API partners --- */
-function renderSecuriteTab(){
+/* --- 2. Utilisateurs / Sécurité / API partners --- */
+function rgRenderUtilisateurs(){
+  rgPanel('👥 Utilisateurs & rôles','Gestion complète des comptes et permissions.',
+    `<button onclick="showPage('utilisateurs')" class="border border-blue-600 text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold">Ouvrir Utilisateurs & rôles →</button>`);
+}
+function rgRenderSecurite(){
   const r=getReglesGestion();
-  document.getElementById('rgSecuriteForm').innerHTML=`
-    <label class="text-sm font-semibold block">Tentatives avant verrouillage
-      <input id="rgSeuilLogin" type="number" min="1" value="${r.seuilTentativesLogin}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
-    </label>
-    <label class="text-sm font-semibold block">Durée de verrouillage (minutes)
-      <input id="rgDureeVerrou" type="number" min="1" value="${r.dureeVerrouillageMin}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
-    </label>
-    <div class="sm:col-span-2"><button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">Enregistrer</button></div>
-  `;
+  rgPanel('🔒 Sécurité de connexion','',`
+    <form onsubmit="return handleSaveSecurite(event)" class="grid sm:grid-cols-2 gap-3">
+      <label class="text-sm font-semibold block">Tentatives avant verrouillage
+        <input id="rgSeuilLogin" type="number" min="1" value="${r.seuilTentativesLogin}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <label class="text-sm font-semibold block">Durée de verrouillage (minutes)
+        <input id="rgDureeVerrou" type="number" min="1" value="${r.dureeVerrouillageMin}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <div class="sm:col-span-2"><button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">Enregistrer</button></div>
+    </form>`);
 }
 function handleSaveSecurite(e){
   e.preventDefault();
@@ -5756,10 +5791,16 @@ function handleSaveSecurite(e){
     dureeVerrouillageMin:+document.getElementById('rgDureeVerrou').value||15
   });
   audit('MAJ_SECURITE','Règles de verrouillage login mises à jour');
+  rgRenderSecurite();
   return false;
 }
-
 const API_PARTNER_TYPES={whatsapp:'WhatsApp Business',sms:'Passerelle SMS',compta:'Comptabilité externe',paiement:'Paiement mobile',autre:'Autre'};
+async function rgRenderApi(){
+  rgPanel('🔌 API & intégrations partenaires','Clés/jetons pour intégrations externes (WhatsApp Business, SMS, comptabilité tierce…).',`
+    <div class="flex justify-end mb-3"><button onclick="openApiPartnerForm(null)" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold">+ Nouvelle clé</button></div>
+    <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Partenaire</th><th class="text-left p-2">Type</th><th class="text-left p-2">Clé</th><th class="text-left p-2">Statut</th><th class="p-2"></th></tr></thead><tbody id="rgApiPartnersBody"></tbody></table></div>`);
+  await renderApiPartners();
+}
 async function renderApiPartners(){
   const el=document.getElementById('rgApiPartnersBody'); if(!el) return;
   const rows=await idbGetAll('api_partners');
@@ -5824,56 +5865,30 @@ async function deleteApiPartner(id){
   await renderApiPartners();
 }
 
-/* --- 4. Règles de gestion --- */
-function renderGestionTab(){
-  const c=getCompanyInfo(), r=getReglesGestion();
-  document.getElementById('rgGestionForm').innerHTML=`
-    <div>
-      <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Validation hiérarchique</h3>
-      <div class="grid sm:grid-cols-2 gap-3">
-        <label class="text-sm font-semibold block">Seuil validation DG achats (FCFA)
-          <input id="rgSeuilAchat" type="number" value="${c.seuilValidationAchat}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
-        </label>
-        <label class="text-sm font-semibold block">Marge mini sans validation DG (%)
-          <input id="rgSeuilMarge" type="number" step="0.1" value="${c.seuilMargeCommerciale}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
-        </label>
-        <label class="text-sm font-semibold block sm:col-span-2">Téléphone WhatsApp du valideur (DG)
-          <input id="rgTelDG" value="${escapeHtml(c.telDG||'')}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
-        </label>
-      </div>
-    </div>
-    <div>
-      <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Relances commerciales (jours après envoi devis)</h3>
-      <div class="grid sm:grid-cols-3 gap-3">
-        <label class="text-sm font-semibold block">🟡 Relance recommandée (J+)
-          <input id="rgRelanceJ1" type="number" min="1" value="${r.relanceJ1}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
-        </label>
-        <label class="text-sm font-semibold block">🟠 2ᵉ relance (J+)
-          <input id="rgRelanceJ2" type="number" min="1" value="${r.relanceJ2}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
-        </label>
-        <label class="text-sm font-semibold block">🔴 Alerte responsable (J+)
-          <input id="rgRelanceJ3" type="number" min="1" value="${r.relanceJ3}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
-        </label>
-      </div>
-    </div>
-    <div>
-      <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Facturation</h3>
-      <div class="grid sm:grid-cols-3 gap-3">
-        <label class="text-sm font-semibold block">Devise
-          <input id="rgDevise" value="${escapeHtml(r.devise)}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
-        </label>
-        <label class="text-sm font-semibold block">Taux TVA par défaut (%)
-          <input id="rgTVA" type="number" step="0.1" value="${r.tauxTVADefaut}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
-        </label>
-        <label class="text-sm font-semibold block">Arrondi (0 = au FCFA près)
-          <input id="rgArrondi" type="number" min="0" value="${r.arrondi}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
-        </label>
-      </div>
-    </div>
-    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">Enregistrer toutes les règles</button>
-  `;
+/* --- 3. Comptabilité (lien externe, pas de duplication) --- */
+function rgRenderComptaLink(){
+  rgPanel('📒 Plan comptable SYSCOHADA & comptes par défaut','Gestion complète déjà disponible dans le module Comptabilité — un seul endroit pour l\'éditer.',
+    `<button onclick="showPage('compta');showComptaTab('parametres')" class="border border-blue-600 text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold">Ouvrir Comptabilité → Paramètres →</button>`);
 }
-function handleSaveReglesGestion(e){
+
+/* --- 4. Règles de gestion --- */
+function rgRenderValidation(){
+  const c=getCompanyInfo();
+  rgPanel('✅ Validation hiérarchique & marge','',`
+    <form onsubmit="return handleSaveValidation(event)" class="grid sm:grid-cols-2 gap-3">
+      <label class="text-sm font-semibold block">Seuil validation DG achats (FCFA)
+        <input id="rgSeuilAchat" type="number" value="${c.seuilValidationAchat}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <label class="text-sm font-semibold block">Marge mini sans validation DG (%)
+        <input id="rgSeuilMarge" type="number" step="0.1" value="${c.seuilMargeCommerciale}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <label class="text-sm font-semibold block sm:col-span-2">Téléphone WhatsApp du valideur (DG)
+        <input id="rgTelDG" value="${escapeHtml(c.telDG||'')}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <div class="sm:col-span-2"><button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">Enregistrer</button></div>
+    </form>`);
+}
+function handleSaveValidation(e){
   e.preventDefault();
   const c=getCompanyInfo();
   saveCompanyInfo({...c,
@@ -5881,34 +5896,85 @@ function handleSaveReglesGestion(e){
     seuilMargeCommerciale:+document.getElementById('rgSeuilMarge').value||25,
     telDG:document.getElementById('rgTelDG').value.trim()
   });
+  audit('MAJ_REGLES_GESTION','Seuils validation & marge mis à jour');
+  rgRenderValidation();
+  return false;
+}
+function rgRenderRelances(){
+  const r=getReglesGestion();
+  rgPanel('🔔 Relances commerciales','Jours après envoi du devis, avant chaque niveau d\'escalade.',`
+    <form onsubmit="return handleSaveRelances(event)" class="grid sm:grid-cols-3 gap-3">
+      <label class="text-sm font-semibold block">🟡 Relance recommandée (J+)
+        <input id="rgRelanceJ1" type="number" min="1" value="${r.relanceJ1}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <label class="text-sm font-semibold block">🟠 2ᵉ relance (J+)
+        <input id="rgRelanceJ2" type="number" min="1" value="${r.relanceJ2}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <label class="text-sm font-semibold block">🔴 Alerte responsable (J+)
+        <input id="rgRelanceJ3" type="number" min="1" value="${r.relanceJ3}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <div class="sm:col-span-3"><button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">Enregistrer</button></div>
+    </form>`);
+}
+function handleSaveRelances(e){
+  e.preventDefault();
   saveReglesGestion({...getReglesGestion(),
     relanceJ1:+document.getElementById('rgRelanceJ1').value||2,
     relanceJ2:+document.getElementById('rgRelanceJ2').value||5,
-    relanceJ3:+document.getElementById('rgRelanceJ3').value||10,
+    relanceJ3:+document.getElementById('rgRelanceJ3').value||10
+  });
+  audit('MAJ_REGLES_GESTION','Délais de relance mis à jour');
+  rgRenderRelances();
+  return false;
+}
+function rgRenderFacturation(){
+  const r=getReglesGestion();
+  rgPanel('💰 Facturation','',`
+    <form onsubmit="return handleSaveFacturation(event)" class="grid sm:grid-cols-3 gap-3">
+      <label class="text-sm font-semibold block">Devise
+        <input id="rgDevise" value="${escapeHtml(r.devise)}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <label class="text-sm font-semibold block">Taux TVA par défaut (%)
+        <input id="rgTVA" type="number" step="0.1" value="${r.tauxTVADefaut}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <label class="text-sm font-semibold block">Arrondi (0 = au FCFA près)
+        <input id="rgArrondi" type="number" min="0" value="${r.arrondi}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <div class="sm:col-span-3"><button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">Enregistrer</button></div>
+    </form>`);
+}
+function handleSaveFacturation(e){
+  e.preventDefault();
+  saveReglesGestion({...getReglesGestion(),
     devise:document.getElementById('rgDevise').value.trim()||'FCFA',
     tauxTVADefaut:+document.getElementById('rgTVA').value||18,
     arrondi:+document.getElementById('rgArrondi').value||0
   });
-  audit('MAJ_REGLES_GESTION','Règles de gestion mises à jour');
+  audit('MAJ_REGLES_GESTION','Paramètres de facturation mis à jour');
+  rgRenderFacturation();
   return false;
 }
 
-/* --- 5. Cloud/Synch, import, sauvegarde --- */
-function renderCloudTab(){
+/* --- 6. Cloud / Import / Sauvegardes --- */
+function rgRenderCloud(){
   const configured=isSupabaseConfigured();
-  const badge=document.getElementById('rgCloudStatutBadge');
-  badge.textContent=configured?'☁️ Connecté':'📴 Mode local uniquement';
-  badge.className='badge '+(configured?'bg-emerald-50 text-emerald-700':'bg-slate-100 text-slate-500');
-  document.getElementById('rgCloudForm').innerHTML=`
-    <input id="rgSupaUrl" value="${escapeHtml(CFG.SUPABASE_URL.includes('VOTRE-PROJET')?'':CFG.SUPABASE_URL)}" placeholder="https://votre-projet.supabase.co" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
-    <input id="rgSupaKey" value="${escapeHtml(CFG.SUPABASE_ANON_KEY==='VOTRE_ANON_KEY'?'':CFG.SUPABASE_ANON_KEY)}" placeholder="Clé anonyme (anon key)" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2 font-mono">
-    <input id="rgSupaCompany" value="${escapeHtml(CFG.COMPANY_ID)}" placeholder="Identifiant entreprise (company_id)" class="border rounded-lg px-2 py-1.5 text-sm">
-    <div class="sm:col-span-2 flex gap-2">
-      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">Enregistrer</button>
-      ${getCloudConfigOverride()?`<button type="button" onclick="handleResetCloudConfig()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Réinitialiser</button>`:''}
-    </div>
-    <p class="text-xs text-slate-400 sm:col-span-2">Un rechargement de la page est nécessaire après modification pour que la reconnexion prenne effet.</p>
-  `;
+  rgPanel('☁️ Connexion cloud (Supabase)','Synchronisation multi-appareils. Laisser vide = mode local uniquement (hors ligne).',`
+    <div class="mb-3"><span class="badge ${configured?'bg-emerald-50 text-emerald-700':'bg-slate-100 text-slate-500'}">${configured?'☁️ Connecté':'📴 Mode local uniquement'}</span></div>
+    <form onsubmit="return handleSaveCloudConfig(event)" class="grid sm:grid-cols-2 gap-2 mb-6">
+      <input id="rgSupaUrl" value="${escapeHtml(CFG.SUPABASE_URL.includes('VOTRE-PROJET')?'':CFG.SUPABASE_URL)}" placeholder="https://votre-projet.supabase.co" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
+      <input id="rgSupaKey" value="${escapeHtml(CFG.SUPABASE_ANON_KEY==='VOTRE_ANON_KEY'?'':CFG.SUPABASE_ANON_KEY)}" placeholder="Clé anonyme (anon key)" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2 font-mono">
+      <input id="rgSupaCompany" value="${escapeHtml(CFG.COMPANY_ID)}" placeholder="Identifiant entreprise (company_id)" class="border rounded-lg px-2 py-1.5 text-sm">
+      <div class="sm:col-span-2 flex gap-2">
+        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">Enregistrer</button>
+        ${getCloudConfigOverride()?`<button type="button" onclick="handleResetCloudConfig()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Réinitialiser</button>`:''}
+      </div>
+      <p class="text-xs text-slate-400 sm:col-span-2">Un rechargement de la page est nécessaire après modification pour que la reconnexion prenne effet.</p>
+    </form>
+    <div class="border-t pt-4">
+      <h3 class="font-bold text-sm mb-2">🔄 État de synchronisation</h3>
+      <div id="rgSyncStatus" class="text-sm text-slate-600 mb-3"></div>
+      <button onclick="forcerSyncMaintenant()" class="border px-4 py-2 rounded-lg text-sm font-semibold">🔄 Forcer la synchro maintenant</button>
+    </div>`);
   updateRgSyncStatus();
 }
 async function updateRgSyncStatus(){
@@ -5926,14 +5992,14 @@ function handleSaveCloudConfig(e){
   if(!url || !key){ alert("Renseignez l'URL et la clé anonyme, ou utilisez Réinitialiser pour repasser en mode local."); return false; }
   saveCloudConfigOverride({SUPABASE_URL:url,SUPABASE_ANON_KEY:key,COMPANY_ID:company});
   alert('Configuration cloud enregistrée. Rechargez la page pour appliquer.');
-  renderCloudTab();
+  rgRenderCloud();
   return false;
 }
 function handleResetCloudConfig(){
   if(!confirm('Revenir à la configuration cloud par défaut du fichier ?')) return;
   clearCloudConfigOverride();
   alert('Réinitialisé. Rechargez la page pour appliquer.');
-  renderCloudTab();
+  rgRenderCloud();
 }
 async function forcerSyncMaintenant(){
   if(!navigator.onLine){ alert('Pas de connexion internet détectée.'); return; }
@@ -5942,7 +6008,21 @@ async function forcerSyncMaintenant(){
   await updateRgSyncStatus();
   alert('Synchronisation lancée.');
 }
-
+function rgRenderImport(){
+  rgPanel('📥 Import de données','Séries, profils, vitrages, quincaillerie… par fichier CSV ou collé.',
+    `<button onclick="showPage('referentiel');showRefTab('import')" class="border border-blue-600 text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold">Ouvrir Référentiel → Importation →</button>`);
+}
+function rgRenderSauvegarde(){
+  rgPanel('💾 Sauvegarde locale','Export complet de toutes les données de l\'appareil (fichier .json) — à faire régulièrement, en plus du cloud.',`
+    <div class="flex flex-wrap gap-2">
+      <button onclick="exporterSauvegardeComplete()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">⬇️ Exporter toutes les données</button>
+      <label class="border px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer">
+        ⬆️ Restaurer depuis un fichier
+        <input type="file" accept=".json" onchange="restaurerSauvegarde(event)" class="hidden">
+      </label>
+    </div>
+    <p class="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 mt-3">⚠️ La restauration fusionne les données du fichier avec celles déjà présentes (mêmes id = écrasés). Elle ne supprime rien d'existant.</p>`);
+}
 async function exporterSauvegardeComplete(){
   const storeNames=Array.from(db.objectStoreNames);
   const backup={version:1,exporteLe:new Date().toISOString(),app:CFG.APP,stores:{}};
@@ -15502,7 +15582,42 @@ function renderBOMTree(type,w,h,rows){
 
 
 const ETUDE_TABS=['config','bom','cut','cost','proforma'];
+/* ---------- Sidebar : modules repliables ---------- */
+const PAGE_TO_MODULE={
+  referentiel:'mod1',catalogue:'mod1',clients:'mod1',fournisseurs:'mod1',
+  prospects:'mod2',ao:'mod2',
+  etude:'mod3',config:'mod3',bom:'mod3',cut:'mod3',cost:'mod3',proforma:'mod3',
+  chantier:'mod4',cartechantiers:'mod4',
+  production:'mod5',atelierMobile:'mod5',stock:'mod5',gmao:'mod5',
+  sav:'mod6',
+  caisse:'mod7',compta:'mod7',
+  controlegestion:'mod8',validations:'mod8',etatpa:'mod8',relances:'mod8',analysecommerciale:'mod8',partenaires:'mod8',
+  utilisateurs:'mod9',reglages:'mod9',rh:'mod9'
+};
+function getOpenModules(){
+  try{ return JSON.parse(localStorage.getItem('alubom_sidebar_modules')||'{}'); }catch{ return {}; }
+}
+function setOpenModules(o){ localStorage.setItem('alubom_sidebar_modules',JSON.stringify(o)); }
+function toggleModule(id,forceOpen){
+  const group=document.getElementById(id);
+  const btn=document.getElementById('chev-'+id)?.closest('.module-toggle');
+  if(!group) return;
+  const open = forceOpen!=null ? forceOpen : group.classList.contains('hidden');
+  group.classList.toggle('hidden',!open);
+  btn?.classList.toggle('open',open);
+  const states=getOpenModules(); states[id]=open; setOpenModules(states);
+}
+function expandModuleForPage(page){
+  const modId=PAGE_TO_MODULE[page];
+  if(modId) toggleModule(modId,true);
+}
+(function restoreSidebarModules(){
+  const states=getOpenModules();
+  Object.entries(states).forEach(([id,open])=>{ if(open) toggleModule(id,true); });
+})();
+
 function showPage(page){
+  expandModuleForPage(page);
   document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
   document.querySelectorAll('.nav').forEach(b=>b.classList.remove('active'));
   const titles={dashboard:'Tableau de bord',flux:'Schéma des flux',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',atelierMobile:'Vue atelier',stock:'Stock',sav:'SAV & Garantie',chantier:'Circuit Chantier',cartechantiers:'Carte des chantiers',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs',catalogue:'Catalogue technique',controlegestion:'Contrôle de gestion',validations:'Validations en attente',etatpa:'État proforma & achats',gmao:'GMAO — Maintenance',prospects:'Prospects & Pipeline',relances:'Relances commerciales',analysecommerciale:'Analyse commerciale',partenaires:'Partenaires & commissions',ao:"Appels d'offres",rh:'RH & Paie',caisse:'Caisse',compta:'Comptabilité SYSCOHADA',reglages:'Paramètres'};
@@ -15546,7 +15661,7 @@ function showPage(page){
     if(page==='rh') showRHTab(document.querySelector('.rh-tab-btn.active')?.dataset.rhtab||'employes');
     if(page==='caisse') renderCaisse();
     if(page==='compta') showComptaTab(document.querySelector('.compta-tab-btn.active')?.dataset.comptatab||'dashboard');
-    if(page==='reglages') showReglagesTab(document.querySelector('.reglages-tab-btn.active')?.dataset.rgtab||'societe');
+    if(page==='reglages') showReglagesTab();
   }
   document.getElementById('pageTitle').textContent=titles[page];
 }
