@@ -141,7 +141,7 @@ window.SANIX_CFG = {
   .etude-tab-btn,.ref-tab-btn,.flux-view-btn,.cat-tab-btn,.stock-tab-btn,.prod-tab-btn,.fe-tab-btn,.livre-tab-btn,.compta-tab-btn,.rh-tab-btn,.gmao-tab-btn,.prospects-tab-btn,.ao-tab-btn{color:var(--ds-slate-500);background:transparent;border-radius:2px;font-weight:700;transition:background-color .15s var(--ds-ease),color .15s var(--ds-ease)}
   .etude-tab-btn:hover,.ref-tab-btn:hover,.cat-tab-btn:hover,.stock-tab-btn:hover,.prod-tab-btn:hover,.fe-tab-btn:hover,.livre-tab-btn:hover,.compta-tab-btn:hover,.rh-tab-btn:hover,.gmao-tab-btn:hover,.prospects-tab-btn:hover,.ao-tab-btn:hover{background:var(--ds-slate-100);color:var(--ds-slate-700)}
   .flux-view-btn:hover{background:#e2e8f0}
-  .etude-tab-btn.active,.ref-tab-btn.active,.cat-tab-btn.active,.stock-tab-btn.active,.prod-tab-btn.active,.gmao-tab-btn.active,.prospects-tab-btn.active,.ao-tab-btn.active,.fe-tab-btn.active,.livre-tab-btn.active,.compta-tab-btn.active,.rh-tab-btn.active{background-image:var(--ds-grad);color:#fff;box-shadow:var(--ds-shadow-sm)}
+  .etude-tab-btn.active,.ref-tab-btn.active,.cat-tab-btn.active,.stock-tab-btn.active,.prod-tab-btn.active,.gmao-tab-btn.active,.prospects-tab-btn.active,.ao-tab-btn.active,.fe-tab-btn.active,.livre-tab-btn.active,.compta-tab-btn.active,.rh-tab-btn.active,.reglages-tab-btn.active{background-image:var(--ds-grad);color:#fff;box-shadow:var(--ds-shadow-sm)}
   .config-view-btn{color:var(--ds-slate-500);background:transparent;border-radius:2px;transition:background-color .15s var(--ds-ease),color .15s var(--ds-ease)}
   .config-view-btn:hover{background:var(--ds-slate-100)}
   .config-view-btn.active{background-image:var(--ds-grad);color:#fff}
@@ -287,6 +287,7 @@ window.SANIX_CFG = {
 
       <div class="text-[10px] uppercase tracking-widest text-slate-600 px-3 pt-4 pb-1">9 · Administration</div>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="utilisateurs">👥 Utilisateurs</button>
+      <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="reglages">⚙️ Paramètres</button>
       <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="rh">🧑‍💼 RH & Paie <span id="congesBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
     </nav>
     <div class="mt-8 border-t border-slate-700 pt-4 text-xs text-slate-500">
@@ -3147,6 +3148,110 @@ window.SANIX_CFG = {
         <!-- ====== AUDIT ÉCARTS CAISSE & LETTRAGE ====== -->
       </section>
 
+      <section id="reglages" class="page hidden">
+        <div class="card bg-white rounded-2xl p-2 mb-4 flex flex-wrap gap-1 items-center">
+          <button class="reglages-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rgtab="societe" onclick="showReglagesTab('societe')">🏢 Société</button>
+          <button class="reglages-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rgtab="utilisateurs" onclick="showReglagesTab('utilisateurs')">👥 Utilisateurs & sécurité</button>
+          <button class="reglages-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rgtab="compta" onclick="showReglagesTab('compta')">📒 Plan comptable</button>
+          <button class="reglages-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rgtab="gestion" onclick="showReglagesTab('gestion')">📐 Règles de gestion</button>
+          <button class="reglages-tab-btn px-4 py-2 rounded-lg text-sm font-semibold" data-rgtab="cloud" onclick="showReglagesTab('cloud')">☁️ Cloud & sauvegarde</button>
+        </div>
+
+        <!-- 1. Société, localisation, portail public -->
+        <div id="rgTabSociete" class="rg-tab">
+          <div class="card bg-white rounded-2xl p-6 mb-6">
+            <h2 class="font-bold text-lg mb-1">🏢 Entreprise</h2>
+            <p class="text-sm text-slate-500 mb-4">Utilisé sur tous les documents imprimés (devis, factures, feuilles de route…).</p>
+            <form onsubmit="return handleSaveSociete(event)" class="grid sm:grid-cols-2 gap-2" id="rgSocieteForm"></form>
+          </div>
+          <div class="card bg-white rounded-2xl p-6 mb-6">
+            <h2 class="font-bold text-lg mb-1">📍 Localisation</h2>
+            <p class="text-sm text-slate-500 mb-4">Adresse de l'atelier/siège — utile pour les futures fonctions de carte et de métré.</p>
+            <div id="rgLocalisationForm" class="grid sm:grid-cols-2 gap-2"></div>
+          </div>
+          <div class="card bg-white rounded-2xl p-6">
+            <h2 class="font-bold text-lg mb-1">🔗 Portail public</h2>
+            <p class="text-sm text-slate-500 mb-4">Lien de suivi client (état du dossier, sans connexion) — généré depuis chaque dossier chantier.</p>
+            <div id="rgPortailForm"></div>
+          </div>
+        </div>
+
+        <!-- 2. Utilisateurs, sécurité, API partners -->
+        <div id="rgTabUtilisateurs" class="rg-tab hidden">
+          <div class="card bg-white rounded-2xl p-6 mb-6">
+            <h2 class="font-bold text-lg mb-1">👥 Utilisateurs & rôles</h2>
+            <p class="text-sm text-slate-500 mb-4">Gestion complète des comptes et permissions.</p>
+            <button onclick="showPage('utilisateurs')" class="border border-blue-600 text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold">Ouvrir Utilisateurs & rôles →</button>
+          </div>
+          <div class="card bg-white rounded-2xl p-6 mb-6">
+            <h2 class="font-bold text-lg mb-1">🔒 Sécurité de connexion</h2>
+            <form onsubmit="return handleSaveSecurite(event)" class="grid sm:grid-cols-2 gap-3" id="rgSecuriteForm"></form>
+          </div>
+          <div class="card bg-white rounded-2xl p-6">
+            <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
+              <h2 class="font-bold text-lg">🔌 API & intégrations partenaires</h2>
+              <button onclick="openApiPartnerForm(null)" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold">+ Nouvelle clé</button>
+            </div>
+            <p class="text-sm text-slate-500 mb-4">Clés/jetons pour intégrations externes (WhatsApp Business, SMS, comptabilité tierce…).</p>
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="text-left p-2">Partenaire</th><th class="text-left p-2">Type</th><th class="text-left p-2">Clé</th><th class="text-left p-2">Statut</th><th class="p-2"></th></tr></thead><tbody id="rgApiPartnersBody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- 3. Plan comptable, compte par défaut -->
+        <div id="rgTabCompta" class="rg-tab hidden">
+          <div class="card bg-white rounded-2xl p-6">
+            <h2 class="font-bold text-lg mb-1">📒 Plan comptable SYSCOHADA & comptes par défaut</h2>
+            <p class="text-sm text-slate-500 mb-4">Gestion complète déjà disponible dans le module Comptabilité — pas de duplication ici, un seul endroit pour l'éditer.</p>
+            <div class="flex flex-wrap gap-2">
+              <button onclick="showPage('compta');showComptaTab('parametres')" class="border border-blue-600 text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold">Ouvrir Comptabilité → Paramètres →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Règles de gestion -->
+        <div id="rgTabGestion" class="rg-tab hidden">
+          <div class="card bg-white rounded-2xl p-6">
+            <h2 class="font-bold text-lg mb-1">📐 Règles de gestion</h2>
+            <p class="text-sm text-slate-500 mb-4">Seuils et paramètres appliqués automatiquement dans toute l'application.</p>
+            <form onsubmit="return handleSaveReglesGestion(event)" class="space-y-5" id="rgGestionForm"></form>
+          </div>
+        </div>
+
+        <!-- 5. Cloud/Synch, import, sauvegarde -->
+        <div id="rgTabCloud" class="rg-tab hidden">
+          <div class="card bg-white rounded-2xl p-6 mb-6">
+            <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
+              <h2 class="font-bold text-lg">☁️ Connexion cloud (Supabase)</h2>
+              <span id="rgCloudStatutBadge" class="badge"></span>
+            </div>
+            <p class="text-sm text-slate-500 mb-4">Synchronisation multi-appareils. Laisser vide = mode local uniquement (hors ligne).</p>
+            <form onsubmit="return handleSaveCloudConfig(event)" class="grid sm:grid-cols-2 gap-2" id="rgCloudForm"></form>
+          </div>
+          <div class="card bg-white rounded-2xl p-6 mb-6">
+            <h2 class="font-bold text-lg mb-1">🔄 État de synchronisation</h2>
+            <div id="rgSyncStatus" class="text-sm text-slate-600 mb-3"></div>
+            <button onclick="forcerSyncMaintenant()" class="border px-4 py-2 rounded-lg text-sm font-semibold">🔄 Forcer la synchro maintenant</button>
+          </div>
+          <div class="card bg-white rounded-2xl p-6 mb-6">
+            <h2 class="font-bold text-lg mb-1">📥 Import de données</h2>
+            <p class="text-sm text-slate-500 mb-4">Séries, profils, vitrages, quincaillerie… par fichier CSV ou collé.</p>
+            <button onclick="showPage('referentiel');showRefTab('import')" class="border border-blue-600 text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold">Ouvrir Référentiel → Importation →</button>
+          </div>
+          <div class="card bg-white rounded-2xl p-6">
+            <h2 class="font-bold text-lg mb-1">💾 Sauvegarde locale</h2>
+            <p class="text-sm text-slate-500 mb-4">Export complet de toutes les données de l'appareil (fichier .json) — à faire régulièrement, en plus du cloud.</p>
+            <div class="flex flex-wrap gap-2">
+              <button onclick="exporterSauvegardeComplete()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">⬇️ Exporter toutes les données</button>
+              <label class="border px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer">
+                ⬆️ Restaurer depuis un fichier
+                <input type="file" accept=".json" onchange="restaurerSauvegarde(event)" class="hidden">
+              </label>
+            </div>
+            <p class="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 mt-3">⚠️ La restauration fusionne les données du fichier avec celles déjà présentes (mêmes id = écrasés). Elle ne supprime rien d'existant.</p>
+          </div>
+        </div>
+      </section>
+
       <section id="utilisateurs" class="page hidden">
         <div class="card bg-white rounded-2xl p-6">
           <div class="flex flex-wrap justify-between gap-3 mb-2">
@@ -3619,6 +3724,10 @@ window.SANIX_CFG = {
   <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[92vh] overflow-y-auto" id="aoContent"></div>
 </div>
 
+<div id="apiPartnerModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 modal-overlay">
+  <div class="bg-white rounded-2xl p-6 max-w-md w-full max-h-[92vh] overflow-y-auto" id="apiPartnerContent"></div>
+</div>
+
 <div id="ficheEmployeModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 modal-overlay">
   <div class="bg-white rounded-2xl p-0 max-w-3xl w-full max-h-[94vh] overflow-y-auto" id="ficheEmployeContent"></div>
 </div>
@@ -3629,6 +3738,22 @@ window.SANIX_CFG = {
    sync REST, RBAC, audit). XHR uniquement, aucun SDK externe.
    ========================================================= */
 const CFG = window.SANIX_CFG;
+(function applyCloudConfigOverride(){
+  try{
+    const o=JSON.parse(localStorage.getItem('alubom_cloud_config_override')||'null');
+    if(o) Object.assign(CFG,o);
+  }catch{}
+})();
+function getCloudConfigOverride(){
+  try{ return JSON.parse(localStorage.getItem('alubom_cloud_config_override')||'null'); }catch{ return null; }
+}
+function saveCloudConfigOverride(o){
+  localStorage.setItem('alubom_cloud_config_override',JSON.stringify(o));
+  Object.assign(CFG,o);
+}
+function clearCloudConfigOverride(){
+  localStorage.removeItem('alubom_cloud_config_override');
+}
 let currentUser = null; // {id,email,role,permissions}
 let db = null;
 
@@ -3642,10 +3767,10 @@ function escapeHtml(s){
 /* ---------- IndexedDB ---------- */
 function openDB(){
   return new Promise((resolve,reject)=>{
-    const req=indexedDB.open('alubom_db',24);
+    const req=indexedDB.open('alubom_db',25);
     req.onupgradeneeded=e=>{
       const d=e.target.result;
-      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers','depots','pointages','nonconformites','chutes','postes','gammes','sav','maintenances','prospects','partenaires','appels_offres','employes','conges','paies','pointages_rh','articles','articles_prix_historique'].forEach(s=>{
+      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers','depots','pointages','nonconformites','chutes','postes','gammes','sav','maintenances','prospects','partenaires','appels_offres','employes','conges','paies','pointages_rh','articles','articles_prix_historique','api_partners'].forEach(s=>{
         if(!d.objectStoreNames.contains(s)) d.createObjectStore(s,{keyPath:'id'});
       });
     };
@@ -3834,7 +3959,8 @@ async function handleLogin(e){
     showApp();
   }catch(err){
     const c=att.count+1;
-    const lock=c>=5?Date.now()+15*60000:0;
+    const r=getReglesGestion();
+    const lock=c>=r.seuilTentativesLogin?Date.now()+r.dureeVerrouillageMin*60000:0;
     setLoginAttempts(email,{count:c,lockUntil:lock});
     errEl.textContent = lock? 'Trop de tentatives. Compte verrouillé 15 min.' : 'Identifiants invalides.';
     errEl.classList.remove('hidden');
@@ -5537,6 +5663,322 @@ async function demarrerMaintenance(id){
   await audit('MAINTENANCE_DEMARREE',rec.numero);
   showGmaoTab('planning');
   await updateGmaoBadge();
+}
+
+/* ---------- Paramètres — hub central (société, sécurité, règles, cloud, sauvegarde) ---------- */
+function showReglagesTab(tab){
+  document.querySelectorAll('.rg-tab').forEach(t=>t.classList.add('hidden'));
+  const el=document.getElementById('rgTab'+tab.charAt(0).toUpperCase()+tab.slice(1)); if(el) el.classList.remove('hidden');
+  document.querySelectorAll('.reglages-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.rgtab===tab));
+  if(tab==='societe') renderSocieteTab();
+  if(tab==='utilisateurs'){ renderSecuriteTab(); renderApiPartners(); }
+  if(tab==='gestion') renderGestionTab();
+  if(tab==='cloud') renderCloudTab();
+}
+
+/* --- 1. Société, localisation, portail public --- */
+function renderSocieteTab(){
+  const c=getCompanyInfo();
+  document.getElementById('rgSocieteForm').innerHTML=`
+    <input id="rgNom" value="${escapeHtml(c.nom)}" placeholder="Nom de l'entreprise" required class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
+    <input id="rgTagline" value="${escapeHtml(c.tagline)}" placeholder="Slogan / activité" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
+    <input id="rgAdresse" value="${escapeHtml(c.adresse)}" placeholder="Adresse" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
+    <input id="rgTel" value="${escapeHtml(c.tel)}" placeholder="Téléphone" class="border rounded-lg px-2 py-1.5 text-sm">
+    <input id="rgEmail" type="email" value="${escapeHtml(c.email)}" placeholder="Email" class="border rounded-lg px-2 py-1.5 text-sm">
+    <input id="rgRccm" value="${escapeHtml(c.rccm)}" placeholder="RCCM" class="border rounded-lg px-2 py-1.5 text-sm">
+    <input id="rgNcc" value="${escapeHtml(c.ncc)}" placeholder="NCC (compte contribuable)" class="border rounded-lg px-2 py-1.5 text-sm">
+    <input id="rgCnps" value="${escapeHtml(c.numeroEmployeurCnps||'')}" placeholder="N° employeur CNPS" class="border rounded-lg px-2 py-1.5 text-sm">
+    <input id="rgCmu" value="${escapeHtml(c.numeroEmployeurCmu||'')}" placeholder="N° employeur CMU" class="border rounded-lg px-2 py-1.5 text-sm">
+    <div class="sm:col-span-2"><button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">Enregistrer</button></div>
+  `;
+  document.getElementById('rgLocalisationForm').innerHTML=`
+    <input id="rgVille" value="${escapeHtml(c.ville||'')}" placeholder="Ville" class="border rounded-lg px-2 py-1.5 text-sm">
+    <input id="rgPays" value="${escapeHtml(c.pays||'')}" placeholder="Pays" class="border rounded-lg px-2 py-1.5 text-sm">
+    <input id="rgLat" value="${escapeHtml(c.latitude||'')}" placeholder="Latitude (optionnel)" class="border rounded-lg px-2 py-1.5 text-sm">
+    <input id="rgLng" value="${escapeHtml(c.longitude||'')}" placeholder="Longitude (optionnel)" class="border rounded-lg px-2 py-1.5 text-sm">
+    <div class="sm:col-span-2"><button type="button" onclick="handleSaveLocalisation()" class="border border-blue-600 text-blue-600 rounded-lg px-4 py-2 text-sm font-semibold">Enregistrer la localisation</button></div>
+  `;
+  document.getElementById('rgPortailForm').innerHTML=`
+    <label class="flex items-center gap-2 text-sm font-semibold mb-2"><input id="rgPortailActif" type="checkbox" ${c.portailPublicActif!==false?'checked':''} onchange="handleSavePortail()"> Autoriser la génération de liens de suivi client</label>
+    <p class="text-xs text-slate-400">Quand désactivé, le bouton « Lien de suivi » reste visible mais génère un lien inactif — utile en cas d'incident ou de maintenance du portail.</p>
+  `;
+}
+function handleSaveSociete(e){
+  e.preventDefault();
+  const c=getCompanyInfo();
+  saveCompanyInfo({...c,
+    nom:document.getElementById('rgNom').value.trim()||'SANIX AluExpert',
+    tagline:document.getElementById('rgTagline').value.trim(),
+    adresse:document.getElementById('rgAdresse').value.trim(),
+    tel:document.getElementById('rgTel').value.trim(),
+    email:document.getElementById('rgEmail').value.trim(),
+    rccm:document.getElementById('rgRccm').value.trim(),
+    ncc:document.getElementById('rgNcc').value.trim(),
+    numeroEmployeurCnps:document.getElementById('rgCnps').value.trim(),
+    numeroEmployeurCmu:document.getElementById('rgCmu').value.trim()
+  });
+  audit('MAJ_SOCIETE','Entête entreprise mise à jour');
+  return false;
+}
+function handleSaveLocalisation(){
+  const c=getCompanyInfo();
+  saveCompanyInfo({...c,
+    ville:document.getElementById('rgVille').value.trim(),
+    pays:document.getElementById('rgPays').value.trim(),
+    latitude:document.getElementById('rgLat').value.trim(),
+    longitude:document.getElementById('rgLng').value.trim()
+  });
+  audit('MAJ_LOCALISATION','Localisation entreprise mise à jour');
+}
+function handleSavePortail(){
+  const c=getCompanyInfo();
+  saveCompanyInfo({...c,portailPublicActif:document.getElementById('rgPortailActif').checked});
+  audit('MAJ_PORTAIL_PUBLIC',document.getElementById('rgPortailActif').checked?'Activé':'Désactivé');
+}
+
+/* --- 2. Sécurité + API partners --- */
+function renderSecuriteTab(){
+  const r=getReglesGestion();
+  document.getElementById('rgSecuriteForm').innerHTML=`
+    <label class="text-sm font-semibold block">Tentatives avant verrouillage
+      <input id="rgSeuilLogin" type="number" min="1" value="${r.seuilTentativesLogin}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+    </label>
+    <label class="text-sm font-semibold block">Durée de verrouillage (minutes)
+      <input id="rgDureeVerrou" type="number" min="1" value="${r.dureeVerrouillageMin}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+    </label>
+    <div class="sm:col-span-2"><button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">Enregistrer</button></div>
+  `;
+}
+function handleSaveSecurite(e){
+  e.preventDefault();
+  saveReglesGestion({...getReglesGestion(),
+    seuilTentativesLogin:+document.getElementById('rgSeuilLogin').value||5,
+    dureeVerrouillageMin:+document.getElementById('rgDureeVerrou').value||15
+  });
+  audit('MAJ_SECURITE','Règles de verrouillage login mises à jour');
+  return false;
+}
+
+const API_PARTNER_TYPES={whatsapp:'WhatsApp Business',sms:'Passerelle SMS',compta:'Comptabilité externe',paiement:'Paiement mobile',autre:'Autre'};
+async function renderApiPartners(){
+  const el=document.getElementById('rgApiPartnersBody'); if(!el) return;
+  const rows=await idbGetAll('api_partners');
+  el.innerHTML = rows.length ? rows.map(p=>`
+    <tr class="border-b">
+      <td class="p-2 font-semibold">${escapeHtml(p.nom)}</td>
+      <td class="p-2 text-xs">${escapeHtml(API_PARTNER_TYPES[p.type]||p.type)}</td>
+      <td class="p-2 font-mono text-xs">${p.cle?'••••'+escapeHtml(p.cle.slice(-4)):'—'}</td>
+      <td class="p-2"><span class="badge ${p.actif!==false?'bg-emerald-50 text-emerald-700':'bg-slate-100 text-slate-500'}">${p.actif!==false?'Actif':'Inactif'}</span></td>
+      <td class="p-2 text-right"><button onclick="openApiPartnerForm('${p.id}')" class="text-blue-600 text-xs font-semibold mr-2">✏️</button><button onclick="deleteApiPartner('${p.id}')" class="text-red-500 text-xs font-semibold">Supprimer</button></td>
+    </tr>`).join('') : '<tr><td class="p-2 text-slate-400" colspan="5">Aucune clé enregistrée.</td></tr>';
+}
+async function openApiPartnerForm(id){
+  let rec=null;
+  if(id){ const rows=await idbGetAll('api_partners'); rec=rows.find(p=>p.id===id); }
+  const typeOptions=Object.entries(API_PARTNER_TYPES).map(([k,l])=>`<option value="${k}" ${rec?.type===k?'selected':''}>${l}</option>`).join('');
+  document.getElementById('apiPartnerContent').innerHTML=`
+    <div class="flex justify-between items-start mb-4">
+      <h2 class="text-lg font-bold">${rec?'Modifier':'Nouvelle'} clé API</h2>
+      <button onclick="document.getElementById('apiPartnerModal').classList.add('hidden');setModalOpen(false)" class="text-slate-400 text-xl leading-none">×</button>
+    </div>
+    <form onsubmit="return saveApiPartner(event,'${id||''}')" class="space-y-3">
+      <label class="text-xs font-semibold block">Nom du partenaire
+        <input id="apNom" value="${escapeHtml(rec?.nom||'')}" required class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+      </label>
+      <label class="text-xs font-semibold block">Type
+        <select id="apType" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">${typeOptions}</select>
+      </label>
+      <label class="text-xs font-semibold block">Clé / jeton
+        <input id="apCle" value="${escapeHtml(rec?.cle||'')}" placeholder="Collez la clé fournie par le partenaire" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm font-mono">
+      </label>
+      <label class="flex items-center gap-2 text-xs font-semibold"><input id="apActif" type="checkbox" ${rec?.actif!==false?'checked':''}> Actif</label>
+      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold">✓ Enregistrer</button>
+    </form>`;
+  document.getElementById('apiPartnerModal').classList.remove('hidden');
+  setModalOpen(true);
+}
+async function saveApiPartner(e,id){
+  e.preventDefault();
+  let rec=null;
+  if(id){ const rows=await idbGetAll('api_partners'); rec=rows.find(p=>p.id===id); }
+  if(!rec){ rec={id:'api_'+Date.now(),createdAt:new Date().toISOString()}; }
+  Object.assign(rec,{
+    nom:document.getElementById('apNom').value.trim(),
+    type:document.getElementById('apType').value,
+    cle:document.getElementById('apCle').value.trim(),
+    actif:document.getElementById('apActif').checked,
+    _modifie:new Date().toISOString()
+  });
+  await idbPut('api_partners',rec);
+  queueSync('alubom_api_partners',rec);
+  await audit('API_PARTNER_'+(id?'MAJ':'CREATION'),rec.nom);
+  document.getElementById('apiPartnerModal').classList.add('hidden');
+  setModalOpen(false);
+  await renderApiPartners();
+  return false;
+}
+async function deleteApiPartner(id){
+  if(!confirm('Supprimer cette clé ?')) return;
+  await idbDelete('api_partners',id);
+  await audit('API_PARTNER_SUPPRESSION',id);
+  await renderApiPartners();
+}
+
+/* --- 4. Règles de gestion --- */
+function renderGestionTab(){
+  const c=getCompanyInfo(), r=getReglesGestion();
+  document.getElementById('rgGestionForm').innerHTML=`
+    <div>
+      <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Validation hiérarchique</h3>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <label class="text-sm font-semibold block">Seuil validation DG achats (FCFA)
+          <input id="rgSeuilAchat" type="number" value="${c.seuilValidationAchat}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+        <label class="text-sm font-semibold block">Marge mini sans validation DG (%)
+          <input id="rgSeuilMarge" type="number" step="0.1" value="${c.seuilMargeCommerciale}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+        <label class="text-sm font-semibold block sm:col-span-2">Téléphone WhatsApp du valideur (DG)
+          <input id="rgTelDG" value="${escapeHtml(c.telDG||'')}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+      </div>
+    </div>
+    <div>
+      <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Relances commerciales (jours après envoi devis)</h3>
+      <div class="grid sm:grid-cols-3 gap-3">
+        <label class="text-sm font-semibold block">🟡 Relance recommandée (J+)
+          <input id="rgRelanceJ1" type="number" min="1" value="${r.relanceJ1}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+        <label class="text-sm font-semibold block">🟠 2ᵉ relance (J+)
+          <input id="rgRelanceJ2" type="number" min="1" value="${r.relanceJ2}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+        <label class="text-sm font-semibold block">🔴 Alerte responsable (J+)
+          <input id="rgRelanceJ3" type="number" min="1" value="${r.relanceJ3}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+      </div>
+    </div>
+    <div>
+      <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Facturation</h3>
+      <div class="grid sm:grid-cols-3 gap-3">
+        <label class="text-sm font-semibold block">Devise
+          <input id="rgDevise" value="${escapeHtml(r.devise)}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+        <label class="text-sm font-semibold block">Taux TVA par défaut (%)
+          <input id="rgTVA" type="number" step="0.1" value="${r.tauxTVADefaut}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+        <label class="text-sm font-semibold block">Arrondi (0 = au FCFA près)
+          <input id="rgArrondi" type="number" min="0" value="${r.arrondi}" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
+        </label>
+      </div>
+    </div>
+    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">Enregistrer toutes les règles</button>
+  `;
+}
+function handleSaveReglesGestion(e){
+  e.preventDefault();
+  const c=getCompanyInfo();
+  saveCompanyInfo({...c,
+    seuilValidationAchat:+document.getElementById('rgSeuilAchat').value||500000,
+    seuilMargeCommerciale:+document.getElementById('rgSeuilMarge').value||25,
+    telDG:document.getElementById('rgTelDG').value.trim()
+  });
+  saveReglesGestion({...getReglesGestion(),
+    relanceJ1:+document.getElementById('rgRelanceJ1').value||2,
+    relanceJ2:+document.getElementById('rgRelanceJ2').value||5,
+    relanceJ3:+document.getElementById('rgRelanceJ3').value||10,
+    devise:document.getElementById('rgDevise').value.trim()||'FCFA',
+    tauxTVADefaut:+document.getElementById('rgTVA').value||18,
+    arrondi:+document.getElementById('rgArrondi').value||0
+  });
+  audit('MAJ_REGLES_GESTION','Règles de gestion mises à jour');
+  return false;
+}
+
+/* --- 5. Cloud/Synch, import, sauvegarde --- */
+function renderCloudTab(){
+  const configured=isSupabaseConfigured();
+  const badge=document.getElementById('rgCloudStatutBadge');
+  badge.textContent=configured?'☁️ Connecté':'📴 Mode local uniquement';
+  badge.className='badge '+(configured?'bg-emerald-50 text-emerald-700':'bg-slate-100 text-slate-500');
+  document.getElementById('rgCloudForm').innerHTML=`
+    <input id="rgSupaUrl" value="${escapeHtml(CFG.SUPABASE_URL.includes('VOTRE-PROJET')?'':CFG.SUPABASE_URL)}" placeholder="https://votre-projet.supabase.co" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
+    <input id="rgSupaKey" value="${escapeHtml(CFG.SUPABASE_ANON_KEY==='VOTRE_ANON_KEY'?'':CFG.SUPABASE_ANON_KEY)}" placeholder="Clé anonyme (anon key)" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2 font-mono">
+    <input id="rgSupaCompany" value="${escapeHtml(CFG.COMPANY_ID)}" placeholder="Identifiant entreprise (company_id)" class="border rounded-lg px-2 py-1.5 text-sm">
+    <div class="sm:col-span-2 flex gap-2">
+      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm font-semibold">Enregistrer</button>
+      ${getCloudConfigOverride()?`<button type="button" onclick="handleResetCloudConfig()" class="border px-4 py-2 rounded-lg text-sm font-semibold">Réinitialiser</button>`:''}
+    </div>
+    <p class="text-xs text-slate-400 sm:col-span-2">Un rechargement de la page est nécessaire après modification pour que la reconnexion prenne effet.</p>
+  `;
+  updateRgSyncStatus();
+}
+async function updateRgSyncStatus(){
+  const el=document.getElementById('rgSyncStatus'); if(!el) return;
+  const q=await idbGetAll('sync_queue');
+  el.innerHTML = q.length
+    ? `<span class="text-amber-600 font-semibold">● ${q.length} enregistrement(s) en attente de synchronisation.</span>`
+    : `<span class="text-emerald-600 font-semibold">● Tout est synchronisé.</span>`;
+}
+function handleSaveCloudConfig(e){
+  e.preventDefault();
+  const url=document.getElementById('rgSupaUrl').value.trim();
+  const key=document.getElementById('rgSupaKey').value.trim();
+  const company=document.getElementById('rgSupaCompany').value.trim()||'default';
+  if(!url || !key){ alert("Renseignez l'URL et la clé anonyme, ou utilisez Réinitialiser pour repasser en mode local."); return false; }
+  saveCloudConfigOverride({SUPABASE_URL:url,SUPABASE_ANON_KEY:key,COMPANY_ID:company});
+  alert('Configuration cloud enregistrée. Rechargez la page pour appliquer.');
+  renderCloudTab();
+  return false;
+}
+function handleResetCloudConfig(){
+  if(!confirm('Revenir à la configuration cloud par défaut du fichier ?')) return;
+  clearCloudConfigOverride();
+  alert('Réinitialisé. Rechargez la page pour appliquer.');
+  renderCloudTab();
+}
+async function forcerSyncMaintenant(){
+  if(!navigator.onLine){ alert('Pas de connexion internet détectée.'); return; }
+  if(!isSupabaseConfigured()){ alert('Aucune connexion cloud configurée.'); return; }
+  await syncNow();
+  await updateRgSyncStatus();
+  alert('Synchronisation lancée.');
+}
+
+async function exporterSauvegardeComplete(){
+  const storeNames=Array.from(db.objectStoreNames);
+  const backup={version:1,exporteLe:new Date().toISOString(),app:CFG.APP,stores:{}};
+  for(const s of storeNames){ backup.stores[s]=await idbGetAll(s); }
+  backup.localStorageConfig={
+    companyInfo:JSON.parse(localStorage.getItem('alubom_company_info')||'null'),
+    reglesGestion:JSON.parse(localStorage.getItem('alubom_regles_gestion')||'null')
+  };
+  const blob=new Blob([JSON.stringify(backup,null,0)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='sauvegarde_aluexpert_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  await audit('SAUVEGARDE_EXPORT','Export complet — '+storeNames.length+' tables');
+}
+async function restaurerSauvegarde(e){
+  const file=e.target.files[0]; if(!file) return;
+  if(!confirm('Restaurer cette sauvegarde ? Les enregistrements avec le même identifiant seront écrasés. Cette action ne supprime rien d\'autre.')){ e.target.value=''; return; }
+  try{
+    const text=await file.text();
+    const backup=JSON.parse(text);
+    if(!backup.stores){ throw new Error('Fichier de sauvegarde invalide.'); }
+    let total=0;
+    for(const [store,rows] of Object.entries(backup.stores)){
+      if(!db.objectStoreNames.contains(store)) continue;
+      for(const row of rows){ await idbPut(store,row); total++; }
+    }
+    if(backup.localStorageConfig?.companyInfo) saveCompanyInfo(backup.localStorageConfig.companyInfo);
+    if(backup.localStorageConfig?.reglesGestion) saveReglesGestion(backup.localStorageConfig.reglesGestion);
+    await audit('SAUVEGARDE_RESTAURATION','Restauré — '+total+' enregistrement(s)');
+    alert('Restauration terminée : '+total+' enregistrement(s). Rechargez la page pour tout afficher à jour.');
+  }catch(err){
+    alert('Échec de la restauration : '+err.message);
+  }finally{
+    e.target.value='';
+  }
 }
 
 async function renderControleGestion(){
@@ -9281,9 +9723,10 @@ async function marquerProspectPerdu(id){
 function joursDepuis(dateStr){ if(!dateStr) return null; return Math.floor((Date.now()-new Date(dateStr).getTime())/86400000); }
 function niveauRelance(jours){
   if(jours==null) return null;
-  if(jours>=10) return {key:'j10',label:'🔴 Alerte responsable',c:'red'};
-  if(jours>=5) return {key:'j5',label:'🟠 2ᵉ relance',c:'amber'};
-  if(jours>=2) return {key:'j2',label:'🟡 Relance recommandée',c:'yellow'};
+  const r=getReglesGestion();
+  if(jours>=r.relanceJ3) return {key:'j10',label:'🔴 Alerte responsable',c:'red'};
+  if(jours>=r.relanceJ2) return {key:'j5',label:'🟠 2ᵉ relance',c:'amber'};
+  if(jours>=r.relanceJ1) return {key:'j2',label:'🟡 Relance recommandée',c:'yellow'};
   return null;
 }
 
@@ -15062,7 +15505,7 @@ const ETUDE_TABS=['config','bom','cut','cost','proforma'];
 function showPage(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
   document.querySelectorAll('.nav').forEach(b=>b.classList.remove('active'));
-  const titles={dashboard:'Tableau de bord',flux:'Schéma des flux',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',atelierMobile:'Vue atelier',stock:'Stock',sav:'SAV & Garantie',chantier:'Circuit Chantier',cartechantiers:'Carte des chantiers',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs',catalogue:'Catalogue technique',controlegestion:'Contrôle de gestion',validations:'Validations en attente',etatpa:'État proforma & achats',gmao:'GMAO — Maintenance',prospects:'Prospects & Pipeline',relances:'Relances commerciales',analysecommerciale:'Analyse commerciale',partenaires:'Partenaires & commissions',ao:"Appels d'offres",rh:'RH & Paie',caisse:'Caisse',compta:'Comptabilité SYSCOHADA'};
+  const titles={dashboard:'Tableau de bord',flux:'Schéma des flux',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',atelierMobile:'Vue atelier',stock:'Stock',sav:'SAV & Garantie',chantier:'Circuit Chantier',cartechantiers:'Carte des chantiers',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs',catalogue:'Catalogue technique',controlegestion:'Contrôle de gestion',validations:'Validations en attente',etatpa:'État proforma & achats',gmao:'GMAO — Maintenance',prospects:'Prospects & Pipeline',relances:'Relances commerciales',analysecommerciale:'Analyse commerciale',partenaires:'Partenaires & commissions',ao:"Appels d'offres",rh:'RH & Paie',caisse:'Caisse',compta:'Comptabilité SYSCOHADA',reglages:'Paramètres'};
 
   if(ETUDE_TABS.includes(page)){
     document.getElementById('etude').classList.remove('hidden');
@@ -15103,6 +15546,7 @@ function showPage(page){
     if(page==='rh') showRHTab(document.querySelector('.rh-tab-btn.active')?.dataset.rhtab||'employes');
     if(page==='caisse') renderCaisse();
     if(page==='compta') showComptaTab(document.querySelector('.compta-tab-btn.active')?.dataset.comptatab||'dashboard');
+    if(page==='reglages') showReglagesTab(document.querySelector('.reglages-tab-btn.active')?.dataset.rgtab||'societe');
   }
   document.getElementById('pageTitle').textContent=titles[page];
 }
@@ -15358,7 +15802,8 @@ async function sha256Hex(str){
 
 /* ---------- Entête entreprise & pied de page sécurisé (impressions) ---------- */
 function getCompanyInfo(){
-  const def={nom:'SANIX AluExpert',tagline:'SANIX Africa • Division Technologies',logo:'',adresse:'',tel:'',email:'',rccm:'',ncc:'',numeroEmployeurCnps:'',numeroEmployeurCmu:'',seuilValidationAchat:500000,telDG:'',seuilMargeCommerciale:25};
+  const def={nom:'SANIX AluExpert',tagline:'SANIX Africa • Division Technologies',logo:'',adresse:'',tel:'',email:'',rccm:'',ncc:'',numeroEmployeurCnps:'',numeroEmployeurCmu:'',seuilValidationAchat:500000,telDG:'',seuilMargeCommerciale:25,
+    ville:'',pays:'Côte d\'Ivoire',latitude:'',longitude:'',portailPublicActif:true};
   try{
     const raw=localStorage.getItem('alubom_company_info');
     return raw ? {...def,...JSON.parse(raw)} : def;
@@ -15366,6 +15811,18 @@ function getCompanyInfo(){
 }
 function saveCompanyInfo(info){
   localStorage.setItem('alubom_company_info',JSON.stringify(info));
+}
+
+/* ---------- Règles de gestion (paramètres métier globaux) ---------- */
+function getReglesGestion(){
+  const def={seuilTentativesLogin:5,dureeVerrouillageMin:15,relanceJ1:2,relanceJ2:5,relanceJ3:10,tauxTVADefaut:18,devise:'FCFA',arrondi:0};
+  try{
+    const raw=localStorage.getItem('alubom_regles_gestion');
+    return raw ? {...def,...JSON.parse(raw)} : def;
+  }catch{ return def; }
+}
+function saveReglesGestion(r){
+  localStorage.setItem('alubom_regles_gestion',JSON.stringify(r));
 }
 function openCompanyInfoModal(){
   const c=getCompanyInfo();
