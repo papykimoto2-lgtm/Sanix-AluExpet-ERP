@@ -1307,7 +1307,7 @@ window.SANIX_CFG = {
               <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
                 <div>
                   <h3 class="font-bold">📚 Bibliothèque de plans façade</h3>
-                  <p class="text-xs text-slate-500">Modèles réutilisables (type, dimensions, série) — indépendants du devis.</p>
+                  <p class="text-xs text-slate-500">Modèles réutilisables (type, dimensions, série) — chargez-les directement dans le devis en cours pour construire la proforma.</p>
                 </div>
                 <button type="button" onclick="savePlanFacade()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">💾 Enregistrer comme modèle</button>
               </div>
@@ -1647,7 +1647,7 @@ window.SANIX_CFG = {
           <div class="xl:col-span-2 card bg-white rounded-2xl p-6">
             <div class="flex flex-wrap justify-between gap-3 mb-6">
               <div>
-                <h2 class="text-lg font-bold">Facture proforma</h2>
+                <h2 class="text-lg font-bold">Proforma</h2>
                 <p class="text-sm text-slate-500">Génération d'une proforma à partir du calcul technique et commercial.</p>
               </div>
               <div class="flex flex-wrap gap-2">
@@ -1670,7 +1670,7 @@ window.SANIX_CFG = {
                   </div>
                 </div>
                 <div class="text-right">
-                  <div class="text-xl font-black">FACTURE PROFORMA</div>
+                  <div class="text-xl font-black">PROFORMA</div>
                   <div id="proNumber" class="text-sm font-semibold text-blue-700">PF-2026-0001</div>
                   <div id="proDate" class="text-xs text-slate-500 mt-1"></div>
                   <div id="proVersionInfo" class="mt-2 text-right"></div>
@@ -15850,7 +15850,7 @@ function showPage(page){
   expandModuleForPage(page);
   document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
   document.querySelectorAll('.nav').forEach(b=>b.classList.remove('active'));
-  const titles={dashboard:'Tableau de bord',flux:'Schéma des flux',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',atelierMobile:'Vue atelier',stock:'Stock',sav:'SAV & Garantie',chantier:'Circuit Chantier',cartechantiers:'Carte des chantiers',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs',catalogue:'Catalogue technique',controlegestion:'Contrôle de gestion',validations:'Validations en attente',etatpa:'État proforma & achats',gmao:'GMAO — Maintenance',prospects:'Prospects & Pipeline',relances:'Relances commerciales',analysecommerciale:'Analyse commerciale',partenaires:'Partenaires & commissions',ao:"Appels d'offres",rh:'RH & Paie',caisse:'Caisse',compta:'Comptabilité SYSCOHADA',reglages:'Paramètres',facturationclients:'Facturation clients'};
+  const titles={dashboard:'Tableau de bord',flux:'Schéma des flux',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Proforma',production:'Production',atelierMobile:'Vue atelier',stock:'Stock',sav:'SAV & Garantie',chantier:'Circuit Chantier',cartechantiers:'Carte des chantiers',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs',catalogue:'Catalogue technique',controlegestion:'Contrôle de gestion',validations:'Validations en attente',etatpa:'État proforma & achats',gmao:'GMAO — Maintenance',prospects:'Prospects & Pipeline',relances:'Relances commerciales',analysecommerciale:'Analyse commerciale',partenaires:'Partenaires & commissions',ao:"Appels d'offres",rh:'RH & Paie',caisse:'Caisse',compta:'Comptabilité SYSCOHADA',reglages:'Paramètres',facturationclients:'Facturation clients'};
 
   if(ETUDE_TABS.includes(page)){
     document.getElementById('etude').classList.remove('hidden');
@@ -16916,7 +16916,7 @@ function printProforma(){
   const win = window.open('', '_blank', 'width=1000,height=1100');
   if(!win) return;
   win.document.write(`
-    <html><head><title>Facture Proforma</title>
+    <html><head><title>Proforma</title>
     <script src="https://cdn.tailwindcss.com"><\/script>
     <style>
       *{box-sizing:border-box}
@@ -16947,7 +16947,7 @@ function printProforma(){
       @page{size:A4;margin:16mm}
     </style></head><body>
     <div class="toolbar">
-      <b>Aperçu avant impression — Facture Proforma</b>
+      <b>Aperçu avant impression — Proforma</b>
       <div>
         <button class="secondary" onclick="window.close()">Fermer</button>
         <button onclick="window.print()">🖨 Imprimer</button>
@@ -17018,10 +17018,17 @@ async function renderPlansFacadeTable(){
       <td class="p-2 text-xs text-slate-500">${escapeHtml(r.type)} • ${r.leaves} vantail(x) • ${escapeHtml(r.serie)}</td>
       <td class="p-2 text-right">${r.w}×${r.h} mm</td>
       <td class="p-2 text-right whitespace-nowrap">
-        <button onclick="loadPlanFacade('${r.id}')" class="text-blue-600 text-xs font-semibold mr-2">Charger</button>
+        <button onclick="loadPlanFacade('${r.id}')" class="text-slate-600 text-xs font-semibold mr-2">Charger dans le configurateur</button>
+        <button onclick="loadPlanFacadeAuDevis('${r.id}')" class="text-blue-600 text-xs font-semibold mr-2">+ Ajouter au devis</button>
         <button onclick="deletePlanFacade('${r.id}')" class="text-red-500 text-xs font-semibold">Suppr.</button>
       </td>
     </tr>`).join('') : `<tr><td class="p-2 text-slate-400" colspan="4">Aucun modèle enregistré.</td></tr>`;
+}
+async function loadPlanFacadeAuDevis(id){
+  if(!isDevisContextValid()){ alert("Sélectionnez d'abord le Client et le Chantier en haut de page (étapes 1 et 2) avant d'ajouter un élément de la bibliothèque au devis."); showPage('config'); document.getElementById('devisCtxClient')?.focus(); return; }
+  await loadPlanFacade(id);
+  addToProformaCart();
+  showPage('proforma');
 }
 
 /* ---------- Révisions de configuration (versionning pré-OF) ---------- */
