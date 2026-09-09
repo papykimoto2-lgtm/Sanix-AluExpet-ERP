@@ -309,6 +309,7 @@ window.SANIX_CFG = {
         <span>7 · Finance</span><span class="chevron" id="chev-mod7">▸</span>
       </button>
       <div id="mod7" class="module-group hidden space-y-1">
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="facturationclients">🧾 Facturation clients</button>
         <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="caisse">💵 Caisse</button>
         <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="compta">📒 Comptabilité SYSCOHADA <span id="ventilationBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
       </div>
@@ -1175,6 +1176,22 @@ window.SANIX_CFG = {
               <label class="text-sm font-semibold">Quantité
                 <input id="qty" type="number" min="1" value="1" class="mt-1 w-full border rounded-lg px-3 py-2">
               </label>
+              <label class="text-sm font-semibold">🏢 Niveau du bâtiment
+                <input id="niveauBatiment" list="niveauBatimentList" value="Rez-de-chaussée" placeholder="Ex. Rez-de-chaussée, 1er étage…" class="mt-1 w-full border rounded-lg px-3 py-2">
+                <datalist id="niveauBatimentList">
+                  <option value="Sous-sol">
+                  <option value="Rez-de-chaussée">
+                  <option value="Entresol">
+                  <option value="1er étage">
+                  <option value="2e étage">
+                  <option value="3e étage">
+                  <option value="4e étage">
+                  <option value="5e étage">
+                  <option value="Attique">
+                  <option value="Toiture / Terrasse">
+                </datalist>
+                <span class="text-xs text-slate-400">Sert à organiser la proforma par niveau du bâtiment.</span>
+              </label>
             </div>
             
             <div class="mt-6 border border-slate-200 rounded-2xl p-4 bg-slate-50">
@@ -1656,6 +1673,7 @@ window.SANIX_CFG = {
                   <div class="text-xl font-black">FACTURE PROFORMA</div>
                   <div id="proNumber" class="text-sm font-semibold text-blue-700">PF-2026-0001</div>
                   <div id="proDate" class="text-xs text-slate-500 mt-1"></div>
+                  <div id="proVersionInfo" class="mt-2 text-right"></div>
                 </div>
               </div>
 
@@ -2745,6 +2763,39 @@ window.SANIX_CFG = {
         <div id="validationsContent"></div>
       </section>
 
+      <section id="facturationclients" class="page hidden">
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+          <div>
+            <h2 class="text-lg font-bold">🧾 Facturation clients</h2>
+            <p class="text-sm text-slate-500">Service Facturation — distinct du Bureau d'études. Le BE crée les références (proformas) ; la Facturation les utilise pour émettre les factures officielles, sans les modifier.</p>
+          </div>
+          <div class="flex gap-2">
+            <input id="facSearch" oninput="renderFacturationClients()" placeholder="Rechercher un client / dossier / référence…" class="border rounded-lg px-3 py-2 text-sm w-64 max-w-full">
+            <button onclick="renderFacturationClients()" class="border px-3 py-2 rounded-lg text-sm font-semibold">🔄 Actualiser</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Références (proformas) disponibles</div><div id="facKpiReferences" class="text-3xl font-black mt-2">—</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Factures émises</div><div id="facKpiEmises" class="text-3xl font-black mt-2">—</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Factures payées</div><div id="facKpiPayees" class="text-3xl font-black mt-2">—</div></div>
+          <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">Montant en attente de paiement</div><div id="facKpiEnAttente" class="text-3xl font-black mt-2">—</div></div>
+        </div>
+        <div class="card bg-white rounded-2xl p-4">
+          <div class="overflow-x-auto"><table class="w-full text-sm">
+            <thead class="bg-slate-50"><tr>
+              <th class="text-left p-2">Référence BE (proforma)</th>
+              <th class="text-left p-2">Client</th>
+              <th class="text-left p-2">Dossier chantier</th>
+              <th class="text-left p-2">Facture</th>
+              <th class="text-left p-2">Statut</th>
+              <th class="text-right p-2">Montant TTC</th>
+              <th class="p-2"></th>
+            </tr></thead>
+            <tbody id="facturationBody"></tbody>
+          </table></div>
+        </div>
+      </section>
+
       <section id="caisse" class="page hidden">
         <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
           <div><h2 class="text-lg font-bold">💵 Caisse</h2><p class="text-sm text-slate-500">Brouillard de caisse — ouverture, opérations du jour et clôture avec contrôle du comptage.</p></div>
@@ -3762,10 +3813,10 @@ function escapeHtml(s){
 /* ---------- IndexedDB ---------- */
 function openDB(){
   return new Promise((resolve,reject)=>{
-    const req=indexedDB.open('alubom_db',25);
+    const req=indexedDB.open('alubom_db',26);
     req.onupgradeneeded=e=>{
       const d=e.target.result;
-      ['ouvrages','of','stock','stock_mouvements','proforma','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers','depots','pointages','nonconformites','chutes','postes','gammes','sav','maintenances','prospects','partenaires','appels_offres','employes','conges','paies','pointages_rh','articles','articles_prix_historique','api_partners'].forEach(s=>{
+      ['ouvrages','of','stock','stock_mouvements','proforma','factures','audit','sync_queue','clients','chantiers','achats','fournisseurs','series','profils','controles_qualite','parametres','vitrages','quincaillerie','joints','consommables','machines','plans','suivi_reel','prix_fournisseurs','plans_facade','revisions','ateliers','depots','pointages','nonconformites','chutes','postes','gammes','sav','maintenances','prospects','partenaires','appels_offres','employes','conges','paies','pointages_rh','articles','articles_prix_historique','api_partners'].forEach(s=>{
         if(!d.objectStoreNames.contains(s)) d.createObjectStore(s,{keyPath:'id'});
       });
     };
@@ -3994,6 +4045,8 @@ const ROLE_PRESETS={
   admin:{label:'Administrateur',permissions:['*']},
   responsable_technique:{label:'Responsable technique',permissions:['referentiel:manage','ouvrage:create']},
   commercial:{label:'Commercial',permissions:['chantier:create','ouvrage:create']},
+  bureau_etudes:{label:"Bureau d'études (BE)",permissions:['chantier:create','ouvrage:create']},
+  facturation:{label:'Facturation',permissions:['facturation:create']},
   responsable_production:{label:'Responsable production',permissions:['of:create','chantier:validate','stock:write','qc:validate']},
   magasinier:{label:'Magasinier',permissions:['stock:write','achat:manage']},
   poseur:{label:'Poseur',permissions:['installation:manage']},
@@ -4124,7 +4177,8 @@ const PERMISSION_LABELS={
   'achat:manage':"Gérer les demandes d'achat (hors seuil DG)",
   'achat:create':"Créer des demandes d'achat",
   'installation:manage':'Gérer les poses/installations',
-  'rh:manage':'Gérer le module RH & Paie'
+  'rh:manage':'Gérer le module RH & Paie',
+  'facturation:create':"Émettre les factures (à partir des références du BE)"
 };
 function roleIsValidateur(role){ const p=ROLE_PRESETS[role]?.permissions||[]; return p.includes('*')||p.includes('chantier:validate'); }
 function renderUsersTable(){
@@ -15796,7 +15850,7 @@ function showPage(page){
   expandModuleForPage(page);
   document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
   document.querySelectorAll('.nav').forEach(b=>b.classList.remove('active'));
-  const titles={dashboard:'Tableau de bord',flux:'Schéma des flux',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',atelierMobile:'Vue atelier',stock:'Stock',sav:'SAV & Garantie',chantier:'Circuit Chantier',cartechantiers:'Carte des chantiers',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs',catalogue:'Catalogue technique',controlegestion:'Contrôle de gestion',validations:'Validations en attente',etatpa:'État proforma & achats',gmao:'GMAO — Maintenance',prospects:'Prospects & Pipeline',relances:'Relances commerciales',analysecommerciale:'Analyse commerciale',partenaires:'Partenaires & commissions',ao:"Appels d'offres",rh:'RH & Paie',caisse:'Caisse',compta:'Comptabilité SYSCOHADA',reglages:'Paramètres'};
+  const titles={dashboard:'Tableau de bord',flux:'Schéma des flux',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Facture proforma',production:'Production',atelierMobile:'Vue atelier',stock:'Stock',sav:'SAV & Garantie',chantier:'Circuit Chantier',cartechantiers:'Carte des chantiers',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs',catalogue:'Catalogue technique',controlegestion:'Contrôle de gestion',validations:'Validations en attente',etatpa:'État proforma & achats',gmao:'GMAO — Maintenance',prospects:'Prospects & Pipeline',relances:'Relances commerciales',analysecommerciale:'Analyse commerciale',partenaires:'Partenaires & commissions',ao:"Appels d'offres",rh:'RH & Paie',caisse:'Caisse',compta:'Comptabilité SYSCOHADA',reglages:'Paramètres',facturationclients:'Facturation clients'};
 
   if(ETUDE_TABS.includes(page)){
     document.getElementById('etude').classList.remove('hidden');
@@ -15836,6 +15890,7 @@ function showPage(page){
     if(page==='cartechantiers') renderCarteChantiers();
     if(page==='rh') showRHTab(document.querySelector('.rh-tab-btn.active')?.dataset.rhtab||'employes');
     if(page==='caisse') renderCaisse();
+    if(page==='facturationclients') renderFacturationClients();
     if(page==='compta') showComptaTab(document.querySelector('.compta-tab-btn.active')?.dataset.comptatab||'dashboard');
     if(page==='reglages') showReglagesTab();
   }
@@ -15856,6 +15911,20 @@ function closeSidebar(){
 /* ---------- Panier proforma multi-ouvrages ---------- */
 let proformaCart = JSON.parse(localStorage.getItem('alubom_proforma_cart')||'[]');
 function saveProformaCartLocal(){ localStorage.setItem('alubom_proforma_cart',JSON.stringify(proformaCart)); }
+
+/* ---------- Ordre logique des niveaux de bâtiment (structuration de la proforma) ---------- */
+const NIVEAU_CHOICES=['Sous-sol','Rez-de-chaussée','Entresol','1er étage','2e étage','3e étage','4e étage','5e étage','Attique','Toiture / Terrasse'];
+const NIVEAU_ORDER=['sous-sol','rez-de-chaussée','rez de chaussée','rdc','entresol'];
+function niveauRank(niveau){
+  const n=(niveau||'').trim().toLowerCase();
+  if(!n||n==='niveau non renseigné') return 999;
+  const idxFixe=NIVEAU_ORDER.indexOf(n);
+  if(idxFixe>=0) return idxFixe;
+  const m=n.match(/(\d+)\s*(er|e|ème|eme)?\s*(étage|etage)/);
+  if(m) return 10+parseInt(m[1],10);
+  if(/attique|toiture|terrasse|combles/.test(n)) return 500;
+  return 900; // niveau personnalisé non reconnu : affiché après les niveaux standards, avant "non renseigné"
+}
 
 /* ---------- Contexte devis obligatoire : Client + Chantier avant tout ajout ---------- */
 let devisContext={client:'',chantierId:''};
@@ -15968,6 +16037,7 @@ function addToProformaCart(){
   const h=+document.getElementById('height').value||0;
   const leaves=+document.getElementById('leaves').value||1;
   const qty=Math.max(1,+document.getElementById('qty').value||1);
+  const niveau=(document.getElementById('niveauBatiment')?.value||'').trim()||'Niveau non renseigné';
   const batchTotal=parseMoney(document.getElementById('cSale')?.textContent);
   if(!batchTotal){ alert("Calculez d'abord le chiffrage (BOM non vide)."); return; }
   // cSale/BOM sont déjà calculés pour la quantité qty (configurateur) : batchTotal est le
@@ -15979,10 +16049,17 @@ function addToProformaCart(){
   const bom = (window.lastBOMRows||[]).map(r=>({code:r[0],designation:r[1],qte:r[2],longueur:r[3]||0,montant:r[4]}));
   const schemaLabel = document.getElementById('schemaLabel')?.textContent || detail;
   const schemaSVG = document.getElementById('technicalDrawing')?.outerHTML || '';
-  proformaCart.push({id:'ln_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),type,atelier,atelierNom,detail,qty,unit,subtotal:batchTotal,bom,schemaLabel,schemaSVG});
+  proformaCart.push({id:'ln_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),type,atelier,atelierNom,niveau,detail,qty,unit,subtotal:batchTotal,bom,schemaLabel,schemaSVG});
   saveProformaCartLocal();
   const hint=document.getElementById('cartHint');
   if(hint){ hint.textContent=`${proformaCart.length} ouvrage${proformaCart.length>1?'s':''} dans le devis en cours.`; hint.classList.remove('hidden'); }
+  updateProforma();
+}
+function updateLigneNiveau(lineId,newNiveau){
+  const l=proformaCart.find(x=>x.id===lineId);
+  if(!l) return;
+  l.niveau=newNiveau||'Niveau non renseigné';
+  saveProformaCartLocal();
   updateProforma();
 }
 function removeFromProformaCart(lineId){
@@ -16035,12 +16112,13 @@ function updateProforma(){
     const h = +document.getElementById('height').value || 0;
     const leaves = +document.getElementById('leaves').value || 1;
     const qty = Math.max(1, +document.getElementById('qty').value || 1);
+    const niveau = (document.getElementById('niveauBatiment')?.value||'').trim()||'Niveau non renseigné';
     const batchTotal = parseMoney(document.getElementById('cSale')?.textContent) || (lastCost||0)*1.30;
     const unit = qty?batchTotal/qty:batchTotal;
     const bom = (window.lastBOMRows||[]).map(r=>({code:r[0],designation:r[1],qte:r[2],longueur:r[3]||0,montant:r[4]}));
     const schemaLabel = document.getElementById('schemaLabel')?.textContent || '';
     const schemaSVG = document.getElementById('technicalDrawing')?.outerHTML || '';
-    lines = [{id:'current',type,atelier,atelierNom,detail:`${type} aluminium ${w} × ${h} mm • ${leaves} vantail${leaves>1?'s':''} • configuration en cours`,qty,unit,subtotal:batchTotal,bom,schemaLabel,schemaSVG}];
+    lines = [{id:'current',type,atelier,atelierNom,niveau,detail:`${type} aluminium ${w} × ${h} mm • ${leaves} vantail${leaves>1?'s':''} • configuration en cours`,qty,unit,subtotal:batchTotal,bom,schemaLabel,schemaSVG}];
   }
 
   const subtotal = lines.reduce((s,l)=>s+l.subtotal,0);
@@ -16050,17 +16128,22 @@ function updateProforma(){
   const total = taxable + tax;
 
   const groupes={};
-  lines.forEach(l=>{ const key=l.atelierNom||'Sans atelier'; (groupes[key]=groupes[key]||[]).push(l); });
+  lines.forEach(l=>{ const key=l.niveau||'Niveau non renseigné'; (groupes[key]=groupes[key]||[]).push(l); });
+  const niveaux=Object.keys(groupes).sort((a,b)=>niveauRank(a)-niveauRank(b)||a.localeCompare(b,'fr'));
   let rowsHtml='';
-  Object.keys(groupes).forEach(nomAtelier=>{
-    const grp=groupes[nomAtelier];
+  niveaux.forEach(niveau=>{
+    const grp=groupes[niveau];
     const sousTotal=grp.reduce((s,l)=>s+l.subtotal,0);
-    rowsHtml+=`<tr class="bg-slate-100"><td colspan="5" class="p-2 text-xs font-bold text-slate-600">🏭 ${escapeHtml(nomAtelier)} — ${grp.length} ligne${grp.length>1?'s':''} — ${money(sousTotal)}</td></tr>`;
+    rowsHtml+=`<tr class="bg-slate-100"><td colspan="5" class="p-2 text-xs font-bold text-slate-600">🏢 ${escapeHtml(niveau)} — ${grp.length} ligne${grp.length>1?'s':''} — ${money(sousTotal)}</td></tr>`;
     rowsHtml+=grp.map(l=>`
     <tr>
       <td class="p-3">
         <div class="font-semibold">${escapeHtml(l.detail)}</div>
-        <div class="text-xs text-slate-500">BOM paramétrique • vitrage inclus${l.id==='current'?' — non ajouté au panier':''}</div>
+        <div class="text-xs text-slate-500">${l.atelierNom?escapeHtml(l.atelierNom)+' • ':''}BOM paramétrique • vitrage inclus${l.id==='current'?' — non ajouté au panier':''}</div>
+        ${l.id!=='current'?`<select onchange="updateLigneNiveau('${l.id}',this.value)" class="mt-1 text-[11px] border rounded px-1.5 py-0.5 bg-slate-50 text-slate-600">
+          ${NIVEAU_CHOICES.map(n=>`<option value="${escapeHtml(n)}" ${n===l.niveau?'selected':''}>${escapeHtml(n)}</option>`).join('')}
+          ${!NIVEAU_CHOICES.includes(l.niveau)?`<option value="${escapeHtml(l.niveau||'')}" selected>${escapeHtml(l.niveau||'Niveau non renseigné')}</option>`:''}
+        </select>`:''}
       </td>
       <td class="p-3 text-center">${l.qty}</td>
       <td class="p-3 text-right">${money(l.unit)}</td>
@@ -16380,6 +16463,7 @@ function newProforma(){
   document.getElementById('proContact').value='Contact / Téléphone';
   document.getElementById('proNumber').textContent='—';
   document.getElementById('proDate').textContent='';
+  renderProVersionInfo(null);
   updateProforma();
   const chSel=document.getElementById('proChantierId');
   if(chSel){ chSel.innerHTML='<option value="">— Aucun (nouvelle proforma) —</option>'; chSel.value=''; }
@@ -16402,6 +16486,7 @@ async function loadProforma(id){
   document.getElementById('proContact').value = rec.contact||'';
   document.getElementById('proNumber').textContent = rec.numero;
   document.getElementById('proDate').textContent = new Date(rec.date).toLocaleDateString('fr-FR');
+  renderProVersionInfo(rec);
   updateProforma();
   showPage('proforma');
   await populateProformaChantierOptions(false);
@@ -16436,21 +16521,229 @@ async function deleteProforma(id){
   if(currentChantierId) await openChantierDetail(currentChantierId);
 }
 
+/* ---------- Copie conforme d'une proforma (traçabilité des révisions d'offre) ---------- */
+async function dupliquerProforma(id){
+  if(!hasRole('chantier:create')){ alert('Permission refusée.'); return; }
+  const rows=await idbGetAll('proforma');
+  const source=rows.find(r=>r.id===id); if(!source){ alert('Proforma introuvable.'); return; }
+  if(!confirm(`Créer une copie conforme de la proforma ${source.numero} ?\n\nUn nouveau numéro sera attribué à la copie. La version ${source.numero} est conservée telle quelle et restera consultable dans l'historique de traçabilité pour ce chantier.`)) return;
+  const seq=nextSeq('proforma');
+  const nouveauNumero='PF-'+seq.year+'-'+String(seq.n).padStart(4,'0');
+  const snapshot={
+    id:source.id, numero:source.numero, date:source.date, client:source.client, contact:source.contact,
+    lignes:JSON.parse(JSON.stringify(source.lignes||[])), total:source.total,
+    chantierId:source.chantierId||null, chantierNumero:source.chantierNumero||null,
+    hashVerif:source.hashVerif||''
+  };
+  const nouveau=JSON.parse(JSON.stringify(source));
+  nouveau.id='pf_'+Date.now();
+  nouveau.numero=nouveauNumero;
+  nouveau.date=new Date().toISOString();
+  nouveau.version=(source.version||1)+1;
+  nouveau.versionParentId=source.id;
+  nouveau.versionRacineId=source.versionRacineId||source.id;
+  nouveau.versions=[...(source.versions||[]),snapshot];
+  nouveau._modifie=new Date().toISOString();
+  await idbPut('proforma',nouveau);
+  queueSync('alubom_proforma',nouveau);
+  if(nouveau.chantierId){
+    const ch=await getChantier(nouveau.chantierId);
+    if(ch){ ch.proformaIds=Array.from(new Set([...(ch.proformaIds||[]),nouveau.id])); await saveChantier(ch); }
+  }
+  await audit('DUPLIQUER_PROFORMA', `${nouveauNumero} — copie conforme de ${source.numero} (v${nouveau.version}, chantier ${nouveau.chantierNumero||'—'})`);
+  await renderProformaList();
+  await loadProforma(nouveau.id);
+  alert(`Copie conforme créée : ${nouveauNumero} (version ${nouveau.version} de l'offre).\nL'ancienne version ${source.numero} reste inchangée et consultable dans l'historique ci-dessus, pour la traçabilité des modifications de l'offre auprès du client.`);
+}
+
+/* Affiche le badge de version + l'historique des révisions précédentes sur le document proforma */
+function renderProVersionInfo(rec){
+  const el=document.getElementById('proVersionInfo'); if(!el) return;
+  if(!rec || !(rec.versions && rec.versions.length)){ el.innerHTML=''; return; }
+  const versions=rec.versions;
+  const precedente=versions[versions.length-1];
+  el.innerHTML = `
+    <div class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-2.5 py-1 text-[11px] font-bold">
+      🔁 Version ${rec.version||versions.length+1} — copie conforme de ${escapeHtml(precedente.numero)}
+    </div>
+    <details class="mt-1.5 text-left inline-block">
+      <summary class="text-[11px] text-blue-600 cursor-pointer font-semibold text-right">Historique des ${versions.length} version(s) précédente(s)</summary>
+      <table class="text-[11px] mt-1.5 border rounded-lg overflow-hidden">
+        <thead class="bg-slate-50"><tr><th class="text-left p-1.5">N°</th><th class="text-left p-1.5">Date</th><th class="text-right p-1.5">Total</th></tr></thead>
+        <tbody>
+          ${versions.map(v=>`<tr class="border-t"><td class="p-1.5 font-semibold">${escapeHtml(v.numero)}</td><td class="p-1.5">${new Date(v.date).toLocaleDateString('fr-FR')}</td><td class="p-1.5 text-right">${escapeHtml(v.total||'')}</td></tr>`).join('')}
+        </tbody>
+      </table>
+    </details>`;
+}
+
 async function renderProformaList(){
   const el=document.getElementById('proformaListBody'); if(!el) return;
   const rows=(await idbGetAll('proforma')).sort((a,b)=>b.date.localeCompare(a.date));
   el.innerHTML = rows.length ? rows.map(r=>`
     <tr class="border-b">
-      <td class="p-2 font-semibold">${escapeHtml(r.numero)}</td>
+      <td class="p-2 font-semibold">${escapeHtml(r.numero)}${(r.versions&&r.versions.length)?` <span class="badge bg-amber-50 text-amber-700 border border-amber-200 align-middle">v${r.version||r.versions.length+1}</span>`:''}</td>
       <td class="p-2">${escapeHtml(r.client||'')}</td>
       <td class="p-2">${r.chantierId?`<button onclick="showPage('chantier');openChantierDetail('${r.chantierId}')" class="text-blue-600 hover:underline text-xs font-semibold">🏗️ ${escapeHtml(r.chantierNumero||'Voir')}</button>`:'<span class="text-slate-300 text-xs">—</span>'}</td>
       <td class="p-2">${new Date(r.date).toLocaleDateString('fr-FR')}</td>
       <td class="p-2 text-right">${escapeHtml(r.total||'')}</td>
       <td class="p-2 text-right whitespace-nowrap">
         <button onclick="loadProforma('${r.id}')" class="text-blue-600 text-xs font-semibold mr-2">Modifier</button>
+        <button onclick="dupliquerProforma('${r.id}')" class="text-amber-600 text-xs font-semibold mr-2">📄 Copie conforme</button>
         <button onclick="deleteProforma('${r.id}')" class="text-red-500 text-xs font-semibold">Suppr.</button>
       </td>
     </tr>`).join('') : `<tr><td class="p-2 text-slate-400" colspan="6">Aucune proforma enregistrée.</td></tr>`;
+}
+
+/* ==========================================================================
+   FACTURATION CLIENTS — service distinct du Bureau d'études.
+   Le BE crée les références (proformas/devis) ; la Facturation les consomme
+   pour émettre la facture officielle, sans droit de modifier la référence.
+   ========================================================================== */
+async function renderFacturationClients(){
+  const el=document.getElementById('facturationBody'); if(!el) return;
+  const [chantiers,factures]=await Promise.all([idbGetAll('chantiers'),idbGetAll('factures')]);
+  const facturesParChantier={};
+  factures.forEach(f=>{ (facturesParChantier[f.chantierId]=facturesParChantier[f.chantierId]||[]).push(f); });
+
+  // Seuls les dossiers portant une référence (proforma) créée par le BE apparaissent ici.
+  let rows=chantiers.filter(c=>c.proformaId && !c.annule);
+  const search=(document.getElementById('facSearch')?.value||'').trim().toLowerCase();
+  if(search){
+    rows=rows.filter(c=>{
+      const facs=facturesParChantier[c.id]||[];
+      const hay=[c.numero,c.client,c.devisNumero,...facs.map(f=>f.numero)].filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(search);
+    });
+  }
+  rows.sort((a,b)=>(b._modifie||'').localeCompare(a._modifie||''));
+
+  const totalFactures=factures.length;
+  const payees=factures.filter(f=>f.statut==='payée').length;
+  const enAttente=factures.filter(f=>f.statut!=='payée').reduce((s,f)=>s+(f.montantTTC-(f.montantPaye||0)),0);
+  document.getElementById('facKpiReferences').textContent=rows.length;
+  document.getElementById('facKpiEmises').textContent=totalFactures;
+  document.getElementById('facKpiPayees').textContent=payees;
+  document.getElementById('facKpiEnAttente').textContent=money(Math.max(0,enAttente));
+
+  el.innerHTML = rows.length ? rows.map(c=>{
+    const facs=(facturesParChantier[c.id]||[]).sort((a,b)=>b.date.localeCompare(a.date));
+    const derniere=facs[0];
+    const statutBadge=!derniere ? `<span class="badge bg-slate-100 text-slate-500">Non facturé</span>`
+      : derniere.statut==='payée' ? `<span class="badge bg-emerald-50 text-emerald-700">Payée</span>`
+      : derniere.statut==='partiellement payée' ? `<span class="badge bg-amber-50 text-amber-700">Partiellement payée</span>`
+      : `<span class="badge bg-blue-50 text-blue-700">Émise</span>`;
+    return `<tr class="border-b">
+      <td class="p-2 font-semibold text-slate-700">${escapeHtml(c.devisNumero||'—')}</td>
+      <td class="p-2">${escapeHtml(c.client||'')}</td>
+      <td class="p-2"><button onclick="showPage('chantier');openChantierDetail('${c.id}')" class="text-blue-600 hover:underline text-xs font-semibold">🏗️ ${escapeHtml(c.numero)}</button></td>
+      <td class="p-2">${derniere?escapeHtml(derniere.numero):'<span class="text-slate-300 text-xs">—</span>'}</td>
+      <td class="p-2">${statutBadge}</td>
+      <td class="p-2 text-right">${money(c.montantTotal||0)}</td>
+      <td class="p-2 text-right whitespace-nowrap">
+        ${!derniere?`<button onclick="genererFacture('${c.id}')" class="text-blue-600 text-xs font-semibold mr-2">🧾 Générer la facture</button>`:`
+        <button onclick="imprimerFacture('${derniere.id}')" class="text-slate-600 text-xs font-semibold mr-2">🖨 Imprimer</button>
+        ${derniere.statut!=='payée'?`<button onclick="marquerFacturePayee('${derniere.id}')" class="text-emerald-600 text-xs font-semibold">✓ Marquer payée</button>`:''}
+        `}
+      </td>
+    </tr>`;
+  }).join('') : `<tr><td class="p-2 text-slate-400" colspan="7">Aucune référence disponible. La facturation ne peut porter que sur une proforma créée par le Bureau d'études.</td></tr>`;
+}
+
+async function genererFacture(chantierId){
+  if(!hasRole('facturation:create')){ alert("Permission refusée. Seul le service Facturation peut émettre une facture, à partir d'une référence créée par le Bureau d'études."); return; }
+  const ch=await getChantier(chantierId); if(!ch) return;
+  if(!ch.proformaId){ alert("Aucune référence (proforma) n'existe pour ce dossier. Demandez au Bureau d'études de générer la proforma avant toute facturation."); return; }
+  if(!confirm(`Émettre la facture définitive pour le dossier ${ch.numero} (référence ${ch.devisNumero||'—'}), client ${ch.client||''} ?`)) return;
+  const f=ch.facturation||{tauxRemise:0,tauxTVA:18,tvaApplicable:true};
+  const seq=nextSeq('facture');
+  const numero='FA-'+seq.year+'-'+String(seq.n).padStart(4,'0');
+  const rec={
+    id:'fa_'+Date.now(),
+    numero,
+    date:new Date().toISOString(),
+    chantierId:ch.id, chantierNumero:ch.numero,
+    referenceProformaId:ch.proformaId, referenceProformaNumero:ch.devisNumero||'',
+    client:ch.client||'', contact:ch.contact||'',
+    montantHT:f.montantHT||0, remise:f.remise||0, tauxTVA:f.tauxTVA||0,
+    tvaApplicable:f.tvaApplicable!==false, montantTVA:f.montantTVA||0, tvaMention:f.tvaMention||'',
+    montantTTC:ch.montantTotal||0,
+    statut:'émise', montantPaye:0, datePaiement:null, modePaiement:'',
+    _modifie:new Date().toISOString()
+  };
+  await idbPut('factures',rec);
+  queueSync('alubom_factures',rec);
+  ch.factureIds=Array.from(new Set([...(ch.factureIds||[]),rec.id]));
+  await saveChantier(ch);
+  await audit('CREATE_FACTURE',`${numero} — dossier ${ch.numero}, référence BE ${ch.devisNumero||'—'}`);
+  await renderFacturationClients();
+  alert(`Facture ${numero} émise à partir de la référence ${ch.devisNumero||'—'} (Bureau d'études).`);
+}
+
+async function marquerFacturePayee(id){
+  if(!hasRole('facturation:create')){ alert('Permission refusée.'); return; }
+  const rows=await idbGetAll('factures');
+  const rec=rows.find(r=>r.id===id); if(!rec) return;
+  const modePaiement=prompt('Mode de règlement (espèces, virement, chèque, mobile money…) :', rec.modePaiement||'') || rec.modePaiement||'';
+  rec.statut='payée';
+  rec.montantPaye=rec.montantTTC;
+  rec.datePaiement=new Date().toISOString();
+  rec.modePaiement=modePaiement;
+  rec._modifie=new Date().toISOString();
+  await idbPut('factures',rec);
+  queueSync('alubom_factures',rec);
+  await audit('PAIEMENT_FACTURE',`${rec.numero} — ${money(rec.montantTTC)} (${modePaiement||'—'})`);
+  await renderFacturationClients();
+}
+
+async function imprimerFacture(id){
+  const rows=await idbGetAll('factures');
+  const rec=rows.find(r=>r.id===id); if(!rec) return;
+  const ci=getCompanyInfo();
+  const win=window.open('','_blank','width=1000,height=1100');
+  if(!win) return;
+  win.document.write(`
+    <html><head><title>Facture ${escapeHtml(rec.numero)}</title>
+    <style>
+      *{box-sizing:border-box}
+      body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#e2e8f0;margin:0}
+      .toolbar{position:sticky;top:0;z-index:10;background:#0f172a;color:#fff;padding:12px 24px;display:flex;justify-content:space-between;align-items:center}
+      .toolbar button{background:#2563eb;color:#fff;border:0;padding:9px 18px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;margin-left:8px}
+      .toolbar button.secondary{background:transparent;border:1px solid #475569}
+      .sheet{max-width:820px;margin:24px auto;background:#fff;padding:40px 44px;box-shadow:0 10px 40px rgba(15,23,42,.25);border-radius:4px}
+      table{width:100%;border-collapse:collapse;margin-top:20px}
+      th,td{border:1px solid #cbd5e1;padding:9px 12px;font-size:12.5px}
+      th{background:#f1f5f9;text-align:left}
+      .ref{background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px 14px;font-size:12.5px;margin-top:16px}
+      @media print{ .toolbar{display:none} .sheet{box-shadow:none;margin:0;padding:0;max-width:none} }
+      @page{size:A4;margin:16mm}
+    </style></head><body>
+    <div class="toolbar"><b>Aperçu — Facture</b><div><button class="secondary" onclick="window.close()">Fermer</button><button onclick="window.print()">🖨 Imprimer</button></div></div>
+    <div class="sheet">
+      <div style="display:flex;justify-content:space-between;border-bottom:2px solid #0f172a;padding-bottom:16px">
+        <div>
+          <div style="font-size:22px;font-weight:900">${escapeHtml(ci.nom||'SANIX AFRICA')}</div>
+          <div style="font-size:12px;color:#64748b">${escapeHtml(ci.tagline||'')}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:20px;font-weight:900">FACTURE</div>
+          <div style="font-size:13px;font-weight:700;color:#1d4ed8">${escapeHtml(rec.numero)}</div>
+          <div style="font-size:11px;color:#64748b">${new Date(rec.date).toLocaleDateString('fr-FR')}</div>
+        </div>
+      </div>
+      <div class="ref">🔗 Émise par le service Facturation à partir de la référence Bureau d'études <b>${escapeHtml(rec.referenceProformaNumero||'—')}</b> (dossier chantier ${escapeHtml(rec.chantierNumero||'—')}).</div>
+      <div style="margin-top:16px"><b>Client :</b> ${escapeHtml(rec.client||'')}${rec.contact?' — '+escapeHtml(rec.contact):''}</div>
+      <table>
+        <tr><th>Sous-total HT</th><td style="text-align:right">${money(rec.montantHT)}</td></tr>
+        <tr><th>Remise</th><td style="text-align:right">${rec.remise?'- '+money(rec.remise):money(0)}</td></tr>
+        <tr><th>TVA${rec.tvaApplicable&&rec.tauxTVA?' ('+rec.tauxTVA+'%)':''}</th><td style="text-align:right">${rec.tvaApplicable?money(rec.montantTVA):'Non applicable'}</td></tr>
+        <tr><th style="font-size:14px">Total TTC</th><td style="text-align:right;font-size:14px;font-weight:900">${money(rec.montantTTC)}</td></tr>
+      </table>
+      ${rec.tvaApplicable===false&&rec.tvaMention?`<p style="font-size:10px;color:#94a3b8;margin-top:6px">${escapeHtml(rec.tvaMention)}</p>`:''}
+      <div style="margin-top:24px;font-size:12px"><b>Statut :</b> ${rec.statut==='payée'?`Payée le ${new Date(rec.datePaiement).toLocaleDateString('fr-FR')} (${escapeHtml(rec.modePaiement||'—')})`:'Émise — en attente de règlement'}</div>
+    </div>
+    </body></html>`);
+  win.document.close();
 }
 
 /* ---------- Rattachement Proforma ↔ Dossier chantier d'un client ---------- */
@@ -16544,7 +16837,7 @@ function emailProforma(){
   const client=document.getElementById('proClient')?.value||'';
   const total=document.getElementById('proTotal')?.textContent||'';
   const lignes=proformaCart.length?proformaCart:[{detail:'Configuration en cours',qty:1,subtotal:0}];
-  const bodyLines=lignes.map(l=>`- ${l.detail} (x${l.qty}) : ${money(l.subtotal)}`).join('%0D%0A');
+  const bodyLines=lignes.map(l=>`- ${l.niveau?'['+l.niveau+'] ':''}${l.detail} (x${l.qty}) : ${money(l.subtotal)}`).join('%0D%0A');
   const subject=encodeURIComponent(`Proforma ${numero} — SANIX AFRICA`);
   const body=encodeURIComponent(`Bonjour,\n\nVeuillez trouver ci-dessous le récapitulatif de la proforma ${numero} :\n\n`).replace(/\n/g,'%0D%0A')
     + bodyLines
@@ -16557,7 +16850,7 @@ function whatsappProforma(){
   const client=document.getElementById('proClient')?.value||'';
   const total=document.getElementById('proTotal')?.textContent||'';
   const lignes=proformaCart.length?proformaCart:[{detail:'Configuration en cours',qty:1,subtotal:0}];
-  const lignesTxt=lignes.map(l=>`• ${l.detail} (x${l.qty}) : ${money(l.subtotal)}`).join('\n');
+  const lignesTxt=lignes.map(l=>`• ${l.niveau?'['+l.niveau+'] ':''}${l.detail} (x${l.qty}) : ${money(l.subtotal)}`).join('\n');
   const text=`*Proforma ${numero}* — SANIX AFRICA\nClient : ${client}\n\n${lignesTxt}\n\n*Total TTC : ${total}*`;
   const phoneRaw=(document.getElementById('proContact')?.value||'').replace(/[^\d+]/g,'');
   const url = phoneRaw.length>=8
