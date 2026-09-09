@@ -273,8 +273,15 @@ window.SANIX_CFG = {
         <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="ao">📑 Appels d'offres <span id="aoBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
       </div>
 
+      <button class="module-toggle w-full flex items-center justify-between px-3 pt-4 pb-1 text-[10px] uppercase tracking-widest text-slate-600" onclick="toggleModule('mod3')">
+        <span>3 · Conception & devis</span><span class="chevron" id="chev-mod3">▸</span>
+      </button>
+      <div id="mod3" class="module-group hidden space-y-1">
+        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="etude">🧑‍💻 Bureau d'étude</button>
+      </div>
+
       <button class="module-toggle w-full flex items-center justify-between px-3 pt-4 pb-1 text-[10px] uppercase tracking-widest text-slate-600" onclick="toggleModule('mod4')">
-        <span>3 · Engagement commercial</span><span class="chevron" id="chev-mod4">▸</span>
+        <span>4 · Engagement commercial</span><span class="chevron" id="chev-mod4">▸</span>
       </button>
       <div id="mod4" class="module-group hidden space-y-1">
         <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="chantier">🏗️ Circuit Chantier</button>
@@ -282,7 +289,7 @@ window.SANIX_CFG = {
       </div>
 
       <button class="module-toggle w-full flex items-center justify-between px-3 pt-4 pb-1 text-[10px] uppercase tracking-widest text-slate-600" onclick="toggleModule('mod5')">
-        <span>4 · Exécution</span><span class="chevron" id="chev-mod5">▸</span>
+        <span>5 · Exécution</span><span class="chevron" id="chev-mod5">▸</span>
       </button>
       <div id="mod5" class="module-group hidden space-y-1">
         <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="production">🏭 Production</button>
@@ -292,24 +299,23 @@ window.SANIX_CFG = {
       </div>
 
       <button class="module-toggle w-full flex items-center justify-between px-3 pt-4 pb-1 text-[10px] uppercase tracking-widest text-slate-600" onclick="toggleModule('mod6')">
-        <span>5 · Après-vente</span><span class="chevron" id="chev-mod6">▸</span>
+        <span>6 · Après-vente</span><span class="chevron" id="chev-mod6">▸</span>
       </button>
       <div id="mod6" class="module-group hidden space-y-1">
         <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="sav">🛠️ SAV & Garantie</button>
       </div>
 
       <button class="module-toggle w-full flex items-center justify-between px-3 pt-4 pb-1 text-[10px] uppercase tracking-widest text-slate-600" onclick="toggleModule('mod7')">
-        <span>6 · Facturation & Finance</span><span class="chevron" id="chev-mod7">▸</span>
+        <span>7 · Finance</span><span class="chevron" id="chev-mod7">▸</span>
       </button>
       <div id="mod7" class="module-group hidden space-y-1">
-        <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="etude">🧾 Étude & Devis</button>
         <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="facturationclients">🧾 Facturation clients</button>
         <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="caisse">💵 Caisse</button>
         <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="compta">📒 Comptabilité SYSCOHADA <span id="ventilationBadge" class="hidden ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"></span></button>
       </div>
 
       <button class="module-toggle w-full flex items-center justify-between px-3 pt-4 pb-1 text-[10px] uppercase tracking-widest text-slate-600" onclick="toggleModule('mod8')">
-        <span>7 · Pilotage</span><span class="chevron" id="chev-mod8">▸</span>
+        <span>8 · Pilotage</span><span class="chevron" id="chev-mod8">▸</span>
       </button>
       <div id="mod8" class="module-group hidden space-y-1">
         <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="controlegestion">📈 Contrôle de gestion</button>
@@ -321,7 +327,7 @@ window.SANIX_CFG = {
       </div>
 
       <button class="module-toggle w-full flex items-center justify-between px-3 pt-4 pb-1 text-[10px] uppercase tracking-widest text-slate-600" onclick="toggleModule('mod9')">
-        <span>8 · Administration</span><span class="chevron" id="chev-mod9">▸</span>
+        <span>9 · Administration</span><span class="chevron" id="chev-mod9">▸</span>
       </button>
       <div id="mod9" class="module-group hidden space-y-1">
         <button class="nav w-full text-left px-3 py-2.5 rounded-lg" data-page="utilisateurs">👥 Utilisateurs</button>
@@ -528,7 +534,7 @@ window.SANIX_CFG = {
               <text x="435" y="72" text-anchor="middle" class="fx-sub">Répertoire tiers</text>
 
               <!-- ===== SECTION 2 : CONCEPTION & DEVIS ===== -->
-              <text x="20" y="130" class="fx-section">2 · Conception &amp; devis (Facturation)</text>
+              <text x="20" y="130" class="fx-section">2 · Conception &amp; devis (Bureau d'études)</text>
               <rect x="20" y="140" width="170" height="56" class="fx-boxblue"/>
               <text x="105" y="163" text-anchor="middle" class="fx-title">Configurateur</text>
               <text x="105" y="180" text-anchor="middle" class="fx-sub">Type, dimensions, atelier</text>
@@ -647,7 +653,7 @@ window.SANIX_CFG = {
             </svg>
           </div>
           <div class="grid sm:grid-cols-3 gap-3 mt-4 text-sm">
-            <div class="bg-blue-50 rounded-xl p-3"><b class="text-blue-700">Conception</b><p class="text-xs text-slate-600 mt-1">La Facturation configure l'ouvrage par atelier, génère la BOM et chiffre automatiquement.</p></div>
+            <div class="bg-blue-50 rounded-xl p-3"><b class="text-blue-700">Conception</b><p class="text-xs text-slate-600 mt-1">Le Bureau d'études configure l'ouvrage par atelier, génère la BOM et chiffre automatiquement.</p></div>
             <div class="bg-amber-50 rounded-xl p-3"><b class="text-amber-700">Engagement</b><p class="text-xs text-slate-600 mt-1">Devis → acompte client → validation DG déclenche le circuit d'exécution.</p></div>
             <div class="bg-emerald-50 rounded-xl p-3"><b class="text-emerald-700">Exécution</b><p class="text-xs text-slate-600 mt-1">MRP calcule les besoins réels, déclenche achats et OF, jusqu'à l'installation.</p></div>
           </div>
@@ -1325,7 +1331,7 @@ window.SANIX_CFG = {
             <div class="mt-6 border border-slate-200 rounded-2xl p-4 bg-slate-50">
               <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
                 <div>
-                  <h3 class="font-bold">Schéma technique fabrication — Étude &amp; Devis</h3>
+                  <h3 class="font-bold">Schéma technique fabrication — Bureau d'études</h3>
                   <p class="text-xs text-slate-500">Vue de fabrication paramétrique : cotes, repères profils, vitrage, coupes, débit et tolérances.</p>
                 </div>
                 <div class="flex gap-2">
@@ -2782,7 +2788,7 @@ window.SANIX_CFG = {
             <div class="card bg-white rounded-2xl p-5"><div class="text-slate-500 text-sm">En attente de facturation</div><div id="facKpiEnAttenteFacturation" class="text-3xl font-black mt-2">—</div></div>
           </div>
           <div class="card bg-white rounded-2xl p-4">
-            <p class="text-xs text-slate-500 mb-3">Références créées par la Facturation (onglet Étude & Devis) ou héritées de l'historique. Cliquez sur « + Nouvelle proforma » ci-dessus pour en démarrer une.</p>
+            <p class="text-xs text-slate-500 mb-3">Références construites à partir de la Bibliothèque de plans façade (onglet Bureau d'étude → Configurateur). Cliquez sur « + Nouvelle proforma » ci-dessus pour en démarrer une.</p>
             <div class="overflow-x-auto"><table class="w-full text-sm">
               <thead class="bg-slate-50"><tr>
                 <th class="text-left p-2">Référence (proforma)</th>
@@ -4070,7 +4076,8 @@ const ROLE_PRESETS={
   admin:{label:'Administrateur',permissions:['*']},
   responsable_technique:{label:'Responsable technique',permissions:['referentiel:manage','ouvrage:create']},
   commercial:{label:'Commercial',permissions:['chantier:create','ouvrage:create']},
-  facturation:{label:'Facturation',permissions:['chantier:create','ouvrage:create','facturation:create']},
+  bureau_etudes:{label:"Bureau d'études (BE)",permissions:['bibliotheque:manage']},
+  facturation:{label:'Facturation',permissions:['chantier:create','facturation:create']},
   responsable_production:{label:'Responsable production',permissions:['of:create','chantier:validate','stock:write','qc:validate']},
   magasinier:{label:'Magasinier',permissions:['stock:write','achat:manage']},
   poseur:{label:'Poseur',permissions:['installation:manage']},
@@ -4202,7 +4209,8 @@ const PERMISSION_LABELS={
   'achat:create':"Créer des demandes d'achat",
   'installation:manage':'Gérer les poses/installations',
   'rh:manage':'Gérer le module RH & Paie',
-  'facturation:create':"Émettre les factures (à partir des références du BE)"
+  'facturation:create':"Émettre les factures",
+  'bibliotheque:manage':"Créer/modifier la Bibliothèque de plans façade"
 };
 function roleIsValidateur(role){ const p=ROLE_PRESETS[role]?.permissions||[]; return p.includes('*')||p.includes('chantier:validate'); }
 function renderUsersTable(){
@@ -15840,10 +15848,11 @@ const ETUDE_TABS=['config','bom','cut','cost','proforma'];
 const PAGE_TO_MODULE={
   referentiel:'mod1',catalogue:'mod1',clients:'mod1',fournisseurs:'mod1',
   prospects:'mod2',ao:'mod2',
+  etude:'mod3',config:'mod3',bom:'mod3',cut:'mod3',cost:'mod3',proforma:'mod3',
   chantier:'mod4',cartechantiers:'mod4',
   production:'mod5',atelierMobile:'mod5',stock:'mod5',gmao:'mod5',
   sav:'mod6',
-  etude:'mod7',config:'mod7',bom:'mod7',cut:'mod7',cost:'mod7',proforma:'mod7',facturationclients:'mod7',caisse:'mod7',compta:'mod7',
+  caisse:'mod7',compta:'mod7',facturationclients:'mod7',
   controlegestion:'mod8',validations:'mod8',etatpa:'mod8',relances:'mod8',analysecommerciale:'mod8',partenaires:'mod8',
   utilisateurs:'mod9',reglages:'mod9',rh:'mod9'
 };
@@ -15873,7 +15882,7 @@ function showPage(page){
   expandModuleForPage(page);
   document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
   document.querySelectorAll('.nav').forEach(b=>b.classList.remove('active'));
-  const titles={dashboard:'Tableau de bord',flux:'Schéma des flux',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Proforma',production:'Production',atelierMobile:'Vue atelier',stock:'Stock',sav:'SAV & Garantie',chantier:'Circuit Chantier',cartechantiers:'Carte des chantiers',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs',catalogue:'Catalogue technique',controlegestion:'Contrôle de gestion',validations:'Validations en attente',etatpa:'État proforma & achats',gmao:'GMAO — Maintenance',prospects:'Prospects & Pipeline',relances:'Relances commerciales',analysecommerciale:'Analyse commerciale',partenaires:'Partenaires & commissions',ao:"Appels d'offres",rh:'RH & Paie',caisse:'Caisse',compta:'Comptabilité SYSCOHADA',reglages:'Paramètres',facturationclients:'Facturation clients',etude:'Étude & Devis'};
+  const titles={dashboard:'Tableau de bord',flux:'Schéma des flux',config:"Configurateur d'ouvrage",bom:'BOM / Nomenclature',cut:'Débit & optimisation',cost:'Chiffrage',proforma:'Proforma',production:'Production',atelierMobile:'Vue atelier',stock:'Stock',sav:'SAV & Garantie',chantier:'Circuit Chantier',cartechantiers:'Carte des chantiers',clients:'Clients',fournisseurs:'Fournisseurs',referentiel:'Référentiel technique',utilisateurs:'Utilisateurs',catalogue:'Catalogue technique',controlegestion:'Contrôle de gestion',validations:'Validations en attente',etatpa:'État proforma & achats',gmao:'GMAO — Maintenance',prospects:'Prospects & Pipeline',relances:'Relances commerciales',analysecommerciale:'Analyse commerciale',partenaires:'Partenaires & commissions',ao:"Appels d'offres",rh:'RH & Paie',caisse:'Caisse',compta:'Comptabilité SYSCOHADA',reglages:'Paramètres',facturationclients:'Facturation clients'};
 
   if(ETUDE_TABS.includes(page)){
     document.getElementById('etude').classList.remove('hidden');
@@ -16050,7 +16059,8 @@ async function devisContextNouveauChantier(){
   alert('Dossier '+numero+' créé. Configurez maintenant les ouvrages du devis.');
 }
 
-function addToProformaCart(){
+function addToProformaCart(fromLibrary){
+  if(!fromLibrary && !hasRole('ouvrage:create')){ alert("Permission refusée. Vous ne pouvez pas configurer un ouvrage sur mesure. Utilisez la Bibliothèque de plans façade (bouton « + Ajouter au devis » sur un modèle) pour construire le devis."); return; }
   if(!isDevisContextValid()){ alert("Sélectionnez d'abord le Client et le Chantier en haut de page (étapes 1 et 2) avant d'ajouter un ouvrage au devis."); showPage('config'); document.getElementById('devisCtxClient')?.focus(); return; }
   const type=document.getElementById('type').value;
   const atelierSel=document.getElementById('atelier');
@@ -16717,7 +16727,7 @@ async function renderFacFactureTab(){
 async function genererFacture(chantierId){
   if(!hasRole('facturation:create')){ alert("Permission refusée. Seul le service Facturation peut émettre une facture."); return; }
   const ch=await getChantier(chantierId); if(!ch) return;
-  if(!ch.proformaId){ alert("Aucune référence (proforma) n'existe pour ce dossier. Créez-la d'abord (onglet « 🧾 Étude & Devis ») avant toute facturation."); return; }
+  if(!ch.proformaId){ alert("Aucune référence (proforma) n'existe pour ce dossier. Créez-la d'abord depuis la Bibliothèque de plans façade avant toute facturation."); return; }
   if(!confirm(`Émettre la facture définitive pour le dossier ${ch.numero} (référence ${ch.devisNumero||'—'}), client ${ch.client||''} ?`)) return;
   const f=ch.facturation||{tauxRemise:0,tauxTVA:18,tvaApplicable:true};
   const seq=nextSeq('facture');
@@ -17033,7 +17043,7 @@ function printProforma(){
 
 /* ---------- Bibliothèque de plans façade (modèles configurateur réutilisables) ---------- */
 async function savePlanFacade(){
-  if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
+  if(!hasRole('bibliotheque:manage') && !hasRole('of:create')){ alert("Permission refusée. Seul le Bureau d'études peut créer/modifier la Bibliothèque de plans façade."); return; }
   const nom=prompt('Nom du modèle :',document.getElementById('type').value+' '+document.getElementById('width').value+'×'+document.getElementById('height').value);
   if(!nom) return;
   const rec={
@@ -17068,7 +17078,7 @@ async function loadPlanFacade(id){
   await audit('CHARGER_PLAN_FACADE',r.nom);
 }
 async function deletePlanFacade(id){
-  if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
+  if(!hasRole('bibliotheque:manage') && !hasRole('of:create')){ alert("Permission refusée. Seul le Bureau d'études peut gérer la Bibliothèque de plans façade."); return; }
   if(!confirm('Supprimer ce modèle ?')) return;
   await idbDelete('plans_facade',id);
   await audit('DELETE_PLAN_FACADE',id);
@@ -17092,7 +17102,7 @@ async function renderPlansFacadeTable(){
 async function loadPlanFacadeAuDevis(id){
   if(!isDevisContextValid()){ alert("Sélectionnez d'abord le Client et le Chantier en haut de page (étapes 1 et 2) avant d'ajouter un élément de la bibliothèque au devis."); showPage('config'); document.getElementById('devisCtxClient')?.focus(); return; }
   await loadPlanFacade(id);
-  addToProformaCart();
+  addToProformaCart(true);
   showPage('proforma');
 }
 
