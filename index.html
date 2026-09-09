@@ -2642,6 +2642,30 @@ window.SANIX_CFG = {
       <div id="proforma" class="mt-6">
         <div class="card bg-white rounded-2xl p-4 mb-4">
           <div class="flex flex-wrap justify-between gap-2 items-center mb-3">
+            <div>
+              <h3 class="font-bold text-sm">📚 Bibliothèque de plans façade</h3>
+              <p class="text-xs text-slate-500">Modèles réutilisables (type, dimensions, série) — cochez les éléments à ajouter à la proforma en cours, ou ajoutez-les un par un.</p>
+            </div>
+            <div class="flex flex-wrap gap-2 items-center">
+              <input id="pfBiblioSearch" oninput="renderPlansFacadeBiblioProforma()" placeholder="Rechercher un modèle…" class="border rounded-lg px-3 py-1.5 text-xs w-56 max-w-full">
+              <button type="button" onclick="ajouterPlansFacadeSelectionAuDevis()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">+ Ajouter la sélection au devis</button>
+            </div>
+          </div>
+          <div class="overflow-x-auto max-h-72 overflow-y-auto border rounded-lg">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 sticky top-0"><tr>
+                <th class="p-2 w-8"><input type="checkbox" id="pfBiblioSelectAll" onchange="togglePlansFacadeBiblioSelectAll(this.checked)"></th>
+                <th class="text-left p-2">Nom</th>
+                <th class="text-left p-2">Ouvrage</th>
+                <th class="text-right p-2">Dimensions</th>
+                <th class="p-2"></th>
+              </tr></thead>
+              <tbody id="pfBiblioProformaBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card bg-white rounded-2xl p-4 mb-4">
+          <div class="flex flex-wrap justify-between gap-2 items-center mb-3">
             <div><h3 class="font-bold text-sm">Ensembles composés / Modèles d'ouvrages</h3><p class="text-xs text-slate-500">Ex. Baie 4000×2400 = 2 fixes + 2 coulissants + traverse. Enregistre le panier actuel comme un ensemble réutilisable.</p></div>
             <button onclick="saveEnsemble()" class="border border-blue-600 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-semibold">💾 Enregistrer le panier comme ensemble</button>
           </div>
@@ -4301,7 +4325,7 @@ async function checkSession(){
 document.addEventListener('DOMContentLoaded',checkSession);
 
 /* ---------- Ordres de Fabrication (OF) ---------- */
-async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),seedArticlesIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable(),renderEnsemblesList(),renderPlansFacadeTable(),renderRevisionsTable(),populateAtelierSelect(),loadParams()]); renderUsersTable(); if(document.getElementById('costChart')) updateDashboard(); if(document.getElementById('prodTabKanban') && !document.getElementById('prodTabKanban').classList.contains('hidden')) renderKanban(); if(document.getElementById('prodTabGantt') && !document.getElementById('prodTabGantt').classList.contains('hidden')) renderGantt(); if(document.getElementById('prodTabCharge') && !document.getElementById('prodTabCharge').classList.contains('hidden')) renderChargePostes(); if(document.getElementById('atelierMobile') && !document.getElementById('atelierMobile').classList.contains('hidden')) renderAtelierMobile(); if(document.getElementById('controlegestion') && !document.getElementById('controlegestion').classList.contains('hidden')) renderControleGestion(); if(document.getElementById('validations') && !document.getElementById('validations').classList.contains('hidden')) renderValidationsQueue(); if(document.getElementById('etatpa') && !document.getElementById('etatpa').classList.contains('hidden')) renderEtatProformaAchats(); if(document.getElementById('gmao') && !document.getElementById('gmao').classList.contains('hidden')) showGmaoTab(document.querySelector('.gmao-tab-btn.active')?.dataset.gmaotab||'machines'); if(document.getElementById('relances') && !document.getElementById('relances').classList.contains('hidden')) renderRelances(); updateGmaoBadge(); updateValidationsBadge(); updateRelancesBadge(); updateAOBadge(); updateVentilationBadge(); if(document.getElementById('rh') && !document.getElementById('rh').classList.contains('hidden')) showRHTab(document.querySelector('.rh-tab-btn.active')?.dataset.rhtab||'employes'); updateCongesBadge(); }
+async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),seedArticlesIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable(),renderEnsemblesList(),renderPlansFacadeTable(),renderPlansFacadeBiblioProforma(),renderRevisionsTable(),populateAtelierSelect(),loadParams()]); renderUsersTable(); if(document.getElementById('costChart')) updateDashboard(); if(document.getElementById('prodTabKanban') && !document.getElementById('prodTabKanban').classList.contains('hidden')) renderKanban(); if(document.getElementById('prodTabGantt') && !document.getElementById('prodTabGantt').classList.contains('hidden')) renderGantt(); if(document.getElementById('prodTabCharge') && !document.getElementById('prodTabCharge').classList.contains('hidden')) renderChargePostes(); if(document.getElementById('atelierMobile') && !document.getElementById('atelierMobile').classList.contains('hidden')) renderAtelierMobile(); if(document.getElementById('controlegestion') && !document.getElementById('controlegestion').classList.contains('hidden')) renderControleGestion(); if(document.getElementById('validations') && !document.getElementById('validations').classList.contains('hidden')) renderValidationsQueue(); if(document.getElementById('etatpa') && !document.getElementById('etatpa').classList.contains('hidden')) renderEtatProformaAchats(); if(document.getElementById('gmao') && !document.getElementById('gmao').classList.contains('hidden')) showGmaoTab(document.querySelector('.gmao-tab-btn.active')?.dataset.gmaotab||'machines'); if(document.getElementById('relances') && !document.getElementById('relances').classList.contains('hidden')) renderRelances(); updateGmaoBadge(); updateValidationsBadge(); updateRelancesBadge(); updateAOBadge(); updateVentilationBadge(); if(document.getElementById('rh') && !document.getElementById('rh').classList.contains('hidden')) showRHTab(document.querySelector('.rh-tab-btn.active')?.dataset.rhtab||'employes'); updateCongesBadge(); }
 
 function openNewOFForm(){
   if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
@@ -16633,7 +16657,7 @@ function showFacTab(tab){
   document.querySelectorAll('.fac-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.factab===tab));
   document.getElementById('facTabProforma').classList.toggle('hidden',tab!=='proforma');
   document.getElementById('facTabFacture').classList.toggle('hidden',tab!=='facture');
-  if(tab==='proforma') populateProformaChantierOptions();
+  if(tab==='proforma'){ populateProformaChantierOptions(); renderPlansFacadeBiblioProforma(); }
 }
 
 function showProformaBuilder(){
@@ -17059,6 +17083,7 @@ async function savePlanFacade(){
   queueSync('alubom_plans_facade',rec);
   await audit('CREATE_PLAN_FACADE',nom);
   await renderPlansFacadeTable();
+  await renderPlansFacadeBiblioProforma();
 }
 async function loadPlanFacade(id){
   const rows=await idbGetAll('plans_facade');
@@ -17080,6 +17105,7 @@ async function deletePlanFacade(id){
   await idbDelete('plans_facade',id);
   await audit('DELETE_PLAN_FACADE',id);
   await renderPlansFacadeTable();
+  await renderPlansFacadeBiblioProforma();
 }
 async function renderPlansFacadeTable(){
   const el=document.getElementById('plansFacadeBody'); if(!el) return;
@@ -17101,6 +17127,40 @@ async function loadPlanFacadeAuDevis(id){
   await loadPlanFacade(id);
   addToProformaCart(true);
   showProformaBuilder();
+}
+
+/* --- Sélecteur de la Bibliothèque de plans façade directement depuis l'onglet Facturation clients → Proforma --- */
+async function renderPlansFacadeBiblioProforma(){
+  const el=document.getElementById('pfBiblioProformaBody'); if(!el) return;
+  const q=(document.getElementById('pfBiblioSearch')?.value||'').trim().toLowerCase();
+  let rows=(await idbGetAll('plans_facade')).sort((a,b)=>b.dateCreation.localeCompare(a.dateCreation));
+  if(q) rows=rows.filter(r=>(r.nom+' '+r.type+' '+r.serie).toLowerCase().includes(q));
+  el.innerHTML = rows.length ? rows.map(r=>`
+    <tr class="border-b">
+      <td class="p-2"><input type="checkbox" class="pfBiblioCheck w-4 h-4" value="${r.id}"></td>
+      <td class="p-2 font-semibold">${escapeHtml(r.nom)}</td>
+      <td class="p-2 text-xs text-slate-500">${escapeHtml(r.type)} • ${r.leaves} vantail(x) • ${escapeHtml(r.serie)}</td>
+      <td class="p-2 text-right">${r.w}×${r.h} mm</td>
+      <td class="p-2 text-right whitespace-nowrap"><button onclick="loadPlanFacadeAuDevis('${r.id}')" class="text-blue-600 text-xs font-semibold">+ Ajouter</button></td>
+    </tr>`).join('') : `<tr><td class="p-2 text-slate-400" colspan="5">Aucun modèle enregistré. Créez-en un depuis Bureau d'étude → Configurateur → Bibliothèque de plans façade.</td></tr>`;
+  const selectAll=document.getElementById('pfBiblioSelectAll');
+  if(selectAll) selectAll.checked=false;
+}
+function togglePlansFacadeBiblioSelectAll(checked){
+  document.querySelectorAll('.pfBiblioCheck').forEach(cb=>cb.checked=checked);
+}
+async function ajouterPlansFacadeSelectionAuDevis(){
+  const ids=[...document.querySelectorAll('.pfBiblioCheck:checked')].map(cb=>cb.value);
+  if(!ids.length){ alert('Cochez au moins un modèle dans la Bibliothèque de plans façade avant de les ajouter au devis.'); return; }
+  if(!isDevisContextValid()){ alert("Sélectionnez d'abord le Client et le Chantier en haut de page (étapes 1 et 2) avant d'ajouter des éléments de la bibliothèque au devis."); showPage('config'); document.getElementById('devisCtxClient')?.focus(); return; }
+  for(const id of ids){
+    await loadPlanFacade(id);
+    addToProformaCart(true);
+  }
+  document.querySelectorAll('.pfBiblioCheck').forEach(cb=>cb.checked=false);
+  const selectAll=document.getElementById('pfBiblioSelectAll'); if(selectAll) selectAll.checked=false;
+  showProformaBuilder();
+  alert(ids.length+' élément(s) de la bibliothèque ajouté(s) à la proforma en cours.');
 }
 
 /* ---------- Révisions de configuration (versionning pré-OF) ---------- */
