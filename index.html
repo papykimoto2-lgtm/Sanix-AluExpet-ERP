@@ -1955,7 +1955,7 @@ window.SANIX_CFG = {
           </div>
           <p class="text-xs text-slate-500 bg-slate-50 border rounded-lg p-2 mb-4">ℹ️ Ce catalogue est alimenté automatiquement par le référentiel technique (profils, vitrages, quincaillerie, joints, consommables) : toute création ou modification là-bas crée ou met à jour l'article correspondant ici (même référence = même produit). "Depuis le catalogue technique" rattrape les éléments déjà existants qui n'auraient pas encore d'article.</p>
           <div class="grid sm:grid-cols-4 gap-2 mb-4">
-            <input id="artSearchRef" placeholder="🔍 Référence" onkeyup="renderArticleTable()" class="border rounded-lg px-2 py-1.5 text-sm">
+            <input id="artSearchRef" list="articlesComposantsDatalist" placeholder="🔍 Référence" onkeyup="renderArticleTable()" class="border rounded-lg px-2 py-1.5 text-sm">
             <input id="artSearchDesig" placeholder="🔍 Désignation" onkeyup="renderArticleTable()" class="border rounded-lg px-2 py-1.5 text-sm">
             <select id="artFilterFamille" onchange="renderArticleTable()" class="border rounded-lg px-2 py-1.5 text-sm"><option value="">— Famille —</option></select>
             <select id="artFilterFournisseur" onchange="renderArticleTable()" class="border rounded-lg px-2 py-1.5 text-sm"><option value="">— Fournisseur —</option></select>
@@ -1988,8 +1988,8 @@ window.SANIX_CFG = {
           </div>
           <p class="text-xs text-slate-500 bg-slate-50 border rounded-lg p-2 mb-4">ℹ️ "Depuis la BOM actuelle" ajoute au stock les composants du calcul en cours (Configurateur) qui n'y figurent pas encore. "Depuis le référentiel" ajoute tous les profils/vitrages/quincaillerie/joints/consommables actifs manquants. Les quantités sont ajoutées à 0 — à compléter par une entrée de stock. Les mouvements automatiques (réservation OF, réquisition, réception achat) s'appliquent toujours au Dépôt Principal.</p>
           <form id="stockMoveForm" onsubmit="return handleStockMove(event)" class="grid sm:grid-cols-7 gap-2 mb-3 bg-slate-50 border rounded-xl p-3">
-            <input id="mvRef" placeholder="Référence" required class="border rounded-lg px-2 py-1.5 text-sm">
-            <input id="mvLabel" placeholder="Désignation" class="border rounded-lg px-2 py-1.5 text-sm">
+            <input id="mvRef" list="articlesComposantsDatalist" onchange="onMvRefChange()" placeholder="Référence (composant / produit)" autocomplete="off" required class="border rounded-lg px-2 py-1.5 text-sm">
+            <input id="mvLabel" list="articlesDesignationsDatalist" onchange="onMvLabelChange()" placeholder="Désignation" autocomplete="off" class="border rounded-lg px-2 py-1.5 text-sm">
             <select id="mvDepot" class="border rounded-lg px-2 py-1.5 text-sm"></select>
             <select id="mvType" onchange="document.getElementById('mvPrix').classList.toggle('hidden',this.value!=='entree')" class="border rounded-lg px-2 py-1.5 text-sm"><option value="entree">Entrée</option><option value="sortie">Sortie</option></select>
             <input id="mvQty" type="number" step="0.01" placeholder="Qté (ml)" required class="border rounded-lg px-2 py-1.5 text-sm">
@@ -3724,7 +3724,7 @@ window.SANIX_CFG = {
           <div class="mb-3 flex flex-wrap items-end gap-2 bg-slate-50 border rounded-xl p-3">
             <div>
               <label class="text-xs font-semibold text-slate-600 block mb-1">Référence</label>
-              <input id="mvfRef" type="text" placeholder="Toutes" oninput="renderCatalogueMouvements()" class="border rounded-lg px-2 py-1.5 text-sm">
+              <input id="mvfRef" type="text" list="articlesComposantsDatalist" placeholder="Toutes" oninput="renderCatalogueMouvements()" class="border rounded-lg px-2 py-1.5 text-sm">
             </div>
             <div>
               <label class="text-xs font-semibold text-slate-600 block mb-1">Type</label>
@@ -3765,6 +3765,8 @@ window.SANIX_CFG = {
   </main>
   <datalist id="clientsDatalist"></datalist>
   <datalist id="fournisseursDatalist"></datalist>
+  <datalist id="articlesComposantsDatalist"></datalist>
+  <datalist id="articlesDesignationsDatalist"></datalist>
 </div>
 
 <div id="prixFournisseursModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 modal-overlay">
@@ -4329,7 +4331,7 @@ async function checkSession(){
 document.addEventListener('DOMContentLoaded',checkSession);
 
 /* ---------- Ordres de Fabrication (OF) ---------- */
-async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),seedArticlesIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable(),renderEnsemblesList(),renderPlansFacadeTable(),renderPlansFacadeBiblioProforma(),renderRevisionsTable(),populateAtelierSelect(),loadParams()]); renderUsersTable(); if(document.getElementById('costChart')) updateDashboard(); if(document.getElementById('prodTabKanban') && !document.getElementById('prodTabKanban').classList.contains('hidden')) renderKanban(); if(document.getElementById('prodTabGantt') && !document.getElementById('prodTabGantt').classList.contains('hidden')) renderGantt(); if(document.getElementById('prodTabCharge') && !document.getElementById('prodTabCharge').classList.contains('hidden')) renderChargePostes(); if(document.getElementById('atelierMobile') && !document.getElementById('atelierMobile').classList.contains('hidden')) renderAtelierMobile(); if(document.getElementById('controlegestion') && !document.getElementById('controlegestion').classList.contains('hidden')) renderControleGestion(); if(document.getElementById('validations') && !document.getElementById('validations').classList.contains('hidden')) renderValidationsQueue(); if(document.getElementById('etatpa') && !document.getElementById('etatpa').classList.contains('hidden')) renderEtatProformaAchats(); if(document.getElementById('gmao') && !document.getElementById('gmao').classList.contains('hidden')) showGmaoTab(document.querySelector('.gmao-tab-btn.active')?.dataset.gmaotab||'machines'); if(document.getElementById('relances') && !document.getElementById('relances').classList.contains('hidden')) renderRelances(); updateGmaoBadge(); updateValidationsBadge(); updateRelancesBadge(); updateAOBadge(); updateVentilationBadge(); if(document.getElementById('rh') && !document.getElementById('rh').classList.contains('hidden')) showRHTab(document.querySelector('.rh-tab-btn.active')?.dataset.rhtab||'employes'); updateCongesBadge(); }
+async function refreshAllTables(){ await Promise.all([loadRecentOF(),renderOFTable(),renderStockTable(),renderAuditLog(),seedStockIfEmpty(),seedArticlesIfEmpty(),renderChantierList(),renderClientsTable(),renderFournisseursTable(),renderProformaList(),renderSeriesTable(),renderProfilsTable(),renderEnsemblesList(),renderPlansFacadeTable(),renderPlansFacadeBiblioProforma(),renderRevisionsTable(),populateAtelierSelect(),loadParams(),refreshArticlesComposantsDatalist()]); renderUsersTable(); if(document.getElementById('costChart')) updateDashboard(); if(document.getElementById('prodTabKanban') && !document.getElementById('prodTabKanban').classList.contains('hidden')) renderKanban(); if(document.getElementById('prodTabGantt') && !document.getElementById('prodTabGantt').classList.contains('hidden')) renderGantt(); if(document.getElementById('prodTabCharge') && !document.getElementById('prodTabCharge').classList.contains('hidden')) renderChargePostes(); if(document.getElementById('atelierMobile') && !document.getElementById('atelierMobile').classList.contains('hidden')) renderAtelierMobile(); if(document.getElementById('controlegestion') && !document.getElementById('controlegestion').classList.contains('hidden')) renderControleGestion(); if(document.getElementById('validations') && !document.getElementById('validations').classList.contains('hidden')) renderValidationsQueue(); if(document.getElementById('etatpa') && !document.getElementById('etatpa').classList.contains('hidden')) renderEtatProformaAchats(); if(document.getElementById('gmao') && !document.getElementById('gmao').classList.contains('hidden')) showGmaoTab(document.querySelector('.gmao-tab-btn.active')?.dataset.gmaotab||'machines'); if(document.getElementById('relances') && !document.getElementById('relances').classList.contains('hidden')) renderRelances(); updateGmaoBadge(); updateValidationsBadge(); updateRelancesBadge(); updateAOBadge(); updateVentilationBadge(); if(document.getElementById('rh') && !document.getElementById('rh').classList.contains('hidden')) showRHTab(document.querySelector('.rh-tab-btn.active')?.dataset.rhtab||'employes'); updateCongesBadge(); }
 
 function openNewOFForm(){
   if(!hasRole('of:create')){ alert('Permission refusée.'); return; }
@@ -8509,7 +8511,7 @@ async function showArticleHistoriqueTab(){
         </div>
         <div class="p-4 space-y-4">
           <div class="grid sm:grid-cols-3 gap-2">
-            <input id="histSearchRef" placeholder="🔍 Référence" onkeyup="updateHistoriqueTable()" class="border rounded-lg px-2 py-1.5 text-sm">
+            <input id="histSearchRef" list="articlesComposantsDatalist" placeholder="🔍 Référence" onkeyup="updateHistoriqueTable()" class="border rounded-lg px-2 py-1.5 text-sm">
             <input id="histSearchFournisseur" placeholder="🔍 Fournisseur" onkeyup="updateHistoriqueTable()" class="border rounded-lg px-2 py-1.5 text-sm">
             <select id="histFilterArticle" onchange="updateHistoriqueTable()" class="border rounded-lg px-2 py-1.5 text-sm">
               <option value="">— Tous articles —</option>
@@ -11739,7 +11741,9 @@ async function openChantierDetail(id){
     const allRecue=achats.every(a=>a.statut==='recue');
     const besoinsMRP=await calculerBesoinsMRP(id);
     const manquantsMRP=besoinsMRP.filter(b=>b.manquant>0.01);
-    const catalogueArticles=(await idbGetAll('articles')).sort((a,b)=>(a.reference||'').localeCompare(b.reference||''));
+    const codesBOM=new Set(besoinsMRP.map(b=>b.code));
+    const articlesComposants=(await refreshArticlesComposantsDatalist()).filter(a=>!codesBOM.has(a.code));
+    const famillesArticles=[...new Set(articlesComposants.map(a=>a.famille))];
     const mrpHtml=`
       <div class="mb-4 border rounded-xl p-3 bg-blue-50/40">
         <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
@@ -11757,15 +11761,15 @@ async function openChantierDetail(id){
         <div class="bg-slate-50 border rounded-xl p-3 mb-3">
           <div class="grid sm:grid-cols-6 gap-2 mb-2">
             <select id="acBomRef" onchange="onAcBomRefChange()" class="border rounded-lg px-2 py-1.5 text-sm sm:col-span-2">
-              <option value="">— Composant BOM / article catalogue (ou saisie libre) —</option>
+              <option value="">— Composant / produit (BOM, référentiel, catalogue) ou saisie libre —</option>
               ${besoinsMRP.length?`<optgroup label="Besoins BOM (MRP)">
               ${besoinsMRP.map(b=>`<option value="${escapeHtml(b.code)}" data-designation="${escapeHtml(b.designation)}" data-manquant="${b.manquant.toFixed(2)}" data-prix="${b.prixUnitaire||0}" data-fournisseur="${escapeHtml(b.fournisseur||'')}">${escapeHtml(b.code)} — ${escapeHtml(b.designation)}${b.manquant>0.01?' (manque '+b.manquant.toFixed(2)+')':''}</option>`).join('')}
               </optgroup>`:''}
-              ${catalogueArticles.length?`<optgroup label="Catalogue articles">
-              ${catalogueArticles.map(a=>`<option value="${escapeHtml(a.reference)}" data-designation="${escapeHtml(a.designation)}" data-manquant="" data-prix="${a.dernierPrix||0}" data-fournisseur="${escapeHtml(a.fournisseur||'')}">${escapeHtml(a.reference)} — ${escapeHtml(a.designation)}</option>`).join('')}
-              </optgroup>`:''}
+              ${famillesArticles.map(f=>`<optgroup label="${escapeHtml(f)}">
+              ${articlesComposants.filter(a=>a.famille===f).map(a=>`<option value="${escapeHtml(a.code)}" data-designation="${escapeHtml(a.designation)}" data-manquant="" data-prix="${a.prix||0}" data-fournisseur="${escapeHtml(a.fournisseur||'')}">${escapeHtml(a.code)} — ${escapeHtml(a.designation)}</option>`).join('')}
+              </optgroup>`).join('')}
             </select>
-            <input id="acDesignation" placeholder="Désignation article" class="border rounded-lg px-2 py-1.5 text-sm">
+            <input id="acDesignation" list="articlesDesignationsDatalist" onchange="onAcDesignationChange()" placeholder="Désignation article" autocomplete="off" class="border rounded-lg px-2 py-1.5 text-sm">
             <input id="acQte" type="number" min="1" value="1" placeholder="Qté" class="border rounded-lg px-2 py-1.5 text-sm">
             <input id="acPrix" type="number" min="0" placeholder="Prix unitaire" class="border rounded-lg px-2 py-1.5 text-sm">
             <button type="button" onclick="ajouterLigneAchatCart()" class="border border-blue-600 text-blue-600 rounded-lg px-3 py-1.5 text-sm font-semibold">+ Ajouter à la demande</button>
@@ -11898,6 +11902,64 @@ async function handlePaiement(e,id){
   await renderChantierList();
   await openChantierDetail(id);
   return false;
+}
+
+/* ---------- Liste unifiée composants + produits (référentiel, catalogue articles, stock) — alimente tous les champs « article » ---------- */
+const ARTICLE_SOURCES=[
+  {store:'articles',famille:'Produits / catalogue articles',codeField:'reference',priceField:'dernierPrix'},
+  {store:'profils',famille:'Composants — Profilés',priceField:'prixMl'},
+  {store:'vitrages',famille:'Composants — Vitrages',priceField:'prixM2'},
+  {store:'quincaillerie',famille:'Composants — Quincaillerie',priceField:'prixUnitaire'},
+  {store:'joints',famille:'Composants — Joints',priceField:'prixMl'},
+  {store:'consommables',famille:'Composants — Consommables',priceField:'prix'}
+];
+let articlesComposantsCache=[];
+async function getArticlesComposantsListe(){
+  const map=new Map();
+  for(const src of ARTICLE_SOURCES){
+    const items=await idbGetAll(src.store).catch(()=>[]);
+    for(const it of items){
+      if(it.statut==='inactif') continue;
+      const code=it[src.codeField||'code'];
+      if(!code || map.has(code)) continue;
+      map.set(code,{code,designation:it.designation||code,famille:src.famille,prix:it[src.priceField]||0,fournisseur:it.fournisseur||'',unite:it.unite||''});
+    }
+  }
+  for(const s of await idbGetAll('stock').catch(()=>[])){
+    if(!s.ref || map.has(s.ref)) continue;
+    map.set(s.ref,{code:s.ref,designation:s.label||s.ref,famille:'Autres références en stock',prix:s.prix||0,fournisseur:'',unite:''});
+  }
+  return [...map.values()].sort((a,b)=>String(a.code).localeCompare(String(b.code)));
+}
+async function refreshArticlesComposantsDatalist(){
+  articlesComposantsCache=await getArticlesComposantsListe();
+  const dl=document.getElementById('articlesComposantsDatalist');
+  if(dl) dl.innerHTML=articlesComposantsCache.map(a=>`<option value="${escapeHtml(a.code)}">${escapeHtml(a.designation)} — ${escapeHtml(a.famille)}</option>`).join('');
+  const dl2=document.getElementById('articlesDesignationsDatalist');
+  if(dl2) dl2.innerHTML=articlesComposantsCache.map(a=>`<option value="${escapeHtml(a.designation)}">${escapeHtml(a.code)} — ${escapeHtml(a.famille)}</option>`).join('');
+  return articlesComposantsCache;
+}
+function trouverArticleComposant(val,parDesignation){
+  const v=String(val||'').trim(); if(!v) return null;
+  if(parDesignation) return articlesComposantsCache.find(a=>a.designation.toLowerCase()===v.toLowerCase())||null;
+  return articlesComposantsCache.find(a=>String(a.code).toUpperCase()===v.toUpperCase())||null;
+}
+function onMvRefChange(){
+  const a=trouverArticleComposant(document.getElementById('mvRef').value); if(!a) return;
+  document.getElementById('mvRef').value=a.code;
+  document.getElementById('mvLabel').value=a.designation;
+  const prix=document.getElementById('mvPrix'); if(prix && !prix.value && a.prix) prix.value=a.prix;
+}
+function onMvLabelChange(){
+  const a=trouverArticleComposant(document.getElementById('mvLabel').value,true); if(!a) return;
+  if(!document.getElementById('mvRef').value) document.getElementById('mvRef').value=a.code;
+  const prix=document.getElementById('mvPrix'); if(prix && !prix.value && a.prix) prix.value=a.prix;
+}
+function onAcDesignationChange(){
+  const a=trouverArticleComposant(document.getElementById('acDesignation').value,true); if(!a) return;
+  const sel=document.getElementById('acBomRef');
+  if(sel && !sel.value && [...sel.options].some(o=>o.value===a.code)){ sel.value=a.code; onAcBomRefChange(); return; }
+  if(a.prix && !document.getElementById('acPrix').value) document.getElementById('acPrix').value=a.prix;
 }
 
 /* ---------- Panier multi-lignes pour une demande d'achat (une DA = plusieurs réf. BOM) ---------- */
@@ -12053,6 +12115,7 @@ async function openReceptionAchatModal(achatId,chantierId){
     const restant=Math.max(0,(l.qte||0)-(l.qteRecue||0));
     return {...l,_recuMaintenant:restant};
   });
+  await refreshArticlesComposantsDatalist();
   const modal=document.getElementById('receptionAchatModal');
   const content=document.getElementById('receptionAchatContent');
   content.innerHTML=`
@@ -12065,6 +12128,16 @@ async function openReceptionAchatModal(achatId,chantierId){
       <select id="receptionDepot" class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm"></select>
     </label>
     <div id="receptionLignesBody" class="space-y-2 max-h-64 overflow-y-auto"></div>
+    <div class="mt-3 bg-slate-50 border rounded-lg p-2">
+      <div class="text-xs font-semibold text-slate-600 mb-1">➕ Article reçu hors commande (composant / produit)</div>
+      <div class="grid grid-cols-6 gap-1.5">
+        <input id="brAjoutRef" list="articlesComposantsDatalist" onchange="onBrAjoutRefChange()" placeholder="Référence" autocomplete="off" class="col-span-2 border rounded px-1.5 py-1 text-xs">
+        <input id="brAjoutDesignation" list="articlesDesignationsDatalist" onchange="onBrAjoutDesignationChange()" placeholder="Désignation" autocomplete="off" class="col-span-2 border rounded px-1.5 py-1 text-xs">
+        <input id="brAjoutQte" type="number" min="0" step="0.01" placeholder="Qté" class="border rounded px-1.5 py-1 text-xs">
+        <input id="brAjoutPrix" type="number" min="0" placeholder="Prix U." class="border rounded px-1.5 py-1 text-xs">
+      </div>
+      <button type="button" onclick="ajouterLigneReception()" class="mt-1.5 border border-blue-600 text-blue-600 rounded px-2 py-1 text-xs font-semibold">+ Ajouter à la réception</button>
+    </div>
     <div class="grid sm:grid-cols-3 gap-2 mt-3 pt-3 border-t">
       <label class="text-xs font-semibold block">N° facture fournisseur
         <input id="brFactureNumero" value="${escapeHtml(rec.factureFournisseur?.numero||'')}" placeholder="FAC-..." class="mt-1 w-full border rounded-lg px-2 py-1.5 text-sm">
@@ -12092,15 +12165,50 @@ function renderReceptionLignes(){
   const el=document.getElementById('receptionLignesBody'); if(!el) return;
   el.innerHTML=receptionLignes.map((l,i)=>{
     const restant=l.qte-(l.qteRecue||0);
-    return `<div class="flex items-center gap-2 border rounded-lg p-2 text-xs">
-      <div class="flex-1">
-        <div class="font-semibold">${escapeHtml(l.code?l.code+' — ':'')}${escapeHtml(l.designation)}</div>
-        <div class="text-slate-400">Commandé ${l.qte} — déjà reçu ${l.qteRecue||0} — restant ${restant.toFixed(2)}</div>
+    return `<div class="flex flex-wrap items-center gap-2 border rounded-lg p-2 text-xs ${l._horsCommande?'bg-amber-50/60':''}">
+      <div class="flex-1 min-w-[180px]">
+        <input list="articlesComposantsDatalist" value="${escapeHtml(l.code||'')}" onchange="updateReceptionLigneArticle(${i},this.value)" placeholder="Article (réf. composant / produit)" autocomplete="off" title="Référence article — choisir dans la liste des composants et produits" class="w-full border rounded px-1 py-1 font-semibold">
+        <div class="mt-0.5">${escapeHtml(l.designation)}</div>
+        <div class="text-slate-400">${l._horsCommande?'Hors commande':'Commandé '+l.qte+' — déjà reçu '+(l.qteRecue||0)+' — restant '+restant.toFixed(2)}</div>
       </div>
       <label>N° lot / coulée <input type="text" placeholder="LOT-..." value="${escapeHtml(l._lot||'')}" oninput="updateReceptionLigneLot(${i},this.value)" class="w-28 border rounded px-1 py-1"></label>
-      <label>Reçu maintenant <input type="number" min="0" max="${restant}" value="${l._recuMaintenant}" oninput="updateReceptionLigne(${i},this.value)" class="w-20 border rounded px-1 py-1"></label>
+      <label>Reçu maintenant <input type="number" min="0" ${l._horsCommande?'':`max="${restant}"`} value="${l._recuMaintenant}" oninput="updateReceptionLigne(${i},this.value)" class="w-20 border rounded px-1 py-1"></label>
+      ${l._horsCommande?`<button type="button" onclick="retirerLigneReception(${i})" class="text-red-500 font-bold">✕</button>`:''}
     </div>`;
   }).join('');
+}
+function updateReceptionLigneArticle(i,value){
+  const l=receptionLignes[i]; if(!l) return;
+  const a=trouverArticleComposant(value);
+  if(a){ l.code=a.code; if(!l.designation || l.designation==='Article' || l._horsCommande) l.designation=a.designation; if(!l.prix && a.prix) l.prix=a.prix; }
+  else l.code=String(value||'').trim()||null;
+  renderReceptionLignes();
+}
+function onBrAjoutRefChange(){
+  const a=trouverArticleComposant(document.getElementById('brAjoutRef').value); if(!a) return;
+  document.getElementById('brAjoutRef').value=a.code;
+  document.getElementById('brAjoutDesignation').value=a.designation;
+  if(!document.getElementById('brAjoutPrix').value && a.prix) document.getElementById('brAjoutPrix').value=a.prix;
+}
+function onBrAjoutDesignationChange(){
+  const a=trouverArticleComposant(document.getElementById('brAjoutDesignation').value,true); if(!a) return;
+  document.getElementById('brAjoutRef').value=a.code;
+  if(!document.getElementById('brAjoutPrix').value && a.prix) document.getElementById('brAjoutPrix').value=a.prix;
+}
+function ajouterLigneReception(){
+  const code=document.getElementById('brAjoutRef').value.trim();
+  const designation=document.getElementById('brAjoutDesignation').value.trim()||trouverArticleComposant(code)?.designation||code;
+  const qte=Math.max(0,+document.getElementById('brAjoutQte').value||0);
+  const prix=+document.getElementById('brAjoutPrix').value||0;
+  if(!code){ alert('Choisissez un article (composant ou produit) dans la liste.'); return; }
+  if(!qte){ alert('Saisissez la quantité reçue.'); return; }
+  receptionLignes.push({code,designation,qte:0,prix,montant:0,qteRecue:0,_horsCommande:true,_recuMaintenant:qte});
+  ['brAjoutRef','brAjoutDesignation','brAjoutQte','brAjoutPrix'].forEach(id=>document.getElementById(id).value='');
+  renderReceptionLignes();
+}
+function retirerLigneReception(i){
+  receptionLignes.splice(i,1);
+  renderReceptionLignes();
 }
 function updateReceptionLigneLot(i,value){
   receptionLignes[i]._lot=value.trim();
@@ -12120,7 +12228,10 @@ async function validerReceptionAchat(){
   const rows=await idbGetAll('achats');
   const rec=rows.find(a=>a.id===receptionAchatId); if(!rec) return;
   const EPS=0.001;
-  const nouvellesLignes=receptionLignes.map(l=>({
+  const nouvellesLignes=receptionLignes.filter(l=>!l._horsCommande || (l._recuMaintenant||0)>0.0001).map(l=>l._horsCommande ? ({
+    code:l.code, designation:l.designation, qte:l._recuMaintenant, prix:l.prix, montant:Math.round(l._recuMaintenant*(l.prix||0)),
+    qteRecue:l._recuMaintenant, lot:l._lot||null, horsCommande:true
+  }) : ({
     code:l.code, designation:l.designation, qte:l.qte, prix:l.prix, montant:l.montant,
     qteRecue:Math.min(l.qte,(l.qteRecue||0)+(l._recuMaintenant||0)),
     lot:l._lot||null
