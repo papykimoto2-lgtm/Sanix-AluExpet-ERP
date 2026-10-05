@@ -49,7 +49,7 @@ update public.parametres set
   site_facebook = 'https://facebook.com/', site_instagram = 'https://instagram.com/',
   portail_dg_nom = 'Directeur Démo', portail_dg_titre = 'Directeur Général', portail_dg_message = 'Notre priorité : des ouvrages durables, livrés dans les délais convenus.',
   conditions_documents = E'Conditions de règlement :\nAcompte de 50 % à la commande, solde à la livraison avant la pose.\nValidité du devis : 30 jours.\nGarantie :\nQuincaillerie et étanchéité garanties 1 an, profilés et laquage 5 ans.\nLes dimensions définitives sont confirmées après la prise de mesures sur chantier.',
-  fne_actif = false, fne_environnement = 'test', validation_caisse_mode = 'plafond';
+  fne_actif = false, fne_environnement = 'test', validation_caisse_mode = 'plafond' where true;
 
 -- ---------- Référentiels ----------
 insert into public.client_categories (nom) values ('Particulier'), ('Entreprise'), ('Promoteur immobilier'), ('Administration');
@@ -61,7 +61,7 @@ insert into public.depots (code, nom, type, adresse, commune, responsable, telep
   ('DEP-03', 'Chantier Riviera Palmeraie', 'chantier', 'Riviera Palmeraie, lot 214', 'Cocody', 'Moussa Koné', '+225 07 00 00 10 03', false);
 update public.depots set responsable = 'Aïcha Sylla', adresse = 'Zone industrielle de Yopougon', commune = 'Yopougon' where code = 'DEP-01';
 update public.points_vente set nom = 'Comptoir principal', responsable = 'Aïcha Sylla', adresse = 'Zone industrielle de Yopougon' where code = 'PDV-01';
-update public.caisses set responsable = 'Aïcha Sylla';
+update public.caisses set responsable = 'Aïcha Sylla' where true;
 insert into public.point_vente_affectations (point_vente_id, user_id, par_defaut)
   select (select id from public.points_vente where code = 'PDV-01'), u, true
   from unnest(array['00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000003','00000000-0000-4000-8000-000000000005']::uuid[]) u;
@@ -85,7 +85,7 @@ insert into public.clients (code, civilite, nom, prenoms, entreprise, telephone,
  ('C-DEMO-12','Monsieur','DIRECTION RÉGIONALE DE L''HABITAT',null,'DR Habitat Abidjan','+225 27 20 30 40 50','dr.habitat@exemple.gouv.ci','Plateau','Cité administrative','Administration','Cité administrative, tour D','Appel d''offres','Fatou Diabaté', now()-interval '16 days',5.3235,-4.0186,null,null),
  ('C-DEMO-13','Monsieur','BOULANGERIE LA MIE DORÉE',null,'Boulangerie La Mie Dorée','+225 05 11 22 33 44','miedoree@exemple.ci','Port-Bouët','Gonzagueville','Entreprise','Gonzagueville, route de Bassam','Passage devant l''atelier','Moussa Koné', now()-interval '9 days',5.2513,-3.9309,null,null),
  ('C-DEMO-14','Monsieur','BAMBA','Seydou',null,'+225 07 66 77 88 99','seydou.bamba@exemple.ci','Yopougon','Niangon','Particulier','Niangon Nord, rue des écoles','Facebook','Moussa Koné', now()-interval '4 days',5.3300,-4.1000,null,null);
-update public.clients set categorie = case categorie when 'Hôtellerie' then 'Entreprise' when 'Santé & éducation' then 'Entreprise' else categorie end;
+update public.clients set categorie = case categorie when 'Hôtellerie' then 'Entreprise' when 'Santé & éducation' then 'Entreprise' else categorie end where true;
 
 -- ---------- Prospects (entonnoir commercial) ----------
 insert into public.prospects (code, civilite, nom, prenoms, entreprise, telephone, email, commune, statut, source, commercial, notes, created_at, latitude, longitude) values
