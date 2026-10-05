@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Portail client">
+<meta name="theme-color" content="#1D3557">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Portail client">
+<meta property="og:description" content="Portail client">
+<meta property="og:image" content="">
+<title>Portail client</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root{ --pc:#1D3557; --pc2:#0d1f38; }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{font-family:'Plus Jakarta Sans',Arial,sans-serif;background:#f8fafc;min-height:100vh;margin:0;color:#1f2937;-webkit-font-smoothing:antialiased}
+  .brand-bg{background:var(--pc)}
+  .brand-text{color:var(--pc)}
+  .brand-grad{background:linear-gradient(135deg,var(--pc),var(--pc2))}
+  header.site-header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.86);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid #eef0f3}
+  .nav-pill{padding:8px 16px;border-radius:999px;font-size:13px;font-weight:700;color:#6b7280;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s;border:0;background:none;font-family:inherit}
+  .nav-pill.active{background:var(--pc);color:#fff}
+  .nav-pill:hover:not(.active){background:#f3f4f6}
+  .hero{position:relative;overflow:hidden;color:#fff;padding:76px 20px 60px;text-align:center}
+  .hero::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--pc),var(--pc2) 75%);z-index:0}
+  .hero::after{content:'';position:absolute;inset:0;z-index:0;background-image:radial-gradient(circle at 12% 18%,rgba(255,255,255,.16),transparent 42%),radial-gradient(circle at 88% 6%,rgba(255,255,255,.12),transparent 46%),radial-gradient(circle at 50% 130%,rgba(255,255,255,.10),transparent 55%)}
+  .hero-inner{position:relative;z-index:1;max-width:600px;margin:0 auto}
+  .hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);color:#fff;font-size:11px;font-weight:800;letter-spacing:.3px;padding:7px 15px;border-radius:999px;margin-bottom:18px;text-transform:uppercase}
+  .hero h1{font-size:32px;font-weight:900;margin:0 0 10px;letter-spacing:-.5px;line-height:1.15}
+  .hero p{font-size:15px;opacity:.92;max-width:460px;margin:0 auto;line-height:1.55}
+  .hero .cta{margin-top:26px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1}
+  .btn-cta{padding:12px 24px;border-radius:999px;font-size:13px;font-weight:700;cursor:pointer;border:0;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:transform .15s,box-shadow .15s;font-family:inherit}
+  .btn-cta:hover{transform:translateY(-1px)}
+  .btn-cta.solid{background:#fff;color:var(--pc);box-shadow:0 10px 22px -10px rgba(0,0,0,.35)}
+  .btn-cta.outline{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.5)}
+  .hero-stats{position:relative;z-index:1;display:flex;gap:30px;justify-content:center;flex-wrap:wrap;margin-top:36px;padding-top:22px;border-top:1px solid rgba(255,255,255,.18)}
+  .hero-stat b{display:block;font-size:21px;font-weight:900}
+  .hero-stat span{font-size:11px;opacity:.82;text-transform:uppercase;letter-spacing:.3px}
+  .section{max-width:1000px;margin:0 auto;padding:44px 20px}
+  .eyebrow{font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--pc);margin-bottom:8px;display:flex;align-items:center;gap:7px}
+  .eyebrow::before{content:'';width:18px;height:2px;background:var(--pc);border-radius:2px;flex:0 0 auto}
+  .section-title{font-size:21px;font-weight:900;margin-bottom:6px;letter-spacing:-.3px}
+  .section-sub{font-size:13px;color:#6b7280;margin-bottom:26px;max-width:520px}
+  .card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:20px}
+  .grid-auto{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+  .service-card{transition:transform .18s,box-shadow .18s,border-color .18s}
+  .service-card:hover{transform:translateY(-3px);box-shadow:0 16px 32px -14px rgba(15,23,42,.16);border-color:color-mix(in srgb,var(--pc) 30%,#e5e7eb)}
+  .service-card .ic{width:46px;height:46px;border-radius:12px;background:color-mix(in srgb,var(--pc) 12%,white);color:var(--pc);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:12px}
+  .service-card .lbl{font-weight:700;font-size:13px}
+  .gallery-item{border-radius:16px;overflow:hidden;position:relative;aspect-ratio:4/3;background:#e5e7eb;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+  .gallery-item img{width:100%;height:100%;object-fit:cover;transition:transform .45s ease}
+  .gallery-item:hover img{transform:scale(1.08)}
+  .gallery-cap{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(0deg,rgba(0,0,0,.75),transparent 72%);color:#fff;padding:16px 14px 10px;font-size:12px;font-weight:700}
+  .timeline{margin:4px 0 20px}
+  .tl-step{display:flex;gap:12px;position:relative;padding-bottom:20px}
+  .tl-step:last-child{padding-bottom:0}
+  .tl-step::before{content:'';position:absolute;left:13px;top:28px;bottom:0;width:2px;background:#e5e7eb}
+  .tl-step:last-child::before{display:none}
+  .tl-step.done::before{background:var(--pc)}
+  .tl-dot{flex:0 0 auto;width:28px;height:28px;border-radius:50%;background:#f1f5f9;color:#9ca3af;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;border:2px solid #e5e7eb;z-index:1}
+  .tl-step.done .tl-dot{background:var(--pc);border-color:var(--pc);color:#fff}
+  .tl-step.current .tl-dot{background:#fff;border-color:var(--pc);color:var(--pc);box-shadow:0 0 0 4px color-mix(in srgb,var(--pc) 18%,white)}
+  .tl-label{font-size:13px;font-weight:700;padding-top:3px}
+  .tl-step:not(.done):not(.current) .tl-label{color:#9ca3af;font-weight:600}
+  .badge-status{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap}
+  .auth-card{max-width:420px;margin:24px auto 0;text-align:center}
+  .auth-avatar{width:54px;height:54px;border-radius:16px;background:color-mix(in srgb,var(--pc) 12%,white);color:var(--pc);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 14px}
+  .field-input{width:100%;border:1.5px solid #e5e7eb;border-radius:12px;padding:12px 14px;font-size:13px;transition:border-color .15s,box-shadow .15s;font-family:inherit}
+  .field-input:focus{outline:none;border-color:var(--pc);box-shadow:0 0 0 3px color-mix(in srgb,var(--pc) 15%,white)}
+  .data-table{width:100%;border-collapse:collapse}
+  .data-table th{text-align:left;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.3px;color:#9ca3af;padding-bottom:10px}
+  .data-table td{padding:10px 0;font-size:13px;border-top:1px solid #f1f5f9}
+  .data-table tr:hover td{background:#fafbfc}
+  footer.site-footer{background:#0f172a;color:#cbd5e1;padding:36px 20px 28px;text-align:center;font-size:12px}
+  footer.site-footer a{color:#fff;text-decoration:none}
+  .social-row{display:flex;gap:12px;justify-content:center;margin:16px 0}
+  .social-row a{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:800;transition:background .15s,transform .15s}
+  .social-row a:hover{background:rgba(255,255,255,.2);transform:translateY(-2px)}
+  .fab-wa{position:fixed;right:18px;bottom:18px;z-index:60;width:54px;height:54px;border-radius:50%;background:#16a34a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:25px;box-shadow:0 10px 26px -6px rgba(22,163,74,.5);text-decoration:none;animation:pulseWa 2.6s ease-in-out infinite}
+  @keyframes pulseWa{0%,100%{box-shadow:0 10px 26px -6px rgba(22,163,74,.5)}50%{box-shadow:0 10px 26px -6px rgba(22,163,74,.5),0 0 0 9px rgba(22,163,74,.14)}}
+  .fade-in{animation:fadeInUp .5s ease both}
+  @keyframes fadeInUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .filter-chip{padding:7px 15px;border-radius:999px;font-size:12px;font-weight:700;color:#4b5563;background:#f1f5f9;border:1px solid #e5e7eb;cursor:pointer;font-family:inherit;transition:background .15s,color .15s,border-color .15s}
+  .filter-chip.active{background:var(--pc);color:#fff;border-color:var(--pc)}
+  .filter-chip:hover:not(.active){border-color:color-mix(in srgb,var(--pc) 40%,#e5e7eb)}
+  .product-item{background:#fff;border:1px solid #e5e7eb}
+  .product-item img{object-fit:contain;padding:16px}
+  .process-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:22px}
+  .process-num{font-size:40px;font-weight:900;line-height:1;color:color-mix(in srgb,var(--pc) 18%,white);margin-bottom:8px}
+  .cta-banner{background:linear-gradient(135deg,var(--pc),var(--pc2));border-radius:22px;padding:40px 24px;text-align:center;color:#fff}
+  .cta-banner .eyebrow{color:rgba(255,255,255,.75)}
+  .cta-banner .eyebrow::before{background:rgba(255,255,255,.6)}
+  .dg-card{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+  .dg-avatar{width:84px;height:84px;border-radius:50%;object-fit:cover;flex-shrink:0;border:3px solid color-mix(in srgb,var(--pc) 18%,white)}
+  .dg-quote::before{content:'“';display:block;font-size:40px;line-height:.5;color:color-mix(in srgb,var(--pc) 32%,white);margin-bottom:8px;font-family:Georgia,serif}
+  .dg-quote p{font-size:14px;line-height:1.7;color:#374151;font-style:italic;margin:0;white-space:pre-line}
+  .lightbox-overlay{position:fixed;inset:0;background:rgba(15,23,42,.92);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+  .lightbox-box{max-width:880px;width:100%;max-height:90vh;overflow:auto;background:#fff;border-radius:18px;position:relative}
+  .lightbox-box img{width:100%;max-height:60vh;object-fit:contain;background:#0f172a;display:block}
+  .lightbox-caption{padding:18px 20px}
+  .lightbox-close{position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:50%;background:rgba(15,23,42,.55);color:#fff;border:0;font-size:16px;cursor:pointer;z-index:2}
+  .lightbox-nav{position:absolute;top:50%;transform:translateY(-50%);width:38px;height:38px;border-radius:50%;background:rgba(15,23,42,.5);color:#fff;border:0;font-size:20px;cursor:pointer;z-index:2}
+  .lightbox-prev{left:12px}
+  .lightbox-next{right:12px}
+  @media(max-width:640px){ .hero h1{font-size:24px} .hero-stats{gap:20px} }
+  @media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important} html{scroll-behavior:auto} }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div style="max-width:1000px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <div id="brandLogo" style="display:flex;align-items:center;gap:10px"></div>
+    <nav id="navTabs" style="display:flex;gap:4px;overflow-x:auto"></nav>
+  </div>
+</header>
+<div id="app"></div>
+<footer class="site-footer" id="siteFooter"></footer>
+<a id="waFab" class="fab-wa" style="display:none" target="_blank" rel="noopener" title="Discuter sur WhatsApp">💬</a>
+
+<script>
+window.SB_CFG={ SUPABASE_URL:'https://ixeuosnuiewjqoxoqtnj.supabase.co', SUPABASE_ANON_KEY:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4ZXVvc251aWV3anFveG9xdG5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyMDg4OTEsImV4cCI6MjEwNTc4NDg5MX0.AJ-pIgAp5sT2c6xqNpS9dQd7rJFaOZIs7zpPF-cQG3k' };
+window.BRAND=null;
+const { createClient } = supabase;
+const sb = createClient(window.SB_CFG.SUPABASE_URL, window.SB_CFG.SUPABASE_ANON_KEY, {
+  global: { fetch: (url, options) => fetch(url, { ...options, cache: 'no-store' }) }
+});
+function esc(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function money(n){ return new Intl.NumberFormat('fr-FR').format(Math.round(n||0)) + ' FCFA'; }
+function fmtDate(d){ return d ? new Date(d).toLocaleDateString('fr-FR') : '—'; }
+const ETAPES=['en_attente','mesure_disponible','pret_fabrication','fabrication_en_cours','installation_en_cours','termine'];
+const ETAPE_LABELS={en_attente:'En attente',mesure_disponible:'Mesure disponible',pret_fabrication:'Prêt pour fabrication',fabrication_en_cours:'Fabrication en cours',installation_en_cours:'Installation en cours',termine:'Terminé',annule:'Annulé'};
+const STATUT_LABELS={en_attente:'En attente',en_cours:'En cours',accepte:'Accepté',refuse:'Refusé',annule:'Annulé',payee:'Payée',payee_partielle:'Payée partielle',annulee:'Annulée'};
+const STATUT_COLORS={en_attente:'#d97706',en_cours:'#2563eb',accepte:'#16a34a',refuse:'#dc2626',annule:'#6b7280',payee:'#16a34a',payee_partielle:'#2563eb',annulee:'#6b7280',termine:'#16a34a'};
+function badge(st){ const c=STATUT_COLORS[st]||'#6b7280'; return `<span class="badge-status" style="background:color-mix(in srgb,${c} 14%,white);color:${c}">${esc(STATUT_LABELS[st]||st)}</span>`; }
+const TABS=[
+  {key:'accueil',label:'🏠 Accueil'},
+  {key:'realisations',label:'🛠️ Réalisations'},
+  {key:'produits',label:'📦 Produits'},
+  {key:'apropos',label:'🏢 À propos'},
+  {key:'contact',label:'✉️ Contact'},
+  {key:'client',label:'👤 Espace client'}
+];
+const waLink=()=>window.BRAND.whatsapp?('https://wa.me/'+String(window.BRAND.whatsapp).replace(/[^0-9]/g,'')):'';
+const PROCESS=[
+  {n:'01',ic:'📐',t:'Devis gratuit',d:"Vous nous contactez, nous prenons vos mesures et vous recevez un devis clair sous 24h."},
+  {n:'02',ic:'🏭',t:'Fabrication sur-mesure',d:'Vos menuiseries sont usinées dans notre atelier selon vos dimensions exactes.'},
+  {n:'03',ic:'🔧',t:'Pose par nos équipes',d:'Installation soignée et réglages effectués par nos techniciens.'},
+  {n:'04',ic:'📲',t:'Suivi en ligne',d:"Suivez l'avancement de votre chantier à tout moment depuis l'Espace client."}
+];
+
+/* ---------- Lightbox (réalisations & produits) ---------- */
+let LB_LIST=[], LB_IDX=0;
+function openLightbox(list,idx){ LB_LIST=list||[]; LB_IDX=idx||0; renderLightbox(); document.addEventListener('keydown',lbKeydown); }
+function closeLightbox(){ const o=document.getElementById('lbOverlay'); if(o) o.remove(); document.removeEventListener('keydown',lbKeydown); }
+function lbKeydown(e){ if(e.key==='Escape') closeLightbox(); else if(e.key==='ArrowRight') lbNav(1); else if(e.key==='ArrowLeft') lbNav(-1); }
+function lbNav(dir){ if(!LB_LIST.length) return; LB_IDX=(LB_IDX+dir+LB_LIST.length)%LB_LIST.length; renderLightbox(); }
+function renderLightbox(){
+  const it=LB_LIST[LB_IDX]; if(!it) return;
+  let o=document.getElementById('lbOverlay');
+  if(!o){ o=document.createElement('div'); o.id='lbOverlay'; o.className='lightbox-overlay'; o.onclick=(e)=>{ if(e.target===o) closeLightbox(); }; document.body.appendChild(o); }
+  o.innerHTML=`<div class="lightbox-box">
+      <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+      ${LB_LIST.length>1?`<button class="lightbox-nav lightbox-prev" onclick="lbNav(-1)">‹</button><button class="lightbox-nav lightbox-next" onclick="lbNav(1)">›</button>`:''}
+      ${it.img?`<img src="${it.img}" alt="">`:`<div style="height:220px;display:flex;align-items:center;justify-content:center;background:#f1f5f9;color:#9ca3af">Pas de photo</div>`}
+      <div class="lightbox-caption">
+        <div style="font-weight:800;font-size:15px">${esc(it.titre||'')}</div>
+        ${it.famille?`<div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.3px;margin-top:2px">${esc(it.famille)}</div>`:''}
+        ${it.description?`<div style="font-size:13px;color:#4b5563;margin-top:10px;line-height:1.6;white-space:pre-line">${esc(it.description)}</div>`:''}
+      </div>
+    </div>`;
+}
+
+function setFaviconEtTitre(){
+  const b=window.BRAND;
+  document.title=b.nom||'Portail client';
+  const desc=document.querySelector('meta[name="description"]'); if(desc) desc.setAttribute('content',(b.slogan||b.nom||'Portail client'));
+  const theme=document.querySelector('meta[name="theme-color"]'); if(theme) theme.setAttribute('content',b.couleur||'#1D3557');
+  const ogT=document.querySelector('meta[property="og:title"]'); if(ogT) ogT.setAttribute('content',b.nom||'Portail client');
+  const ogD=document.querySelector('meta[property="og:description"]'); if(ogD) ogD.setAttribute('content',b.slogan||b.nom||'');
+  const ogI=document.querySelector('meta[property="og:image"]'); if(ogI&&b.logo) ogI.setAttribute('content',b.logo);
+  const lettre=(b.nom||'?').trim().charAt(0).toUpperCase()||'?';
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="16" fill="${b.couleur||'#1D3557'}"/><text x="32" y="43" font-family="Arial,sans-serif" font-size="30" font-weight="900" fill="#fff" text-anchor="middle">${lettre}</text></svg>`;
+  const link=document.createElement('link'); link.rel='icon'; link.href='data:image/svg+xml,'+encodeURIComponent(svg);
+  document.head.appendChild(link);
+}
+function renderHeader(){
+  const b=window.BRAND;
+  document.getElementById('brandLogo').innerHTML=b.logo
+    ? `<img src="${b.logo}" style="max-height:40px;max-width:150px;object-fit:contain">`
+    : `<div style="font-weight:900;font-size:16px" class="brand-text">${esc(b.nom)}</div>`;
+  document.getElementById('navTabs').innerHTML=TABS.map(t=>`<button class="nav-pill" data-tab="${t.key}" onclick="setTab('${t.key}')">${t.label}</button>`).join('');
+  document.getElementById('siteFooter').innerHTML=`
+    <div style="font-weight:800;color:#fff;margin-bottom:6px;font-size:14px">${esc(b.nom)}</div>
+    <div style="color:#94a3b8">${[b.adresse,b.telephone].filter(Boolean).map(esc).join(' · ')}</div>
+    ${(b.facebook||b.instagram)?`<div class="social-row">
+      ${b.facebook?`<a href="${esc(b.facebook)}" target="_blank" rel="noopener">f</a>`:''}
+      ${b.instagram?`<a href="${esc(b.instagram)}" target="_blank" rel="noopener">ig</a>`:''}
+    </div>`:''}
+    <div style="margin-top:10px;font-size:11px;color:#94a3b8">${[b.rccm?'RCCM '+esc(b.rccm):'',b.ncc?'NCC '+esc(b.ncc):''].filter(Boolean).join(' · ')}</div>
+    <div style="margin-top:12px;font-size:11px;color:#64748b;padding-top:12px;border-top:1px solid rgba(255,255,255,.08)">Propulsé par Sanix AluExpert ERP — Sanix Africa Division Technologies</div>`;
+  const fab=document.getElementById('waFab');
+  if(waLink()){ fab.href=waLink(); fab.style.display='flex'; } else { fab.style.display='none'; }
+  setFaviconEtTitre();
+}
+function setTab(key){
+  document.querySelectorAll('.nav-pill').forEach(b=>b.classList.toggle('active',b.dataset.tab===key));
+  const renderers={accueil:renderAccueil,realisations:renderGalerie,produits:renderProduits,apropos:renderAPropos,contact:renderContact,client:renderLogin};
+  (renderers[key]||renderAccueil)();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function renderAccueil(){
+  const b=window.BRAND;
+  const famillesMap={};
+  (b.produits||[]).forEach(p=>{ const f=p.famille||'Autre'; famillesMap[f]=(famillesMap[f]||0)+1; });
+  const familles=Object.keys(famillesMap);
+  const FAMILLE_ICONS={'Fenêtre coulissante':'🪟','Porte à la française':'🚪','Porte coulissante':'🚪','Coulissant galandage':'🚪','Fenêtre jalousie':'🪟','Moustiquaire fixe':'🦟','Moustiquaire coulissante':'🦟','Garde-corps inox':'🛡️','Verrière / mur rideau':'🏢','Autre':'📦'};
+  const nbReal=(b.realisations||[]).length;
+  document.getElementById('app').innerHTML=`
+    <section class="hero">
+      <div class="hero-inner">
+        <div class="hero-badge">✨ ${esc(b.nom)}</div>
+        <h1>${esc(b.slogan)}</h1>
+        <p>Devis gratuit, fabrication et pose assurées par nos équipes — de l'idée à l'installation.</p>
+        <div class="cta">
+          ${waLink()?`<a class="btn-cta solid" href="${waLink()}" target="_blank" rel="noopener">💬 Discuter sur WhatsApp</a>`:''}
+          <a class="btn-cta outline" href="#" onclick="setTab('client');return false;">👤 Suivre mon dossier</a>
+        </div>
+        <div class="hero-stats">
+          ${nbReal?`<div class="hero-stat"><b>${nbReal}</b><span>Réalisations</span></div>`:''}
+          <div class="hero-stat"><b>100%</b><span>Sur-mesure</span></div>
+          <div class="hero-stat"><b>24h</b><span>Réponse rapide</span></div>
+        </div>
+      </div>
+    </section>
+    <div class="section fade-in">
+      <div class="eyebrow">Nos savoir-faire</div>
+      <div class="section-title">Une menuiserie qui vous ressemble</div>
+      <div class="section-sub">Fabriquée sur-mesure et posée par nos équipes, du premier relevé de côtes à la réception du chantier.</div>
+      <div class="grid-auto">
+        ${familles.length?familles.map(f=>`<div class="card service-card"><div class="ic">${(b.familleIcones||{})[f]||FAMILLE_ICONS[f]||'🛠️'}</div><div class="lbl">${esc(f)}</div></div>`).join('')
+          :`<div class="card service-card"><div class="ic">🛠️</div><div class="lbl">Menuiserie aluminium sur-mesure</div></div>`}
+      </div>
+    </div>
+    ${(b.realisations||[]).length?`<div class="section fade-in" style="padding-top:0">
+      <div class="eyebrow">Portfolio</div>
+      <div class="section-title">Dernières réalisations</div>
+      <div class="section-sub">Un aperçu de nos chantiers récents.</div>
+      <div class="grid-auto">
+        ${b.realisations.slice(0,3).map((r,i)=>`<div class="gallery-item" style="cursor:zoom-in" onclick="openLightbox(window._homeLB,${i})">${r.photo_base64?`<img src="${r.photo_base64}" loading="lazy">`:''}<div class="gallery-cap">${esc(r.titre)}</div></div>`).join('')}
+      </div>
+      <div style="text-align:center;margin-top:22px"><a href="#" onclick="setTab('realisations');return false;" class="btn-cta" style="background:var(--pc);color:#fff">Voir toutes nos réalisations →</a></div>
+    </div>`:''}
+    <div class="section fade-in" style="padding-top:0">
+      <div class="eyebrow">Notre méthode</div>
+      <div class="section-title">Comment nous travaillons</div>
+      <div class="section-sub">Un accompagnement simple, de la prise de contact à la réception du chantier.</div>
+      <div class="process-grid">
+        ${PROCESS.map(s=>`<div><div class="process-num">${s.n}</div><div style="font-size:22px;margin-bottom:6px">${s.ic}</div><div style="font-weight:800;font-size:14px;margin-bottom:4px">${esc(s.t)}</div><div style="font-size:12.5px;color:#6b7280;line-height:1.55">${esc(s.d)}</div></div>`).join('')}
+      </div>
+    </div>
+    <div class="section fade-in" style="padding-top:0">
+      <div class="cta-banner">
+        <div style="font-size:20px;font-weight:900;margin-bottom:8px">Prêt à démarrer votre projet ?</div>
+        <div style="font-size:13px;opacity:.9;max-width:440px;margin:0 auto 20px">Contactez-nous pour un devis gratuit et sans engagement.</div>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+          ${waLink()?`<a class="btn-cta solid" href="${waLink()}" target="_blank" rel="noopener">💬 WhatsApp</a>`:''}
+          <a class="btn-cta outline" href="#" onclick="setTab('contact');return false;">✉️ Nous écrire</a>
+        </div>
+      </div>
+    </div>
+  `;
+  window._homeLB=(b.realisations||[]).slice(0,3).map(r=>({titre:r.titre,famille:r.famille,description:r.description,img:r.photo_base64}));
+}
+function setGalFiltre(f){ window._galFiltre=f; renderGalerie(); }
+function renderGalerie(){
+  const items=window.BRAND.realisations||[];
+  const famF=window._galFiltre||'';
+  const familles=[...new Set(items.map(r=>r.famille).filter(Boolean))];
+  const filtered=famF?items.filter(r=>r.famille===famF):items;
+  window._galLB=filtered.map(r=>({titre:r.titre,famille:r.famille,description:r.description,img:r.photo_base64}));
+  document.getElementById('app').innerHTML=`
+    <div class="section fade-in">
+      <div class="eyebrow">Portfolio</div>
+      <div class="section-title">🛠️ Nos réalisations</div>
+      <div class="section-sub">${items.length} chantier${items.length>1?'s':''} réalisé${items.length>1?'s':''}.</div>
+      ${familles.length>1?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px">
+        <button class="filter-chip ${!famF?'active':''}" onclick="setGalFiltre('')">Toutes (${items.length})</button>
+        ${familles.map(f=>`<button class="filter-chip ${famF===f?'active':''}" data-f="${esc(f)}" onclick="setGalFiltre(this.dataset.f)">${esc(f)} (${items.filter(r=>r.famille===f).length})</button>`).join('')}
+      </div>`:''}
+      ${filtered.length?`<div class="grid-auto">${filtered.map((r,i)=>`
+        <div class="gallery-item" style="cursor:zoom-in" onclick="openLightbox(window._galLB,${i})">${r.photo_base64?`<img src="${r.photo_base64}" loading="lazy">`:''}<div class="gallery-cap">${esc(r.titre)}${r.famille?' · '+esc(r.famille):''}</div></div>`).join('')}</div>`
+        :'<div class="card text-center text-gray-400">Galerie en cours de constitution.</div>'}
+    </div>`;
+}
+function setProdFiltre(f){ window._prodFiltre=f; renderProduits(); }
+function renderProduits(){
+  const items=window.BRAND.produitsPresentes||[];
+  const famF=window._prodFiltre||'';
+  const familles=[...new Set(items.map(p=>p.famille).filter(Boolean))];
+  const filtered=famF?items.filter(p=>p.famille===famF):items;
+  window._prodLB=filtered.map(p=>({titre:p.nom,famille:p.famille,img:p.photo}));
+  document.getElementById('app').innerHTML=`
+    <div class="section fade-in">
+      <div class="eyebrow">Catalogue</div>
+      <div class="section-title">📦 Nos produits</div>
+      <div class="section-sub">Un aperçu de nos gammes de menuiserie. Chaque commande est fabriquée sur-mesure à vos dimensions : demandez votre devis gratuit.</div>
+      ${familles.length>1?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px">
+        <button class="filter-chip ${!famF?'active':''}" onclick="setProdFiltre('')">Tous (${items.length})</button>
+        ${familles.map(f=>`<button class="filter-chip ${famF===f?'active':''}" data-f="${esc(f)}" onclick="setProdFiltre(this.dataset.f)">${esc(f)} (${items.filter(p=>p.famille===f).length})</button>`).join('')}
+      </div>`:''}
+      ${filtered.length?`<div class="grid-auto">${filtered.map((p,i)=>`
+        <div class="gallery-item product-item" style="cursor:zoom-in" onclick="openLightbox(window._prodLB,${i})">${p.photo?`<img src="${p.photo}" loading="lazy">`:''}<div class="gallery-cap" style="background:linear-gradient(0deg,rgba(0,0,0,.7),transparent 72%)">${esc(p.nom)}</div></div>`).join('')}</div>`
+        :'<div class="card text-center text-gray-400">Catalogue en cours de constitution — contactez-nous pour découvrir nos réalisations.</div>'}
+    </div>`;
+}
+function renderAPropos(){
+  const b=window.BRAND;
+  const hasDg=!!(b.dgMessage&&b.dgMessage.trim());
+  document.getElementById('app').innerHTML=`
+    <div class="section fade-in">
+      <div class="eyebrow">Qui sommes-nous</div>
+      <div class="section-title">🏢 À propos de ${esc(b.nom)}</div>
+      <div class="card" style="white-space:pre-line;line-height:1.7;font-size:14px;${hasDg?'margin-bottom:20px':''}">${esc(b.aPropos)||"Présentation à venir."}</div>
+      ${hasDg?`<div class="card dg-card">
+        ${b.dgPhoto?`<img src="${b.dgPhoto}" class="dg-avatar" alt="">`:`<div class="dg-avatar" style="background:color-mix(in srgb,var(--pc) 12%,white);color:var(--pc);display:flex;align-items:center;justify-content:center;font-size:30px">🗣️</div>`}
+        <div style="flex:1;min-width:220px">
+          <div class="dg-quote"><p>${esc(b.dgMessage)}</p></div>
+          <div style="margin-top:14px;font-weight:800;font-size:14px">${esc(b.dgNom||'')}</div>
+          ${b.dgTitre?`<div style="font-size:12px;color:var(--pc);font-weight:700">${esc(b.dgTitre)}</div>`:''}
+        </div>
+      </div>`:''}
+    </div>`;
+}
+function renderContact(){
+  const b=window.BRAND;
+  document.getElementById('app').innerHTML=`
+    <div class="section fade-in">
+      <div class="eyebrow">Parlons-en</div>
+      <div class="section-title">✉️ Nous contacter</div>
+      <div class="section-sub">Une question, un projet ? Écrivez-nous ou passez-nous un appel.</div>
+      <div class="grid-auto">
+        <div class="card">
+          <div style="font-weight:700;margin-bottom:12px;font-size:13px">Coordonnées</div>
+          ${b.adresse?`<div style="margin-bottom:10px;font-size:13px">📍 ${esc(b.adresse)}</div>`:''}
+          ${b.telephone?`<div style="margin-bottom:10px;font-size:13px">📞 <a href="tel:${esc(b.telephone)}" class="brand-text" style="font-weight:700">${esc(b.telephone)}</a></div>`:''}
+          ${b.email?`<div style="margin-bottom:10px;font-size:13px">✉️ <a href="mailto:${esc(b.email)}" class="brand-text" style="font-weight:700">${esc(b.email)}</a></div>`:''}
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px;justify-content:center">
+          ${waLink()?`<a class="btn-cta solid" style="background:#16a34a;color:#fff;justify-content:center;box-shadow:none" href="${waLink()}" target="_blank" rel="noopener">💬 WhatsApp</a>`:''}
+          ${b.telephone?`<a class="btn-cta" style="background:var(--pc);color:#fff;justify-content:center" href="tel:${esc(b.telephone)}">📞 Appeler</a>`:''}
+        </div>
+      </div>
+    </div>`;
+}
+function renderLogin(msg){
+  document.getElementById('app').innerHTML=`
+    <div class="section fade-in" style="max-width:480px">
+      <div class="card auth-card">
+        <div class="auth-avatar">👤</div>
+        <h2 style="font-size:17px;font-weight:800;margin-bottom:4px">Mon dossier</h2>
+        <p style="font-size:12px;color:#6b7280;margin-bottom:18px">Saisissez votre code client et votre numéro de téléphone pour suivre l'avancement de votre chantier.</p>
+        ${msg?`<div style="font-size:13px;background:#fef2f2;color:#b91c1c;border-radius:10px;padding:10px 12px;margin-bottom:14px;text-align:left">${esc(msg)}</div>`:''}
+        <form id="loginForm" style="display:flex;flex-direction:column;gap:10px;text-align:left">
+          <input id="fCode" class="field-input" placeholder="Code client (ex : C-42)" required>
+          <input id="fTel" class="field-input" placeholder="Téléphone" required>
+          <button type="submit" class="btn-cta" style="background:var(--pc);color:#fff;justify-content:center;margin-top:4px">Voir mon dossier</button>
+        </form>
+      </div>
+    </div>`;
+  document.getElementById('loginForm').onsubmit=async(e)=>{
+    e.preventDefault();
+    const code=document.getElementById('fCode').value.trim();
+    const tel=document.getElementById('fTel').value.trim();
+    if(!code||!tel) return;
+    const btn=e.target.querySelector('button'); btn.disabled=true; btn.textContent='Recherche…';
+    try{
+      const {data,error}=await sb.rpc('portail_lookup',{p_code:code,p_telephone:tel});
+      if(error) throw error;
+      if(data.disabled){ renderLogin('Le portail est momentanément indisponible.'); return; }
+      if(data.limite){ renderLogin('Trop de tentatives — merci de réessayer dans quelques minutes.'); return; }
+      if(!data.found){ renderLogin('Aucun dossier trouvé pour ces informations.'); return; }
+      renderDossier(data);
+    }catch(err){ renderLogin(err.message||'Erreur de connexion.'); }
+  };
+}
+function renderDossier(data){
+  const c=data.client;
+  const nomComplet=[c.civilite,c.nom,c.prenoms].filter(Boolean).join(' ')||c.entreprise;
+  const chantiersHtml=(data.projets||[]).map(p=>{
+    const idx=ETAPES.indexOf(p.etape);
+    return `<div class="card" style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div><div style="font-weight:700;font-size:14px">${esc(p.libelle)}</div><div style="font-size:11px;color:#9ca3af">${esc(p.code)}${p.commune?' · '+esc(p.commune):''}</div></div>
+        ${p.etape==='annule'?badge('annule'):''}
+      </div>
+      ${idx>=0?`<div class="timeline">${ETAPES.map((et,i)=>`<div class="tl-step ${i<idx?'done':i===idx?'current':''}"><div class="tl-dot">${i<idx?'✓':(i+1)}</div><div class="tl-label">${esc(ETAPE_LABELS[et])}</div></div>`).join('')}</div>`:''}
+    </div>`;
+  }).join('')||'<div style="font-size:13px;color:#9ca3af;margin-bottom:14px">Aucun chantier enregistré.</div>';
+  const rowsTable=(arr,cols)=>arr.map(r=>`<tr>${cols.map(c=>`<td>${c(r)}</td>`).join('')}</tr>`).join('')||`<tr><td style="padding:14px 0;font-size:13px;color:#9ca3af;border-top:1px solid #f1f5f9" colspan="${cols.length}">Aucun élément.</td></tr>`;
+  document.getElementById('app').innerHTML=`
+    <div class="section fade-in" style="max-width:640px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div><div style="font-size:19px;font-weight:800">${esc(nomComplet)}</div><div style="font-size:11px;color:#9ca3af">${esc(c.code)}</div></div>
+        <button onclick="renderLogin()" style="font-size:11px;color:#6b7280;background:none;border:0;cursor:pointer;font-family:inherit">← Autre dossier</button>
+      </div>
+      <h3 style="font-size:12px;font-weight:800;text-transform:uppercase;color:#6b7280;margin-bottom:10px;letter-spacing:.3px">🏗️ Mes chantiers</h3>
+      ${chantiersHtml}
+      <h3 style="font-size:12px;font-weight:800;text-transform:uppercase;color:#6b7280;margin-bottom:10px;margin-top:8px;letter-spacing:.3px">📄 Mes devis</h3>
+      <div class="card" style="margin-bottom:14px;overflow-x:auto"><table class="data-table"><thead><tr><th>Code</th><th>Libellé</th><th>Statut</th><th style="text-align:right">Montant</th></tr></thead><tbody>
+        ${rowsTable(data.devis,[d=>esc(d.code),d=>esc(d.libelle||'—'),d=>badge(d.statut),d=>'<span style="display:block;text-align:right;font-weight:700">'+money(d.total)+'</span>'])}
+      </tbody></table></div>
+      <h3 style="font-size:12px;font-weight:800;text-transform:uppercase;color:#6b7280;margin-bottom:10px;letter-spacing:.3px">🧾 Mes factures</h3>
+      <div class="card" style="overflow-x:auto"><table class="data-table"><thead><tr><th>Code</th><th>Date</th><th>Statut</th><th style="text-align:right">Montant</th></tr></thead><tbody>
+        ${rowsTable(data.factures,[f=>esc(f.code),f=>fmtDate(f.date_facture),f=>badge(f.statut),f=>'<span style="display:block;text-align:right;font-weight:700">'+money(f.total)+'</span>'])}
+      </tbody></table></div>
+    </div>`;
+}
+
+function indisponibleHtml(msg){
+  return `<div class="section" style="max-width:480px;padding-top:80px;text-align:center">
+    <div style="font-size:40px;margin-bottom:12px">🚧</div>
+    <div class="card"><div style="font-weight:800;font-size:15px;margin-bottom:6px">Site momentanément indisponible</div><div style="font-size:13px;color:#6b7280">${esc(msg)}</div></div>
+  </div>`;
+}
+async function demarrer(){
+  if(!window.BRAND){
+    try{
+      const {data,error}=await sb.rpc('portail_donnees_publiques');
+      if(error) throw error;
+      window.BRAND=data;
+    }catch(err){
+      document.getElementById('app').innerHTML=indisponibleHtml(err.message||'Connexion impossible. Réessayez plus tard.');
+      return;
+    }
+  }
+  document.documentElement.style.setProperty('--pc',window.BRAND.couleur||'#1D3557');
+  if(window.BRAND.actif===false){
+    document.getElementById('app').innerHTML=indisponibleHtml("Ce portail n'est pas encore activé — contactez l'entreprise directement.");
+    return;
+  }
+  renderHeader();
+  setTab('accueil');
+}
+demarrer();
+</script>
+</body>
+</html>

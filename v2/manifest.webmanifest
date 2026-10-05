@@ -1,0 +1,31 @@
+{
+  "id": "./",
+  "name": "Sanix AluExpert ERP",
+  "short_name": "AluExpert",
+  "description": "ERP menuiserie aluminium & inox : devis, chantiers, stock, caisse, vente au comptoir, comptabilité SYSCOHADA — fonctionne aussi hors ligne",
+  "start_url": "./?source=app",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#111a2e",
+  "theme_color": "#6d28d9",
+  "lang": "fr",
+  "dir": "ltr",
+  "categories": ["business", "productivity", "finance"],
+  "launch_handler": { "client_mode": ["focus-existing", "auto"] },
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Vente au comptoir", "short_name": "Comptoir", "url": "./?page=comptoir", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Nouveau devis", "short_name": "Devis", "url": "./?page=devis-add", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Inventaire", "short_name": "Inventaire", "url": "./?page=stock-inventaire", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Validations en attente", "short_name": "Validations", "url": "./?page=validations", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Valorisation du stock", "short_name": "Valorisation", "url": "./?page=stock-valorisation", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}
