@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Essai gratuit 1 mois — Sanix AluExpert ERP</title>
+<style>
+:root{--bg:#1a1d21;--card:#242830;--card2:#2f343d;--line:rgba(255,255,255,.12);--txt:#f5f6f7;--sub:#b6bcc6;--acc:#ff5a1f;--yel:#fbbf24;--red:#f87171}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--txt);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
+main{max-width:560px;margin:0 auto;padding:22px 16px 48px}
+h1{font-size:22px}h2{font-size:17px;margin-bottom:6px}
+.sub{color:var(--sub);font-size:13px;margin:4px 0 18px}
+.pan{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}
+ul{padding-left:20px;color:var(--sub);font-size:14px;margin:8px 0}
+li{margin:3px 0}
+label{display:block;font-size:13px;color:var(--sub);margin:12px 0 4px}
+input{width:100%;min-height:48px;background:var(--card2);border:1px solid var(--line);border-radius:10px;color:var(--txt);font:16px inherit;padding:0 12px}
+input:focus{outline:2px solid var(--acc);outline-offset:1px}
+button{width:100%;min-height:52px;border:0;border-radius:11px;font:600 16px inherit;cursor:pointer;color:#fff;background:linear-gradient(135deg,#ff5a1f,#ff8a3d);margin-top:16px}
+button:disabled{opacity:.6;cursor:wait}
+.note{font-size:12.5px;color:var(--sub);margin-top:10px}
+#msg{color:var(--yel)}#msg.err{color:var(--red)}
+.big{font-size:30px;font-weight:700;color:var(--acc)}
+footer{text-align:center;color:var(--sub);font-size:12px;margin-top:26px}
+footer b{color:var(--txt)}
+</style>
+</head>
+<body>
+<main>
+  <h1>🪟 Sanix <span style="color:var(--acc)">AluExpert</span> — Essai gratuit</h1>
+  <p class="sub">Testez le logiciel complet avec <b>les données de votre atelier</b>, pendant 1 mois.</p>
+
+  <div class="pan" id="running" hidden>
+    <h2>Votre essai est en cours</h2>
+    <p class="big" id="left"></p>
+    <p class="note" id="until"></p>
+    <button id="open" type="button">▶ Ouvrir AluExpert</button>
+  </div>
+
+  <div class="pan" id="form">
+    <h2>Activer mon essai de 30 jours</h2>
+    <ul>
+      <li>Toutes les fonctions du logiciel pour les ateliers de menuiserie aluminium : devis et proformas, ordres de fabrication, suivi de production, stock et achats, coût de revient, facturation…</li>
+      <li>Aucune donnée client d'exemple : vous saisissez <b>vos</b> clients, vos chantiers et vos prix</li>
+      <li>Les données restent <b>sur cet appareil</b> (aucune synchronisation avec le cloud SANIX pendant l'essai) : utilisez toujours le même appareil et le même navigateur</li>
+    </ul>
+    <form id="f" autocomplete="off" novalidate>
+      <label for="societe">Nom de votre atelier / société</label>
+      <input id="societe" maxlength="80" required placeholder="Ex. Alu Prestige">
+      <label for="nom">Votre nom</label>
+      <input id="nom" maxlength="60" required placeholder="Ex. Kouassi Yao">
+      <label for="email">Adresse e-mail (sert d'identifiant de connexion)</label>
+      <input id="email" type="email" maxlength="80" required autocapitalize="none" autocomplete="username" placeholder="Ex. direction@aluprestige.ci">
+      <label for="pwd">Mot de passe (8 caractères minimum)</label>
+      <input id="pwd" type="password" minlength="8" required autocomplete="new-password">
+      <button id="go" type="submit">🚀 Démarrer mon essai gratuit</button>
+      <p class="note" id="msg" role="status"></p>
+    </form>
+    <p class="note">À la fin des 30 jours l'accès se verrouille ; vous pourrez <b>exporter vos données</b> et nous contacter pour continuer sans rien perdre.</p>
+  </div>
+
+  <footer>Développé par <b>SANIX AFRICA</b> · Division Technologies<br>📞 +225 07 79 18 10 75 · ✉️ sanixafrica699@gmail.com</footer>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  var DAYS = 30;
+  var DAY_MS = 86400000;
+  var DEFAULT_EMAIL = 'admin@sanix.local';
+  var SEED_LIMIT = 60;            /* au-delà, la base locale contient de vraies données (les valeurs par défaut en comptent peu) */
+  var OURS = /^(alubom_|sanix_|alu_)/;
+  var $ = function (id) { return document.getElementById(id); };
+
+  function read(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
+  function say(t, err) { var m = $('msg'); m.textContent = t; m.className = err ? 'err' : ''; }
+  function b64(buf) { return btoa(String.fromCharCode.apply(null, new Uint8Array(buf))); }
+
+  /* Même dérivation que l'écran de connexion de l'application (PBKDF2, 100 000 itérations, SHA-256) */
+  function hashPassword(pw) {
+    var salt = crypto.getRandomValues(new Uint8Array(16)), enc = new TextEncoder();
+    return crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveBits']).then(function (k) {
+      return crypto.subtle.deriveBits({ name: 'PBKDF2', salt: salt, iterations: 100000, hash: 'SHA-256' }, k, 256);
+    }).then(function (bits) { return { salt: b64(salt), hash: b64(bits) }; });
+  }
+
+  /* Nombre d'enregistrements dans la base locale de l'application (0 si elle n'existe pas) */
+  function countRecords() {
+    return new Promise(function (resolve) {
+      try {
+        var req = indexedDB.open('alubom_db');
+        req.onerror = function () { resolve(0); };
+        req.onsuccess = function () {
+          var db = req.result, names = Array.prototype.slice.call(db.objectStoreNames), total = 0, left = names.length;
+          if (!left) { db.close(); resolve(0); return; }
+          names.forEach(function (n) {
+            var r = db.transaction(n, 'readonly').objectStore(n).count();
+            r.onsuccess = function () { total += r.result; if (--left === 0) { db.close(); resolve(total); } };
+            r.onerror = function () { if (--left === 0) { db.close(); resolve(total); } };
+          });
+        };
+      } catch (e) { resolve(0); }
+    });
+  }
+
+  function deleteDb() {
+    return new Promise(function (resolve) {
+      try {
+        var r = indexedDB.deleteDatabase('alubom_db');
+        r.onsuccess = function () { resolve(true); }; r.onerror = function () { resolve(false); }; r.onblocked = function () { resolve(false); };
+      } catch (e) { resolve(false); }
+    });
+  }
+
+  /* Données réelles déjà présentes sur l'appareil ? Un compte autre que celui par défaut, ou une base locale déjà remplie */
+  function hasRealData() {
+    var u = read('alubom_local_users');
+    if (u && u.some(function (x) { return x && x.email && x.email !== DEFAULT_EMAIL; })) return Promise.resolve(true);
+    return countRecords().then(function (n) { return n > SEED_LIMIT; });
+  }
+
+  function showRunning(t) {
+    var left = Math.max(0, Math.ceil((t.end - Math.max(Date.now(), t.last || 0)) / DAY_MS));
+    $('form').hidden = true; $('running').hidden = false;
+    $('left').textContent = left > 0 ? left + ' jour' + (left > 1 ? 's' : '') + ' restant' + (left > 1 ? 's' : '') : 'Essai terminé';
+    $('until').textContent = 'Société : ' + t.societe + ' · jusqu\'au ' + new Date(t.end).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+  }
+
+  function start(e) {
+    e.preventDefault();
+    var societe = $('societe').value.trim(), nom = $('nom').value.trim(), email = $('email').value.trim().toLowerCase(), pwd = $('pwd').value;
+    if (!societe || !nom || !email) { say('Merci de remplir tous les champs.', true); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { say('Saisissez une adresse e-mail valide.', true); return; }
+    if (pwd.length < 8) { say('Le mot de passe doit contenir au moins 8 caractères.', true); return; }
+    if (!window.crypto || !crypto.subtle) { say('Ce navigateur n\'autorise pas l\'essai (connexion sécurisée requise).', true); return; }
+
+    var btn = $('go'); btn.disabled = true; say('Préparation de votre espace…');
+    hasRealData().then(function (real) {
+      if (real) { say('Cet appareil contient déjà des données AluExpert : pour ne rien écraser, ouvrez cette page sur un autre appareil, un autre navigateur ou en navigation privée.', true); btn.disabled = false; return; }
+      return deleteDb().then(function (ok) {
+        if (!ok) { say('Fermez les autres onglets AluExpert ouverts, puis recommencez.', true); btn.disabled = false; return; }
+        return hashPassword(pwd).then(function (h) {
+          try {
+            Object.keys(localStorage).forEach(function (k) { if (OURS.test(k)) localStorage.removeItem(k); });
+            try { sessionStorage.removeItem('alubom_session'); } catch (x) {}
+            var now = Date.now();
+            localStorage.setItem('alubom_local_users', JSON.stringify([{ id: 'local_admin', email: email, salt: h.salt, hash: h.hash, role: 'admin', permissions: ['*'] }]));
+            localStorage.setItem('alubom_company_info', JSON.stringify({ nom: societe, email: email }));
+            localStorage.setItem('alu_trial', JSON.stringify({ v: 1, societe: societe, nom: nom, email: email, start: now, end: now + DAYS * DAY_MS, last: now }));
+            say('Ouverture de l\'application…');
+            location.href = 'index.html';
+          } catch (x) {
+            say('Impossible d\'enregistrer les données sur cet appareil (stockage plein ou bloqué).', true);
+            btn.disabled = false;
+          }
+        });
+      });
+    });
+  }
+
+  var t = read('alu_trial');
+  if (t && t.end) showRunning(t);        /* l'essai ne peut être démarré qu'une seule fois par appareil */
+  $('open').addEventListener('click', function () { location.href = 'index.html'; });
+  $('f').addEventListener('submit', start);
+})();
+</script>
+</body>
+</html>
